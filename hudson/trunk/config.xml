@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<hudson>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
+  <securityRealm class="hudson.security.SecurityRealm$None"/>
+  <systemMessage>&lt;h2&gt;Test/Integeration Server for Squawk Project&lt;/h2&gt;&#x0D;
+derek.white@sun.com&lt;p&gt;&#x0D;
+&#x0D;
+Also check JavaTest running &lt;a href=&quot;http://squawk-sqa:1903/harness&quot;&gt;here&lt;/a&gt;.</systemMessage>
+  <jdks/>
+  <slaves/>
+  <quietPeriod>5</quietPeriod>
+  <views/>
+  <slaveAgentPort>0</slaveAgentPort>
+  <secretKey>f17b8038f02afc000dfa9f1265c0cd9fecb10d23b5cbfeac15282560fe4c4dd1</secretKey>
+</hudson>

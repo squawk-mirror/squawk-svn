@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<matrix-project>
+  <axes serialization="custom">
+    <unserializable-parents/>
+    <list>
+      <default>
+        <size>4</size>
+      </default>
+      <int>10</int>
+      <hudson.matrix.Axis>
+        <name>ASSERTIONS_ENABLED</name>
+        <values>
+          <string>true</string>
+          <string>false</string>
+        </values>
+      </hudson.matrix.Axis>
+      <hudson.matrix.Axis>
+        <name>DEBUG_CODE_ENABLED</name>
+        <values>
+          <string>true</string>
+          <string>false</string>
+        </values>
+      </hudson.matrix.Axis>
+      <hudson.matrix.Axis>
+        <name>ENABLE_DYNAMIC_CLASSLOADING</name>
+        <values>
+          <string>true</string>
+          <string>false</string>
+        </values>
+      </hudson.matrix.Axis>
+      <hudson.matrix.Axis>
+        <name>TRACING_ENABLED</name>
+        <values>
+          <string>true</string>
+          <string>false</string>
+        </values>
+      </hudson.matrix.Axis>
+    </list>
+  </axes>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+cd trunk
+java -jar build.jar clean 
+java -jar build.jar copyphoneme
+java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING &amp;&amp; java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
+/home/dw29446/bin/runsmoketest.sh</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers class="vector">
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.Mailer>
+      <recipients>derek.white@sun.com</recipients>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
+  </publishers>
+  <buildWrappers class="vector"/>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <local>trunk</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <useUpdate>true</useUpdate>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <triggers class="vector"/>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>3</numToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <description>Build squawk in several configurations, with FLASH_MEMORY=TRUE:&#x0D;
+&lt;ul&gt;&#x0D;
+&lt;li&gt;ASSERTIONS_ENABLED&#x0D;
+&lt;li&gt;DEBUG_CODE_ENABLED&#x0D;
+&lt;li&gt;ENABLE_DYNAMIC_CLASSLOADING&#x0D;
+&lt;li&gt;TRACING_ENABLED&#x0D;
+&lt;/ul&gt;&#x0D;
+&#x0D;
+&lt;b&gt;No floats&lt;/b&gt; builds disabled until we get more disk (we know they don&apos;t work now anyway).</description>
+  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+</matrix-project>

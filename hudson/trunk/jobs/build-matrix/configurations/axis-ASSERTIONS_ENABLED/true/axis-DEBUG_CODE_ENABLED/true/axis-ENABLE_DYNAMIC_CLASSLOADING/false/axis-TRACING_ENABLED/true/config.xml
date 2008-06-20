@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<matrix-config>
+  <builders class="vector"/>
+  <publishers class="vector"/>
+  <buildWrappers class="vector"/>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <triggers class="vector"/>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+</matrix-config>
