@@ -6,11 +6,17 @@
 cd trunk
 java -jar build.jar clean
 java -jar build.jar copyphoneme
-java -jar build.jar jam -parallel:2 -url:http://localhost:19003/test/getNextApp</command>
+java -jar build.jar -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
+java -jar build.jar -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -strip:a cldc
+./squawk -h
+./squawk -version</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers class="vector">
-    <hudson.tasks.test.AggregatedTestResultPublisher/>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.Mailer>
       <recipients>derek.white@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
@@ -29,13 +35,20 @@ java -jar build.jar jam -parallel:2 -url:http://localhost:19003/test/getNextApp<
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
-  <triggers class="vector"/>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>15 * * * *
+</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
-    <numToKeep>1</numToKeep>
+    <numToKeep>2</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties/>
-  <description>Start runner for TCK tests from squawk checked out from svn</description>
+  <description>Build a small VM from SVN. Build without imp, debugging, etc.&#x0D;
+&lt;p&gt;&#x0D;
+&lt;h2&gt;TODO: TURN OFF FLOATS, RUN TESTS&lt;/h2&gt;</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </project>

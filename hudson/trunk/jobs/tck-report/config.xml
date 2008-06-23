@@ -32,9 +32,7 @@
     <numToKeep>4</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
-  <description></description>
+  <properties/>
+  <description>Experimental job that tries to trigger the Hudson javatest plugin. Not working yet!</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </project>

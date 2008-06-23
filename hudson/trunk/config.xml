@@ -7,7 +7,22 @@
   <systemMessage>&lt;h2&gt;Test/Integeration Server for Squawk Project&lt;/h2&gt;&#x0D;
 derek.white@sun.com&lt;p&gt;&#x0D;
 &#x0D;
-Also check JavaTest running &lt;a href=&quot;http://squawk-sqa:1903/harness&quot;&gt;here&lt;/a&gt;.</systemMessage>
+&lt;h3&gt;Automatic Jobs&lt;/h3&gt;&#x0D;
+&lt;ul&gt;&#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/&quot;&gt;full-debug-build&lt;/a&gt; &#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/&quot;&gt;small-build&lt;/a&gt; &#x0D;
+&lt;/ul&gt;&#x0D;
+&#x0D;
+&lt;h3&gt;TCK Jobs&lt;/h3&gt;&#x0D;
+&lt;ul&gt;&#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; &#x0D;
+&lt;ul&gt;plus one of:&#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-local&lt;/a&gt; &#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-from-svn&lt;/a&gt; &#x0D;
+&lt;/ul&gt;&#x0D;
+&lt;/ul&gt;&#x0D;
+When the TCK is running, you can check console of the currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; job to see progress.</systemMessage>
   <jdks/>
   <slaves/>
   <quietPeriod>5</quietPeriod>

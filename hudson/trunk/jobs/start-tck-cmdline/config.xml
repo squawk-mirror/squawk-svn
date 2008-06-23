@@ -20,6 +20,7 @@
   </publishers>
   <buildWrappers class="vector"/>
   <scm class="hudson.scm.NullSCM"/>
+  <quietPeriod>1800</quietPeriod>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
   <triggers class="vector"/>

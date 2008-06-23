@@ -44,7 +44,8 @@ cd trunk
 java -jar build.jar clean 
 java -jar build.jar copyphoneme
 java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING &amp;&amp; java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
-/home/dw29446/bin/runsmoketest.sh</command>
+$HUDSON_HOME/bin/runsmoketest.sh
+java -jar build.jar map squawk.suite</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers class="vector">
@@ -82,7 +83,7 @@ java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASS
   </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties/>
-  <description>Build squawk in several configurations, with FLASH_MEMORY=TRUE:&#x0D;
+  <description>Build squawk in several configurations, with FLASH_MEMORY=FALSE:&#x0D;
 &lt;ul&gt;&#x0D;
 &lt;li&gt;ASSERTIONS_ENABLED&#x0D;
 &lt;li&gt;DEBUG_CODE_ENABLED&#x0D;
@@ -90,6 +91,6 @@ java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASS
 &lt;li&gt;TRACING_ENABLED&#x0D;
 &lt;/ul&gt;&#x0D;
 &#x0D;
-&lt;b&gt;No floats&lt;/b&gt; builds disabled until we get more disk (we know they don&apos;t work now anyway).</description>
+&lt;b&gt;No floats&lt;/b&gt; builds disabled (we know they don&apos;t work now anyway).</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </matrix-project>

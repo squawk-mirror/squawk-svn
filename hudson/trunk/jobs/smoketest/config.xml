@@ -9,7 +9,7 @@
   </builders>
   <publishers class="vector">
     <hudson.tasks.Mailer>
-      <recipients></recipients>
+      <recipients>derek.white@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
@@ -25,6 +25,6 @@
   </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties/>
-  <description></description>
+  <description>Run the smoke test in the local workspace test-ws.</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </project>

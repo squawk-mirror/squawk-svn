@@ -28,6 +28,6 @@
   </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties/>
-  <description></description>
+  <description>Re-write the html report after a TCK run. start-tck-cmdline should have done this, but sometimes it&apos;s handly to force it. The TCK report shows up as &quot;report.html&quot; in Last Successful Artifacts.</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </project>
