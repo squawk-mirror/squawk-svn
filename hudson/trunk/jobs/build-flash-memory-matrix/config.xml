@@ -30,9 +30,7 @@ cd trunk
 java -jar build.jar clean 
 java -jar build.jar copyphoneme
 java -jar build.jar -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  
-java -jar build.jar --DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -prod -mac -o2 rom -metadata cldc imp debugger
-./squawk -h
-./squawk -version</command>
+java -jar build.jar -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -prod -mac -o2 rom -metadata cldc imp debugger</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers class="vector">
@@ -58,12 +56,7 @@ java -jar build.jar --DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DA
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
-  <triggers class="vector">
-    <hudson.triggers.SCMTrigger>
-      <spec>19 * * * *
-</spec>
-    </hudson.triggers.SCMTrigger>
-  </triggers>
+  <triggers class="vector"/>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>3</numToKeep>
@@ -76,6 +69,7 @@ java -jar build.jar --DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DA
 &lt;li&gt;DEBUG_CODE_ENABLED&#x0D;
 &lt;/ul&gt;&#x0D;
 &#x0D;
-&lt;b&gt;No floats&lt;/b&gt; builds disabled (we know they don&apos;t work now anyway).</description>
+&lt;b&gt;No floats&lt;/b&gt; builds disabled (we know they don&apos;t work now anyway).&#x0D;
+&lt;b&gt;Can&apos;t actually run FLASH_MEMORY builds&lt;/b&gt; on desktop, due to different channel operations, etc.</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </matrix-project>

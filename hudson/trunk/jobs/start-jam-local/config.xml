@@ -1,16 +1,13 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <customWorkspace>/scratch/dw29446/hudson/tck</customWorkspace>
+  <customWorkspace>/scratch/dw29446/hudson/test-ws</customWorkspace>
   <builders>
     <hudson.tasks.Shell>
-      <command>java -jar CLDC-TCK_11/lib/javatest.jar -startHttp -batch @squawk-cldc11.jtb</command>
+      <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.5.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.5.0/jre/lib/i386:$LD_LIBRARY_PATH
+java -jar build.jar jam -parallel:2 -url:http://localhost:19003/test/getNextApp</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers class="vector">
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>batch-report/**,batch-work/**</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.test.AggregatedTestResultPublisher/>
     <hudson.tasks.Mailer>
       <recipients>derek.white@sun.com</recipients>
@@ -26,10 +23,10 @@
   <triggers class="vector"/>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
-    <numToKeep>4</numToKeep>
+    <numToKeep>3</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties/>
-  <description></description>
+  <description>Startthe TCK test running in the local workspace test-ws.</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </project>

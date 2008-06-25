@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <customWorkspace>/scratch/dw29446/hudson/test-ws</customWorkspace>
   <builders>
     <hudson.tasks.Shell>
       <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+cd trunk
 
 $HUDSON_HOME/bin/verifyBuildJars2
 
@@ -25,13 +25,12 @@ java -jar build.jar Verifier
 $HUDSON_HOME/bin/runsmoketest.sh
 
 /usr/bin/rm -rf tempdoc
-java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc
-</command>
+java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers class="vector">
     <hudson.tasks.ArtifactArchiver>
-      <artifacts>squawk, squawk.suite</artifacts>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.JavadocArchiver>
@@ -42,19 +41,40 @@ java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>full-debug-build, small-build, build-matrix</childProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
   </publishers>
   <buildWrappers class="vector"/>
-  <scm class="hudson.scm.NullSCM"/>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <local>trunk</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <useUpdate>true</useUpdate>
+  </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
   <jdk>(Default)</jdk>
-  <triggers class="vector"/>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>5 * * * *
+</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
-    <numToKeep>4</numToKeep>
+    <numToKeep>2</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties/>
-  <description>simple squawk build, from local directory test-ws.</description>
+  <description>Do a &quot;normal&quot; build from SVN. Do more testing than the matrix builds.</description>
   <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
 </project>

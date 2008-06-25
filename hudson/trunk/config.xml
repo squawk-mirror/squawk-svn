@@ -4,17 +4,22 @@
   <mode>NORMAL</mode>
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
   <securityRealm class="hudson.security.SecurityRealm$None"/>
-  <systemMessage>&lt;h2&gt;Test/Integeration Server for Squawk Project&lt;/h2&gt;&#x0D;
+  <systemMessage>&lt;h1&gt;Test/Integeration Server for Squawk Project&lt;/h1&gt;&#x0D;
 derek.white@sun.com&lt;p&gt;&#x0D;
 &#x0D;
-&lt;h3&gt;Automatic Jobs&lt;/h3&gt;&#x0D;
+&lt;table cellspacing=&quot;20&quot;&gt;&#x0D;
+&lt;tr&gt;&lt;th&gt;Automatic&lt;th&gt;Manual - TCK&lt;th&gt;Manual - Other&#x0D;
+&lt;tr&gt;&#x0D;
+&lt;td&gt;&#x0D;
 &lt;ul&gt;&#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/&quot;&gt;normal-build&lt;/a&gt; &#x0D;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/&quot;&gt;full-debug-build&lt;/a&gt; &#x0D;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/&quot;&gt;small-build&lt;/a&gt; &#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-flash-memory-matrix/&quot;&gt;build-flash-memory-matrix&lt;/a&gt;&#x0D;
 &lt;/ul&gt;&#x0D;
 &#x0D;
-&lt;h3&gt;TCK Jobs&lt;/h3&gt;&#x0D;
+&lt;td&gt;&#x0D;
 &lt;ul&gt;&#x0D;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; &#x0D;
 &lt;ul&gt;plus one of:&#x0D;
@@ -22,8 +27,24 @@ derek.white@sun.com&lt;p&gt;&#x0D;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-from-svn&lt;/a&gt; &#x0D;
 &lt;/ul&gt;&#x0D;
 &lt;/ul&gt;&#x0D;
-When the TCK is running, you can check console of the currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; job to see progress.</systemMessage>
-  <jdks/>
+&lt;i&gt;When the TCK is running, you can check console of the &lt;br&gt;&#x0D;
+currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; job to see progress.&lt;/i&gt;&#x0D;
+&#x0D;
+&lt;td&gt;&#x0D;
+&lt;ul&gt;&#x0D;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/squawk-build-local/&quot;&gt;squawk-build-local&lt;/a&gt; &#x0D;
+&lt;/ul&gt;&#x0D;
+&lt;/table&gt;</systemMessage>
+  <jdks>
+    <jdk>
+      <name>1.6</name>
+      <javaHome>/usr/jdk/instances/jdk1.6.0</javaHome>
+    </jdk>
+    <jdk>
+      <name></name>
+      <javaHome></javaHome>
+    </jdk>
+  </jdks>
   <slaves/>
   <quietPeriod>5</quietPeriod>
   <views/>
