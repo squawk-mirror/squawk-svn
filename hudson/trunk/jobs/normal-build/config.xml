@@ -34,13 +34,8 @@ java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.JavadocArchiver>
-      <javadocDir>tempdoc/javadoc</javadocDir>
+      <javadocDir>trunk/tempdoc/javadoc</javadocDir>
     </hudson.tasks.JavadocArchiver>
-    <hudson.tasks.Mailer>
-      <recipients>derek.white@sun.com</recipients>
-      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
-      <sendToIndividuals>false</sendToIndividuals>
-    </hudson.tasks.Mailer>
     <hudson.tasks.BuildTrigger>
       <childProjects>full-debug-build, small-build, build-matrix</childProjects>
       <threshold>
@@ -49,6 +44,11 @@ java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed
         <color>BLUE</color>
       </threshold>
     </hudson.tasks.BuildTrigger>
+    <hudson.tasks.Mailer>
+      <recipients>derek.white@sun.com</recipients>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers class="vector"/>
   <scm class="hudson.scm.SubversionSCM">

@@ -8,13 +8,13 @@
   </builders>
   <publishers class="vector">
     <hudson.tasks.ArtifactArchiver>
-      <artifacts>batch-report/*.html</artifacts>
+      <artifacts>batch-report/html/*.html</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.test.AggregatedTestResultPublisher/>
     <hudson.plugins.javatest__report.JavaTestReportPublisher>
-      <includes>batch-report/xml/*.xml</includes>
-      <jtwork>batch-work</jtwork>
+      <includes>batch-report/html/*.html</includes>
+      <jtwork></jtwork>
     </hudson.plugins.javatest__report.JavaTestReportPublisher>
     <hudson.tasks.Mailer>
       <recipients>derek.white@sun.com</recipients>
@@ -26,6 +26,7 @@
   <scm class="hudson.scm.NullSCM"/>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
+  <jdk>(Default)</jdk>
   <triggers class="vector"/>
   <logRotator>
     <daysToKeep>-1</daysToKeep>

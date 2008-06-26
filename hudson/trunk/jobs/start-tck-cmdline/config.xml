@@ -3,7 +3,7 @@
   <customWorkspace>/scratch/dw29446/hudson/tck</customWorkspace>
   <builders>
     <hudson.tasks.Shell>
-      <command>java -jar CLDC-TCK_11/lib/javatest.jar -startHttp -batch @squawk-cldc11.jtb</command>
+      <command>java -jar CLDC-TCK_11/lib/javatest.jar -batch @squawk-cldc11.jtb</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers class="vector">
@@ -23,6 +23,7 @@
   <quietPeriod>1800</quietPeriod>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
+  <jdk>(Default)</jdk>
   <triggers class="vector"/>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
