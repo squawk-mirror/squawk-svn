@@ -1264,7 +1264,7 @@ Address processArgs(char *argv[], const int argc) {
                 usage();
                 stopVM(0);
             }
-        } else if (PLATFORM_TYPE_DELEGATING && arg[1] != 'J') {
+        } else if (PLATFORM_TYPE_DELEGATING && arg[1] == 'J') {
             /* '-J' flag */
             if (javaVMArgsCount >= MAX_JVM_ARGS) {
                 fatalVMError("too many '-J' flags");
