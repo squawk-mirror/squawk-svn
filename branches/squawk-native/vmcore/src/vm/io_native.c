@@ -25,8 +25,13 @@
 
 /*************** NOTE: this file is included when PLATFORM_TYPE_NATIVE=true **************************/
 
+#ifdef _MSC_VER
+#include <windows.h>
+#include <winsock2.h>
+#else
 #include <netdb.h>
 #include <dlfcn.h>
+#endif
 
 /****** HARD CODED FOR MAC FOR NOW:  *************/
 #define MAX_MICRO_SLEEP 999999

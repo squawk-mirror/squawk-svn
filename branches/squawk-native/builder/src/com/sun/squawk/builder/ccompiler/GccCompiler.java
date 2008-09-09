@@ -87,14 +87,14 @@ public class GccCompiler extends CCompiler {
         return buf.append(options.cflags).append(' ').toString();
     }
 
-    private int defaultSizeofPointer = -1;
+    protected int defaultSizeofPointer = -1;
 
     /**
      * Compiles a small C program to determine the default pointer size of this version of gcc.
      *
      * @return  the size (in bytes) of a pointer compiled by this version of gcc
      */
-    private int getDefaultSizeofPointer() {
+    protected int getDefaultSizeofPointer() {
         if (defaultSizeofPointer == -1) {
             try {
                 File cFile = File.createTempFile("sizeofpointer", ".c");

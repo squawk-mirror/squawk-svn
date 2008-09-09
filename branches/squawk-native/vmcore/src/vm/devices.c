@@ -67,6 +67,7 @@ INLINE int enableInterrupts() {
  * @return the memory address or null if failure
  */
 INLINE void *safeMalloc(unsigned length) {
+    printf("Trying to allocate %d bytes\n", length);
     assumeInterruptsAreDisabled();
     return malloc(length);
 }

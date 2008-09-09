@@ -349,8 +349,8 @@ public class RomCommand extends Command {
         if (compilationEnabled) {
 
             File[] includeDirs = new File[] {
-                new File(jdk.getHome(), "include"),
-                jdk.getJNI_MDIncludePath(),
+                //new File(jdk.getHome(), "include"),
+                //jdk.getJNI_MDIncludePath(),
                 FP_SRC_DIR,
                 new File(VM_SRC_RTS_DIR, ccompiler.getName())
             };

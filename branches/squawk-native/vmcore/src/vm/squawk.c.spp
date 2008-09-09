@@ -809,6 +809,7 @@ void jvmUsage() {
  * Shows the usage message.
  */
 void usage() {
+	printf("Usage: \n");
     printf("    -Xmx:<size>    set Squawk RAM size (default=%dKb)\n", DEFAULT_RAM_SIZE/1024);
     printf("    -Xmxnvm:<size> set Squawk NVM size (default=%dKb)\n", DEFAULT_NVM_SIZE/1024);
     printf("    -Xboot:<file>  load bootstrap suite from file (default=squawk.suite)\n");
@@ -1639,6 +1640,7 @@ void printStrSafely(Address value, char* valueName, Address low, Address high, c
  * @param argv the parameter argument vector
  */
 void Squawk_run(int argc, char *argv[]) {
+	printf("[SQUAWK] JVM Ready\n");
 
     Address bootstrapSuite = Squawk_setup(argc, argv);
 
@@ -1683,6 +1685,8 @@ void Squawk_run(int argc, char *argv[]) {
  */
 void Squawk_main(int argc, char *argv[]) {
 #if KERNEL_SQUAWK
+	printf("[SQUAWK] Running in Kernel mode\n");
+
     /* Doing this here guaratees that all configurations (including
      * Java_com_sun_squawk_vm_Main_squawk() via JNI) have access to
      * a kernel/user split. However, Nik felt this option should be
@@ -1691,6 +1695,7 @@ void Squawk_main(int argc, char *argv[]) {
     char *kernelArgs[MAX_JVM_ARGS];
     int   kernelArgsCount = 0;
 
+	printf("[SQUAWK] Preprocessing arguments\n");
     preprocessArgs(argv, &argc, kernelArgs, &kernelArgsCount);
     if (kernelMode) {
         Squawk_setSignalHandlers();
@@ -1706,6 +1711,29 @@ void Squawk_main(int argc, char *argv[]) {
 #include "ioserver.c"
 #endif /* IOSERVER */
 
+//+++BMO
+/**
+ * Entry point for the VxWorks operating system.
+ */
+int vxos_main(char* arg1) {
+    // Convert from VxWorks argument format to normal argument format
+    const int argc = 3;
+
+    char* argv[argc];
+    argv[0] = "squawk.out";
+
+    // Patch for lack of NVRAM
+    argv[1] = "-Xmxnvm:0";
+    //argv[2] = "-Xtgc:1";
+
+    argv[argc - 1] = arg1;
+
+    // Switch directories so squawk.suite will always be found
+    cd("/c/ni-rt/system");
+
+    return os_main(argc, argv); 
+}
+//+++BMO
 
 /**
  * Program entrypoint.
@@ -1714,6 +1742,8 @@ void Squawk_main(int argc, char *argv[]) {
  * @param argv the parameter argument vector
  */
 int os_main(int argc, char *argv[]) {
+    printf("[SQUAWK] JVM Running\n");
+    
     int ignore = initializeGlobals(&userGlobals);
     char *executable = argv[0];
 
@@ -1723,12 +1753,16 @@ int os_main(int argc, char *argv[]) {
     argv++;
     argc--;
 
+	printf("[SQUAWK] Jumping to real main()\n");
 #ifdef IOSERVER
     if (strstr(executable, "ioserver") != null) {
         return IOServer_main(argc, argv);
     }
 #endif /* IOSERVER */
     Squawk_main(argc, argv);
+    
+    printf("[SQUAWK] JVM Shutdown\n");
+    
     return 0;
 }
 

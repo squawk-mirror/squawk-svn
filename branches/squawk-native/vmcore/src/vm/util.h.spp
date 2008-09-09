@@ -99,9 +99,17 @@ void toggleMemoryProtection(Address start, Address end, boolean readonly) {
         fprintf(stderr, format("Could not toggle memory protection: errno=%d addr=%A len=%d readonly=%s\n"), GetLastError(), start, len, readonly ? "true" : "false");
     }
 #else
+//+++BMO
+#ifdef VXWORKS
+    printf("mprotect() is not supported.  Not protecting memory at %#0.8x\n", start);
+#else
+//+++BMO
     if (mprotect(start, len, readonly ? PROT_READ : PROT_READ | PROT_WRITE) != 0) {
         fprintf(stderr, "Could not toggle memory protection: %s\n", strerror(errno));
     }
+//+++BMO
+#endif /* VXWORKS */
+//+++BMO
 #endif /* _MSC_VER */
 #endif /* FLASH_MEMORY */
 }

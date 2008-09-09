@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="45">
+<configurationDescriptor version="47">
   <logicalFolder name="root" displayName="root" projectFiles="true">
     <logicalFolder name="src" displayName="src" projectFiles="true">
       <logicalFolder name="rts" displayName="rts" projectFiles="true">
@@ -37,6 +37,15 @@
           <itemPath>src/rts/msc/os.c</itemPath>
           <itemPath>src/rts/msc/os_devices.c</itemPath>
           <itemPath>src/rts/msc/os_devices.h</itemPath>
+        </logicalFolder>
+        <logicalFolder name="vxworks" displayName="vxworks" projectFiles="true">
+          <itemPath>src/rts/vxworks/dlfcn.h</itemPath>
+          <itemPath>src/rts/vxworks/jni.h</itemPath>
+          <itemPath>src/rts/vxworks/jni_md.h</itemPath>
+          <itemPath>src/rts/vxworks/malloc.h</itemPath>
+          <itemPath>src/rts/vxworks/os.c</itemPath>
+          <itemPath>src/rts/vxworks/os_devices.c</itemPath>
+          <itemPath>src/rts/vxworks/os_devices.h</itemPath>
         </logicalFolder>
       </logicalFolder>
       <logicalFolder name="vm" displayName="vm" projectFiles="true">
@@ -99,6 +108,7 @@
   <confs>
     <conf name="Default" type="0">
       <toolsSet>
+        <developmentServer>localhost</developmentServer>
         <compilerSet>GNU|GNU</compilerSet>
         <platform>5</platform>
       </toolsSet>
@@ -109,6 +119,9 @@
           <cleanCommand></cleanCommand>
           <executablePath>../squawk</executablePath>
           <cCompilerTool>
+            <includeDirectories>
+              <directoryPath>C:/WindRiver/vxworks-6.3/target/h</directoryPath>
+            </includeDirectories>
             <preprocessorList>
               <Elem>SDA_DEBUGGER=1</Elem>
               <Elem>MACROIZE=1</Elem>
@@ -185,6 +198,27 @@
         <itemTool>0</itemTool>
       </item>
       <item path="src/rts/msc/os_devices.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/vxworks/dlfcn.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/vxworks/jni.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/vxworks/jni_md.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/vxworks/malloc.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/vxworks/os.c">
+        <itemTool>0</itemTool>
+      </item>
+      <item path="src/rts/vxworks/os_devices.c">
+        <itemTool>0</itemTool>
+      </item>
+      <item path="src/rts/vxworks/os_devices.h">
         <itemTool>3</itemTool>
       </item>
       <item path="src/vm/address.c.spp">

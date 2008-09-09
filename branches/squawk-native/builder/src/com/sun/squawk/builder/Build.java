@@ -30,6 +30,7 @@ import com.sun.squawk.builder.commands.*;
 import com.sun.squawk.builder.gen.Generator;
 import com.sun.squawk.builder.launcher.Launcher;
 import com.sun.squawk.builder.platform.Platform;
+import com.sun.squawk.builder.platform.VxWorks_PPC;
 import com.sun.squawk.builder.platform.Windows_X86;
 import com.sun.squawk.builder.util.DirSet;
 import com.sun.squawk.builder.util.FileSet;
@@ -1651,6 +1652,8 @@ public class Build {
             ccompiler = new GccMacOSXCompiler(this, platform);
         } else if (name.equals("cc")) {
             ccompiler = new CcCompiler(this, platform);
+        } else if (name.equals("vxworks")) {
+            ccompiler = new GccVxWorksPPCCompiler(this, new VxWorks_PPC(this));
         } else {
             System.out.println("Unknown C compiler '" + name + "' - C compilation disabled");
             ccompiler = null;
