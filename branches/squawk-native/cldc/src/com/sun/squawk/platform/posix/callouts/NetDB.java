@@ -25,7 +25,7 @@
 package com.sun.squawk.platform.posix.callouts;
 
 import com.sun.squawk.Address;
-import com.sun.squawk.platform.callouts.*;
+import com.sun.cldc.jna.*;
 
 /**
  *
@@ -38,7 +38,7 @@ public class NetDB {
     
     private static final VarPointer h_errnoPtr = VarPointer.lookup("h_errno", 4);
         
-    private static final FunctionPointer gethostbynamePtr = FunctionPointer.lookup("gethostbyname");
+    private static final Function gethostbynamePtr = Function.getFunction("gethostbyname");
     
     /**
      * The gethostbyname() function returns a pointer to an
@@ -67,7 +67,7 @@ public class NetDB {
             return null;
         } else {
             Struct_HostEnt result = new Struct_HostEnt();
-            result.setMemory(new Pointer(addr, result.size()));
+            result.useMemory(new Pointer(addr, result.size()));
             result.read();
             return result;
         }
@@ -100,24 +100,21 @@ public class NetDB {
 
         public String h_name;        /* official name of host */
 
-        public String[] h_aliases_NOT_IMPLEMENTED;    /* alias list */
-
         public int h_addrtype;     /* host address type */
 
         public int h_length;       /* length of address */
 
         public Pointer[] h_addr_list;  /* list of addresses from name server */
-
+        
         public void read() {
-            Pointer p = getMemory();
+            Pointer p = getPointer();
             h_name = p.getString(0);
-            h_aliases_NOT_IMPLEMENTED = null; // p.getPointer(4, ???);
             h_addrtype = p.getInt(8);
             h_length = p.getInt(12);
             if (h_length != 4) {
                 System.err.println("WARNING: Unexpected h_length value");
             }
-            // just look at first address...
+
             Pointer adrlist = p.getPointer(16, h_length);
 //System.err.println(" adrlist  " + adrlist);
 

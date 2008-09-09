@@ -25,13 +25,13 @@
 package com.sun.squawk.platform.posix.callouts;
 
 import com.sun.squawk.Address;
-import com.sun.squawk.platform.callouts.*;
+import com.sun.cldc.jna.*;
 
 /**
  *
  * This is the Java interface to the BSD sockets API
  */
-public class Socket  extends LibC {
+public class Socket extends LibC {
     //            /* Supported address families. */
     //#define AF_UNSPEC	0
     //#define AF_UNIX		1	/* Unix domain sockets 		*/
@@ -93,16 +93,16 @@ public class Socket  extends LibC {
 //#endif	/* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */ 
         
     /* Actual function pointers for calling out to libs */
-    private static final FunctionPointer socketPtr = FunctionPointer.lookup("socket");
-    private static final FunctionPointer connectPtr  = FunctionPointer.lookup("connect");
-    private static final FunctionPointer bindPtr = FunctionPointer.lookup("bind");
-    private static final FunctionPointer listenPtr = FunctionPointer.lookup("listen");
-    private static final FunctionPointer acceptPtr = FunctionPointer.lookup("accept");
-    private static final FunctionPointer shutdownPtr = FunctionPointer.lookup("shutdown");
-    private static final FunctionPointer inet_ntoaPtr  = FunctionPointer.lookup("inet_ntoa");
-    private static final FunctionPointer inet_atonPtr = FunctionPointer.lookup("inet_aton");
-    private static final FunctionPointer setSockOptPtr = FunctionPointer.lookup("setsockopt");
-    private static final FunctionPointer getSockOptPtr = FunctionPointer.lookup("getsockopt");
+    private static final Function socketPtr     = Function.getFunction("socket");
+    private static final Function connectPtr    = Function.getFunction("connect");
+    private static final Function bindPtr       = Function.getFunction("bind");
+    private static final Function listenPtr     = Function.getFunction("listen");
+    private static final Function acceptPtr     = Function.getFunction("accept");
+    private static final Function shutdownPtr   = Function.getFunction("shutdown");
+    private static final Function inet_ntoaPtr  = Function.getFunction("inet_ntoa");
+    private static final Function inet_atonPtr  = Function.getFunction("inet_aton");
+    private static final Function setSockOptPtr = Function.getFunction("setsockopt");
+    private static final Function getSockOptPtr = Function.getFunction("getsockopt");
     
     /* pure static class */
     private Socket() {}
@@ -150,8 +150,8 @@ public class Socket  extends LibC {
         address.allocateMemory();
         address.write();
 System.err.println("Socket.connect(" + socket + ", " + address);
-System.err.println("   mem " + address.getMemory());      
-        int result = connect0(socket, address.getMemory().address(), address.getMemory().size().toInt());
+System.err.println("   mem " + address.getPointer());      
+        int result = connect0(socket, address.getPointer().address(), address.size());
         address.freeMemory();
         return result;
     }
@@ -180,8 +180,8 @@ System.err.println("   mem " + address.getMemory());
         myaddress.allocateMemory();
         myaddress.write();
 //System.err.println("Socket.connect(" + socket + ", " + address);
-//System.err.println("   mem " + address.getMemory());      
-        int result = bind0(socket, myaddress.getMemory().address(), myaddress.getMemory().size().toInt());
+//System.err.println("   mem " + address.getPointer());      
+        int result = bind0(socket, myaddress.getPointer().address(), myaddress.size());
         myaddress.freeMemory();
         return result;
     }
@@ -209,10 +209,10 @@ System.err.println("   mem " + address.getMemory());
      */
     public static int accept(int socket, Struct_SockAddr remoteAddress) {
         remoteAddress.allocateMemory();
-        IntStar addr_len = new IntStar(remoteAddress.getMemory().size().toInt());
+        IntStar addr_len = new IntStar(remoteAddress.size());
         remoteAddress.write();
 //System.err.println("Socket.accept(" + socket);
-        int result = accept0(socket, remoteAddress.getMemory().address(), addr_len.getMemory().address());
+        int result = accept0(socket, remoteAddress.getPointer().address(), addr_len.getPointer().address());
         int errno = LibC.errno();
         remoteAddress.read();
 //System.err.println("   errno " + errno);
@@ -300,15 +300,15 @@ System.err.println("   mem " + address.getMemory());
         }
         
         public void read() {
-            Pointer p = getMemory();
+            Pointer p = getPointer();
             sin_len = p.getByte(0) & 0xFF;
             sin_family = p.getByte(1) & 0xFF;
             sin_port = p.getShort(2) & 0xFFFF;
-            sin_addr = p.getPointer(4, 4);
+            sin_addr = p.getPointer(4, SIZEOF_in_addr_t);
         }
 
         public void write() {
-            Pointer p = getMemory();
+            Pointer p = getPointer();
             clear();
             p.setByte(0, (byte)sin_len);
             p.setByte(1, (byte)sin_family);
@@ -377,7 +377,7 @@ System.err.println("   mem " + address.getMemory());
      * @return String
      */
     public static String inet_ntoa(Pointer structAddr) {
-        Address result =  inet_ntoa0(structAddr.address());
+        Address result = inet_ntoa0(structAddr.address());
         return Pointer.NativeUnsafeGetString(result);
     }
     
@@ -407,7 +407,7 @@ System.err.println("   mem " + address.getMemory());
         option_value.allocateMemory();
         option_value.write();
 //System.err.println("Socket.setSockOpt(" + socket);
-        int result = setSockOpt0(socket, level, option_name, option_value.getMemory().address(), option_value.getMemory().size().toInt());
+        int result = setSockOpt0(socket, level, option_name, option_value.getPointer().address(), option_value.size());
 //System.err.println("   address " + option_value);
         option_value.freeMemory();
         return result;
@@ -433,11 +433,11 @@ System.err.println("   mem " + address.getMemory());
      *          descriptor referencing the socket.
      */
     public static int getSockOpt(int socket, int level, int option_name, Structure option_value) {
-        IntStar opt_len = new IntStar(option_value.getMemory().size().toInt());
+        IntStar opt_len = new IntStar(option_value.size());
         option_value.allocateMemory();
         
 System.err.println("Socket.getSockOpt(" + socket);
-        int result = getSockOpt0(socket, level, option_name, option_value.getMemory().address(), opt_len.getMemory().address());
+        int result = getSockOpt0(socket, level, option_name, option_value.getPointer().address(), opt_len.getPointer().address());
 System.err.println("   address " + option_value);
 System.err.println("   real opt_len " + opt_len.get());
         option_value.read();

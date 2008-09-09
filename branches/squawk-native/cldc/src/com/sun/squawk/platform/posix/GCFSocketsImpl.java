@@ -26,9 +26,9 @@ package com.sun.squawk.platform.posix;
 
 import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
-import com.sun.squawk.platform.callouts.Pointer;
+import com.sun.cldc.jna.Pointer;
 import com.sun.squawk.platform.GCFSockets;
-import com.sun.squawk.platform.callouts.IntStar;
+import com.sun.cldc.jna.IntStar;
 import com.sun.squawk.platform.posix.callouts.Ioctl;
 import com.sun.squawk.platform.posix.callouts.LibC;
 import com.sun.squawk.platform.posix.callouts.Socket;

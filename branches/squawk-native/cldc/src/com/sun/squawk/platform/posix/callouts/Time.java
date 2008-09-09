@@ -24,7 +24,7 @@
 
 package com.sun.squawk.platform.posix.callouts;
 
-import com.sun.squawk.platform.callouts.*;
+import com.sun.cldc.jna.*;
 
 /**
  * java wrapper around #include <sys/time.h>
@@ -45,13 +45,13 @@ public class Time {
         public long tv_usec; // microseconds, (really an unsigned int)
         
         public void read() {
-            Pointer p = getMemory();
+            Pointer p = getPointer();
             tv_sec = ((long)p.getInt(0)) & 0xFFFFFFFF;
             tv_usec = ((long)p.getInt(4)) & 0xFFFFFFFF;
         }
 
          public void write() {
-             Pointer p = getMemory();
+             Pointer p = getPointer();
              p.setInt(0, (int) tv_sec);
              p.setInt(4, (int) tv_usec);
          }

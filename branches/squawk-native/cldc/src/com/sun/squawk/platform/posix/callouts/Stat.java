@@ -25,7 +25,7 @@
 package com.sun.squawk.platform.posix.callouts;
 
 import com.sun.squawk.Address;
-import com.sun.squawk.platform.callouts.*;
+import com.sun.cldc.jna.*;
 
 /**
  *
@@ -68,8 +68,8 @@ public class Stat extends LibC {
     
     public static final int STAT_SIZE = VarPointer.lookup("sysSIZEOFSTAT", 4).getInt();
 
-    private static final FunctionPointer statPtr  = FunctionPointer.lookup("stat");
-    private static final FunctionPointer fstatPtr = FunctionPointer.lookup("fstat");
+    private static final Function statPtr  = Function.getFunction("stat");
+    private static final Function fstatPtr = Function.getFunction("fstat");
 
     /* pure static class */
     private Stat() { }
@@ -96,8 +96,8 @@ public class Stat extends LibC {
         Pointer name0 = Pointer.createStringBuffer(name);
         stat.allocateMemory();
 //System.err.println("Stat.stat:" + name);
-//System.err.println("   mem " + stat.getMemory());  
-        int result = stat0(name0.address(), stat.getMemory().address());
+//System.err.println("   mem " + stat.getPointer());  
+        int result = stat0(name0.address(), stat.getPointer().address());
         name0.free();
         stat.read();
 //System.err.println("   result: " + stat);
@@ -126,8 +126,8 @@ public class Stat extends LibC {
     public static int fstat(int fd, Struct_Stat stat) {
         stat.allocateMemory();
 //System.err.println("Stat.fstat(" + fd + ", " + stat);
-//System.err.println("   mem " + stat.getMemory());      
-        int result = fstat0(fd, stat.getMemory().address());
+//System.err.println("   mem " + stat.getPointer());      
+        int result = fstat0(fd, stat.getPointer().address());
         stat.read();
 
         stat.freeMemory();
@@ -179,7 +179,7 @@ public class Stat extends LibC {
         public long st_size;
         
         public void read() {
-            Pointer p = getMemory();
+            Pointer p = getPointer();
             st_mode = p.getShort(8) & 0xFFFF;
             st_mtime = p.getInt(32);
             st_size = p.getLong(48);

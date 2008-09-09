@@ -28,7 +28,7 @@ package com.sun.squawk.platform.posix;
 import com.sun.squawk.platform.SystemEvents;
 import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
-import com.sun.squawk.platform.callouts.*;
+import com.sun.cldc.jna.*;
 import com.sun.squawk.platform.posix.callouts.*;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.util.IntSet;
@@ -136,14 +136,14 @@ public class SystemEventsImpl extends SystemEvents {
 
         Pointer theTimout;
         if (timeout == 0) {
-            theTimout = zeroTime.getMemory();
+            theTimout = zeroTime.getPointer();
         } else if (timeout == Long.MAX_VALUE) {
             theTimout = Pointer.NULL;
         } else {
             timeoutTime.tv_sec = timeout / 1000;
             timeoutTime.tv_usec = (timeout % 1000) * 1000;
             timeoutTime.write();
-            theTimout = timeoutTime.getMemory();
+            theTimout = timeoutTime.getPointer();
         }
 
         int num = Select.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL, theTimout);

@@ -28,7 +28,7 @@ import com.sun.squawk.VM;
 import java.io.IOException;
 import java.util.Vector;
 import com.sun.squawk.platform.BaseFileHandler;
-import com.sun.squawk.platform.callouts.Pointer;
+import com.sun.cldc.jna.Pointer;
 import com.sun.squawk.platform.posix.callouts.LibC;
 import com.sun.squawk.platform.posix.callouts.Stat;
 

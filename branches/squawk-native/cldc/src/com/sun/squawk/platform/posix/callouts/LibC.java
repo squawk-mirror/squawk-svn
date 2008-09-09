@@ -26,7 +26,7 @@ package com.sun.squawk.platform.posix.callouts;
 
 import com.sun.squawk.Address;
 import com.sun.squawk.GC;
-import com.sun.squawk.platform.callouts.*;
+import com.sun.cldc.jna.*;
 import com.sun.squawk.util.Assert;
 import java.io.IOException;
 
@@ -267,13 +267,13 @@ public class LibC {
         return result;
     }
     
-    private static final FunctionPointer fcntlPtr = FunctionPointer.lookup("fcntl");
-    private static final FunctionPointer openPtr  = FunctionPointer.lookup("open");
-    private static final FunctionPointer closePtr = FunctionPointer.lookup("close");
-    private static final FunctionPointer readPtr  = FunctionPointer.lookup("read");
-    private static final FunctionPointer writePtr = FunctionPointer.lookup("write");
-    private static final FunctionPointer lseekPtr = FunctionPointer.lookup("lseek");
-    private static final FunctionPointer fsyncPtr = FunctionPointer.lookup("fsync");    
+    private static final Function fcntlPtr = Function.getFunction("fcntl");
+    private static final Function openPtr  = Function.getFunction("open");
+    private static final Function closePtr = Function.getFunction("close");
+    private static final Function readPtr  = Function.getFunction("read");
+    private static final Function writePtr = Function.getFunction("write");
+    private static final Function lseekPtr = Function.getFunction("lseek");
+    private static final Function fsyncPtr = Function.getFunction("fsync");    
 
     /**
      * provides for control over descriptors.

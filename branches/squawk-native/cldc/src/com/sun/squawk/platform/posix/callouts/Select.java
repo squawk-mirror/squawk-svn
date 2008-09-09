@@ -5,7 +5,7 @@
 
 package com.sun.squawk.platform.posix.callouts;
 
-import com.sun.squawk.platform.callouts.*;
+import com.sun.cldc.jna.*;
 
 /**
  * java wrapper around #include <sys/select.h>
@@ -17,10 +17,10 @@ public class Select {
      */
     public static final int FD_SIZE = VarPointer.lookup("sysFD_SIZE", 4).getInt();
     
-    private static final FunctionPointer selectPtr = FunctionPointer.lookup("select");    
-    private static final FunctionPointer sysFD_SETPtr = FunctionPointer.lookup("sysFD_SET");
-    private static final FunctionPointer sysFD_CLRPtr = FunctionPointer.lookup("sysFD_CLR");
-    private static final FunctionPointer sysFD_ISSETPtr = FunctionPointer.lookup("sysFD_ISSET");
+    private static final Function selectPtr = Function.getFunction("select");    
+    private static final Function sysFD_SETPtr = Function.getFunction("sysFD_SET");
+    private static final Function sysFD_CLRPtr = Function.getFunction("sysFD_CLR");
+    private static final Function sysFD_ISSETPtr = Function.getFunction("sysFD_ISSET");
 
     /* pure static class */
     private Select() {}

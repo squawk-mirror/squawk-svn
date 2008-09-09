@@ -24,7 +24,7 @@
 
 package com.sun.squawk.platform.posix.callouts;
 
-import com.sun.squawk.platform.callouts.FunctionPointer;
+import com.sun.cldc.jna.Function;
 
 /**
  *  java wrapper around #include <sys/ioctl.h>
@@ -87,7 +87,7 @@ public class Ioctl {
     public final static int FIOGETOWN = _IOR('f', 123);	/* get owner */
     public final static int FIODTYPE = _IOR('f', 122);	    /* get d_type */
     
-    private static final FunctionPointer ioctlPtr = FunctionPointer.lookup("ioctl");
+    private static final Function ioctlPtr = Function.getFunction("ioctl");
 
     /**
      * Perorm IO control operation <code>op</code> on device <code>fd</code>.
