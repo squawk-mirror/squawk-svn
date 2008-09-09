@@ -1,0 +1,35 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=koi8-r">
+<!--
+
+ Copyright  2008  Sun Microsystems, Inc. All rights reserved.
+
+-->
+</head>
+<body>
+This package contains classes that help provide access to native data structures and functions.
+
+The classes names were chosen to resemble the Java Native Access (JNA) APIs, to the extent that 
+this made sense on CLDC, and time allowed. Perhaps this could be morphed into a CLDC impl. of JNA someday...
+
+http://jna.dev.java.net/
+    
+<h3>Differences from JNA</h3>
+There are specific differences listed for each class, but here are the major differences: 
+<ul>
+    <li> No reflection in CLDC means that operations such as function invocation and the reading and writing of Structure fields to native buffers
+         has to be done explicitly, not handled automatically. A future version may be able to generate this code automatically though.
+    <li> No NIO buffers
+    <li> The Pointer type is modelled after the RawMemoryFloatAccess class from RTSJ (JSRT 1).
+
+    <li> Throws RuntimeExceptions instead of UnsatisfiedLinkErrors. Are link errors really "unrecoverable"? Platform independant code might want to work around missing functions.
+    <li> Calling conventions unimplemented
+    <li> no finalization in cldc
+    <li> No classes representing types (IntegerType, PointerType, etc)
+    <li> No support for TypeMapper, TypeConverter, FunctionMapper, InvocationMapper, etc.
+    <li> No support for Callbacks
+</ul>
+</body>
+</html>
