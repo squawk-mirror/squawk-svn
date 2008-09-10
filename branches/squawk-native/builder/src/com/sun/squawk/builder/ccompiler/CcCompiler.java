@@ -52,7 +52,6 @@ public class CcCompiler extends CCompiler {
         if (options.macroize)           { buf.append("-DMACROIZE ");        }
         if (options.assume)             { buf.append("-DASSUME ");          }
         if (options.typemap)            { buf.append("-DTYPEMAP ");         }
-        if (options.ioport)             { buf.append("-DIOPORT ");          }
         if (options.kernel)             { buf.append("-DKERNEL_SQUAWK=true ");          }
 		if (options.nativeVerification) { buf.append("-DNATIVE_VERIFICATION=true ");          }
         

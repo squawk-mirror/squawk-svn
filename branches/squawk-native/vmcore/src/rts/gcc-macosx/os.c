@@ -53,6 +53,50 @@ jlong sysTimeMillis(void) {
     return sysTimeMicros() / 1000;
 }
 
+/**
+ * Gets the page size (in bytes) of the system.
+ *
+ * @return the page size (in bytes) of the system
+ */
+int sysGetPageSize(void) {
+    return sysconf(_SC_PAGESIZE);
+}
+
+/**
+ * Sets a region of memory read-only or reverts it to read & write.
+ *
+ * @param start    the start of the memory region
+ * @param end      one byte past the end of the region
+ * @param readonly specifies if read-only protection is to be enabled or disabled
+ */
+void sysToggleMemoryProtection(char* start, char* end, boolean readonly) {
+    size_t len = end - start;
+    if (mprotect(start, len, readonly ? PROT_READ : PROT_READ | PROT_WRITE) != 0) {
+        fprintf(stderr, "Could not toggle memory protection: %s\n", strerror(errno));
+    }
+}
+
+/**
+ * Allocate a page-aligned chunk of memory of the given size.
+ * 
+ * @param size size in bytes to allocate
+ * @return pointer to allocated memory or null.
+ */
+INLINE void* sysValloc(size_t size) {
+    return valloc(size);
+}
+
+/**
+ * Free chunk of memory allocated by sysValloc
+ * 
+ * @param ptr to to chunk allocated by sysValloc
+ */
+INLINE void sysVallocFree(void* ptr) {
+    free(ptr);
+}
+
+static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName);
+
 #if PLATFORM_TYPE_DELEGATING
 jint createJVM(JavaVM **jvm, void **env, void *args) {
     return JNI_CreateJavaVM(jvm, env, args) == 0;

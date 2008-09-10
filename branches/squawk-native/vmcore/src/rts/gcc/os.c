@@ -42,6 +42,61 @@ jlong sysTimeMillis(void) {
     return sysTimeMicros() / 1000;
 }
 
+/**
+ * Gets the page size (in bytes) of the system.
+ *
+ * @return the page size (in bytes) of the system
+ */
+int sysGetPageSize(void) {
+    return sysconf(_SC_PAGESIZE);
+}
+
+/**
+ * Sets a region of memory read-only or reverts it to read & write.
+ *
+ * @param start    the start of the memory region
+ * @param end      one byte past the end of the region
+ * @param readonly specifies if read-only protection is to be enabled or disabled
+ */
+void sysToggleMemoryProtection(char* start, char* end, boolean readonly) {
+    size_t len = end - start;
+    if (mprotect(start, len, readonly ? PROT_READ : PROT_READ | PROT_WRITE) != 0) {
+        fprintf(stderr, "Could not toggle memory protection: %s\n", strerror(errno));
+    }
+}
+
+/**
+ * Allocate a page-aligned chunk of memory of the given size.
+ * 
+ * @param size size in bytes to allocate
+ * @return pointer to allocated memory or null.
+ */
+INLINE void* sysValloc(size_t size) {
+//#ifdef sun
+    //buffer = malloc(actualSize);    this may have been work-around for solaris bug 4846556, now fixed.
+//#else
+    return valloc(actualSize);
+//#endif /* sun */
+}
+
+/**
+ * Free chunk of memory allocated by sysValloc
+ * 
+ * @param ptr to to chunk allocated by sysValloc
+ */
+INLINE void sysVallocFree(void* ptr) {
+    free(ptr);
+}
+
+/** 
+ * Return another path to find the bootstrap suite with the given name.
+ * On some platforms the suite might be stored in an odd location
+ * 
+ * @param bootstrapSuiteName the name of the boostrap suite
+ * @return full or partial path to alternate location, or null
+ */
+INLINE static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
+
 #if PLATFORM_TYPE_DELEGATING
 jint createJVM(JavaVM **jvm, void **env, void *args) {
     jint (JNICALL *CreateJavaVM)(JavaVM **jvm, void **env, void *args) = 0;

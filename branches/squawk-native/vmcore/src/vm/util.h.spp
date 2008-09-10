@@ -67,52 +67,10 @@ int sda_bp_set_or_stepping; // TRUE if we have any breakpoints set or are in a s
  *                               mprotect                                    *
 \*---------------------------------------------------------------------------*/
 
-/**
- * Gets the page size (in bytes) of the system.
- *
- * @return the page size (in bytes) of the system
+/* defined in os.c:
+ *     sysGetPageSize()
+ *     sysToggleMemoryProtection()
  */
-int getSystemPageSize(void) {
-#ifdef _MSC_VER
-    SYSTEM_INFO systemInfo;
-    GetSystemInfo(&systemInfo);
-    return systemInfo.dwPageSize;
-#else
-    return sysconf(_SC_PAGESIZE);
-#endif /* _MSC_VER */
-}
-
-/**
- * Sets a region of memory read-only or reverts it to read & write.
- *
- * @param start    the start of the memory region
- * @param end      one byte past the end of the region
- * @param readonly specifies if read-only protection is to be enabled or disabled
- */
-void toggleMemoryProtection(Address start, Address end, boolean readonly) {
-#ifndef FLASH_MEMORY
-    UWord len = Address_diff(end, start);
-#ifdef _MSC_VER
-    unsigned long old;
-//fprintf(stderr, format("toggle memory protection: start=%A len=%d end=%A readonly=%s\n"), start, len, end,  readonly ? "true" : "false");
-    if (VirtualProtect(start, len, readonly ? PAGE_READONLY : PAGE_READWRITE, &old) == 0) {
-        fprintf(stderr, format("Could not toggle memory protection: errno=%d addr=%A len=%d readonly=%s\n"), GetLastError(), start, len, readonly ? "true" : "false");
-    }
-#else
-//+++BMO
-#ifdef VXWORKS
-    printf("mprotect() is not supported.  Not protecting memory at %#0.8x\n", start);
-#else
-//+++BMO
-    if (mprotect(start, len, readonly ? PROT_READ : PROT_READ | PROT_WRITE) != 0) {
-        fprintf(stderr, "Could not toggle memory protection: %s\n", strerror(errno));
-    }
-//+++BMO
-#endif /* VXWORKS */
-//+++BMO
-#endif /* _MSC_VER */
-#endif /* FLASH_MEMORY */
-}
 
 /*---------------------------------------------------------------------------*\
  *                                  Errors                                   *

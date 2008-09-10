@@ -429,25 +429,17 @@ void *newBuffer(UWord size, const char *desc, boolean fatalIfFail) {
     /*
      * Adjust size so that it is a multiple of the page size of the machine
      */
-    int pageSize = getSystemPageSize();
+    int pageSize = sysGetPageSize();
     int actualSize = (size + (pageSize - 1)) & ~(pageSize - 1);
 
-#ifdef _MSC_VER
-    buffer = VirtualAlloc(0, actualSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-#else
-	//#ifdef sun
-    //buffer = malloc(actualSize);    this may have been work-around for solaris bug 4846556, now fixed.
-	//#else
-    buffer = valloc(actualSize);
-	//#endif /* sun */
-#endif /* _MSC_VER */
+    buffer = sysValloc(actualSize);
+
 //fprintf(stderr, format("newBuffer: desc=%s, size=%A, actualSize=%O buffer=%A\n"), desc, size, actualSize, buffer);
     /*
      * Ensure that the resulting buffer is word aligned (which is surely guaranteed
      * if it is page aligned!)
      */
     assume(isWordAligned((UWord)buffer));
-
 
     if (buffer == null) {
         if (fatalIfFail) {
@@ -485,11 +477,7 @@ void freeBuffer(Address buffer) {
     while (i != BufferCount) {
         if (Buffers[i] == buffer) {
 //fprintf(stderr, format("freeBuffer: buffer=%A\n"), buffer);
-#ifdef _MSC_VER
-            VirtualFree(buffer, 0, MEM_RELEASE);
-#else
-            free(buffer);
-#endif /* _MSC_VER */
+            sysVallocFree(buffer);
         } else {
             Buffers[insert] = Buffers[i];
             insert++;
@@ -952,6 +940,13 @@ int writeCStringArray(int length, char **array, int offset) {
     return offset;
 }
 
+/** 
+ * Return another path to find the bootstrap suite with the given name.
+ * On some platforms the suite might be stored in an odd location
+ * 
+ * @param bootstrapSuiteName the name of the boostrap suite
+ * @return full or partial path to alternate location, or null
+ */
 static char* getAlternateBootstrapSuiteLocation(char* bootstrapSuiteName);
 
 /**
@@ -995,7 +990,7 @@ static char* getAlternateBootstrapSuiteLocation(char* bootstrapSuiteName);
  */
 Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *bootstrapSuiteFile) {
 
-    int pageSize = getSystemPageSize();
+    int pageSize = sysGetPageSize();
 
     int serviceChunkSize = SERVICE_CHUNK_SIZE;
     int realMemorySize;
@@ -1011,7 +1006,7 @@ Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *boot
 #else /* FLASH_MEMORY */
     memorySize = getFileSize(bootstrapSuiteFile);
     if (memorySize == -1) {
-        char* altName = getAlternateBootstrapSuiteLocation(bootstrapSuiteFile);
+        char* altName = sysGetAlternateBootstrapSuiteLocation(bootstrapSuiteFile);
         if (altName) {
             printf("bootstrapSuiteFile not found in default location, trying %s\n", altName);
             bootstrapSuiteFile = altName;
@@ -1409,8 +1404,8 @@ Address Squawk_setup(int argc, char *argv[]) {
     /*
      * Make ROM and NVM be read-only
      */
-    toggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
-    toggleMemoryProtection(com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, true);
+    sysToggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
+    sysToggleMemoryProtection(com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, true);
 
     /*
      * Return the bootstrap suite.
@@ -1711,37 +1706,13 @@ void Squawk_main(int argc, char *argv[]) {
 #include "ioserver.c"
 #endif /* IOSERVER */
 
-//+++BMO
-/**
- * Entry point for the VxWorks operating system.
- */
-int vxos_main(char* arg1) {
-    // Convert from VxWorks argument format to normal argument format
-    const int argc = 3;
-
-    char* argv[argc];
-    argv[0] = "squawk.out";
-
-    // Patch for lack of NVRAM
-    argv[1] = "-Xmxnvm:0";
-    //argv[2] = "-Xtgc:1";
-
-    argv[argc - 1] = arg1;
-
-    // Switch directories so squawk.suite will always be found
-    cd("/c/ni-rt/system");
-
-    return os_main(argc, argv); 
-}
-//+++BMO
-
 /**
  * Program entrypoint.
  *
  * @param argc the number of command line parameters
  * @param argv the parameter argument vector
  */
-int os_main(int argc, char *argv[]) {
+int Squawk_main_wrapper(int argc, char *argv[]) {
     printf("[SQUAWK] JVM Running\n");
     
     int ignore = initializeGlobals(&userGlobals);
@@ -1767,246 +1738,20 @@ int os_main(int argc, char *argv[]) {
 }
 
 /**
- *
- *  The apple specific startup routine.
- *
+ * Some platforms have non-standard startup requirements. If so, define os_main() to handle
+ * the issues.
  */
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(VXWORKS)
+#include "os_main.c"
+#endif
 
-CFBundleRef mainBundle;
-
-/* Datatype so that parameters can be passed between threads */
-typedef struct mainParametersStruct {
-        int argc;
-        char **argv;
-} mainParameters;
-
-void printMainParams(mainParameters* params) {
-    int i;
-    for (i = 0; i < params->argc; i++) {
-        fprintf(stderr, "arg[%d]: %s\n", i, params->argv[i]);
-    }
-}
-
-/**
- * Parse a command line string into argc, argv.
- * Modifies the cmd line str.
- *
- */
-void cmdStr2argv(mainParameters* params, char* cmdLine) {
-    int i;
-    char* str = NULL;
-    char* originalCmdLine = cmdLine;
-
-    cmdLine = strdup(originalCmdLine);
-    if (cmdLine == NULL) {
-        fprintf(stderr, "can't dup command line\n");
-        return;
-    }
-
-fprintf(stderr, "cmdLine: %s\n", cmdLine);
-    i = 0;
-    str = strtok(cmdLine, " ");
-    if (str != NULL) {
-        do {
-            i++;
-        } while ((str = strtok(NULL, " ")) != NULL);
-    }
-
-    // first pass wrote over cmdLine, so create new copy...
-    free(cmdLine);
-    cmdLine = strdup(originalCmdLine);
-    if (cmdLine == NULL) {
-        fprintf(stderr, "can't dup command line\n");
-        return;
-    }
-    
-    params->argc = i;
-    params->argv = (char **)malloc((i + 1) * sizeof(char*));
-
-    i = 0;
-    str = strtok(cmdLine, " ");
-    if (str != NULL) {
-        do {
-            params->argv[i++] = str;
-        } while ((str = strtok(NULL, " ")) != NULL);
-    }
-
-    printMainParams(params);
-}
-
-// DEBUG
-void testCmdStr2argv(mainParameters* launchOptions) {
-     cmdStr2argv(launchOptions, "");
-     cmdStr2argv(launchOptions, "    ");
-     cmdStr2argv(launchOptions, "-verbose");
-     cmdStr2argv(launchOptions, "  -verbose");
-     cmdStr2argv(launchOptions, "-verbose  ");
-     cmdStr2argv(launchOptions, "  -verbose  ");
-
-     cmdStr2argv(launchOptions, "-verbose foo");
-     cmdStr2argv(launchOptions, "  -verbose foo");
-     cmdStr2argv(launchOptions, "-verbose  foo ");
-     cmdStr2argv(launchOptions, "  -verbose     foo   ");
-}
-
-/**
-  * Convert the Mac's CFStringRef to a nice, POSIXy string, or die trying.
-  * This is a pain in the neck!
-  */
-char* CFString2CString(CFStringRef macStr) {
-    CFIndex bufSize = CFStringGetMaximumSizeOfFileSystemRepresentation(macStr);
-    char* result = (char*)malloc(bufSize);
-    if (result == NULL) {
-        fatalVMError("Failure (malloc) in CFStringGetFileSystemRepresentation");
-    }
-    if (!CFStringGetFileSystemRepresentation(macStr, result, bufSize)) {
-        fatalVMError("Failure in CFStringGetFileSystemRepresentation");
-    }
-    return result;
-}
-
-/**
- * Look for a command string stored in Info.plist. If found, parse into a parameter list
- * suitable for main(), and return true. Otherwise return false.
- */
-int readArgsFromPlist(mainParameters* params) {
-    CFStringRef cmdlineRef = NULL;
-
-    OSStatus err = noErr;
-    cmdlineRef = CFBundleGetValueForInfoDictionaryKey(
-                    mainBundle,
-                    CFSTR("SquawkCommandLineParameters"));
-
-    if (cmdlineRef != NULL && CFGetTypeID(cmdlineRef) == CFStringGetTypeID()) {
-        char* cmdline = CFString2CString(cmdlineRef); // don't free this - used by argv!
-        cmdStr2argv(params, cmdline);
-        return true;
-    }
-    return false;
-}
-
-
-/**
- * Starts the Squawk VM in it's own thread
- *
- * @param  options  contains the parameters to pass to the real main
- */
-static void* Squawk_startup(void *options) {
-        mainParameters* o = (mainParameters*)options;
-        os_main(o->argc, o->argv);
-}
-
-/**
- * Call back for dummy source used to make sure the CFRunLoop doesn't exit right away
- * This callback is called when the source has fired.
- *
- * @param  info
- */
-void sourceCallBack (void *info) {}
-
-char* getAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) {
-    if (mainBundle != null) {
-        CFURLRef    suiteURL;
-        // Look for a resource in the main bundle by name and type.
-
-        suiteURL = CFBundleCopyResourceURL( mainBundle,
-                        CFStringCreateWithCString(NULL, bootstrapSuiteName, kCFStringEncodingASCII),
-                        NULL,
-                        NULL );
-        char pathBuf[512];
-        if (CFURLGetFileSystemRepresentation(suiteURL, TRUE, (UInt8 *)pathBuf, 511)) {
-            int len = strlen(pathBuf);
-            char* result = (char*)malloc(len+1);
-            return strcpy(result, pathBuf);
-        } else {
-            printf("CFURLGetFileSystemRepresentation failed\n");
-        }
-    }
-    return NULL;
-}
-
-/**
- * Apple specific initialization of the IO subsystem. This function creates a new thread in which to run Squawk
- * and the embedded JVM and leaves the initial thread in an empty main loop.
- *
- * @param  argc  the command line arguments
- * @param  argv  number of command line arguments
- */
 int main(int argc, char *argv[]) {
-    int i;
-    CFRunLoopSourceContext sourceContext;
-
-    /* Grab parameters to pass to thread */
-    mainParameters* launchOptions = (mainParameters*)malloc(sizeof(mainParameters));
-    launchOptions->argc = argc;
-    launchOptions->argv = argv;
-
-    // Get the main bundle for the app
-    mainBundle = CFBundleGetMainBundle();
-    if (mainBundle != NULL /*&& argc > 1 && startsWith(argv[1], "-psn")*/) {
-        // may or may not be app! fprintf(stderr, "Squawk started as application, instead of tool. Look for command line in Info.plist.\n");
-
-        // testCmdStr2argv(launchOptions);
-
-        readArgsFromPlist(launchOptions);
-    }
-
-    /* Start the thread that runs the VM. */
-    pthread_t squawkThread;
-
-    /* create a new pthread copying the stack size of the initial pthread */
-    struct rlimit limit;
-    size_t stack_size = 0;
-    int rc = getrlimit(RLIMIT_STACK, &limit);
-    if (rc == 0) {
-        if (limit.rlim_cur != 0LL) {
-            stack_size = (size_t)limit.rlim_cur;
-        }
-    }
-    pthread_attr_t thread_attr;
-    pthread_attr_init(&thread_attr);
-    pthread_attr_setscope(&thread_attr, PTHREAD_SCOPE_SYSTEM);
-    pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
-    if (stack_size > 0) {
-        pthread_attr_setstacksize(&thread_attr, stack_size);
-    }
-
-    /* Start the thread that will execute the Squawk VM. */
-    pthread_create(&squawkThread, &thread_attr, Squawk_startup, launchOptions);
-    pthread_attr_destroy(&thread_attr);
-
-    /* Create a a sourceContext to be used by our source that makes */
-    /* sure the CFRunLoop doesn't exit right away */
-    sourceContext.version = 0;
-    sourceContext.info = NULL;
-    sourceContext.retain = NULL;
-    sourceContext.release = NULL;
-    sourceContext.copyDescription = NULL;
-    sourceContext.equal = NULL;
-    sourceContext.hash = NULL;
-    sourceContext.schedule = NULL;
-    sourceContext.cancel = NULL;
-    sourceContext.perform = &sourceCallBack;
-
-    /* Create the Source from the sourceContext */
-    CFRunLoopSourceRef sourceRef = CFRunLoopSourceCreate (NULL, 0, &sourceContext);
-
-    /* Use the constant kCFRunLoopCommonModes to add the source to the set of objects */
-    /* monitored by all the common modes */
-    CFRunLoopAddSource (CFRunLoopGetCurrent(),sourceRef,kCFRunLoopCommonModes);
-
-    /* Park this thread in the runloop */
-    CFRunLoopRun();
-
-    return 0;
-}
-
+#ifdef __APPLE__
+    os_main(argc, argv);
 #else
-    int main(int argc, char *argv[]) {
-        return os_main(argc, argv);
-    }
-
-static char* getAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
-
-#endif  /* __APPLE__ */
+#ifdef VXWORKS
+    fatalVMError("main() should not be called on VxWorks - use \"os_main\" as the entry point instead");
+#endif /* VXWORKS */
+    return Squawk_main_wrapper(argc, argv);
+#endif /* !__APPLE__ */
+}

@@ -243,7 +243,7 @@ int getError() {
 }
 
 
-/* INTERNAL DYNAI SYMBOL SUPPORT */
+/* INTERNAL DYNAMIC SYMBOL SUPPORT */
 typedef struct dlentryStruct {
     char* name;
     void* entry;
@@ -271,6 +271,18 @@ void* sysdlsym(void* handle, char* name) {
     return dlsym(handle, name);
 }
 
+void* sysdlopen(char* name) {
+    return dlopen(name, RTLD_LAZY);
+}
+
+int sysdlclose(void* handle) {
+    return dlclose(handle);
+}
+
+void* sysdlerror() {
+    return dlerror();
+}
+
 /**
  * Executes an operation on a given channel for an isolate.
  *
@@ -293,10 +305,10 @@ void* sysdlsym(void* handle, char* name) {
     int     channel = com_sun_squawk_ServiceOperation_channel;
     int     i1      = com_sun_squawk_ServiceOperation_i1;
     int     i2      = com_sun_squawk_ServiceOperation_i2;
-    int     i3      = com_sun_squawk_ServiceOperation_i3;
+/*  int     i3      = com_sun_squawk_ServiceOperation_i3;
     int     i4      = com_sun_squawk_ServiceOperation_i4;
-   int     i5      = com_sun_squawk_ServiceOperation_i5;
-/*     int     i6      = com_sun_squawk_ServiceOperation_i6;
+    int     i5      = com_sun_squawk_ServiceOperation_i5;
+    int     i6      = com_sun_squawk_ServiceOperation_i6;
     Address send    = com_sun_squawk_ServiceOperation_o1;
     Address receive = com_sun_squawk_ServiceOperation_o2;
 */
@@ -386,6 +398,21 @@ void* sysdlsym(void* handle, char* name) {
 
 /* WARNING! NONE OF THIS IS 64-bit safe! */
 
+        case ChannelConstants_DLOPEN: {
+            res = (int)sysdlopen((char*)i1);
+            break;
+        }
+
+        case ChannelConstants_DLCLOSE: {
+            res = (int)sysdlclose((void*)i1);
+            break;
+        }
+
+        case ChannelConstants_DLERROR: {
+            res = (int)sysdlerror();
+            break;
+        }
+
         case ChannelConstants_DLSYM: {
             void* handle = RTLD_DEFAULT;
             if (i1 != 0) {
@@ -394,7 +421,6 @@ void* sysdlsym(void* handle, char* name) {
             res = (int)sysdlsym(handle, (char*)i2);
             break;
         }
-
 
         /*--------------------------- CHANNEL OPS ---------------------------*/
 

@@ -36,18 +36,45 @@ GC!=com.sun.squawk.Lisp2GenerationalCollector  com.sun.squawk.Lisp2Generational*
 GC!=com.sun.squawk.CheneyCollector             com.sun.squawk.CheneyCollector*
 
 ###############################################
-# Classes that don't need to be on device, but on desktop:
+# Classes only used when PLATFORM_TYPE = BARE_METAL 
 ###############################################
+# PLATFORM_TYPE!=BARE_METAL                    CLASSSPEC
 
+###############################################
+# Classes only used when PLATFORM_TYPE = SOCKET
+###############################################
+# PLATFORM_TYPE!=SOCKET                        CLASSSPEC
+
+###############################################
+# Classes only used when PLATFORM_TYPE = DELEGATING 
+###############################################
 PLATFORM_TYPE!=DELEGATING                      com.sun.squawk.io.j2me.channel.*
 
+###############################################
+# Classes only used when PLATFORM_TYPE = NATIVE 
+###############################################
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.file.*
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.socket.*
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.serversocket.*
 # Currently the platform classes are only used by PLATFORM_TYPE=NATIVE, but that may change...
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.BaseFileHandler
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.posix.*
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.callouts.*
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.microedition.io.*
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.ConnectionBaseInterface
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.ConnectionBaseAdapter
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.BaseInputStream
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.BaseOutputStream
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.ParameterParser
 
+###############################################
+# Classes that don't need to be on device, but on desktop:
+###############################################
+# FLASH_MEMORY=true                            CLASSSPEC
+
+###############################################
+# Classes that don't need to be on desktop device, but on device:
+###############################################
 FLASH_MEMORY=false                             com.sun.squawk.io.j2me.spotsuite.*
 
 

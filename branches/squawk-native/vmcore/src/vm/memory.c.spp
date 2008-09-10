@@ -1298,11 +1298,11 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
         void copyBytes(Address src, int srcPos, Address dst, int dstPos, int length, boolean nvmDst) {
 //fprintf(stderr, format("copying  %d bytes from %A at offset %d to %A at offset %d nvmDst=%d\n"), length, src, srcPos, dst, dstPos, nvmDst);
             if (nvmDst) {
-                toggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, false);
+                sysToggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, false);
             }
             memmove(Address_add(dst, dstPos), Address_add(src, srcPos), length);
             checkPostWrite(Address_add(dst, dstPos), length);
             if (nvmDst) {
-                toggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
+                sysToggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
             }
         }

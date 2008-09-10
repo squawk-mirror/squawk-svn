@@ -27,7 +27,6 @@ package com.sun.squawk.io.j2me.file;
 import com.sun.squawk.VM;
 import com.sun.squawk.platform.BaseFileHandler;
 import com.sun.squawk.io.ConnectionBaseAdapter;
-import com.sun.squawk.platform.posix.DefaultFileHandler;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;

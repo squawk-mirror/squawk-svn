@@ -195,6 +195,7 @@ public class RawMemoryAccess {
         if (vbase.isZero()) {
             throw new OutOfMemoryError("malloc failed in RawMemoryAccess");
         }
+        wasMalloced = true;
     }
 
 //    /**
@@ -639,11 +640,7 @@ public class RawMemoryAccess {
      *      mapped state.
      */
     public long getMappedAddress() {
-        Address result = vbase;
-//        if (result.isZero()) {
-//            throw new java.lang.IllegalStateException();
-//        }
-        return result.toUWord().toPrimitive();
+        return vbase.toUWord().toPrimitive();
     }
     
     /**
@@ -668,7 +665,7 @@ public class RawMemoryAccess {
      *  @throws IllegalStateException Thrown if the raw memory object is not in the
      *      mapped state.
      */
-    protected final UWord getSize() {
+    protected final UWord size() {
         return reachable_size;
     }
 
@@ -1259,6 +1256,13 @@ public class RawMemoryAccess {
     }
 
     /**
+     * Return true if this specific RawMemoryAccess allocated native memory.
+     * @return
+     */
+    protected boolean wasMalloced() {
+        return wasMalloced;
+    }
+    /**
      * Virtual base address.
      * <p>It is null if the RawMemoryAccess object is not mapped.
      */
@@ -1280,4 +1284,7 @@ public class RawMemoryAccess {
     really reachable.
      */
     private final UWord reachable_size;
+    
+    /** set true when this specific RawMemoryAccess allocated native memory. */
+    private boolean wasMalloced;
 }

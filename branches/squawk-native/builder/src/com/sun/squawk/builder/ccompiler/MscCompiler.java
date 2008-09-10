@@ -57,7 +57,6 @@ public class MscCompiler extends CCompiler {
         if (options.macroize)           { buf.append("/DMACROIZE ");       }
         if (options.assume)             { buf.append("/DASSUME ");         }
         if (options.typemap)            { buf.append("/DTYPEMAP ");        }
-        if (options.ioport)             { buf.append("/DIOPORT ");         }
 
         if (options.kernel) {
             throw new BuildException("-kernel option not supported by MscCompiler");

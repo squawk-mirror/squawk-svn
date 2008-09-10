@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="47">
+<configurationDescriptor version="45">
   <logicalFolder name="root" displayName="root" projectFiles="true">
     <logicalFolder name="src" displayName="src" projectFiles="true">
       <logicalFolder name="rts" displayName="rts" projectFiles="true">
@@ -7,11 +7,13 @@
           <itemPath>src/rts/cc/os.c</itemPath>
           <itemPath>src/rts/cc/os_devices.c</itemPath>
           <itemPath>src/rts/cc/os_devices.h</itemPath>
+          <itemPath>src/rts/cc/os_math.h</itemPath>
         </logicalFolder>
         <logicalFolder name="gcc" displayName="gcc" projectFiles="true">
           <itemPath>src/rts/gcc/os.c</itemPath>
           <itemPath>src/rts/gcc/os_devices.c</itemPath>
           <itemPath>src/rts/gcc/os_devices.h</itemPath>
+          <itemPath>src/rts/gcc/os_math.h</itemPath>
         </logicalFolder>
         <logicalFolder name="gcc-9200" displayName="gcc-9200" projectFiles="true">
           <itemPath>src/rts/gcc-9200/9200-io.c</itemPath>
@@ -19,6 +21,7 @@
           <itemPath>src/rts/gcc-9200/jni_md.h</itemPath>
           <itemPath>src/rts/gcc-9200/mmu_fat.c</itemPath>
           <itemPath>src/rts/gcc-9200/os.c</itemPath>
+          <itemPath>src/rts/gcc-9200/os_math.h</itemPath>
         </logicalFolder>
         <logicalFolder name="gcc-eb40a" displayName="gcc-eb40a" projectFiles="true">
           <itemPath>src/rts/gcc-eb40a/eb40a-io.c</itemPath>
@@ -27,16 +30,19 @@
           <itemPath>src/rts/gcc-eb40a/os.c</itemPath>
           <itemPath>src/rts/gcc-eb40a/os_devices.c</itemPath>
           <itemPath>src/rts/gcc-eb40a/os_devices.h</itemPath>
+          <itemPath>src/rts/gcc-eb40a/os_math.h</itemPath>
         </logicalFolder>
         <logicalFolder name="gcc-macosx" displayName="gcc-macosx" projectFiles="true">
           <itemPath>src/rts/gcc-macosx/os.c</itemPath>
           <itemPath>src/rts/gcc-macosx/os_devices.c</itemPath>
           <itemPath>src/rts/gcc-macosx/os_devices.h</itemPath>
+          <itemPath>src/rts/gcc-macosx/os_math.h</itemPath>
         </logicalFolder>
         <logicalFolder name="msc" displayName="msc" projectFiles="true">
           <itemPath>src/rts/msc/os.c</itemPath>
           <itemPath>src/rts/msc/os_devices.c</itemPath>
           <itemPath>src/rts/msc/os_devices.h</itemPath>
+          <itemPath>src/rts/msc/os_math.h</itemPath>
         </logicalFolder>
         <logicalFolder name="vxworks" displayName="vxworks" projectFiles="true">
           <itemPath>src/rts/vxworks/dlfcn.h</itemPath>
@@ -46,6 +52,7 @@
           <itemPath>src/rts/vxworks/os.c</itemPath>
           <itemPath>src/rts/vxworks/os_devices.c</itemPath>
           <itemPath>src/rts/vxworks/os_devices.h</itemPath>
+          <itemPath>src/rts/vxworks/os_math.h</itemPath>
         </logicalFolder>
       </logicalFolder>
       <logicalFolder name="vm" displayName="vm" projectFiles="true">
@@ -80,8 +87,9 @@
         <itemPath>src/vm/debugger.c.spp</itemPath>
         <itemPath>src/vm/devices.c</itemPath>
         <itemPath>src/vm/globals.h</itemPath>
-        <itemPath>src/vm/io.c</itemPath>
-        <itemPath>src/vm/ioport.c</itemPath>
+        <itemPath>src/vm/io_delegating.c</itemPath>
+        <itemPath>src/vm/io_native.c</itemPath>
+        <itemPath>src/vm/io_socket.c</itemPath>
         <itemPath>src/vm/ioserver.c</itemPath>
         <itemPath>src/vm/lisp2.c.spp</itemPath>
         <itemPath>src/vm/memory.c.spp</itemPath>
@@ -108,7 +116,6 @@
   <confs>
     <conf name="Default" type="0">
       <toolsSet>
-        <developmentServer>localhost</developmentServer>
         <compilerSet>GNU|GNU</compilerSet>
         <platform>5</platform>
       </toolsSet>
@@ -140,6 +147,9 @@
       <item path="src/rts/cc/os_devices.h">
         <itemTool>3</itemTool>
       </item>
+      <item path="src/rts/cc/os_math.h">
+        <itemTool>3</itemTool>
+      </item>
       <item path="src/rts/gcc-9200/9200-io.c">
         <itemTool>0</itemTool>
       </item>
@@ -154,6 +164,9 @@
       </item>
       <item path="src/rts/gcc-9200/os.c">
         <itemTool>0</itemTool>
+      </item>
+      <item path="src/rts/gcc-9200/os_math.h">
+        <itemTool>3</itemTool>
       </item>
       <item path="src/rts/gcc-eb40a/eb40a-io.c">
         <itemTool>0</itemTool>
@@ -173,6 +186,9 @@
       <item path="src/rts/gcc-eb40a/os_devices.h">
         <itemTool>3</itemTool>
       </item>
+      <item path="src/rts/gcc-eb40a/os_math.h">
+        <itemTool>3</itemTool>
+      </item>
       <item path="src/rts/gcc-macosx/os.c">
         <itemTool>0</itemTool>
       </item>
@@ -180,6 +196,9 @@
         <itemTool>0</itemTool>
       </item>
       <item path="src/rts/gcc-macosx/os_devices.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/gcc-macosx/os_math.h">
         <itemTool>3</itemTool>
       </item>
       <item path="src/rts/gcc/os.c">
@@ -191,6 +210,9 @@
       <item path="src/rts/gcc/os_devices.h">
         <itemTool>3</itemTool>
       </item>
+      <item path="src/rts/gcc/os_math.h">
+        <itemTool>3</itemTool>
+      </item>
       <item path="src/rts/msc/os.c">
         <itemTool>0</itemTool>
       </item>
@@ -198,6 +220,9 @@
         <itemTool>0</itemTool>
       </item>
       <item path="src/rts/msc/os_devices.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/msc/os_math.h">
         <itemTool>3</itemTool>
       </item>
       <item path="src/rts/vxworks/dlfcn.h">
@@ -219,6 +244,9 @@
         <itemTool>0</itemTool>
       </item>
       <item path="src/rts/vxworks/os_devices.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/vxworks/os_math.h">
         <itemTool>3</itemTool>
       </item>
       <item path="src/vm/address.c.spp">
@@ -296,10 +324,13 @@
       <item path="src/vm/globals.h">
         <itemTool>3</itemTool>
       </item>
-      <item path="src/vm/io.c">
+      <item path="src/vm/io_delegating.c">
         <itemTool>0</itemTool>
       </item>
-      <item path="src/vm/ioport.c">
+      <item path="src/vm/io_native.c">
+        <itemTool>0</itemTool>
+      </item>
+      <item path="src/vm/io_socket.c">
         <itemTool>0</itemTool>
       </item>
       <item path="src/vm/ioserver.c">

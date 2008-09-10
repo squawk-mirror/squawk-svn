@@ -49,6 +49,10 @@ import com.sun.squawk.io.ConnectionBase;
  */
 public class Protocol extends ConnectionBase implements HttpConnection {
     
+/*if[!FLASH_MEMORY]*/
+    /** Call using a full URL (rmeber to include the FILE part!"
+     * > squawk com.sun.squawk.io.j2me.http.Protocol http://www.yahoo.com/index.html
+     */
     public static void main(String[] args) {
         try {
             System.err.println("creating twiddler"); // start thread to verify that sockets are non-blocking...
@@ -70,15 +74,23 @@ public class Protocol extends ConnectionBase implements HttpConnection {
 
             try {
                 conn = (HttpConnection) Connector.open(args[0]);
-                conn.setRequestMethod(HttpConnection.POST);
-                conn.setRequestProperty("User-Agent", "Profile/MIDP-1.0 Configuration/CLDC-1.0");
-                conn.setRequestProperty("Content-Language", "en-US");
-                conn.setRequestProperty("Accept", "application/octet-stream");
-                conn.setRequestProperty("Connection", "close");
-
-                os = conn.openOutputStream();
-                os.write("test\n\n\n".getBytes());
-                os.flush();
+//                conn.setRequestMethod(HttpConnection.POST);
+//                conn.setRequestProperty("User-Agent", "Profile/MIDP-1.0 Configuration/CLDC-1.0");
+//                conn.setRequestProperty("Content-Language", "en-US");
+//                conn.setRequestProperty("Accept", "application/octet-stream");
+//                conn.setRequestProperty("Connection", "close");
+//
+//                os = conn.openOutputStream();
+//                os.write("test\n\n\n".getBytes());
+//                os.flush();
+//                
+                // Getting the response code will open the connection,
+                // send the request, and read the HTTP response headers.
+                // The headers are stored until requested.
+                int rc = conn.getResponseCode();
+                if (rc != HttpConnection.HTTP_OK) {
+                    throw new IOException("HTTP response code: " + rc + "\n message: " + conn.getResponseMessage());
+                }
 
                 System.out.println(conn.getResponseCode());
                 is = conn.openInputStream();
@@ -139,6 +151,7 @@ public class Protocol extends ConnectionBase implements HttpConnection {
             ex.printStackTrace();
         }
     }
+/*end[FLASH_MEMORY]*/
 
     private static final String HTTP_PROXY_MANIFEST_PROPERTY = "com.sun.squawk.io.j2me.http.Protocol-HttpProxy";
     

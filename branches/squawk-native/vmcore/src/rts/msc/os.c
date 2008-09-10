@@ -83,6 +83,62 @@ jlong sysTimeMillis(void) {
     return sysTimeMicros() / 1000;
 }
 
+/**
+ * Gets the page size (in bytes) of the system.
+ *
+ * @return the page size (in bytes) of the system
+ */
+int sysGetPageSize(void) {
+    SYSTEM_INFO systemInfo;
+    GetSystemInfo(&systemInfo);
+    return systemInfo.dwPageSize;
+}
+
+/**
+ * Sets a region of memory read-only or reverts it to read & write.
+ *
+ * @param start    the start of the memory region
+ * @param end      one byte past the end of the region
+ * @param readonly specifies if read-only protection is to be enabled or disabled
+ */
+void sysToggleMemoryProtection(char* start, char* end, boolean readonly) {
+    size_t len = end - start;
+    unsigned long old;
+//fprintf(stderr, format("toggle memory protection: start=%A len=%d end=%A readonly=%s\n"), start, len, end,  readonly ? "true" : "false");
+    if (VirtualProtect(start, len, readonly ? PAGE_READONLY : PAGE_READWRITE, &old) == 0) {
+        fprintf(stderr, format("Could not toggle memory protection: errno=%d addr=%A len=%d readonly=%s\n"), GetLastError(), start, len, readonly ? "true" : "false");
+    }
+}
+
+/**
+ * Allocate a page-aligned chunk of memory of the given size.
+ * 
+ * @param size size in bytes to allocate
+ * @return pointer to allocated memory or null.
+ */
+INLINE void* sysValloc(size_t size) {
+    return VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+
+}
+
+/**
+ * Free chunk of memory allocated by sysValloc
+ * 
+ * @param ptr to to chunk allocated by sysValloc
+ */
+INLINE void sysVallocFree(void* ptr) {
+    VirtualFree(buffer, 0, MEM_RELEASE);
+}
+
+/** 
+ * Return another path to find the bootstrap suite with the given name.
+ * On some platforms the suite might be stored in an odd location
+ * 
+ * @param bootstrapSuiteName the name of the boostrap suite
+ * @return full or partial path to alternate location, or null
+ */
+INLINE static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
+
 #if PLATFORM_TYPE_DELEGATING
 jint createJVM(JavaVM **jvm, void **env, void *args) {
     HINSTANCE handle;

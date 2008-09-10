@@ -27,8 +27,6 @@
 #define RTLD_DEFAULT NULL	// Map the default dlsym handle to null
 				// VxWorks doesn't use the handle.
 
-#define _SC_PAGESIZE 2          // This doesn't matter.
-
 #include <stdlib.h>
 #include <sys/times.h>
 #include <symLib.h>
@@ -54,11 +52,53 @@ int usleep(long microseconds) {
  * Support for util.h
  */
 
-long sysconf(int code) {
-    if(code == _SC_PAGESIZE)
-        return 0x4000;
-    else
-        return -1; // failure
+/**
+ * Gets the page size (in bytes) of the system.
+ *
+ * @return the page size (in bytes) of the system
+ */
+#define sysGetPageSize() 0x1000
+
+/**
+ * Sets a region of memory read-only or reverts it to read & write.
+ *
+ * @param start    the start of the memory region
+ * @param end      one byte past the end of the region
+ * @param readonly specifies if read-only protection is to be enabled or disabled
+ */
+void sysToggleMemoryProtection(char* start, char* end, boolean readonly) {
+    printf("mprotect() is not supported.  Not protecting memory at %#0.8x\n", start);
+}
+
+/**
+ * Allocate a page-aligned chunk of memory of the given size.
+ * 
+ * @param size size in bytes to allocate
+ * @return pointer to allocated memory or null.
+ */
+INLINE void* sysValloc(size_t size) {
+    return valloc(size);
+}
+
+/**
+ * Free chunk of memory allocated by sysValloc
+ * 
+ * @param ptr to to chunk allocated by sysValloc
+ */
+INLINE void sysVallocFree(void* ptr) {
+    free(ptr);
+}
+
+/** 
+ * Return another path to find the bootstrap suite with the given name.
+ * On some platforms the suite might be stored in an odd location
+ * 
+ * @param bootstrapSuiteName the name of the boostrap suite
+ * @return full or partial path to alternate location, or null
+ */
+INLINE static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { 
+    /* TODO: May want to do something more to find squawk.suite reliably*/
+    return NULL;
 }
 
 // TODO: Fix timezone support?

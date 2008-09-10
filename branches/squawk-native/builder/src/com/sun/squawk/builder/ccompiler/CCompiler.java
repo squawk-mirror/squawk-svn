@@ -50,11 +50,6 @@ public abstract class CCompiler {
         public boolean profiling;
 
         /**
-         * Enables remote IO code (i.e. enables '-Xprof' VM option). This may slow down the VM considerably.
-         */
-        public boolean ioport;
-
-        /**
          * Enables kernel mode (i.e. enables asynchronous handling of interrupts). This may slow down the VM slightly.
          */
         public boolean kernel;
@@ -63,7 +58,6 @@ public abstract class CCompiler {
          * Enables native Verification mode. Uses SHA1 c code instead of java code for suite verification.  This accelerates verification considerable
          */
         public boolean nativeVerification;
-
 
         /**
          * Asserts that squawk will run hosted under a 1.4.2+ JVM. This allows us to use the signal-interposition
