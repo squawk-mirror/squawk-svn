@@ -169,6 +169,19 @@ void startTicker(int interval) {
     exit(0);
 }
 
+#define USE_CUSTOM_DL_CODE 1
+
+void* sysdlopen(char* name) {
+    return NULL;
+}
+
+int sysdlclose(void* handle) {
+    return 0;
+}
+
+void* sysdlerror() {
+    return NULL;
+}
 
 void* dlsym(void* handle, const char* symbol) {
     char symName[strlen(symbol)];

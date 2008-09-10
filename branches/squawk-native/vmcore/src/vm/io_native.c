@@ -271,6 +271,8 @@ void* sysdlsym(void* handle, char* name) {
     return dlsym(handle, name);
 }
 
+
+#ifndef USE_CUSTOM_DL_CODE
 void* sysdlopen(char* name) {
     return dlopen(name, RTLD_LAZY);
 }
@@ -282,6 +284,8 @@ int sysdlclose(void* handle) {
 void* sysdlerror() {
     return dlerror();
 }
+
+#endif /* !USE_CUSTOM_DL_CODE */
 
 /**
  * Executes an operation on a given channel for an isolate.
