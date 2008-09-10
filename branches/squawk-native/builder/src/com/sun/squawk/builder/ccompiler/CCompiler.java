@@ -227,4 +227,11 @@ public abstract class CCompiler {
         String arch = getArchitecture().toLowerCase();
         return arch.equals("x86") || arch.equals("i386") || arch.equals("amd64") || arch.equals("ia64") || arch.equals("x86_64");
     }
+  
+    /**
+     * @return true if we are cross compile to a different platform.
+     */
+    public boolean isCrossPlatform() {
+        return false;
+    }
 }

@@ -348,12 +348,19 @@ public class RomCommand extends Command {
         // Run the C compiler to compile the slow VM
         if (compilationEnabled) {
 
-            File[] includeDirs = new File[] {
-                //new File(jdk.getHome(), "include"),
-                //jdk.getJNI_MDIncludePath(),
-                FP_SRC_DIR,
-                new File(VM_SRC_RTS_DIR, ccompiler.getName())
-            };
+            File[] includeDirs;
+
+            if (ccompiler.isCrossPlatform()) {
+                includeDirs = new File[]{FP_SRC_DIR,
+                            new File(VM_SRC_RTS_DIR, ccompiler.getName())
+                        };
+            } else {
+                includeDirs = new File[]{new File(jdk.getHome(), "include"),
+                            jdk.getJNI_MDIncludePath(),
+                            FP_SRC_DIR,
+                            new File(VM_SRC_RTS_DIR, ccompiler.getName())
+                        };
+            }
 
             Build.mkdir(VM_BLD_DIR);
 

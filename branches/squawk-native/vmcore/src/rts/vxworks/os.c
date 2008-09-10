@@ -96,7 +96,7 @@ INLINE void sysVallocFree(void* ptr) {
  * @param bootstrapSuiteName the name of the boostrap suite
  * @return full or partial path to alternate location, or null
  */
-INLINE static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { 
+INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { 
     /* TODO: May want to do something more to find squawk.suite reliably*/
     return NULL;
 }

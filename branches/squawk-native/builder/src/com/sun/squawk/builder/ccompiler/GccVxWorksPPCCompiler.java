@@ -148,4 +148,9 @@ public class GccVxWorksPPCCompiler extends GccCompiler {
         env.exec(ccName + " -r -Wl,-X -T /WindRiver/vxworks-6.3/target/h/tool/gnu/ldscripts/link.OUT " + exec);
         return new File(output);
     }
+    
+    @Override
+    public boolean isCrossPlatform() {
+        return true;
+    }
 }
