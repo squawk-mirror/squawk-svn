@@ -116,7 +116,7 @@ constants that we had to hand-translate from C to Java:<p>
      */
     public static int <b>open</b>(String name, int oflag) {
         Pointer name0 = Pointer.createStringBuffer(name);
-        int result = openPtr.call2(name0.address(), oflag);
+        int result = openPtr.call2(name0, oflag);
         name0.free();
         return result;
     }</code></pre></td></tr></table>

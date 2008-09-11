@@ -24,7 +24,6 @@
 
 package com.sun.squawk.platform.posix.callouts;
 
-import com.sun.squawk.Address;
 import com.sun.cldc.jna.*;
 
 /**
@@ -75,17 +74,6 @@ public class Stat extends LibC {
     private Stat() { }
 
     /**
-     * Get file status for named file
-     * 
-     * @param namestr
-     * @param stat 
-     * @return -1 is returned if an error occurs, otherwise zero is returned
-     */
-    public static int stat0(Address namestr, Address stat) {
-        return statPtr.call2(namestr, stat);
-    }
-    
-    /**
      * open or create a file for reading or writing
      * 
      * @param name String
@@ -97,24 +85,13 @@ public class Stat extends LibC {
         stat.allocateMemory();
 //System.err.println("Stat.stat:" + name);
 //System.err.println("   mem " + stat.getPointer());  
-        int result = stat0(name0.address(), stat.getPointer().address());
+        int result = statPtr.call2(name0, stat.getPointer());
         name0.free();
         stat.read();
 //System.err.println("   result: " + stat);
         stat.freeMemory();
         return result;
-    }  
-     
-    /**
-     * initiate a connection on a socket.
-     * 
-     * @param fd file descriptor
-     * @param address ptr to a Stat buffer
-     * @return -1 is returned if an error occurs, otherwise zero is returned
-     */
-     public static int fstat0(int fd, Address address) {
-         return fstatPtr.call2(fd, address);
-     }
+    }
      
     /**
      * initiate a connection on a socket.
@@ -127,7 +104,7 @@ public class Stat extends LibC {
         stat.allocateMemory();
 //System.err.println("Stat.fstat(" + fd + ", " + stat);
 //System.err.println("   mem " + stat.getPointer());      
-        int result = fstat0(fd, stat.getPointer().address());
+        int result = fstatPtr.call2(fd, stat.getPointer());
         stat.read();
 
         stat.freeMemory();

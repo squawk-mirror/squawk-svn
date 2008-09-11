@@ -724,19 +724,19 @@ public class Build {
             setDescription("processes a number of classes to produce a .suite file");
 
         // Add the "traceviewer" command
-        addJavaCommand("traceviewer", "hosted-support/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.traces.TraceViewer", "hosted-support").
+        addJavaCommand("traceviewer", "hosted-support/classes:mapper/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.traces.TraceViewer", "mapper").
             setDescription("the Squawk VM execution trace GUI viewer");
 
         // Add the "profileviewer" command
-        addJavaCommand("profileviewer", "hosted-support/classes:cldc/classes", false, "", "com.sun.squawk.traces.ProfileViewer", "hosted-support").
+        addJavaCommand("profileviewer", "hosted-support/classes:mapper/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.traces.ProfileViewer", "mapper").
             setDescription("the Squawk VM execution profile GUI viewer");
 
         // Add the "gctf" command
-        addJavaCommand("gctf", "hosted-support/classes:cldc/classes", false, "", "com.sun.squawk.traces.GCTraceFilter", "hosted-support").
+        addJavaCommand("gctf", "hosted-support/classes:mapper/classes:cldc/classes", false, "", "com.sun.squawk.traces.GCTraceFilter", "mapper").
             setDescription("filter that converts method addresses in a garbage collector trace to signatures");
 
         // Add the "ht2html" command
-        addJavaCommand("ht2html", "hosted-support/classes:cldc/classes", false, "", "com.sun.squawk.ht2html.Main", "hosted-support").
+        addJavaCommand("ht2html", "hosted-support/classes:mapper/classes:cldc/classes", false, "", "com.sun.squawk.ht2html.Main", "mapper").
             setDescription("converts a heap trace to a set of HTML files");
 
         // Add the "rom" command

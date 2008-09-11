@@ -41,12 +41,12 @@ public class Select {
      * @return the total number of ready descriptors in all the sets
      */
      public static int select(int nfds, Pointer readfds, Pointer writefds,
-                                Pointer errorfds, Pointer timeout) {
+                              Pointer errorfds, Pointer timeout) {
          return selectPtr.call5(nfds, 
-                    readfds.address(),
-                    writefds.address(),
-                    errorfds.address(), 
-                    timeout.address());
+                    readfds,
+                    writefds,
+                    errorfds, 
+                    timeout);
      }
 
     /**
@@ -56,7 +56,7 @@ public class Select {
      * @param fd_set
      */
     public static void FD_CLR(int fd, Pointer fd_set) {
-        sysFD_CLRPtr.call2(fd, fd_set.address());
+        sysFD_CLRPtr.call2(fd, fd_set);
     }
     
     /**
@@ -66,7 +66,7 @@ public class Select {
      * @param fd_set
      */
     public static void FD_SET(int fd, Pointer fd_set) {
-        sysFD_SETPtr.call2(fd, fd_set.address());
+        sysFD_SETPtr.call2(fd, fd_set);
     }
     
     /**
@@ -76,7 +76,7 @@ public class Select {
      * @return
      */
     public static boolean FD_ISSET(int fd, Pointer fd_set) {
-        int result = sysFD_ISSETPtr.call2(fd, fd_set.address());
+        int result = sysFD_ISSETPtr.call2(fd, fd_set);
         return (result == 0) ? false : true;
     }
     

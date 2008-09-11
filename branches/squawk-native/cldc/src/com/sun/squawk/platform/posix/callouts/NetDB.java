@@ -24,7 +24,6 @@
 
 package com.sun.squawk.platform.posix.callouts;
 
-import com.sun.squawk.Address;
 import com.sun.cldc.jna.*;
 
 /**
@@ -39,19 +38,6 @@ public class NetDB {
     private static final VarPointer h_errnoPtr = VarPointer.lookup("h_errno", 4);
         
     private static final Function gethostbynamePtr = Function.getFunction("gethostbyname");
-    
-    /**
-     * The gethostbyname() function returns a pointer to an
-     *    object with the hostent structure describing an internet host referenced by name.
-     *
-     * @param name the host name (char*)
-     * @return the address of struct hostent.
-     */
-    private static Address gethostbyname0(Address name) {
-        int addr;
-        addr = gethostbynamePtr.call1(name);
-        return Address.fromPrimitive(addr);
-    }
 
     /**
      * The gethostbyname() function returns a HostEnt structure describing an internet host referenced by name.
@@ -61,16 +47,10 @@ public class NetDB {
      */
     public static Struct_HostEnt gethostbyname(String name) {
         Pointer name0 = Pointer.createStringBuffer(name);
-        Address addr = gethostbyname0(name0.address());
+        Struct_HostEnt result = (Struct_HostEnt)gethostbynamePtr.returnStruct(Struct_HostEnt.class,
+                                                                               gethostbynamePtr.call1(name0));
         name0.free();
-        if (addr.isZero()) {
-            return null;
-        } else {
-            Struct_HostEnt result = new Struct_HostEnt();
-            result.useMemory(new Pointer(addr, result.size()));
-            result.read();
-            return result;
-        }
+        return result;
     }
     
     public final static int HOST_NOT_FOUND = 1; /* Authoritative Answer Host not found */
@@ -97,7 +77,6 @@ public class NetDB {
              #define h_addr  h_addr_list[0]  address, for backward compatibility 
     */
     public static class Struct_HostEnt extends Structure {
-
         public String h_name;        /* official name of host */
 
         public int h_addrtype;     /* host address type */
@@ -132,6 +111,7 @@ public class NetDB {
         }
 
         public int size() { return 5 * 4; }
+    
     } /* HostEnt */
 
 /*if[DEBUG_CODE_ENABLED]*/

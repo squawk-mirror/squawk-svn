@@ -290,18 +290,6 @@ public class LibC {
     /**
      * open or create a file for reading or writing
      * 
-     * @param namestr
-     * @param oflag
-     * @return If successful, returns a non-negative integer, termed a file descriptor.  Returns
-     *         -1 on failure, and sets errno to indicate the error.
-     */
-    public static int open0(Address namestr, int oflag) {
-        return openPtr.call2(namestr, oflag);
-    }
-    
-    /**
-     * open or create a file for reading or writing
-     * 
      * @param name String
      * @param oflag
      * @return If successful, returns a non-negative integer, termed a file descriptor.  Returns
@@ -309,7 +297,7 @@ public class LibC {
      */
     public static int open(String name, int oflag) {
         Pointer name0 = Pointer.createStringBuffer(name);
-        int result = open0(name0.address(), oflag);
+        int result = openPtr.call2(name0, oflag);
         name0.free();
         return result;
     }
@@ -336,20 +324,6 @@ public class LibC {
         return fsyncPtr.call1(fd);
     }
 
-    /**
-     * read input
-     * 
-     * @param fd file descriptor
-     * @param buf data buffer to read into
-     * @param nbyte number of bytes to read
-     * @return the number of bytes actually read is returned.  Upon reading end-of-file, zero
-     *         is returned.  If error, a -1 is returned and the global variable errno is set to indicate
-     *         the error
-     */
-    public static int read0(int fd, Address buf, int nbyte) {
-        return readPtr.call3(fd, buf, nbyte);
-    }
-    
     /**
      * Get a pointer to the interior of a Java array. 
      * Check that the range requested is within the array bounds.
@@ -383,25 +357,12 @@ public class LibC {
         try {
             /*------------------- DISABLE GC: ---------------------------*/
             Address ptr = getPtrToArray(buf, offset, nbyte);
-            int result = read0(fd, ptr, nbyte);
+            int result = readPtr.call3(fd, ptr.toUWord().toPrimitive(), nbyte);
             return result;
         } finally {
             GC.setGCEnabled(oldGCState);
             /*------------------- ENDABLE GC: ---------------------------*/
         }
-    }
-    
-    /**
-     * write output
-     * 
-     * @param fd file descriptor
-     * @param buf data buffer to write
-     * @param nbyte number of bytes to read
-     * @return the number of bytes which were written is returned.  If error,
-     *         -1 is returned and the global variable errno is set to indicate the error.
-     */
-    public static int write0(int fd, Address buf, int nbyte) {
-        return writePtr.call3(fd, buf, nbyte);
     }
   
     /**
@@ -419,7 +380,7 @@ public class LibC {
         try {
             /*------------------- DISABLE GC: ---------------------------*/
             Address ptr = getPtrToArray(buf, offset, nbyte);
-            int result = write0(fd, ptr, nbyte);
+            int result = writePtr.call3(fd, ptr.toUWord().toPrimitive(), nbyte);
             return result;
         } finally {
             GC.setGCEnabled(oldGCState);

@@ -30,7 +30,7 @@ import com.sun.squawk.util.Assert;
  */
 public abstract class Structure {
     
-    static Class[] classes = {Integer.class, String.class, String.class};
+    //static Class[] classes = {Integer.class, String.class, String.class};
 
     protected Pointer backingNativeMemory;
 

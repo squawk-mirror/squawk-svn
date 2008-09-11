@@ -194,62 +194,102 @@ public final class Function {
     /**
      * Call a function pointer with one arguments
      */
-    public int call1(Address a1) {
-        return call1(a1.toUWord().toPrimitive());
+    public int call1(Pointer p1) {
+        return call1(p1.address().toUWord().toPrimitive());
     }
 
     /**
      * Call a function pointer with two arguments
      */
-    public int call2(Address a1, Address a2) {
-        return call2(a1.toUWord().toPrimitive(), a2.toUWord().toPrimitive());
+    public int call2(Pointer p1, Pointer p2) {
+        return call2(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive());
     }
 
     /**
      * Call a function pointer with two arguments
      */
-    public int call2(Address a1, int i2) {
-        return call2(a1.toUWord().toPrimitive(), i2);
+    public int call2(Pointer p1, int i2) {
+        return call2(p1.address().toUWord().toPrimitive(), i2);
     }
 
     /**
      * Call a function pointer with two arguments
      */
-    public int call2(int i1, Address a2) {
-        return call2(i1, a2.toUWord().toPrimitive());
+    public int call2(int i1, Pointer p2) {
+        return call2(i1, p2.address().toUWord().toPrimitive());
     }
 
     /**
      * Call a function pointer with three arguments
      */
-    public int call3(int i1, Address a2, int i3) {
-        return call3(i1, a2.toUWord().toPrimitive(), i3);
+    public int call3(int i1, Pointer p2, int i3) {
+        return call3(i1, p2.address().toUWord().toPrimitive(), i3);
     }
     
-    public int call3(int i1, Address a2, Address a3) {
-        return call3(i1, a2.toUWord().toPrimitive(), a3.toUWord().toPrimitive());
+    public int call3(int i1, Pointer p2, Pointer p3) {
+        return call3(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive());
     }
 
     /**
      * Call a function pointer with five arguments
      */
-    public int call5(int i1, Address a2, Address a3, Address a4, Address a5) {
+    public int call5(int i1, Pointer p2, Pointer p3, Pointer p4, Pointer p5) {
         return call5(i1,
-                a2.toUWord().toPrimitive(),
-                a3.toUWord().toPrimitive(),
-                a4.toUWord().toPrimitive(),
-                a5.toUWord().toPrimitive());
+                p2.address().toUWord().toPrimitive(),
+                p3.address().toUWord().toPrimitive(),
+                p4.address().toUWord().toPrimitive(),
+                p5.address().toUWord().toPrimitive());
     }
  
-    public int call5(int i1, int i2, int i3, Address a4, int i5) {
+    public int call5(int i1, int i2, int i3, Pointer p4, int i5) {
         return call5(i1, i2, i3,
-                a4.toUWord().toPrimitive(),
+                p4.address().toUWord().toPrimitive(),
                 i5);
     }
 
-    public int call5(int i1, int i2, int i3, Address a4, Address a5) {
+    public int call5(int i1, int i2, int i3, Pointer p4, Pointer p5) {
         return call5(i1, i2, i3,
-                a4.toUWord().toPrimitive(),
-                a5.toUWord().toPrimitive());
+                p4.address().toUWord().toPrimitive(),
+                p5.address().toUWord().toPrimitive());
+    }
+    
+    /**
+     * Standard conversion function that creates an structure instance of type <code>klass</code> from a C address <code>ptr</code>.
+     * If <code>addr0</code> is not NULL, create a new Structure object and copy the data
+     *  from the C struct to the Structure object.
+     * 
+     * @param klass 
+     * @param ptr the raw native address of the C struct
+     * @return null, or a Structure containing the data from C struct
+     */
+    public static Structure returnStruct(Class klass, int ptr) {
+        Address addr = Address.fromPrimitive(ptr);
+        if (addr.isZero()) {
+            return null;
+        } else {
+            Structure result;
+            try {
+                result = (Structure) klass.newInstance();
+                result.useMemory(new Pointer(addr, result.size()));
+                result.read();
+                return result;
+            } catch (InstantiationException ex) {
+                ex.printStackTrace();
+            } catch (IllegalAccessException ex) {
+                ex.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Standard conversion function that creates java string from a C char* <code>ptr</code>.
+     * 
+     * @param ptr the raw native address of the C struct
+     * @return null, or Java String containing the string in Java format
+     */
+    public static String returnString(int ptr) {
+        Address result = Address.fromPrimitive(ptr);
+        return Pointer.NativeUnsafeGetString(result);
     }
 }

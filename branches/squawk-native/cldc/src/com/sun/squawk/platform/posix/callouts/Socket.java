@@ -131,18 +131,6 @@ public class Socket extends LibC {
      * 
      * @param socket socket descriptor
      * @param address ptr to a SockAddr_In buffer
-     * @param size 
-     * @return  A -1 is returned if an error occurs, otherwise zero is returned
-     */
-     private static int connect0(int socket, Address address, int size) {
-         return connectPtr.call3(socket, address, size);
-     }
-     
-    /**
-     * initiate a connection on a socket.
-     * 
-     * @param socket socket descriptor
-     * @param address ptr to a SockAddr_In buffer
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
@@ -151,23 +139,11 @@ public class Socket extends LibC {
         address.write();
 System.err.println("Socket.connect(" + socket + ", " + address);
 System.err.println("   mem " + address.getPointer());      
-        int result = connect0(socket, address.getPointer().address(), address.size());
+        int result = connectPtr.call3(socket, address.getPointer(), address.size());
         address.freeMemory();
         return result;
     }
     
-    /**
-     * bind a socket to a port
-     * 
-     * @param socket socket descriptor
-     * @param address ptr to a SockAddr_In buffer
-     * @param size 
-     * @return  A -1 is returned if an error occurs, otherwise zero is returned
-     */
-     private static int bind0(int socket, Address address, int size) {
-         return bindPtr.call3(socket, address, size);
-     }
-     
     /**
      * bind a socket to a port
      * 
@@ -181,24 +157,11 @@ System.err.println("   mem " + address.getPointer());
         myaddress.write();
 //System.err.println("Socket.connect(" + socket + ", " + address);
 //System.err.println("   mem " + address.getPointer());      
-        int result = bind0(socket, myaddress.getPointer().address(), myaddress.size());
+        int result = bindPtr.call3(socket, myaddress.getPointer(), myaddress.size());
         myaddress.freeMemory();
         return result;
     }
     
-    /**
-     * accept a connection from a client
-     * 
-     * @param socket socket descriptor
-     * @param remoteAddress ptr to a SockAddr_In buffer
-     * @param sizeStar 
-     * @return  A -1 is returned if an error occurs, otherwise zero is returned
-     */
-     private static int accept0(int socket, Address remoteAddress, Address size) {
-// System.err.println("Socket.accept0(" + socket + ", " + remoteAddress.toUWord().toPrimitive() + ", " + size.toUWord().toPrimitive() + ")");
-         return acceptPtr.call3(socket, remoteAddress, size);
-     }
-     
     /**
      * accept a connection from a client
      * 
@@ -212,7 +175,7 @@ System.err.println("   mem " + address.getPointer());
         IntStar addr_len = new IntStar(remoteAddress.size());
         remoteAddress.write();
 //System.err.println("Socket.accept(" + socket);
-        int result = accept0(socket, remoteAddress.getPointer().address(), addr_len.getPointer().address());
+        int result = acceptPtr.call3(socket, remoteAddress.getPointer(), addr_len.getPointer());
         int errno = LibC.errno();
         remoteAddress.read();
 //System.err.println("   errno " + errno);
@@ -220,18 +183,6 @@ System.err.println("   mem " + address.getPointer());
         remoteAddress.freeMemory();
         return result;
     }
-    
-    
-    /**
-     * listen for connections on socket
-     * 
-     * @param socket socket descriptor
-     * @param backlog
-     * @return  A -1 is returned if an error occurs, otherwise zero is returned
-     */
-     private static int listen0(int socket, int backlog) {
-         return listenPtr.call2(socket, backlog);
-     }
      
     /**
      * listen for connections on socket
@@ -243,7 +194,7 @@ System.err.println("   mem " + address.getPointer());
      */
     public static int listen(int socket, int backlog) {
 //System.err.println("Socket.listen(" + socket + ", " + socket);
-        int result = listen0(socket, backlog);
+        int result = listenPtr.call2(socket, backlog);
         return result;
     }
     
@@ -313,7 +264,7 @@ System.err.println("   mem " + address.getPointer());
             p.setByte(0, (byte)sin_len);
             p.setByte(1, (byte)sin_family);
             p.setShort(2, (short)sin_port);
-            if (sin_addr != null && !sin_addr.address().isZero()) {
+            if (sin_addr != null && !sin_addr.isValid()) {
                 Pointer.copyBytes(sin_addr, 0, p, 4, SIZEOF_in_addr_t); // odd way to more easily port if sin_addr is ever > 4 bytes.
             }
         }
@@ -327,20 +278,6 @@ System.err.println("   mem " + address.getPointer());
         }
                  
     } /* SockAddr */
-    
-    /**
-     * Interprets the specified character string as an Internet address, placing the
-     * address into the structure provided.  It returns 1 if the string was successfully interpreted, or 0 if
-     * the string is invalid
-     * 
-     * @param strAddr      const char *
-     * @param structAddr   struct in_addr *
-     * @return true if success
-     */
-    private static boolean inet_aton0(Address strAddr, Address structAddr) {
-        int result = inet_atonPtr.call2(strAddr, structAddr);
-        return (result == 0) ? false : true;
-    }
 
     /**
      * Interprets the specified character string as an Internet address, placing the
@@ -353,22 +290,11 @@ System.err.println("   mem " + address.getPointer());
      */
     public static boolean inet_aton(String str, Pointer in_addr) {
         Pointer name0 = Pointer.createStringBuffer(str);
-        boolean result = inet_aton0(name0.address(), in_addr.address());
+        int result =  inet_atonPtr.call2(name0, in_addr);
         name0.free();
-        return result;
+        return (result == 0) ? false : true;
     }
 
-    /**
-     * Takes an Internet address and returns an ASCII string representing the address
-     * in `.' notation
-     * 
-     * @param structAddr 
-     * @return address of char*
-     */
-    private static Address inet_ntoa0(Address structAddr) {
-        return Address.fromPrimitive(inet_ntoaPtr.call1(structAddr));
-    }
-    
     /**
      * Takes an Internet address and returns string representing the address
      * in `.' notation
@@ -377,22 +303,9 @@ System.err.println("   mem " + address.getPointer());
      * @return String
      */
     public static String inet_ntoa(Pointer structAddr) {
-        Address result = inet_ntoa0(structAddr.address());
-        return Pointer.NativeUnsafeGetString(result);
+        return inet_ntoaPtr.returnString(inet_ntoaPtr.call1(structAddr));
     }
     
-    /**
-     * set a socket option
-     * 
-     * @param socket socket descriptor
-     * @param remoteAddress ptr to a SockAddr_In buffer
-     * @param size 
-     * @return  A -1 is returned if an error occurs, otherwise zero is returned
-     */
-     private static int setSockOpt0(int socket, int level, int option_name, Address option_value, int option_len) {
-         return setSockOptPtr.call5(socket, level, option_name, option_value, option_len);
-     }
-     
     /**
      * set a socket option
      * 
@@ -407,21 +320,12 @@ System.err.println("   mem " + address.getPointer());
         option_value.allocateMemory();
         option_value.write();
 //System.err.println("Socket.setSockOpt(" + socket);
-        int result = setSockOpt0(socket, level, option_name, option_value.getPointer().address(), option_value.size());
+        int result = setSockOptPtr.call5(socket, level, option_name, option_value.getPointer(), option_value.size());
 //System.err.println("   address " + option_value);
         option_value.freeMemory();
         return result;
     }
     
-    /**
-     * get a socket option
-     * 
-     * @return  A -1 is returned if an error occurs, otherwise zero is returned
-     */
-     private static int getSockOpt0(int socket, int level, int option_name, Address option_value, Address option_len) {
-         return getSockOptPtr.call5(socket, level, option_name, option_value, option_len);
-     }
-     
     /**
      * get a socket option
      * 
@@ -437,7 +341,7 @@ System.err.println("   mem " + address.getPointer());
         option_value.allocateMemory();
         
 System.err.println("Socket.getSockOpt(" + socket);
-        int result = getSockOpt0(socket, level, option_name, option_value.getPointer().address(), opt_len.getPointer().address());
+        int result = getSockOptPtr.call5(socket, level, option_name, option_value.getPointer(), opt_len.getPointer());
 System.err.println("   address " + option_value);
 System.err.println("   real opt_len " + opt_len.get());
         option_value.read();
