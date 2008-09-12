@@ -23,6 +23,8 @@
  */
 package com.sun.cldc.jna;
 
+import com.sun.squawk.Klass;
+import com.sun.squawk.VM;
 import com.sun.squawk.util.Assert;
 
 /**
@@ -30,7 +32,7 @@ import com.sun.squawk.util.Assert;
  */
 public abstract class Structure {
     
-    //static Class[] classes = {Integer.class, String.class, String.class};
+    private final static boolean DEBUG = true;
 
     protected Pointer backingNativeMemory;
 
@@ -69,8 +71,13 @@ public abstract class Structure {
     /** 
      * Set the backing native memory used by this structure. 
      * @param m the native memory
+     * @throws IllegalStateException if this structure already has memory allocated
      */
     public final void useMemory(Pointer m) {
+        if (backingNativeMemory != null &&
+            backingNativeMemory.isValid()) {
+            throw new IllegalStateException();
+        }
         backingNativeMemory = m;
     }
 
@@ -80,24 +87,56 @@ public abstract class Structure {
      * This memory should be freed when not needed
      * 
      * @throws OutOfMemoryError if backing native memory cannot be allocated.
+     * @throws IllegalStateException if this structure already has memory allocated
      */
     public void allocateMemory() throws OutOfMemoryError {
+        if (backingNativeMemory != null &&
+            backingNativeMemory.isValid()) {
+            throw new IllegalStateException();
+        }
         backingNativeMemory = new Pointer(size());
+        if (DEBUG) {
+            VM.print("Allocated memory for ");
+            VMprintStruct();
+        }
     }
 
+    private void VMprintStruct() {
+        VM.print("Structure(");
+        VM.print(Klass.asKlass(getClass()).getInternalName());
+        VM.print(" size: ");
+        VM.print(size());
+        if (backingNativeMemory == null) {
+            VM.println(" memory never allocated)");
+        } else {
+            VM.print(" Pointer(");
+            VM.printAddress(getPointer().address());
+            VM.println("))");
+        }
+    }
+    
     /**
      * Attempt to allocate backing memory for the structure.
      * 
      * @param size in bytes ito allocate
      * @throws IllegalArgumentException if the requested size is smaller than the default size
      * @throws OutOfMemoryError if backing native memory cannot be allocated.
+     * @throws IllegalStateException if this structure already has memory allocated
      */
     public void allocateMemory(int size) throws OutOfMemoryError {
         int defaultsize = size();
         if (size < defaultsize) {
             throw new IllegalArgumentException();
         }
+        if (backingNativeMemory != null &&
+            backingNativeMemory.isValid()) {
+            throw new IllegalStateException();
+        }
         backingNativeMemory = new Pointer(size);
+        if (DEBUG) {
+            VM.print("Allocated memory of special size for ");
+            VMprintStruct();
+        }
     }
 
     /**
@@ -106,6 +145,10 @@ public abstract class Structure {
      * @throws IllegalStateException if the memory has already been freed.
      */
     public void freeMemory() throws IllegalStateException {
+        if (DEBUG) {
+            VM.print("Freeing memory for ");
+            VMprintStruct();
+        }
         backingNativeMemory.free(); // set the ptr to an invalid address
     }
 
@@ -116,14 +159,19 @@ public abstract class Structure {
         backingNativeMemory.clear(size());
     }
     
+    public String toString() {
+        String backingStr = (backingNativeMemory == null) ? " memory never allocated" : backingNativeMemory.toString();
+        return "Structure(" + getClass().getName() + " size: " + size() + backingStr + ")";
+    }
+    
     /**
-     * Singleton object that can be used a a NULL structure instance.
+     * Singleton object that can be used as a NULL structure instance.
      */
     public final static Structure NULL = new NullStruct();
     
     static class NullStruct extends Structure {
 
-        public NullStruct() {
+        NullStruct() {
             super(Pointer.NULL);
         }
 
