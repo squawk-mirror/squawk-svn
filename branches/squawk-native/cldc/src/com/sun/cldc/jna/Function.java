@@ -191,66 +191,232 @@ public final class Function {
         return NativeUnsafe.call5(funcAddr, i1, i2, i3, i4, i5);
     }
 
-    /**
-     * Call a function pointer with one arguments
-     */
+    /* Call a function pointer with one arguments */
     public int call1(Pointer p1) {
         return call1(p1.address().toUWord().toPrimitive());
     }
 
-    /**
-     * Call a function pointer with two arguments
-     */
+    /* Call a function pointer with two arguments */
+    public int call2(int i1, Pointer p2) {
+        return call2(i1, p2.address().toUWord().toPrimitive());
+    }
+    
+    public int call2(Pointer p1, int i2) {
+        return call2(p1.address().toUWord().toPrimitive(), i2);
+    }
+    
     public int call2(Pointer p1, Pointer p2) {
         return call2(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive());
     }
 
-    /**
-     * Call a function pointer with two arguments
-     */
-    public int call2(Pointer p1, int i2) {
-        return call2(p1.address().toUWord().toPrimitive(), i2);
+    /* Call a function pointer with three arguments */
+    public int call3(int i1, int i2, Pointer p3) {
+        return call3(i1, i2, p3.address().toUWord().toPrimitive());
     }
 
-    /**
-     * Call a function pointer with two arguments
-     */
-    public int call2(int i1, Pointer p2) {
-        return call2(i1, p2.address().toUWord().toPrimitive());
-    }
-
-    /**
-     * Call a function pointer with three arguments
-     */
     public int call3(int i1, Pointer p2, int i3) {
         return call3(i1, p2.address().toUWord().toPrimitive(), i3);
     }
-    
+
     public int call3(int i1, Pointer p2, Pointer p3) {
         return call3(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive());
     }
 
-    /**
-     * Call a function pointer with five arguments
-     */
-    public int call5(int i1, Pointer p2, Pointer p3, Pointer p4, Pointer p5) {
-        return call5(i1,
-                p2.address().toUWord().toPrimitive(),
-                p3.address().toUWord().toPrimitive(),
-                p4.address().toUWord().toPrimitive(),
-                p5.address().toUWord().toPrimitive());
-    }
- 
-    public int call5(int i1, int i2, int i3, Pointer p4, int i5) {
-        return call5(i1, i2, i3,
-                p4.address().toUWord().toPrimitive(),
-                i5);
+    public int call3(Pointer p1, int i2, int i3) {
+        return call3(p1.address().toUWord().toPrimitive(), i2, i3);
     }
 
+    public int call3(Pointer p1, int i2, Pointer p3) {
+        return call3(p1.address().toUWord().toPrimitive(), i2, p3.address().toUWord().toPrimitive());
+    }
+
+    public int call3(Pointer p1, Pointer p2, int i3) {
+        return call3(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), i3);
+    }
+
+    public int call3(Pointer p1, Pointer p2, Pointer p3) {
+        return call3(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive());
+    }
+    
+    /* Call a function pointer with four arguments */
+    public int call4(int i1, int i2, int i3, Pointer p4) {
+        return call4(i1, i2, i3, p4.address().toUWord().toPrimitive());
+    }
+    
+    public int call4(int i1, int i2, Pointer p3, int i4) {
+        return call4(i1, i2, p3.address().toUWord().toPrimitive(), i4);
+    }
+
+    public int call4(int i1, int i2, Pointer p3, Pointer p4) {
+        return call4(i1, i2, p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive());
+    }
+    public int call4(int i1, Pointer p2, int i3, int i4) {
+        return call4(i1, p2.address().toUWord().toPrimitive(), i3, i4);
+    }
+
+    public int call4(int i1, Pointer p2, int i3, Pointer p4) {
+        return call4(i1, p2.address().toUWord().toPrimitive(), i3, p4.address().toUWord().toPrimitive());
+    }
+    public int call4(int i1, Pointer p2, Pointer p3, int i4) {
+        return call4(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), i4);
+    }
+
+    public int call4(int i1, Pointer p2, Pointer p3, Pointer p4) {
+        return call4(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive());
+    }
+        
+    public int call4(Pointer p1, int i2, int i3, int i4) {
+        return call4(p1.address().toUWord().toPrimitive(), i2, i3, i4);
+    }
+
+    public int call4(Pointer p1, int i2, int i3, Pointer p4) {
+        return call4(p1.address().toUWord().toPrimitive(), i2, i3, p4.address().toUWord().toPrimitive());
+    }
+    
+    public int call4(Pointer p1, int i2, Pointer p3, int i4) {
+        return call4(p1.address().toUWord().toPrimitive(), i2, p3.address().toUWord().toPrimitive(), i4);
+    }
+
+    public int call4(Pointer p1, int i2, Pointer p3, Pointer p4) {
+        return call4(p1.address().toUWord().toPrimitive(), i2, p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive());
+    }
+
+    public int call4(Pointer p1, Pointer p2, int i3, int i4) {
+        return call4(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), i3, i4);
+    }
+
+    public int call4(Pointer p1, Pointer p2, int i3, Pointer p4) {
+        return call4(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), i3, p4.address().toUWord().toPrimitive());
+    }
+
+    public int call4(Pointer p1, Pointer p2, Pointer p3, int i4) {
+        return call4(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), i4);
+    }
+    
+    public int call4(Pointer p1, Pointer p2, Pointer p3, Pointer p4) {
+        return call4(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive());
+    }
+    
+    /* Call a function pointer with five arguments */
+    public int call5(int i1, int i2, int i3, Pointer p4, int i5) {
+        return call5(i1, i2, i3, p4.address().toUWord().toPrimitive(), i5);
+    }
+    
+    public int call5(int i1, int i2, Pointer p3, int i4, int i5) {
+        return call5(i1, i2, p3.address().toUWord().toPrimitive(), i4, i5);
+    }
+
+    public int call5(int i1, int i2, Pointer p3, Pointer p4, int i5) {
+        return call5(i1, i2, p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), i5);
+    }
+    public int call5(int i1, Pointer p2, int i3, int i4, int i5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), i3, i4, i5);
+    }
+
+    public int call5(int i1, Pointer p2, int i3, Pointer p4, int i5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), i3, p4.address().toUWord().toPrimitive(), i5);
+    }
+    public int call5(int i1, Pointer p2, Pointer p3, int i4, int i5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), i4, i5);
+    }
+
+    public int call5(int i1, Pointer p2, Pointer p3, Pointer p4, int i5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), i5);
+    }
+        
+    public int call5(Pointer p1, int i2, int i3, int i4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, i3, i4, i5);
+    }
+
+    public int call5(Pointer p1, int i2, int i3, Pointer p4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, i3, p4.address().toUWord().toPrimitive(), i5);
+    }
+    
+    public int call5(Pointer p1, int i2, Pointer p3, int i4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, p3.address().toUWord().toPrimitive(), i4, i5);
+    }
+
+    public int call5(Pointer p1, int i2, Pointer p3, Pointer p4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), i5);
+    }
+
+    public int call5(Pointer p1, Pointer p2, int i3, int i4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), i3, i4, i5);
+    }
+
+    public int call5(Pointer p1, Pointer p2, int i3, Pointer p4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), i3, p4.address().toUWord().toPrimitive(), i5);
+    }
+
+    public int call5(Pointer p1, Pointer p2, Pointer p3, int i4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), i4, i5);
+    }
+    
+    public int call5(Pointer p1, Pointer p2, Pointer p3, Pointer p4, int i5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), i5);
+    }
+    /*-*/
+    
+    public int call5(int i1, int i2, int i3, int i4, int i5, Pointer p5) {
+        return call5(i1, i2, i3, i4, p5.address().toUWord().toPrimitive());
+    }
+    
     public int call5(int i1, int i2, int i3, Pointer p4, Pointer p5) {
-        return call5(i1, i2, i3,
-                p4.address().toUWord().toPrimitive(),
-                p5.address().toUWord().toPrimitive());
+        return call5(i1, i2, i3, p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
+    }
+    
+    public int call5(int i1, int i2, Pointer p3, int i4, Pointer p5) {
+        return call5(i1, i2, p3.address().toUWord().toPrimitive(), i4, p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(int i1, int i2, Pointer p3, Pointer p4, Pointer p5) {
+        return call5(i1, i2, p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
+    }
+    public int call5(int i1, Pointer p2, int i3, int i4, Pointer p5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), i3, i4, p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(int i1, Pointer p2, int i3, Pointer p4, Pointer p5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), i3, p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
+    }
+    public int call5(int i1, Pointer p2, Pointer p3, int i4, Pointer p5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), i4, p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(int i1, Pointer p2, Pointer p3, Pointer p4, Pointer p5) {
+        return call5(i1, p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
+    }
+        
+    public int call5(Pointer p1, int i2, int i3, int i4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, i3, i4, p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(Pointer p1, int i2, int i3, Pointer p4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, i3, p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
+    }
+    
+    public int call5(Pointer p1, int i2, Pointer p3, int i4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, p3.address().toUWord().toPrimitive(), i4, p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(Pointer p1, int i2, Pointer p3, Pointer p4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), i2, p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(Pointer p1, Pointer p2, int i3, int i4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), i3, i4, p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(Pointer p1, Pointer p2, int i3, Pointer p4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), i3, p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
+    }
+
+    public int call5(Pointer p1, Pointer p2, Pointer p3, int i4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), i4, p5.address().toUWord().toPrimitive());
+    }
+    
+    public int call5(Pointer p1, Pointer p2, Pointer p3, Pointer p4, Pointer p5) {
+        return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
     }
     
     /**
@@ -267,9 +433,8 @@ public final class Function {
         if (addr.isZero()) {
             return null;
         } else {
-            Structure result;
             try {
-                result = (Structure) klass.newInstance();
+                Structure result = (Structure) klass.newInstance();
                 result.useMemory(new Pointer(addr, result.size()));
                 result.read();
                 return result;
@@ -289,7 +454,7 @@ public final class Function {
      * @return null, or Java String containing the string in Java format
      */
     public static String returnString(int ptr) {
-        Address result = Address.fromPrimitive(ptr);
-        return Pointer.NativeUnsafeGetString(result);
+        Address addr = Address.fromPrimitive(ptr);
+        return Pointer.NativeUnsafeGetString(addr);
     }
 }
