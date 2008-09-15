@@ -81,7 +81,7 @@ int sda_bp_set_or_stepping; // TRUE if we have any breakpoints set or are in a s
  */
 NORETURN void fatalVMError(char *msg) {
     static boolean inFatalVMError = false;
-    void stopVM(int);
+    NORETURN void stopVM(int);
 
     if (msg == null) {
         msg = "fatal VM error";

@@ -35,6 +35,7 @@ import java.io.IOException;
  * @author dw29446
  */
 public class LibC {
+    public final static boolean DEBUG = true;
 
     public final static int EPERM = 1;		/* Operation not permitted */
 
@@ -248,6 +249,9 @@ public class LibC {
      */
     public static int errCheckNeg(int result) throws IOException {
         if (result == -1) {
+            if (DEBUG) {
+                System.err.println("err = " + result);
+            }
             throw new IOException("errno: " + errno());
         } else {
             return result;

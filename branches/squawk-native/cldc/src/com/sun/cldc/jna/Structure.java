@@ -172,7 +172,7 @@ public abstract class Structure {
     static class NullStruct extends Structure {
 
         NullStruct() {
-            super(Pointer.NULL);
+            super(Pointer.NULL());
         }
 
         public void read() {

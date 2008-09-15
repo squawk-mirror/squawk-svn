@@ -23,8 +23,6 @@
  */
 package com.sun.cldc.jna;
 
-import com.sun.squawk.util.Assert;
-
 /**
  * A pointer to four bytes of storage.
  * Can be used for IN/OUT parameters.
@@ -58,5 +56,28 @@ public class IntStar extends Structure {
 
     public int size() {
         return 4;
+    }
+    
+    private static final Function testIntStar1Ptr = Function.getFunction("testIntStar1");
+    private static final Function testIntStar2Ptr = Function.getFunction("testIntStar2");
+
+    private static int testIntStar1Ptr(IntStar out) {
+        return testIntStar1Ptr.call1(out.getPointer());
+    }
+
+    private static void testIntStar2Ptr(IntStar out) {
+        testIntStar2Ptr.call1(out.getPointer());
+    }
+
+    public static void main(String[] args) {
+        IntStar p = new IntStar(-1);
+
+        int result = testIntStar1Ptr(p);
+        System.out.println("testIntStar1Ptr = " + result + ", p = " + p.get());
+        testIntStar2Ptr(p);
+        System.out.println("testIntStar2Ptr p = " + p.get());
+        
+        p.freeMemory();
+        System.out.println("Done test.");
     }
 }

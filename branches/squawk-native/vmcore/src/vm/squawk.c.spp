@@ -190,7 +190,7 @@ const char *format(const char* fmt);
 /*
  * Forward declaration of VM exit routine.
  */
-void stopVM(int);
+NORETURN void stopVM(int);
 
 /*
  * Include all the globals.
@@ -477,7 +477,9 @@ void freeBuffer(Address buffer) {
     while (i != BufferCount) {
         if (Buffers[i] == buffer) {
 //fprintf(stderr, format("freeBuffer: buffer=%A\n"), buffer);
+//fprintf(stderr, format("done printf\n"));
             sysVallocFree(buffer);
+//fprintf(stderr, format("done freeBuffer\n"));
         } else {
             Buffers[insert] = Buffers[i];
             insert++;
@@ -743,33 +745,41 @@ static void printCacheStats() {
  * @param exitCode the exit code
  */
 NORETURN void stopVM(int exitCode) {
-    finalizeStreams();
-    freeBuffers();
-    fprintf(stderr, "\n\n");
+    static boolean inStop = false;
+
+    if (!inStop) {
+        inStop = true;
+//fprintf(stderr, "finalizing streams\n");
+        finalizeStreams();
+//fprintf(stderr, "freeing buffers\n");
+        freeBuffers();
+//fprintf(stderr, "done freeing buffers\n");
+        fprintf(stderr, "\n\n");
 #ifndef FLASH_MEMORY
-    printCacheStats();
+//fprintf(stderr, "printCacheStats()\n");
+        printCacheStats();
 #endif /* !FLASH_MEMORY */
-    fprintf(stderr, "** VM stopped");
+        fprintf(stderr, "** VM stopped");
 #ifdef PROFILING
-    fprintf(stderr, format(" after %L instructions"), instructionCount);
+        fprintf(stderr, format(" after %L instructions"), instructionCount);
 #endif /* PROFILING */
 #if TRACE
-    fprintf(stderr, format(" after %L branches"), getBranchCount());
+        fprintf(stderr, format(" after %L branches"), getBranchCount());
 #endif /* TRACE */
-    fprintf(stderr, format(": exit code = %d ** "), exitCode);
+        fprintf(stderr, format(": exit code = %d ** "), exitCode);
 #if PLATFORM_TYPE_SOCKET
-    if (ioport != null) {
-        jlong average = (io_ops_count == 0 ? 0 : io_ops_time / io_ops_count);
-        fprintf(stderr, format(" (average time for %d I/O operation: %L ms)"), io_ops_count, average);
-    }
+        if (ioport != null) {
+            jlong average = (io_ops_count == 0 ? 0 : io_ops_time / io_ops_count);
+            fprintf(stderr, format(" (average time for %d I/O operation: %L ms)"), io_ops_count, average);
+        }
 #endif
-    fprintf(stderr, "\n");
-    fflush(stderr);
+        fprintf(stderr, "\n");
+        fflush(stderr);
 
 #ifdef DB_DEBUG
-    db_vm_exiting();
+        db_vm_exiting();
 #endif
-
+    }
 #ifdef _MSC_VER
     if (notrap) {
         _asm{ int 3 };
@@ -797,7 +807,7 @@ void jvmUsage() {
  * Shows the usage message.
  */
 void usage() {
-	printf("Usage: \n");
+    printf("Usage: \n");
     printf("    -Xmx:<size>    set Squawk RAM size (default=%dKb)\n", DEFAULT_RAM_SIZE/1024);
     printf("    -Xmxnvm:<size> set Squawk NVM size (default=%dKb)\n", DEFAULT_NVM_SIZE/1024);
     printf("    -Xboot:<file>  load bootstrap suite from file (default=squawk.suite)\n");

@@ -242,6 +242,14 @@ int getError() {
     return 0;
 }
 
+int testIntStar1(int *outparam) {
+    *outparam = 57;
+    return 1111111;
+}
+
+void testIntStar2(int *outparam) {
+    *outparam = 73;
+}
 
 /* INTERNAL DYNAMIC SYMBOL SUPPORT */
 typedef struct dlentryStruct {
@@ -249,14 +257,16 @@ typedef struct dlentryStruct {
     void* entry;
 } dlentry;
 
-#define DL_TABLE_SIZE 5
+#define DL_TABLE_SIZE 7
 
 static dlentry dltable[DL_TABLE_SIZE] = {
     {"sysFD_SIZE",      &sysFD_SIZE},
     {"sysSIZEOFSTAT",   &sysSIZEOFSTAT},
     {"sysFD_CLR",       &sysFD_CLR},
     {"sysFD_SET",       &sysFD_SET},
-    {"sysFD_ISSET",     &sysFD_ISSET}
+    {"sysFD_ISSET",     &sysFD_ISSET},
+    {"testIntStar1",    &testIntStar1},
+    {"testIntStar2",    &testIntStar2}
 };
     
 

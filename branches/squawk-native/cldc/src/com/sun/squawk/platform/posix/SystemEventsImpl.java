@@ -138,7 +138,7 @@ public class SystemEventsImpl extends SystemEvents {
         if (timeout == 0) {
             theTimout = zeroTime.getPointer();
         } else if (timeout == Long.MAX_VALUE) {
-            theTimout = Pointer.NULL;
+            theTimout = Pointer.NULL();
         } else {
             timeoutTime.tv_sec = timeout / 1000;
             timeoutTime.tv_usec = (timeout % 1000) * 1000;
@@ -146,7 +146,7 @@ public class SystemEventsImpl extends SystemEvents {
             theTimout = timeoutTime.getPointer();
         }
 
-        int num = Select.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL, theTimout);
+        int num = Select.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
         if (num < 0) {
             System.err.println("select error: " + LibC.errno());
         }

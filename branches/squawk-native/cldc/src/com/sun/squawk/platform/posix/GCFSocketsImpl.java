@@ -41,9 +41,7 @@ import java.io.IOException;
  * POSIX implementation of GCFSockets that calls the BSD socket API.
  */
 public class GCFSocketsImpl implements GCFSockets {
-    
-    final Pointer INADDR_ANY = new Pointer(Inet.htonl(Socket.INADDR_ANY), 0);
-    
+        
     /** Read errno, try to clean up fd, and create exception. */
     private static IOException newError(int fd, String msg)  {
         int err_code = LibC.errno(); // @TODO: NOT THREAD_SAFE!
@@ -91,14 +89,13 @@ public class GCFSocketsImpl implements GCFSockets {
         // hostname is always NUL terminated. See socket/Protocol.java for detail.
         phostent = NetDB.gethostbyname(hostname);
         if (phostent == null) {
-            throw newError(fd, "gethostbyname");
+            throw newError(fd, "gethostbyname (herrono = " + NetDB.h_errno() + ")");
         }
 
         Socket.Struct_SockAddr destination_sin = new Socket.Struct_SockAddr();
         destination_sin.sin_family = Socket.AF_INET;
         destination_sin.sin_port = Inet.htons((short) port);
-        destination_sin.sin_addr = new Pointer(phostent.h_length);
-        Pointer.copyBytes(phostent.h_addr_list[0], 0, destination_sin.sin_addr, 0, phostent.h_length);
+        destination_sin.sin_addr = phostent.h_addr_list[0];
 
 //System.err.println("   addr  " + Socket.inet_ntoa(destination_sin.sin_addr));
 //System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
@@ -114,7 +111,6 @@ public class GCFSocketsImpl implements GCFSockets {
             }
         }
 
-        destination_sin.sin_addr.free();
         return fd;
     }
     
@@ -142,11 +138,12 @@ public class GCFSocketsImpl implements GCFSockets {
         if (Socket.setSockOpt(fd, Socket.SOL_SOCKET, Socket.SO_REUSEADDR, option_val) < 0) {
             throw newError(fd, "setSockOpt");
         }
+        option_val.freeMemory();
         
         Socket.Struct_SockAddr local_sin = new Socket.Struct_SockAddr();
         local_sin.sin_family = Socket.AF_INET;
         local_sin.sin_port = Inet.htons((short) port);
-        local_sin.sin_addr = INADDR_ANY;
+        local_sin.sin_addr = Socket.INADDR_ANY;
         if (Socket.bind(fd, local_sin) < 0) {
             throw newError(fd, "bind");
         }

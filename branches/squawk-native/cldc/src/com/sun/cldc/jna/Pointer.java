@@ -59,7 +59,14 @@ import com.sun.squawk.vm.CID;
  * </ul> 
  */
 public class Pointer extends RawMemoryFloatAccess {
-    public static final Pointer NULL = new Pointer(0, 0);
+    private static Pointer NULL;
+    
+    public static synchronized Pointer NULL() {
+        if (NULL == null) {
+            NULL = new Pointer(0, 0);
+        }
+        return NULL;
+    }
     
     /**
      * Create a pointer and allocate backing native memory of the requestsed size.

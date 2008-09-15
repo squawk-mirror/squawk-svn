@@ -180,6 +180,7 @@ System.err.println("   mem " + address.getPointer());
         remoteAddress.read();
 //System.err.println("   errno " + errno);
 //System.err.println("   remote address " + remoteAddress);
+        addr_len.freeMemory();
         remoteAddress.freeMemory();
         return result;
     }
@@ -239,9 +240,8 @@ System.err.println("   mem " + address.getPointer());
         /** u_short */
         public int sin_port;
         
-        /** in_addr is an opaque type, that is typically a 4-byte int. APIs often use ptr to 
-         * in_addr. So don't cache value in field, just use ptr to underlying value.*/
-        public Pointer sin_addr;
+        /** in_addr is an opaque type that is typically a 4-byte int for IPv4.*/
+        public int sin_addr;
         
         /* public long  sin_zero; // why bother in proxy? */
         
@@ -252,21 +252,19 @@ System.err.println("   mem " + address.getPointer());
         
         public void read() {
             Pointer p = getPointer();
-            sin_len = p.getByte(0) & 0xFF;
-            sin_family = p.getByte(1) & 0xFF;
-            sin_port = p.getShort(2) & 0xFFFF;
-            sin_addr = p.getPointer(4, SIZEOF_in_addr_t);
+            sin_len     = p.getByte(0) & 0xFF;
+            sin_family  = p.getByte(1) & 0xFF;
+            sin_port    = p.getShort(2) & 0xFFFF;
+            sin_addr    = p.getInt(4);
         }
 
         public void write() {
             Pointer p = getPointer();
             clear();
-            p.setByte(0, (byte)sin_len);
-            p.setByte(1, (byte)sin_family);
+            p.setByte(0,  (byte)sin_len);
+            p.setByte(1,  (byte)sin_family);
             p.setShort(2, (short)sin_port);
-            if (sin_addr != null && !sin_addr.isValid()) {
-                Pointer.copyBytes(sin_addr, 0, p, 4, SIZEOF_in_addr_t); // odd way to more easily port if sin_addr is ever > 4 bytes.
-            }
+            p.setInt(4,    sin_addr);
         }
 
         public int size() {
@@ -285,25 +283,25 @@ System.err.println("   mem " + address.getPointer());
      * the string is invalid
      * 
      * @param str 
-     * @param in_addr 
+     * @param in_addr (OUT) on sucessful return will contain the 32 bits of an IPv4 "struct in_addr"
      * @return true if success
      */
-    public static boolean inet_aton(String str, Pointer in_addr) {
+    public static boolean inet_aton(String str, IntStar in_addr) {
         Pointer name0 = Pointer.createStringBuffer(str);
-        int result =  inet_atonPtr.call2(name0, in_addr);
+        int result =  inet_atonPtr.call2(name0, in_addr.getPointer());
         name0.free();
         return (result == 0) ? false : true;
     }
 
     /**
-     * Takes an Internet address and returns string representing the address
+     * Takes an IPv4 Internet address and returns string representing the address
      * in `.' notation
      * 
-     * @param structAddr 
+     * @param in the opaque bytes of an IPv4 "struct in_addr"
      * @return String
      */
-    public static String inet_ntoa(Pointer structAddr) {
-        return inet_ntoaPtr.returnString(inet_ntoaPtr.call1(structAddr));
+    public static String inet_ntoa(int in) {
+        return Function.returnString(inet_ntoaPtr.call1(in));
     }
     
     /**
