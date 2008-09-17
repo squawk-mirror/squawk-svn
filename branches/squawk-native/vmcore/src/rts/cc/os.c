@@ -99,7 +99,7 @@ INLINE void sysVallocFree(void* ptr) {
  * @param bootstrapSuiteName the name of the boostrap suite
  * @return full or partial path to alternate location, or null
  */
-INLINE static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
+INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
 
 #if PLATFORM_TYPE_DELEGATING
 jint createJVM(JavaVM **jvm, void **env, void *args) {

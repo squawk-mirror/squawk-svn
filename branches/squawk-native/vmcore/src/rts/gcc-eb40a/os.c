@@ -244,7 +244,7 @@ INLINE sysToggleMemoryProtection(char* start, char* end, boolean readonly) {}
  * @return pointer to allocated memory or null.
  */
 INLINE void* sysValloc(size_t size) {
-    return valloc(actualSize);
+    return valloc(size);
 }
 
 /**
@@ -263,7 +263,7 @@ INLINE void sysVallocFree(void* ptr) {
  * @param bootstrapSuiteName the name of the boostrap suite
  * @return full or partial path to alternate location, or null
  */
-INLINE static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
+INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
 
 INLINE void osloop() {
 	//no-op on spot platform

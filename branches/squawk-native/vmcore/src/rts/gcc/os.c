@@ -75,7 +75,7 @@ INLINE void* sysValloc(size_t size) {
 //#ifdef sun
     //buffer = malloc(actualSize);    this may have been work-around for solaris bug 4846556, now fixed.
 //#else
-    return valloc(actualSize);
+    return valloc(size);
 //#endif /* sun */
 }
 
@@ -95,7 +95,7 @@ INLINE void sysVallocFree(void* ptr) {
  * @param bootstrapSuiteName the name of the boostrap suite
  * @return full or partial path to alternate location, or null
  */
-INLINE static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
+INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
 
 #if PLATFORM_TYPE_DELEGATING
 jint createJVM(JavaVM **jvm, void **env, void *args) {
