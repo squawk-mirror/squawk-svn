@@ -224,6 +224,7 @@ public class VM implements GlobalStaticFields {
      */
     private static boolean safePrintToVM;
     
+//    private static boolean isBlocked;
     
     /*=======================================================================*\
      *                          VM callback routines                         *
@@ -4509,5 +4510,12 @@ hbp.dumpState();
 		}
 		return value;
 	}
-
+    
+//    public static void setBlocked(boolean b) {
+//        isBlocked = b;
+//    }
+//
+//    public static boolean isBlocked() {
+//        return isBlocked;
+//    }
 }

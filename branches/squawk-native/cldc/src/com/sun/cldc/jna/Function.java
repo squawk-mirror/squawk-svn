@@ -133,9 +133,9 @@ public final class Function {
             VM.print(name);
             VM.println(".call0");
         }
-        VM.setBlocked(true);
+//        VM.setBlocked(true);
         int result = NativeUnsafe.call0(funcAddr);
-        VM.setBlocked(false);
+//        VM.setBlocked(false);
         return result;
     }
 
@@ -147,9 +147,9 @@ public final class Function {
             VM.print(name);
             VM.println(".call1");
         }
-        VM.setBlocked(true);
+//        VM.setBlocked(true);
         int result = NativeUnsafe.call1(funcAddr, i1);
-        VM.setBlocked(false);
+//        VM.setBlocked(false);
         return result;
     }
 
@@ -161,9 +161,9 @@ public final class Function {
             VM.print(name);
             VM.println(".call2");
         }
-        VM.setBlocked(true);
+//        VM.setBlocked(true);
         int result = NativeUnsafe.call2(funcAddr, i1, i2);
-        VM.setBlocked(false);
+//        VM.setBlocked(false);
         return result;
     }
 
@@ -175,9 +175,9 @@ public final class Function {
             VM.print(name);
             VM.println(".call3");
         }
-        VM.setBlocked(true);
+//        VM.setBlocked(true);
         int result = NativeUnsafe.call3(funcAddr, i1, i2, i3);
-        VM.setBlocked(false);
+//        VM.setBlocked(false);
         return result;
     }
 
@@ -189,9 +189,9 @@ public final class Function {
             VM.print(name);
             VM.println(".call4");
         }
-        VM.setBlocked(true);
+//        VM.setBlocked(true);
         int result = NativeUnsafe.call4(funcAddr, i1, i2, i3, i4);
-        VM.setBlocked(false);
+//        VM.setBlocked(false);
         return result;
     }
 
@@ -203,9 +203,9 @@ public final class Function {
             VM.print(name);
             VM.println(".call5");
         }
-        VM.setBlocked(true);
+//        VM.setBlocked(true);
         int result = NativeUnsafe.call5(funcAddr, i1, i2, i3, i4, i5);
-        VM.setBlocked(false);
+//        VM.setBlocked(false);
         return result;
     }
 

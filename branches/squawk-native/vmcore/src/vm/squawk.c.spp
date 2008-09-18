@@ -747,6 +747,12 @@ static void printCacheStats() {
 NORETURN void stopVM(int exitCode) {
     static boolean inStop = false;
 
+/*
+if ( com_sun_squawk_VM_isBlocked) {
+fprintf(stderr, "VM is in a blocking system call!!! WILL CRASH????");
+}
+*/
+
     if (!inStop) {
         inStop = true;
 //fprintf(stderr, "finalizing streams\n");
