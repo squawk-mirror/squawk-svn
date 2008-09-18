@@ -31,6 +31,7 @@
 #else
 #include <netdb.h>
 #include <dlfcn.h>
+#include <sys/stat.h>
 #endif
 
 /****** HARD CODED FOR MAC FOR NOW:  *************/
