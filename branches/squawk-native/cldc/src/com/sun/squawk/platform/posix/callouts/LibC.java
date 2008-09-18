@@ -35,7 +35,7 @@ import java.io.IOException;
  * @author dw29446
  */
 public class LibC {
-    public final static boolean DEBUG = true;
+    public final static boolean DEBUG = false;
 
     public final static int EPERM = 1;		/* Operation not permitted */
 
@@ -225,7 +225,43 @@ public class LibC {
     public final static int	O_CREAT		= 0x0200;		/* create if nonexistant */
     public final static int	O_TRUNC		= 0x0400;		/* truncate to zero length */
     public final static int	O_EXCL		= 0x0800;		/* error if already exists */
+    /* [XSI] directory restrcted delete */
 
+    public static final int STAT_SIZE = VarPointer.lookup("sysSIZEOFSTAT", 4).getInt();
+    /* [XSI] directory */ public static final int S_IFBLK = 24576;
+    /* [XSI] named pipe (fifo) */ public static final int S_IFCHR = 8192;
+    /* [XSI] character special */ public static final int S_IFDIR = 16384;
+    /* [XSI] type of file mask */ public static final int S_IFIFO = 4096;
+    /* [XSI] regular */ public static final int S_IFLNK = 40960;
+    /*
+     * [XSI] The following are symbolic names for the values of type mode_t.  They
+     * are bitmap values.
+     */
+    /* File type */
+    public static final int S_IFMT = 61440;
+    /* [XSI] block special */ public static final int S_IFREG = 32768;
+    /* [XSI] symbolic link */ public static final int S_IFSOCK = 49152;
+    /* [XSI] RWX mask for group */ public static final int S_IRGRP = 32;
+    /* [XSI] RWX mask for other */ public static final int S_IROTH = 4;
+    /* [XSI] RWX mask for owner */ public static final int S_IRUSR = 256;
+    /* [XSI] X for owner */ /* Read, write, execute/search by group */
+    public static final int S_IRWXG = 56;
+    /* [XSI] X for group */ /* Read, write, execute/search by others */
+    public static final int S_IRWXO = 7;
+    /* [XSI] socket */
+
+    /* File mode */
+    /* Read, write, execute/search by owner */
+    public static final int S_IRWXU = 448;
+    /* [XSI] set user id on execution */ public static final int S_ISGID = 1024;
+    /* [XSI] X for other */ public static final int S_ISUID = 2048;
+    /* [XSI] set group id on execution */ public static final int S_ISVTX = 512;
+    /* [XSI] R for group */ public static final int S_IWGRP = 16;
+    /* [XSI] R for other */ public static final int S_IWOTH = 2;
+    /* [XSI] R for owner */ public static final int S_IWUSR = 128;
+    /* [XSI] W for group */ public static final int S_IXGRP = 8;
+    /* [XSI] W for other */ public static final int S_IXOTH = 1;
+    /* [XSI] W for owner */ public static final int S_IXUSR = 64;
 
     /* pure static class */
      LibC() {}
@@ -278,7 +314,9 @@ public class LibC {
     private static final Function writePtr = Function.getFunction("write");
     private static final Function lseekPtr = Function.getFunction("lseek");
     private static final Function fsyncPtr = Function.getFunction("fsync");    
-
+    private static final Function fstatPtr = Function.getFunction("fstat");
+    private static final Function statPtr =  Function.getFunction("stat");
+    
     /**
      * provides for control over descriptors.
      *
@@ -405,6 +443,97 @@ public class LibC {
     public static int lseek(int fd, long offset, int whence) {
         return lseekPtr.call4(fd, (int)(offset >>> 32), (int)offset, whence);
     }
+
+    /**
+     * C struct stat
+     * //    struct stat {
+     * //        dev_t		st_dev;		/* [XSI] ID of device containing file             4 0
+     * //        ino_t	  	st_ino;		/* [XSI] File serial number                       4 4
+     * //        mode_t	 	st_mode;	/* [XSI] Mode of file (see below)             2 8
+     * //        nlink_t		st_nlink;	/* [XSI] Number of hard links                 2 10
+     * //        uid_t		st_uid;		/* [XSI] User ID of the file                      4 12
+     * //        gid_t		st_gid;		/* [XSI] Group ID of the file                     4 16
+     * //        dev_t		st_rdev;	/* [XSI] Device ID                                4 20
+     * //        time_t		st_atime;	/* [XSI] Time of last access                  4 24
+     * //        long		st_atimensec;	/* nsec of last access                        4 28
+     * //        time_t		st_mtime;	/* [XSI] Last data modification time          4 32
+     * //        long		st_mtimensec;	/* last data modification nsec                4 36
+     * //        time_t		st_ctime;	/* [XSI] Time of last status change           4 40
+     * //        long		st_ctimensec;	/* nsec of last status change                 4 44
+     * //        off_t		st_size;	/* [XSI] file size, in bytes                      8 48
+     * //        blkcnt_t	st_blocks;	/* [XSI] blocks allocated for file                8
+     * //        blksize_t	st_blksize;	/* [XSI] optimal blocksize for I/O                4
+     * //        __uint32_t	st_flags;	/* user defined flags for file                4
+     * //        __uint32_t	st_gen;		/* file generation number                     4
+     * //        __int32_t	st_lspare;	/* RESERVED: DO NOT USE!                          4
+     * //        __int64_t	st_qspare[2];	/* RESERVED: DO NOT USE!                      16
+     * //     };
+     */
+    public static final class Stat extends Structure {
+
+        /** mode_t */
+        public int st_mode;
+        /** time_t Last data modification time */
+        public int st_mtime;
+        /** file size, in bytes */
+        public long st_size;
+
+        public void read() {
+            Pointer p = getPointer();
+            st_mode = p.getShort(8) & 65535;
+            st_mtime = p.getInt(32);
+            st_size = p.getLong(48);
+        }
+
+        public void write() {
+            throw new IllegalStateException("NYI");
+        }
+
+        public int size() {
+            return STAT_SIZE;
+        }
+
+        public String toString() {
+            return "Struct_Stat{mode: " + st_mode + ", mtimw: " + st_mtime + ", size: " + st_size + "}";
+        }
+    }
     
+    /**
+     * Get information on the open file with file descriptor "fd".
+     *
+     * @param fd file descriptor
+     * @param stat Stat structure that will be filled with the current values
+     * @return -1 is returned if an error occurs, otherwise zero is returned
+     */
+    public static int fstat(int fd, Stat stat) {
+        stat.allocateMemory();
+//System.err.println("Stat.fstat(" + fd + ", " + stat);
+//System.err.println("   mem " + stat.getPointer());
+        int result = fstatPtr.call2(fd, stat.getPointer());
+        stat.read();
+
+        stat.freeMemory();
+        return result;
+    }
+
+    /**
+     * Get information on the named "name".
+     *
+     * @param name String
+     * @param stat Stat structure that will be filled with the current values
+     * @return -1 is returned if an error occurs, otherwise zero is returned
+     */
+    public static int stat(String name, Stat stat) {
+        Pointer name0 = Pointer.createStringBuffer(name);
+        stat.allocateMemory();
+//System.err.println("Stat.stat:" + name);
+//System.err.println("   mem " + stat.getPointer());
+        int result = statPtr.call2(name0, stat.getPointer());
+        name0.free();
+        stat.read();
+//System.err.println("   result: " + stat);
+        stat.freeMemory();
+        return result;
+    }
 
 }

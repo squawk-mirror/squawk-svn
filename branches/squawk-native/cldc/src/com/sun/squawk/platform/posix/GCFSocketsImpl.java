@@ -85,14 +85,14 @@ public class GCFSocketsImpl implements GCFSockets {
 
         set_blocking_flags(fd, /*is_blocking*/ false);
 
-        NetDB.Struct_HostEnt phostent;
+        NetDB.HostEnt phostent;
         // hostname is always NUL terminated. See socket/Protocol.java for detail.
         phostent = NetDB.gethostbyname(hostname);
         if (phostent == null) {
             throw newError(fd, "gethostbyname (herrono = " + NetDB.h_errno() + ")");
         }
 
-        Socket.Struct_SockAddr destination_sin = new Socket.Struct_SockAddr();
+        Socket.SockAddr destination_sin = new Socket.SockAddr();
         destination_sin.sin_family = Socket.AF_INET;
         destination_sin.sin_port = Inet.htons((short) port);
         destination_sin.sin_addr = phostent.h_addr_list[0];
@@ -140,7 +140,7 @@ public class GCFSocketsImpl implements GCFSockets {
         }
         option_val.freeMemory();
         
-        Socket.Struct_SockAddr local_sin = new Socket.Struct_SockAddr();
+        Socket.SockAddr local_sin = new Socket.SockAddr();
         local_sin.sin_family = Socket.AF_INET;
         local_sin.sin_port = Inet.htons((short) port);
         local_sin.sin_addr = Socket.INADDR_ANY;
@@ -167,7 +167,7 @@ public class GCFSocketsImpl implements GCFSockets {
     public int accept(int fd) throws IOException {
         VMThread.getSystemEvents().waitForReadEvent(fd);
 
-        Socket.Struct_SockAddr remote_sin = new Socket.Struct_SockAddr();
+        Socket.SockAddr remote_sin = new Socket.SockAddr();
         int newSocket = Socket.accept(fd, remote_sin);
         if (newSocket < 0) {
             throw newError(fd, "accept");

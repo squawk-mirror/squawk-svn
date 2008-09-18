@@ -133,7 +133,10 @@ public final class Function {
             VM.print(name);
             VM.println(".call0");
         }
-        return NativeUnsafe.call0(funcAddr);
+        VM.setBlocked(true);
+        int result = NativeUnsafe.call0(funcAddr);
+        VM.setBlocked(false);
+        return result;
     }
 
     /**
@@ -144,7 +147,10 @@ public final class Function {
             VM.print(name);
             VM.println(".call1");
         }
-        return NativeUnsafe.call1(funcAddr, i1);
+        VM.setBlocked(true);
+        int result = NativeUnsafe.call1(funcAddr, i1);
+        VM.setBlocked(false);
+        return result;
     }
 
     /**
@@ -155,7 +161,10 @@ public final class Function {
             VM.print(name);
             VM.println(".call2");
         }
-        return NativeUnsafe.call2(funcAddr, i1, i2);
+        VM.setBlocked(true);
+        int result = NativeUnsafe.call2(funcAddr, i1, i2);
+        VM.setBlocked(false);
+        return result;
     }
 
     /**
@@ -166,7 +175,10 @@ public final class Function {
             VM.print(name);
             VM.println(".call3");
         }
-        return NativeUnsafe.call3(funcAddr, i1, i2, i3);
+        VM.setBlocked(true);
+        int result = NativeUnsafe.call3(funcAddr, i1, i2, i3);
+        VM.setBlocked(false);
+        return result;
     }
 
     /**
@@ -177,7 +189,10 @@ public final class Function {
             VM.print(name);
             VM.println(".call4");
         }
-        return NativeUnsafe.call4(funcAddr, i1, i2, i3, i4);
+        VM.setBlocked(true);
+        int result = NativeUnsafe.call4(funcAddr, i1, i2, i3, i4);
+        VM.setBlocked(false);
+        return result;
     }
 
     /**
@@ -188,7 +203,10 @@ public final class Function {
             VM.print(name);
             VM.println(".call5");
         }
-        return NativeUnsafe.call5(funcAddr, i1, i2, i3, i4, i5);
+        VM.setBlocked(true);
+        int result = NativeUnsafe.call5(funcAddr, i1, i2, i3, i4, i5);
+        VM.setBlocked(false);
+        return result;
     }
 
     /* Call a function pointer with one arguments */

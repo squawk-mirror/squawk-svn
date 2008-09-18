@@ -140,7 +140,7 @@ public class Socket extends LibC {
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int connect(int socket, Struct_SockAddr address) {
+    public static int connect(int socket, SockAddr address) {
         address.allocateMemory();
         address.write();
 System.err.println("Socket.connect(" + socket + ", " + address);
@@ -158,7 +158,7 @@ System.err.println("   mem " + address.getPointer());
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int bind(int socket, Struct_SockAddr myaddress) {
+    public static int bind(int socket, SockAddr myaddress) {
         myaddress.allocateMemory();
         myaddress.write();
 //System.err.println("Socket.connect(" + socket + ", " + address);
@@ -176,7 +176,7 @@ System.err.println("   mem " + address.getPointer());
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int accept(int socket, Struct_SockAddr remoteAddress) {
+    public static int accept(int socket, SockAddr remoteAddress) {
         remoteAddress.allocateMemory();
         IntStar addr_len = new IntStar(remoteAddress.size());
         remoteAddress.write();
@@ -233,9 +233,20 @@ System.err.println("   mem " + address.getPointer());
 	char		sa_data[14];	/* [XSI] addr value (actually larger) 
 };
      */
-    public final static class Struct_SockAddr extends Structure {
+    public final static class SockAddr extends DynamicStructure {
         public static final byte SIZEOF_SockAddr = 16;
         public static final byte SIZEOF_in_addr_t = 4;
+        
+        final static int SIN_LEN_INDEX = 1;
+        final static int SIN_FAMILY_INDEX = 2;
+        final static int SIN_PORT_INDEX = 3;
+        final static int SIN_ADDR_INDEX = 4;
+        
+        private final static int[] layout = initLayout(SockAddr.class, 4);
+        
+        public int[] getLayout() {
+            return layout;
+        }
         
         /** u_char */
         public int sin_len;
@@ -252,29 +263,29 @@ System.err.println("   mem " + address.getPointer());
         /* public long  sin_zero; // why bother in proxy? */
         
         
-        public Struct_SockAddr() {
-            sin_len = SIZEOF_SockAddr; // default....
+        public SockAddr() {
+            sin_len = size(); // default....
         }
         
         public void read() {
             Pointer p = getPointer();
-            sin_len     = p.getByte(0) & 0xFF;
-            sin_family  = p.getByte(1) & 0xFF;
-            sin_port    = p.getShort(2) & 0xFFFF;
-            sin_addr    = p.getInt(4);
+            if (layout[SIN_LEN_INDEX] >= 0) {
+                sin_len     = p.getByte(layout[SIN_LEN_INDEX]) & 0xFF;
+            }
+            sin_family  = p.getByte(layout[SIN_FAMILY_INDEX]) & 0xFF;
+            sin_port    = p.getShort(layout[SIN_PORT_INDEX]) & 0xFFFF;
+            sin_addr    = p.getInt(layout[SIN_ADDR_INDEX]);
         }
 
         public void write() {
             Pointer p = getPointer();
             clear();
-            p.setByte(0,  (byte)sin_len);
-            p.setByte(1,  (byte)sin_family);
-            p.setShort(2, (short)sin_port);
-            p.setInt(4,    sin_addr);
-        }
-
-        public int size() {
-            return SIZEOF_SockAddr;
+            if (layout[SIN_LEN_INDEX] >= 0) {
+                 p.setByte(layout[SIN_LEN_INDEX],  (byte)sin_len);
+            }
+            p.setByte(layout[SIN_FAMILY_INDEX], (byte)sin_family);
+            p.setShort(layout[SIN_PORT_INDEX],  (short)sin_port);
+            p.setInt(layout[SIN_ADDR_INDEX],    sin_addr);
         }
         
         public String toString() {

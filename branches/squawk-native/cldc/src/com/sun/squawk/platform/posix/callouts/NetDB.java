@@ -45,12 +45,12 @@ public class NetDB {
      * @param name the host name
      * @return the address of struct hostent, or null on error
      */
-    public static Struct_HostEnt gethostbyname(String name) {
+    public static HostEnt gethostbyname(String name) {
         Pointer name0 = Pointer.createStringBuffer(name);
-        Structure result = Function.returnStruct(Struct_HostEnt.class,
+        Structure result = Function.returnStruct(HostEnt.class,
                                                  gethostbynamePtr.call1(name0));
         name0.free();
-        return (Struct_HostEnt)result;
+        return (HostEnt)result;
     }
     
     /** Authoritative Answer Host not found. 
@@ -83,7 +83,7 @@ public class NetDB {
              };
              #define h_addr  h_addr_list[0]  address, for backward compatibility 
     */
-    public static class Struct_HostEnt extends Structure {
+    public static class HostEnt extends Structure {
         public String h_name;          /* official name of host */
 
         public int h_addrtype;         /* host address type */
@@ -148,7 +148,7 @@ public class NetDB {
 
         for (int i = 0; i < hosts.length; i++) {
             System.err.println("Trying lookup of " + hosts[i]);
-            Struct_HostEnt hostent = gethostbyname(hosts[i]);
+            HostEnt hostent = gethostbyname(hosts[i]);
            // System.err.println("result: " + hostent);
             if (hostent == null) {
                 System.err.println(" lookup error  " + h_errno());

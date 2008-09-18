@@ -30,7 +30,7 @@ import java.util.Vector;
 import com.sun.squawk.platform.BaseFileHandler;
 import com.sun.cldc.jna.Pointer;
 import com.sun.squawk.platform.posix.callouts.LibC;
-import com.sun.squawk.platform.posix.callouts.Stat;
+import com.sun.squawk.platform.posix.callouts.LibC.Stat;
 
 /**
  * Default file handler.
@@ -214,7 +214,7 @@ public class DefaultFileHandler implements BaseFileHandler {
      *         <code>false</code> otherwise.
      */
     public boolean exists() {
-        if (Stat.stat(nativeFileName, new Stat.Struct_Stat()) != -1) {
+        if (LibC.stat(nativeFileName, new Stat()) != -1) {
             return true;
         } else {
             return false;
@@ -222,7 +222,7 @@ public class DefaultFileHandler implements BaseFileHandler {
     }
 
     public static boolean isModeDir(int mode) {
-        return (((mode) & Stat.S_IFMT) == Stat.S_IFDIR);
+        return (((mode) & LibC.S_IFMT) == LibC.S_IFDIR);
     }
             
     /**
@@ -231,8 +231,8 @@ public class DefaultFileHandler implements BaseFileHandler {
      * @return <code>true</code> if pathname is a directory
      */
     public boolean isDirectory() {
-        Stat.Struct_Stat stats = new Stat.Struct_Stat();
-        if (Stat.stat(nativeFileName, stats) != -1) {
+        Stat stats = new Stat();
+        if (LibC.stat(nativeFileName, stats) != -1) {
             return isModeDir(stats.st_mode);
         } else {
             return false;
