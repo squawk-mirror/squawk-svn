@@ -32,7 +32,7 @@ import com.sun.squawk.util.Assert;
  */
 public abstract class Structure {
     
-    private final static boolean DEBUG = true;
+    private final static boolean DEBUG = false;
 
     protected Pointer backingNativeMemory;
 

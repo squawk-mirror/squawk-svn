@@ -24,7 +24,6 @@
 
 package com.sun.squawk.platform.posix.callouts;
 
-import com.sun.squawk.Address;
 import com.sun.cldc.jna.*;
 
 /**
@@ -57,6 +56,8 @@ public class Socket extends LibC {
     
     /* Definitions of bits in internet address integers. */
     public final static int INADDR_ANY = 0x00000000;
+    
+    public final static int INET_ADDRSTRLEN = 16;
     
     /* Socket options */
     /*
@@ -99,8 +100,13 @@ public class Socket extends LibC {
     private static final Function listenPtr     = Function.getFunction("listen");
     private static final Function acceptPtr     = Function.getFunction("accept");
     private static final Function shutdownPtr   = Function.getFunction("shutdown");
-    private static final Function inet_ntoaPtr  = Function.getFunction("inet_ntoa");
-    private static final Function inet_atonPtr  = Function.getFunction("inet_aton");
+/*if[TRUE]*/
+    private static final Function inet_ntopPtr  = Function.getFunction("inet_ntop");
+    private static final Function inet_ptonPtr  = Function.getFunction("inet_pton");
+/*else[TRUE]*/
+//    private static final Function inet_ntoaPtr  = Function.getFunction("inet_ntoa");
+//    private static final Function inet_atonPtr  = Function.getFunction("inet_aton");
+/*end[TRUE]*/
     private static final Function setSockOptPtr = Function.getFunction("setsockopt");
     private static final Function getSockOptPtr = Function.getFunction("getsockopt");
     
@@ -277,6 +283,7 @@ System.err.println("   mem " + address.getPointer());
                  
     } /* SockAddr */
 
+/*if[TRUE]*/
     /**
      * Interprets the specified character string as an Internet address, placing the
      * address into the structure provided.  It returns 1 if the string was successfully interpreted, or 0 if
@@ -286,9 +293,9 @@ System.err.println("   mem " + address.getPointer());
      * @param in_addr (OUT) on sucessful return will contain the 32 bits of an IPv4 "struct in_addr"
      * @return true if success
      */
-    public static boolean inet_aton(String str, IntStar in_addr) {
+    public static boolean inet_pton(String str, IntStar in_addr) {
         Pointer name0 = Pointer.createStringBuffer(str);
-        int result =  inet_atonPtr.call2(name0, in_addr.getPointer());
+        int result =  inet_ptonPtr.call3(AF_INET, name0, in_addr.getPointer());
         name0.free();
         return (result == 0) ? false : true;
     }
@@ -300,9 +307,42 @@ System.err.println("   mem " + address.getPointer());
      * @param in the opaque bytes of an IPv4 "struct in_addr"
      * @return String
      */
-    public static String inet_ntoa(int in) {
-        return Function.returnString(inet_ntoaPtr.call1(in));
+    public static String inet_ntop(int in) {
+        Pointer charBuf = new Pointer(INET_ADDRSTRLEN);
+        IntStar addrBuf = new IntStar(in); // the addr is passed by value (to handle IPv6)
+        String result = Function.returnString(inet_ntopPtr.call4(AF_INET, addrBuf.getPointer(), charBuf, INET_ADDRSTRLEN));
+        addrBuf.freeMemory();
+        charBuf.free();
+        return result;
     }
+/*else[TRUE]*/
+//    /**
+//     * Interprets the specified character string as an Internet address, placing the
+//     * address into the structure provided.  It returns 1 if the string was successfully interpreted, or 0 if
+//     * the string is invalid
+//     * 
+//     * @param str 
+//     * @param in_addr (OUT) on sucessful return will contain the 32 bits of an IPv4 "struct in_addr"
+//     * @return true if success
+//     */
+//    public static boolean inet_aton(String str, IntStar in_addr) {
+//        Pointer name0 = Pointer.createStringBuffer(str);
+//        int result =  inet_atonPtr.call2(name0, in_addr.getPointer());
+//        name0.free();
+//        return (result == 0) ? false : true;
+//    }
+//
+//    /**
+//     * Takes an IPv4 Internet address and returns string representing the address
+//     * in `.' notation
+//     * 
+//     * @param in the opaque bytes of an IPv4 "struct in_addr"
+//     * @return String
+//     */
+//    public static String inet_ntoa(int in) {
+//        return Function.returnString(inet_ntoaPtr.call1(in));
+//    }
+/*end[TRUE]*/
     
     /**
      * set a socket option

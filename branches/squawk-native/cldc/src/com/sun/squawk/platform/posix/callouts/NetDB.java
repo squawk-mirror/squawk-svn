@@ -25,7 +25,6 @@
 package com.sun.squawk.platform.posix.callouts;
 
 import com.sun.cldc.jna.*;
-import com.sun.squawk.platform.posix.Inet;
 
 /**
  *
@@ -142,6 +141,7 @@ public class NetDB {
         String[] hosts = {"localhost",
             "www.sun.com",
             "127.0.0.1",
+            "www.google.com", // has multiple addrs
             "adfadfadf.adfadf",
             ""
         };
@@ -156,7 +156,7 @@ public class NetDB {
                 int len = hostent.h_addr_list.length;
                 for (int j = 0; j < len; j++) {
                     int addr = hostent.h_addr_list[j];
-                    String addrstr = Socket.inet_ntoa(addr);
+                    String addrstr = Socket.inet_ntop(addr);
                     System.err.println("   addr  " + addrstr);
                 }
 
