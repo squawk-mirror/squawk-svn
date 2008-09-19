@@ -267,9 +267,11 @@ System.err.println("   mem " + address.getPointer());
         public void read() {
             Pointer p = getPointer();
             if (layout[SIN_LEN_INDEX] >= 0) {
-                sin_len     = p.getByte(layout[SIN_LEN_INDEX]) & 0xFF;
+                sin_len = p.getByte(layout[SIN_LEN_INDEX]) & 0xFF;
+                sin_family = p.getByte(layout[SIN_FAMILY_INDEX]) & 0xFF;
+            } else {    // Solaris and ?
+                sin_family = p.getShort(layout[SIN_FAMILY_INDEX]) & 0xFFFF;
             }
-            sin_family  = p.getByte(layout[SIN_FAMILY_INDEX]) & 0xFF;
             sin_port    = p.getShort(layout[SIN_PORT_INDEX]) & 0xFFFF;
             sin_addr    = p.getInt(layout[SIN_ADDR_INDEX]);
         }
@@ -278,9 +280,11 @@ System.err.println("   mem " + address.getPointer());
             Pointer p = getPointer();
             clear();
             if (layout[SIN_LEN_INDEX] >= 0) {
-                 p.setByte(layout[SIN_LEN_INDEX],  (byte)sin_len);
+                p.setByte(layout[SIN_LEN_INDEX], (byte) sin_len);
+                p.setByte(layout[SIN_FAMILY_INDEX], (byte) sin_family);
+            } else {   // Solaris and ?
+                p.setShort(layout[SIN_FAMILY_INDEX], (byte) sin_family);
             }
-            p.setByte(layout[SIN_FAMILY_INDEX], (byte)sin_family);
             p.setShort(layout[SIN_PORT_INDEX],  (short)sin_port);
             p.setInt(layout[SIN_ADDR_INDEX],    sin_addr);
         }
