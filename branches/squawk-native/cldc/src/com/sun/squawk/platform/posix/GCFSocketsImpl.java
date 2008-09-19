@@ -78,7 +78,7 @@ public class GCFSocketsImpl implements GCFSockets {
         int fd = -1;
 
         fd = Socket.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
-//System.err.println("Socket.socket fd: " + fd);
+System.err.println("Socket.socket fd: " + fd);
         if (fd < 0) {
             throw newError(fd, "socket create");
         }
@@ -97,8 +97,8 @@ public class GCFSocketsImpl implements GCFSockets {
         destination_sin.sin_port = Inet.htons((short) port);
         destination_sin.sin_addr = phostent.h_addr_list[0];
 
-//System.err.println("   addr  " + Socket.inet_ntoa(destination_sin.sin_addr));
-//System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
+System.err.println("   addr  " + Socket.inet_ntop(destination_sin.sin_addr));
+System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
 
         if (Socket.connect(fd, destination_sin) < 0) {
             int err_code = LibC.errno(); // @TODO: NOT THREAD_SAFE!

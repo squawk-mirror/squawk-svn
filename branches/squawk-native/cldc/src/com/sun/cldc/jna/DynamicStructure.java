@@ -25,7 +25,6 @@
 package com.sun.cldc.jna;
 
 /**
- *
  * A DynamicStructure is a structure with support for getting the field offsets 
  * for a particular platform from native code.
  * 
@@ -38,38 +37,54 @@ package com.sun.cldc.jna;
  * The remaining elements are the offsets of the fields of interest to the java code. The order isn't important, but it's typically in
  * the order that the fields are defined in the C and java structures.
  * 
- * For example:
+ * The Java format of the layout is an int array. It's like the C layout, but without first "layout length" field.
+ * The first element of the Java is the size of the C structure in bytes.
+ * 
+ * Example:
  * 
  * IN C:
- * int[] com_sun_squawk_platform_posix_callouts_libc_Stat_layout = {sizeof(com_sun_squawk_platform_posix_callouts_libc_Stat_layout)/4, 
- *                                                                 sizeof(struct stat),
- *                                                                 offsetof(struct stat, st_mode),
- *                                                                 offsetof(struct stat, st_mtime),
- *                                                                 offsetof(struct stat, st_size)
- *                                                                 }
+ * #define com_sun_squawk_platform_posix_callouts_Libc_Stat_layout_LEN 5
+ * const int com_sun_squawk_platform_posix_callouts_Libc_Stat_layout[com_sun_squawk_platform_posix_callouts_Libc_Stat_layout_LEN] = {
+ *         com_sun_squawk_platform_posix_callouts_Libc_Stat_layout_LEN, 
+ *         sizeof(struct stat),
+ *         offsetof(struct stat, st_mode),
+ *         offsetof(struct stat, st_mtime),
+ *         offsetof(struct stat, st_size)
+ *     }
  * 
  * IN JAVA:
  * 
- * class Stat {
- *     final static int ST_MODE_INDEX   = 1;
- *     final static int ST_MTIME_INDEX  = 2;
- *     final static int ST_SIZE_INDEX   = 3;
+ * package com.sun.squawk.platform.posix.callouts;
  *
- *     final static int[] layout = DynamicStructure.initLayout(Stat.class, 3);
+ * class LibC {
  * 
- *     public int[] getLayout() {
- *         return layout;
- *     }
+ *      static class Stat extends DynamicStructure {
+ *          final static int ST_MODE_INDEX   = 1;
+ *          final static int ST_MTIME_INDEX  = 2;
+ *          final static int ST_SIZE_INDEX   = 3;
+ *
+ *          final static int[] layout = DynamicStructure.initLayout(Stat.class, 3);
  * 
- *     public void read() {
- *          Pointer p = getPointer();
- *          st_mode  = p.getShort(layout[ST_MODE_INDEX]) & 65535;
- *          st_mtime = p.getInt(layout[ST_MTIME_INDEX]);
- *          st_size  = p.getLong(layout[ST_SIZE_INDEX]);
+ *          public int[] getLayout() {
+ *              return layout;
+ *          }
+ * 
+ *          public void read() {
+ *               Pointer p = getPointer();
+ *               st_mode  = p.getShort(layout[ST_MODE_INDEX]) & 65535;
+ *               st_mtime = p.getInt(layout[ST_MTIME_INDEX]);
+ *               st_size  = p.getLong(layout[ST_SIZE_INDEX]);
+ *           }
+ *       
+ *          ....
  *      }
- * 
+ *      ....
+ * }
  */
 public abstract class DynamicStructure extends Structure {
+    
+    /** The first element of the layout structure in Java is the size of the C structure in bytes */
+    public final static int STRUCTURE_SIZE_INDEX = 0;
     
     /**
      * Read the C layout structure into a Java array.
@@ -86,16 +101,23 @@ public abstract class DynamicStructure extends Structure {
         if (len - 2 < numFields) {
             throw new IllegalStateException();
         }
+System.out.println("Loading Structure defn for " + name);
         int[] result = new int[numFields + 1];
+System.out.println("    native Layout fields: " + len + ", requested: " + (numFields + 2));
+
         for (int i = 1; i < numFields + 2; i++) {
             result[i-1] = p.getInt(i * 4);
+System.out.println("    layoutdata: " +  result[i-1]);
+
         }
+
         return result;
     }
 
     /** 
      * Return the structure layout used by this class. Typical implementations return 
      * a static variable that has been initialized with initLayout.
+     * 
      * @return the layout
      */
      public abstract int[] getLayout();
@@ -103,10 +125,11 @@ public abstract class DynamicStructure extends Structure {
      /**
       * Return the size of this structure.
       * The size is the first element of the layout array.
-      * @return the size of eth native C structure in bytes
+      * 
+      * @return the size of the native C structure in bytes
       */
      public int size() {
-         return getLayout()[0];
+         return getLayout()[STRUCTURE_SIZE_INDEX];
      }
      
 }

@@ -234,9 +234,7 @@ System.err.println("   mem " + address.getPointer());
 };
      */
     public final static class SockAddr extends DynamicStructure {
-        public static final byte SIZEOF_SockAddr = 16;
-        public static final byte SIZEOF_in_addr_t = 4;
-        
+        /* layout indexes */
         final static int SIN_LEN_INDEX = 1;
         final static int SIN_FAMILY_INDEX = 2;
         final static int SIN_PORT_INDEX = 3;
@@ -248,7 +246,9 @@ System.err.println("   mem " + address.getPointer());
             return layout;
         }
         
-        /** u_char */
+        /** u_char 
+         * DOES NOT EXIST ON SOLARIS!
+         */
         public int sin_len;
         
         /** u_char */
@@ -259,10 +259,7 @@ System.err.println("   mem " + address.getPointer());
         
         /** in_addr is an opaque type that is typically a 4-byte int for IPv4.*/
         public int sin_addr;
-        
-        /* public long  sin_zero; // why bother in proxy? */
-        
-        
+                
         public SockAddr() {
             sin_len = size(); // default....
         }
