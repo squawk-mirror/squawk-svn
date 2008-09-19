@@ -29,6 +29,11 @@
 #include <windows.h>
 #include <winsock2.h>
 #else
+
+#ifndef offsetof
+#error "NO OFFSETOF"
+#endif
+
 #include <netdb.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
