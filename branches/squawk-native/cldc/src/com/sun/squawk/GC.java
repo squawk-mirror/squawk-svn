@@ -157,6 +157,8 @@ public class GC implements GlobalStaticFields {
 
     /**
      * GC tracing flag specifying basic tracing.
+     * 
+     * This trace level should always be enabled (not depnedent on GC_TRACING_SUPPORTED)
      */
     static final int TRACE_BASIC = 1;
 
@@ -209,7 +211,9 @@ public class GC implements GlobalStaticFields {
      *         or the collection count threshold has been met
      */
     static boolean isTracing(int option) {
-        if ((GarbageCollector.HEAP_TRACE || GC.GC_TRACING_SUPPORTED) && (traceFlags & option) != 0) {
+        if ((traceFlags & option & TRACE_BASIC) != 0) {
+            return true;
+        } else if ((GarbageCollector.HEAP_TRACE || GC.GC_TRACING_SUPPORTED) && (traceFlags & option) != 0) {
             final int basicOptions = (TRACE_BASIC | TRACE_ALLOCATION);
             if ((option & basicOptions) != 0) {
                 return true;
@@ -809,7 +813,7 @@ public class GC implements GlobalStaticFields {
                 VM.println("]");
             }
         } else {
-            if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_BASIC)) {
+            if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_ALLOCATION)) {
                 VM.print("[Failed allocation of ");
                 VM.print(size);
                 VM.print(" bytes, klass = ");
@@ -869,15 +873,15 @@ public class GC implements GlobalStaticFields {
 
         // Trace.
         long free = freeMemory();
-        if (isTracing(TRACE_BASIC)) {
-            VM.print("** Collecting garbage ** (collection count: ");
-            VM.print(getCollectionCount());
+//        if (isTracing(TRACE_BASIC)) {
+//            VM.print("** GC ** (count: ");
+//            VM.print(getCollectionCount());
 //            VM.print(", backward branch count:");
 //            VM.print(VM.getBranchCount());
-            VM.print(", free memory:");
-            VM.print(free);
-            VM.println(" bytes)");
-        }
+//            VM.print(", free memory:");
+//            VM.print(free);
+//            VM.println(" bytes)");
+//        }
 
         // Prunes 'dead' isolates from weakly linked global list of isolates.
         VM.pruneIsolateList();
@@ -909,23 +913,27 @@ public class GC implements GlobalStaticFields {
 
         if (isTracing(TRACE_BASIC)) {
             long afterFree = freeMemory();
-            VM.print("** ");
-            if (!fullCollection) {
-                VM.print("Partial ");
+            if (fullCollection) {
+                VM.print("[Full GC ");
             } else {
-                VM.print("Full ");
+                VM.print("[GC ");
             }
-            VM.print("collection finished ** (free memory:");
+
+            if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_COLLECTION)) {
+                VM.print("[count : ");
+                VM.print(getCollectionCount());
+                VM.print(", backward branch count: ");
+                VM.print(VM.getBranchCount());
+                VM.print("] ");
+            }
+            VM.print(free);
+            VM.print("->");
             VM.print(afterFree);
-            VM.print(" bytes [");
-            VM.print((afterFree * 100) / totalMemory());
-            VM.print("%], reclaimed ");
-            VM.print(afterFree - free);
-            VM.print(" bytes, backward branch count:");
-            VM.print(VM.getBranchCount());
-            VM.print(", time:");
+            VM.print("(");
+            VM.print(totalMemory());
+            VM.print("), ");
             VM.print(collector.getLastCollectionTime());
-            VM.println("ms)");
+            VM.println(" ms]");
         }
 
         // Update the relevant collection counter
@@ -1210,7 +1218,7 @@ public class GC implements GlobalStaticFields {
      */
      static void stackCopy(Object srcChunk, Object dstChunk) {
 
-         if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_BASIC)) {
+         if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_ALLOCATION)) {
              VM.print("GC::stackCopy - srcChunk = ");
              VM.printAddress(srcChunk);
              VM.print(" dstChunk = ");
