@@ -150,6 +150,7 @@ public abstract class Structure {
             VMprintStruct();
         }
         backingNativeMemory.free(); // set the ptr to an invalid address
+		backingNativeMemory = null;
     }
 
     /**

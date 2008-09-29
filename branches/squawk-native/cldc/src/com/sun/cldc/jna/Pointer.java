@@ -348,7 +348,8 @@ public class Pointer extends RawMemoryFloatAccess {
             throw new IllegalStateException("not malloced");
         }
         NativeUnsafe.free(addr);
-        addr = Address.zero();
+		// TODO: Mark this Pointer as invalid.
+        //addr = Address.zero();
     }
     
     /**
