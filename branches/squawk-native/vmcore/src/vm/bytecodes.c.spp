@@ -3292,7 +3292,7 @@ foundSlot:
             } else {
                 int overflow = (sl + FP_FIXED_FRAME_SIZE) - (fp - nlocals - nstack);
                 assume(getUWord(ss, SC_guard) == 0);
-                if (com_sun_squawk_GC_traceFlags != 0) {
+                if (com_sun_squawk_GC_traceFlags > 1) {
                     fprintf(stderr, format(
                                             "*** Extending stack *** (stack size=%d, remaining stack=%d, bcount=%L)\n"),
                                             getArrayLength(ss),

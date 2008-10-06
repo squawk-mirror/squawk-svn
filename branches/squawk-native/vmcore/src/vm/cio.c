@@ -103,7 +103,6 @@ void cioExecute(void) {
         }
 
         case ChannelConstants_INTERNAL_PRINTSTRING: {
-            int i;
             printJavaString(o1, vmOut, null, 0);
             break;
         }
@@ -319,20 +318,20 @@ void cioExecute(void) {
 
 #if NATIVE_VERIFICATION
         case ChannelConstants_COMPUTE_SHA1_FOR_MEMORY_REGION:{
-			int address=i1;
-			int numberOfBytes=i2;
-			unsigned char* buffer_to_write_sha_hash_into = o1;
-			//printf("In cio.c.ioexecute\r\n");
-			//printf("ChannelConstants_COMPUTE_SHA_FOR_MEMORY_REGION:\n address: %x\nbuffer_to-write_sha_hash_into %x\nnumberofbyte: %d\r\n",address,buffer_to_write_sha_hash_into,numberOfBytes);
-			sha_for_memory_region(buffer_to_write_sha_hash_into,address,numberOfBytes);
-		}
-			break;
+            int address=i1;
+            int numberOfBytes=i2;
+            unsigned char* buffer_to_write_sha_hash_into = o1;
+//printf("In cio.c.ioexecute\r\n");
+//printf("ChannelConstants_COMPUTE_SHA_FOR_MEMORY_REGION:\n address: %x\nbuffer_to-write_sha_hash_into %x\nnumberofbyte: %d\r\n",address,buffer_to_write_sha_hash_into,numberOfBytes);
+            sha_for_memory_region(buffer_to_write_sha_hash_into,address,numberOfBytes);
+            break;
+        }
 #else
-    case ChannelConstants_COMPUTE_SHA1_FOR_MEMORY_REGION:{
-			fprintf(vmOut,"Internal Error: vmcore/cio.c called with op COMPUTE_SHA1_FOR_MEMORY_REGION, but was compiled with NATIVE_VERIFICATION=false.");
+        case ChannelConstants_COMPUTE_SHA1_FOR_MEMORY_REGION:{
+            fprintf(vmOut,"Internal Error: vmcore/cio.c called with op COMPUTE_SHA1_FOR_MEMORY_REGION, but was compiled with NATIVE_VERIFICATION=false.");
             fflush(vmOut);
-		}
-			break;
+            break;
+        }
 #endif
         default: {
             ioExecute();
