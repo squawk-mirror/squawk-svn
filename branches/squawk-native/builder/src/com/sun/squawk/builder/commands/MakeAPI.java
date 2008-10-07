@@ -31,6 +31,7 @@ import com.sun.javadoc.*;
 import com.sun.squawk.builder.*;
 import java.lang.reflect.Modifier;
 
+
 /**
  * This class produces source, javadoc and class files for the components
  * (i.e. classes, fields and methods) in a suite that can be bound to at load time.
@@ -942,7 +943,7 @@ public class MakeAPI extends Command {
     /**
      * Prints a usage message.
      */
-    private void usage() {
+    public void usage(String errMsg) {
         PrintStream out = System.out;
         out.println("Usage: makeapi [-options] api sourcepath dir [javadoc_options]");
         out.println("where options include:");
@@ -974,16 +975,14 @@ public class MakeAPI extends Command {
             } else if (arg.equals("-nodoc")) {
                 nodoc = true;
             } else {
-                usage();
-                throw new BuildException("Unknown option: " + arg, 1);
+                throw new CommandException(this, "Unknown option: " + arg);
             }
 
             argc++;
         }
 
         if (args.length < (argc + 3)) {
-            usage();
-            throw new BuildException("missing api, sourcepath or dir", 1);
+            throw new CommandException(this, "missing api, sourcepath or dir");
         }
 
         String api = args[argc++];
@@ -1025,7 +1024,6 @@ public class MakeAPI extends Command {
         return true;
     }
 }
-
 /**
  * A <code>SourceFile</code> instance is used to generate a Java source file.
  */

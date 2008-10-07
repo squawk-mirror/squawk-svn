@@ -151,6 +151,30 @@ public abstract class Command {
     public String getDescription() {
         return "<< no description available >>";
     }
+    
+    /**
+     * Print a usage message for command line options
+     * @param errMsg optional error message string to print
+     */
+    public abstract void usage(String errMsg);
+    
+    /**
+     * Print a simple usage message containing the command name and an optional desription of simple args that fit on one line.
+     * optionall preceed with the errMsg.
+     * @param simpleArgs [optional] the end of the usage line
+     * @param errMsg [optional] error message to print before usage
+     */
+    public void defaultUsage(String simpleArgs, String errMsg) {
+        if (errMsg != null) {
+            System.err.println(errMsg);
+        }
+        System.err.print("Usage: " + getName());
+        if (simpleArgs != null) {
+            System.err.print(simpleArgs);
+
+        }
+        System.err.println();
+    }
 
     /**
      * Adds one or more commands that this command depends upon. The dependencies of a command

@@ -66,7 +66,7 @@ public class RomCommand extends Command {
         return "processes a collection of modules to produce the bootstrap suite and Squawk VM executable";
     }
 
-    private void usage(String errMsg) {
+    public void usage(String errMsg) {
         PrintStream out = System.out;
 
         out.println();

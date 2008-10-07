@@ -83,6 +83,15 @@ public final class Target extends Command {
     public void run(String[] args) {
         env.javac(classPath, baseDir, srcDirs, j2me, version, extraArgs, preprocess);
     }
+    
+   /**
+     * Print default usage
+     *
+     * {@inheritDoc}
+     */
+    public void usage(String errMsg) {
+        defaultUsage(null, errMsg);
+    }
 
     /**
      * {@inheritDoc}
@@ -115,5 +124,6 @@ public final class Target extends Command {
         }
         Build.clear(new File(baseDir, "javadoc"), true);
         Build.clear(new File(baseDir, "doccheck"), true);
+        Build.clear(new File(baseDir, "native"), true);
     }
 }

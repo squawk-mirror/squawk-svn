@@ -67,4 +67,9 @@ public class MakePlatformStubs extends Command {
     	new Main(System.out, System.err, "jar").run(new String[] {"cmf", "imp/resources/META-INF/MANIFEST.MF", stubJarFile.getPath()});
 	}
 
+    @Override
+    public void usage(String errMsg) {
+        defaultUsage(null, errMsg);
+    }
+
 }

@@ -33,6 +33,7 @@ import java.util.jar.Manifest;
 import com.sun.squawk.builder.Build;
 import com.sun.squawk.builder.BuildException;
 import com.sun.squawk.builder.Command;
+import com.sun.squawk.builder.CommandException;
 import com.sun.squawk.builder.Target;
 import com.sun.squawk.builder.util.FileSet;
 
@@ -92,22 +93,25 @@ public class UEICommand extends Command {
         return (UEI_ACTIVE ? "" : "<< currently disabled >> ") + "Builds the Unified Emulator Interface(UEI) module";
     }
     
-    private void usage() {
+    public void usage(String errMsg) {
         //PrintStream out = System.out;
-        
+
         //Column     123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789
-        stdout.println();
-        stdout.println("usage: " + name + " [options] [directory]");
-        stdout.println();
-        stdout.println("This will build a UEI-compliant emulator in the specified directory.  If no");
-        stdout.println("directory is supplied, it will be built in:");
-        stdout.println("    " + DEFAULT_DIRECTORY);
-        stdout.println();
-        stdout.println("where options include:");
-        stdout.println("    -help                   Display this help message");
-        stdout.println("    -clean                  Cleans the specified UEI directory");
-        stdout.println("    -verbose                Displays all build output");
-        stdout.println();
+        stderr.println();
+        if (errMsg != null) {
+            stderr.println(errMsg);
+        }
+        stderr.println("usage: " + name + " [options] [directory]");
+        stderr.println();
+        stderr.println("This will build a UEI-compliant emulator in the specified directory.  If no");
+        stderr.println("directory is supplied, it will be built in:");
+        stderr.println("    " + DEFAULT_DIRECTORY);
+        stderr.println();
+        stderr.println("where options include:");
+        stderr.println("    -help                   Display this help message");
+        stderr.println("    -clean                  Cleans the specified UEI directory");
+        stderr.println("    -verbose                Displays all build output");
+        stderr.println();
     }
     
     /**
@@ -131,17 +135,12 @@ public class UEICommand extends Command {
             String arg = args[i];
             if (!arg.startsWith("-")) {
                 targetDirectory = new File(arg).getAbsoluteFile();
-            } else if (arg.equalsIgnoreCase("-help")) {
-                usage();
-                return;
             } else if (arg.equalsIgnoreCase("-verbose")) {
                 verbose = true;
             } else if (arg.equalsIgnoreCase("-clean")) {
                 clean = true;
             } else {
-                stdout.println("Unrecognized option: " + arg);
-                usage();
-                throw new BuildException("Unrecognized option: " + arg);
+                throw new CommandException(this, "Unrecognized option: " + arg);
             }
         }
         
