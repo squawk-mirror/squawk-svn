@@ -2514,155 +2514,156 @@ public final class Isolate implements Runnable {
         // Mailbox?
     }
     
-/*if[EXCLUDE]*/
-
-    // Notes from Doug: This is still a work in progress and depending on resources/requirements, may
-    // take quite some time for extra thought/design/implementation. My main concern with what exists
-    // so far is that we are introducing more inter-isolate pointers which have not-yet-thought-out
-    // implications for isolate hibernation & migration.
-    //
-    // In the long run, I think an implementation closer to that of MVM will be required to make
-    // reasoning and robustness of true isolation better. That implementation does not have
-    // inter-isolate pointers (within Java code & data structures at least) and instead employs
-    // the concept of 'task IDs' and 'link IDs' to refer to objects not owned by the current
-    // isolate.
-
-    /*---------------------------------------------------------------------------*\
-     *                            Inter-isolate messages                         *
-    \*---------------------------------------------------------------------------*/
-
-    /**
-     * A FIFO queue for the inbox of an isolate. This implementation is derived
-     * the standard J2SE java.util.LinkedList class.
-     */
-    static final class ParcelQueue {
-
-        Entry header = new Entry(null, null, null);
-        int size = 0;
-
-        public ParcelQueue() {
-            header.next = header.previous = header;
-        }
-
-        public Parcel removeLast() {
-            return remove(header.previous);
-        }
-
-        public void addFirst(Parcel parcel) {
-            addBefore(parcel, header.next);
-        }
-
-        /**
-         * Removes all of the elements from this list.
-        public void clear() {
-            Entry e = header.next;
-            while (e != header) {
-                Entry next = e.next;
-                e.next = e.previous = null;
-                e.element = null;
-                e = next;
-            }
-            header.next = header.previous = header;
-            size = 0;
-        }
-        */
-
-        static class Entry {
-            Parcel parcel;
-            Entry next;
-            Entry previous;
-
-            Entry(Parcel parcel, Entry next, Entry previous) {
-                this.parcel = parcel;
-                this.next = next;
-                this.previous = previous;
-            }
-        }
-
-        private Entry addBefore(Parcel parcel, Entry e) {
-            Entry newEntry = new Entry(parcel, e, e.previous);
-            newEntry.previous.next = newEntry;
-            newEntry.next.previous = newEntry;
-            size++;
-            return newEntry;
-        }
-
-        private Parcel remove(Entry e) {
-            Assert.that(e != header, "can remove element from empty queue");
-            Parcel result = e.parcel;
-            e.previous.next = e.next;
-            e.next.previous = e.previous;
-            e.next = e.previous = null;
-            e.parcel = null;
-            size--;
-            return result;
-        }
-    }
-
-    private final ParcelQueue messageInbox = new ParcelQueue();
-
-    public static class Message {
-        Message copy() {
-            return null;
-        }
-    }
-
-    /**
-     * A <code>Parcel</code> encapsulates a {@link Message} posted to an isolate
-     * and contains a reference to the sending isolate.
-     */
-    public final static class Parcel {
-        public final Message message;
-        public final Isolate sender;
-        Parcel(Message message, Isolate sender) {
-            this.message = message;
-            this.sender = sender;
-        }
-    }
-
-    public static void sendMessage(Isolate to, Message message) {
-        if (to == null || message == null) {
-            throw new NullPointerException();
-        }
-        synchronized (message) {
-            synchronized (to.messageInbox) {
-                to.messageInbox.addFirst(new Parcel(message.copy(), VM.getCurrentIsolate()));
-
-                // notify any thread (in the receiving isolate) that another
-                // message has been deposited in its inbox
-
-                to.messageInbox.notifyAll();
-            }
-        }
-    }
-
-    /**
-     * Retrieves the next available message sent to this isolate, blocking until
-     * a message is available. Once a message has been retrieved, it is removed from
-     * the receiving isolate's <i>inbox</i>.
-     *
-     * @param from  if not <code>null</code>, only a message sent by <code>from</code>
-     *              will be returned
-     * @return the retrieved message
-     */
-    public static Parcel receiveMessage(Isolate from) {
-        Isolate current = VM.getCurrentIsolate();
-        ParcelQueue inbox = current.messageInbox;
-        synchronized (inbox) {
-            while (inbox.size == 0) {
-                if (!current.isAlive()) {
-                    // throw something???
-                }
-                try {
-                    inbox.wait();
-                } catch (InterruptedException e) {
-                }
-            }
-
-        }
-        return null;
-    }
-/*end[EXCLUDE]*/
+/*if[TRUE]*/
+/*else[TRUE]*/
+//
+//    // Notes from Doug: This is still a work in progress and depending on resources/requirements, may
+//    // take quite some time for extra thought/design/implementation. My main concern with what exists
+//    // so far is that we are introducing more inter-isolate pointers which have not-yet-thought-out
+//    // implications for isolate hibernation & migration.
+//    //
+//    // In the long run, I think an implementation closer to that of MVM will be required to make
+//    // reasoning and robustness of true isolation better. That implementation does not have
+//    // inter-isolate pointers (within Java code & data structures at least) and instead employs
+//    // the concept of 'task IDs' and 'link IDs' to refer to objects not owned by the current
+//    // isolate.
+//
+//    /*---------------------------------------------------------------------------*\
+//     *                            Inter-isolate messages                         *
+//    \*---------------------------------------------------------------------------*/
+//
+//    /**
+//     * A FIFO queue for the inbox of an isolate. This implementation is derived
+//     * the standard J2SE java.util.LinkedList class.
+//     */
+//    static final class ParcelQueue {
+//
+//        Entry header = new Entry(null, null, null);
+//        int size = 0;
+//
+//        public ParcelQueue() {
+//            header.next = header.previous = header;
+//        }
+//
+//        public Parcel removeLast() {
+//            return remove(header.previous);
+//        }
+//
+//        public void addFirst(Parcel parcel) {
+//            addBefore(parcel, header.next);
+//        }
+//
+//        /**
+//         * Removes all of the elements from this list.
+//        public void clear() {
+//            Entry e = header.next;
+//            while (e != header) {
+//                Entry next = e.next;
+//                e.next = e.previous = null;
+//                e.element = null;
+//                e = next;
+//            }
+//            header.next = header.previous = header;
+//            size = 0;
+//        }
+//        */
+//
+//        static class Entry {
+//            Parcel parcel;
+//            Entry next;
+//            Entry previous;
+//
+//            Entry(Parcel parcel, Entry next, Entry previous) {
+//                this.parcel = parcel;
+//                this.next = next;
+//                this.previous = previous;
+//            }
+//        }
+//
+//        private Entry addBefore(Parcel parcel, Entry e) {
+//            Entry newEntry = new Entry(parcel, e, e.previous);
+//            newEntry.previous.next = newEntry;
+//            newEntry.next.previous = newEntry;
+//            size++;
+//            return newEntry;
+//        }
+//
+//        private Parcel remove(Entry e) {
+//            Assert.that(e != header, "can remove element from empty queue");
+//            Parcel result = e.parcel;
+//            e.previous.next = e.next;
+//            e.next.previous = e.previous;
+//            e.next = e.previous = null;
+//            e.parcel = null;
+//            size--;
+//            return result;
+//        }
+//    }
+//
+//    private final ParcelQueue messageInbox = new ParcelQueue();
+//
+//    public static class Message {
+//        Message copy() {
+//            return null;
+//        }
+//    }
+//
+//    /**
+//     * A <code>Parcel</code> encapsulates a {@link Message} posted to an isolate
+//     * and contains a reference to the sending isolate.
+//     */
+//    public final static class Parcel {
+//        public final Message message;
+//        public final Isolate sender;
+//        Parcel(Message message, Isolate sender) {
+//            this.message = message;
+//            this.sender = sender;
+//        }
+//    }
+//
+//    public static void sendMessage(Isolate to, Message message) {
+//        if (to == null || message == null) {
+//            throw new NullPointerException();
+//        }
+//        synchronized (message) {
+//            synchronized (to.messageInbox) {
+//                to.messageInbox.addFirst(new Parcel(message.copy(), VM.getCurrentIsolate()));
+//
+//                // notify any thread (in the receiving isolate) that another
+//                // message has been deposited in its inbox
+//
+//                to.messageInbox.notifyAll();
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Retrieves the next available message sent to this isolate, blocking until
+//     * a message is available. Once a message has been retrieved, it is removed from
+//     * the receiving isolate's <i>inbox</i>.
+//     *
+//     * @param from  if not <code>null</code>, only a message sent by <code>from</code>
+//     *              will be returned
+//     * @return the retrieved message
+//     */
+//    public static Parcel receiveMessage(Isolate from) {
+//        Isolate current = VM.getCurrentIsolate();
+//        ParcelQueue inbox = current.messageInbox;
+//        synchronized (inbox) {
+//            while (inbox.size == 0) {
+//                if (!current.isAlive()) {
+//                    // throw something???
+//                }
+//                try {
+//                    inbox.wait();
+//                } catch (InterruptedException e) {
+//                }
+//            }
+//
+//        }
+//        return null;
+//    }
+/*end[TRUE]*/
 
     /*---------------------------------------------------------------------------*\
      *                            Debugger Support                               *
