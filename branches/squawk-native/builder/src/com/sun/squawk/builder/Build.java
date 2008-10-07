@@ -379,9 +379,10 @@ public class Build {
      * @return the created and installed command
      */
     public LinkTarget addLinkTarget(String baseDir, String parent, String dependencies) {
-        LinkTarget command = new LinkTarget(baseDir, parent, this);
+        String basicName = new File(baseDir).getName();
+        LinkTarget command = new LinkTarget(baseDir, parent, this, basicName);
         
-        command.dependsOn(baseDir); // "foo-suite" is dependent on "foo", the compiler target
+        command.dependsOn(basicName); // "foo-suite" is dependent on "foo", the compiler target
         if (dependencies != null) {
             command.dependsOn(dependencies);
         }
@@ -618,10 +619,11 @@ public class Build {
     
     protected void processBuilderDotPropertiesFile(String type, String name, File dotPropertiesFile, int propertyIndex, HashMap<String, String> attributes) {
         Command cmd = null;
+        String baseDir = dotPropertiesFile.getParentFile().getPath();
         if (type.equals("Target")) {
-            cmd = addTarget(Boolean.valueOf(attributes.get("j2me")), dotPropertiesFile.getParentFile().getName(), attributes.get("dependsOn"), attributes.get("extraClassPath"), attributes.get("extraSourceDirs"));
+            cmd = addTarget(Boolean.valueOf(attributes.get("j2me")), baseDir, attributes.get("dependsOn"), attributes.get("extraClassPath"), attributes.get("extraSourceDirs"));
         } else if (type.equals("LinkTarget")) {
-            cmd = addLinkTarget(dotPropertiesFile.getParentFile().getName(), attributes.get("parent"), attributes.get("dependsOn"));
+            cmd = addLinkTarget(baseDir, attributes.get("parent"), attributes.get("dependsOn"));
         } else {
             throw new BuildException("Unsupported type " + type + " on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
         }

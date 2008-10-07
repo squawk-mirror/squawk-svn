@@ -119,6 +119,10 @@ public abstract class CCompiler {
         public final static String NATIVE     = "NATIVE";
         public final static String BARE_METAL = "BARE_METAL";
         public final static String SOCKET     = "SOCKET";
+        
+        public boolean isPlatformType(String type) {
+            return platformType.equals(type);
+        }
     }
 
     /**

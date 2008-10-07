@@ -41,7 +41,11 @@ public class GccMacOSXCompiler extends GccCompiler {
      * {@inheritDoc}
      */
     public String getLinkSuffix() {
-        return " -framework CoreFoundation -framework JavaVM";
+        String suffix = " " + get64BitOption() + " -framework CoreFoundation";
+        if (options.isPlatformType(Options.DELEGATING)) {
+            suffix = suffix + " -framework JavaVM";
+        }
+        return suffix;
     }
 
     /**

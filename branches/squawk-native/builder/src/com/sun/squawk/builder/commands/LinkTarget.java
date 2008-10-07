@@ -48,10 +48,22 @@ public class LinkTarget extends Command {
      * @param env Build      the builder environment in which this command will run
      */
     public LinkTarget(String baseDir, String parent, Build env) {
-        super(env, baseDir + "-suite");
+        this(baseDir, parent, env, new File(baseDir).getName());
+    }
+    
+    /**
+     * Creates a new suite command.
+     *
+     * @param baseDir        the base directory under which the various intermediate and output directories are created
+     * @param parent         the location of the parent suite
+     * @param env Build      the builder environment in which this command will run
+     * @param baseName       the basic command name (the name of the dir)
+     */
+    public LinkTarget(String baseDir, String parent, Build env, String baseName) {
+        super(env, baseName + "-suite");
         this.parent = parent;
         this.baseDir = new File(baseDir);
-        this.baseName = baseDir;
+        this.baseName = baseName;
     }
     
     @Override

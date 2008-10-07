@@ -145,7 +145,12 @@ public class GccCompiler extends CCompiler {
      */
     public String getLinkSuffix() {
         String jvmLib = env.getPlatform().getJVMLibraryPath();
-        String suffix = " " + get64BitOption() + " -L" + jvmLib.replaceAll(File.pathSeparator, " -L") + " -ljvm";
+        String suffix = " " + get64BitOption();
+        if (options.isPlatformType(Options.DELEGATING)) {
+            suffix = suffix + " -L" + jvmLib.replaceAll(File.pathSeparator, " -L") + " -ljvm";
+        } else if (options.isPlatformType(Options.SOCKET)) {
+            suffix = suffix + " -lsocket" + " -lnsl";
+        }
 
         if (options.kernel && options.hosted) {
             /* Hosted by HotSpot and so need to interpose on signal handling. */

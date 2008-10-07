@@ -52,7 +52,7 @@ public final class Target extends Command {
      * @param env Build      the builder environment in which this command will run
      */
     public Target(String classPath, boolean j2me, String baseDir, File[] srcDirs, boolean preprocess, Build env) {
-    	this(classPath, j2me, baseDir, srcDirs, preprocess, env, baseDir);
+    	this(classPath, j2me, baseDir, srcDirs, preprocess, env, new File(baseDir).getName());
     }
     
     /**
