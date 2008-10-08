@@ -1718,10 +1718,6 @@ void Squawk_main(int argc, char *argv[]) {
     fatalVMError("return from interpreter loop in non-kernel mode");
 }
 
-#ifdef IOSERVER
-#include "ioserver.c"
-#endif /* IOSERVER */
-
 /**
  * Program entrypoint.
  *
@@ -1729,8 +1725,6 @@ void Squawk_main(int argc, char *argv[]) {
  * @param argv the parameter argument vector
  */
 int Squawk_main_wrapper(int argc, char *argv[]) {
-    printf("[SQUAWK] JVM Running\n");
-    
     int ignore = initializeGlobals(&userGlobals);
     char *executable = argv[0];
 
@@ -1740,15 +1734,7 @@ int Squawk_main_wrapper(int argc, char *argv[]) {
     argv++;
     argc--;
 
-	printf("[SQUAWK] Jumping to real main()\n");
-#ifdef IOSERVER
-    if (strstr(executable, "ioserver") != null) {
-        return IOServer_main(argc, argv);
-    }
-#endif /* IOSERVER */
     Squawk_main(argc, argv);
-    
-    printf("[SQUAWK] JVM Shutdown\n");
     
     return 0;
 }
