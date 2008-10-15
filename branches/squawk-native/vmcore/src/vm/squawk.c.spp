@@ -1510,6 +1510,10 @@ void Squawk_continue(Globals *gp) {
 
         opcode = fetchUByte();
 
+#ifdef TRACE_OPCODES
+		printf("Executing Opcode %u\n", opcode);
+#endif /* TRACE_OPCODES */
+		
 #ifdef PROFILING
         opcodeCopy = opcode;
 #endif
@@ -1651,9 +1655,7 @@ void printStrSafely(Address value, char* valueName, Address low, Address high, c
  * @param argv the parameter argument vector
  */
 void Squawk_run(int argc, char *argv[]) {
-	printf("[SQUAWK] JVM Ready\n");
-
-    Address bootstrapSuite = Squawk_setup(argc, argv);
+	Address bootstrapSuite = Squawk_setup(argc, argv);
 
 #ifdef MACROIZE
     ByteAddress  ip = 0;            /* The instruction pointer. */

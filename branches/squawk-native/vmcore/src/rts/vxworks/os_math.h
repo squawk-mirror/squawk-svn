@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-INLINE float  fmodf(float a, float b)      { return (float)fmod(a, b);                 }
+#define fmodf(a, b) ((float)fmod((a), (b)))
 
 
 #ifdef	__cplusplus

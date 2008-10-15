@@ -26,25 +26,32 @@
  * Platform dependent startup code directly included by squawk.c.spp
  */
 
+#define VXLOADARG(arg) if(arg != NULL) { argv[argc] = arg; argc++; } else (void)0
 
 /**
  * Entry point for the VxWorks operating system.
  */
-int os_main(char* arg1) {
+int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     // Convert from VxWorks argument format to normal argument format
-    const int argc = 3;
 
-    char* argv[argc];
-    argv[0] = "squawk.out";
+    char* argv[11];
+	int argc = 1;
 
-    // Patch for lack of NVRAM
-    argv[1] = "-Xmxnvm:0";
-    //argv[2] = "-Xtgc:1";
+	argv[0] = "squawk.out";
 
-    argv[argc - 1] = arg1;
-
+	VXLOADARG(arg1);
+	VXLOADARG(arg2);
+	VXLOADARG(arg3);
+	VXLOADARG(arg4);
+	VXLOADARG(arg5);
+	VXLOADARG(arg6);
+	VXLOADARG(arg7);
+	VXLOADARG(arg8);
+	VXLOADARG(arg9);
+	VXLOADARG(arg10);
+	
     // Switch directories so squawk.suite will always be found
-    cd("/c/ni-rt/system");
+    cd("/c/squawk");
 
     return Squawk_main_wrapper(argc, argv); 
 }

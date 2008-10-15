@@ -24,8 +24,10 @@
 
 #define open(filename, flags) open(filename, flags, 0644);
 
-#define RTLD_DEFAULT NULL	// Map the default dlsym handle to null
-				// VxWorks doesn't use the handle.
+// Map the default dlsym handle to null
+// VxWorks doesn't use the handle.
+#define RTLD_DEFAULT NULL
+#define RTLD_LAZY NULL
 
 #include <stdlib.h>
 #include <sys/times.h>
@@ -67,7 +69,7 @@ int usleep(long microseconds) {
  * @param readonly specifies if read-only protection is to be enabled or disabled
  */
 void sysToggleMemoryProtection(char* start, char* end, boolean readonly) {
-    printf("mprotect() is not supported.  Not protecting memory at %#0.8x\n", start);
+    //fprintf(stderr, "mprotect() is not supported.  Not protecting memory at %#0.8x\n", start);
 }
 
 /**
@@ -184,14 +186,14 @@ void* sysdlerror() {
 }
 
 void* dlsym(void* handle, const char* symbol) {
-    char symName[strlen(symbol)];
+    //char symName[strlen(symbol) + 1];
 
-    strcpy(symName, symbol);
+    //strcpy(symName, symbol);
 
-    char** fn;
+    char* fn;
     SYM_TYPE ptype;
 
-    STATUS status = symFindByName(sysSymTbl, symName, fn, &ptype);
+    STATUS status = symFindByName(sysSymTbl, (char*)symbol, &fn, &ptype);
 	
     return status == OK ? fn : NULL;
 }

@@ -35,6 +35,7 @@ public class GccVxWorksPPCCompiler extends GccCompiler {
 
     public GccVxWorksPPCCompiler(Build env, Platform platform) {
         super("vxworks", env, platform);
+        defaultSizeofPointer = 4;
     }
 
     /**

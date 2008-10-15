@@ -99,6 +99,17 @@ const int com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout[com_sun_
     offsetof(struct sockaddr_in, sin_addr)
 };
 #else /* ! sun */
+#ifdef VXWORKS
+// HACK: These values shoult not be hard-coded.  Need to find out how to include the correct definitions
+const int com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
+    com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
+    72,
+    0,
+    8,
+    16,
+    32
+};
+#else
 const int com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
     com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
     sizeof(struct sockaddr_in),
@@ -107,6 +118,7 @@ const int com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout[com_sun_
     offsetof(struct sockaddr_in, sin_port),
     offsetof(struct sockaddr_in, sin_addr)
 };
+#endif /* !VXWORKS */
 #endif /* ! sun */
 
 int sysFD_SIZE; __attribute__((used))
