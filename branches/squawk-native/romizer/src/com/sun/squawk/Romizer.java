@@ -349,16 +349,13 @@ public class Romizer {
 		        }
 		        return;
 	        } catch (NoClassDefFoundError e) {
-	        	if (romizer != null && romizer.getLastClassName() != null) {
+                if (romizer != null && romizer.getLastClassName() != null) {
 	            	classNames.add(romizer.getLastClassName());
-	            	System.out.println("   " + e.getClass().getSimpleName() + ": " + romizer.getLastClassName());
-	            	if (VM.isVerbose()) {
-	            		System.out.println("    " + e .getMessage());
-	            	}
+                    System.err.println("WARNING: Deferring " + e.getClass().getSimpleName() + " for class " +  e.getMessage() + " while translating " + romizer.getLastClassName());
 	                continue;
-	        	}
-	        	throw e;
-	        }
+                }
+                throw e;
+            }
         }
     }
     
@@ -370,7 +367,6 @@ public class Romizer {
      *         if there are none
      */
     private String[] run(String[] args) {
-
         if (args.length == 0) {
             usage(null);
             return null;

@@ -90,6 +90,11 @@ public class JavaApplicationManager {
         // If no name is specified for MIDlet, assume MIDlet-1
         midletPropertyNum = 1;
         
+        String mainClassName = null;
+        String[] javaArgs = null;
+
+/*if[!EMULATOR_LAUNCHER]*/
+        
         /*
          * Process any switches.
          */
@@ -97,8 +102,6 @@ public class JavaApplicationManager {
             args = processVMOptions(args);
         }
 
-        String mainClassName = null;
-        String[] javaArgs = null;
         if (testMIDletClass != null) {
             mainClassName = "com.sun.squawk.imp.MIDletMainWrapper";
             javaArgs = new String[] {"-name", testMIDletClass};
@@ -112,7 +115,15 @@ public class JavaApplicationManager {
                 javaArgs[i] = args[i+1];
             }
         } // else use midletPropertyNum
-
+        
+/*else[EMULATOR_LAUNCHER]*/
+//        mainClassName = "com.sun.squawk.uei.j2me.Launcher";
+//        javaArgs = new String[args.length];
+//        for (int i = 0 ; i < javaArgs.length ; i++) {
+//            javaArgs[i] = args[i];
+//        }
+/*end[EMULATOR_LAUNCHER]*/
+        
         /*
          * Get the start time.
          */
@@ -180,11 +191,11 @@ public class JavaApplicationManager {
             System.out.println();
             System.out.println("=============================");
             System.out.println("Squawk VM exiting with code "+exitCode);
-            if (GC.getPartialCollectionCount() > 0) {
-                System.out.println(""+GC.getPartialCollectionCount()+" partial collections");
+            if (GC.getPartialCount() > 0) {
+                System.out.println(""+GC.getPartialCount()+" partial collections");
             }
-            if (GC.getFullCollectionCount() > 0) {
-                System.out.println(""+GC.getFullCollectionCount()+" full collections");
+            if (GC.getFullCount() > 0) {
+                System.out.println(""+GC.getFullCount()+" full collections");
             }
             GC.getCollector().dumpTimings(System.out);
             System.out.println("Execution time was "+(endTime-startTime)+" ms");

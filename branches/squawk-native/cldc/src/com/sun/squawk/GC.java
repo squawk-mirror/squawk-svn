@@ -33,7 +33,13 @@ import com.sun.squawk.vm.*;
 import java.util.Enumeration;
 
 
-
+/**
+ * Pure static class that handles object creation and GC control and monitoring.
+ * 
+ * The particular GC implementation used is a subclass of {@link GarbageCollector}. Many of
+ * the "public" methods of this class are actually "suite-private". See the file "squawk.library.properties"
+ * for the list of exported methods.
+ */
 public class GC implements GlobalStaticFields {
     
     /**
@@ -67,7 +73,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return a reference to the installed collector
      */
-    static GarbageCollector getCollector() {
+    public static GarbageCollector getCollector() {
         return collector;
     }
 
@@ -218,7 +224,7 @@ public class GC implements GlobalStaticFields {
             if ((option & basicOptions) != 0) {
                 return true;
             } else {
-                return (collector == null || getCollectionCount() >= traceThreshold);
+                return (collector == null || getTotalCount() >= traceThreshold);
             }
         } else {
             return false;
@@ -588,21 +594,14 @@ public class GC implements GlobalStaticFields {
     }
 
     /**
-     * @return the number of bytes allocated since the last GC.
+     * Get the number of bytes allocated since the last GC.
      *
      * May be inaccurate during a copyObjectGraph operation.
+     * 
+     * @return bytes
      */
-    static int getBytesAllocatedSinceLastGC() {
+    public static int getBytesAllocatedSinceLastGC() {
         return allocTop.diff(allocStart).toInt();
-    }
-    
-    /**
-     * @return the number of bytes allocated from the beginning of the JVM.
-     *
-     * Watch out for overflow.
-     */
-    public static long getBytesAllocatedTotal() {
-        return getCollector().getTotalBytesAllocatedCheckPoint() + getBytesAllocatedSinceLastGC();
     }
 
     /**
@@ -921,7 +920,7 @@ public class GC implements GlobalStaticFields {
 
             if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_COLLECTION)) {
                 VM.print("[count : ");
-                VM.print(getCollectionCount());
+                VM.print(getTotalCount());
                 VM.print(", backward branch count: ");
                 VM.print(VM.getBranchCount());
                 VM.print("] ");
@@ -932,7 +931,7 @@ public class GC implements GlobalStaticFields {
             VM.print("(");
             VM.print(totalMemory());
             VM.print("), ");
-            VM.print(collector.getLastCollectionTime());
+            VM.print(collector.getLastGCTime());
             VM.println(" ms]");
         }
 
@@ -972,7 +971,7 @@ public class GC implements GlobalStaticFields {
             VM.print(" instance @ ");
             VM.printAddress(object);
             VM.print(" ** (collection count: ");
-            VM.print(getCollectionCount());
+            VM.print(getTotalCount());
             VM.print(", backward branch count:");
             VM.print(VM.getBranchCount());
             VM.println(")");
@@ -1775,7 +1774,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return the count of partial-heap collections.
      */
-    static int getPartialCollectionCount() {
+    public static int getPartialCount() {
         return partialCollectionCount;
     }
 
@@ -1784,7 +1783,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return the count of full-heap collections.
      */
-    static int getFullCollectionCount() {
+    public static int getFullCount() {
         return fullCollectionCount;
     }
     
@@ -1793,7 +1792,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return the total count of collections.
      */
-    static int getCollectionCount() {
+    public static int getTotalCount() {
         return fullCollectionCount + partialCollectionCount;
     }
 

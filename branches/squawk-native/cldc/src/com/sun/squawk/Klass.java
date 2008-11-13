@@ -380,7 +380,7 @@ public class Klass {
             return klass;
         }
         if (VM.getCurrentIsolate().getLeafSuite().shouldThrowNoClassDefFoundErrorFor(className)) {
-            if (cnfe != null) {
+            if (cnfe != null && cnfe.getMessage() != null) {
                 throw new NoClassDefFoundError(cnfe.getMessage());
             }
             throw new NoClassDefFoundError(className);
@@ -1773,7 +1773,7 @@ public class Klass {
          * Create and install the metadata for this class.
          */
         Suite suite = VM.getCurrentIsolate().getLeafSuite();
-        KlassMetadata metadata = new KlassMetadata(this,
+        KlassMetadata metadata = new KlassMetadata.Full(this,
                                                    virtualMethods,
                                                    staticMethods,
                                                    instanceFields,
@@ -3758,17 +3758,23 @@ public class Klass {
      * Ensure that all the reserved system classes are loaded if running in a hosted environment.
      */
     private static void loadReservedSystemClasses() throws HostedPragma {
-        Isolate isolate = VM.getCurrentIsolate();
-        Suite bootstrapSuite = isolate.getBootstrapSuite();
-        TranslatorInterface translator = isolate.getTranslator();
-        for (int systemID = 0 ; systemID <= CID.LAST_SYSTEM_ID ; systemID++) {
-            Klass klass = bootstrapSuite.getKlass(systemID);
-            if (!klass.isArray() && !klass.isSynthetic()) {
-                translator.load(klass);
+        try {
+            Isolate isolate = VM.getCurrentIsolate();
+            Suite bootstrapSuite = isolate.getBootstrapSuite();
+            TranslatorInterface translator = isolate.getTranslator();
+            for (int systemID = 0; systemID <= CID.LAST_SYSTEM_ID; systemID++) {
+                Klass klass = bootstrapSuite.getKlass(systemID);
+                if (!klass.isArray() && !klass.isSynthetic()) {
+                    translator.load(klass);
+                }
+                if (klass.isArray() && klass.virtualMethods == null) {
+                    klass.virtualMethods = klass.superType.virtualMethods;
+                }
             }
-            if (klass.isArray() && klass.virtualMethods == null) {
-                klass.virtualMethods = klass.superType.virtualMethods;
-            }
+        } catch (NoClassDefFoundError noClassDefFoundError) {
+            // these are fatal - don't try to defer in romizer:
+            noClassDefFoundError.printStackTrace();
+            throw new RuntimeException("Klass initialization failed: " + noClassDefFoundError);
         }
     }
 

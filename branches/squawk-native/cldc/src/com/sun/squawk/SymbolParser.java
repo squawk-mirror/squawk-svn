@@ -320,11 +320,15 @@ final class SymbolParser extends ByteBufferDecoder {
         /*
          * It turns out that the TCK has .class files that use the getstatic bytecode to reference static constants, such as Double.MIN_VALUE.
          * In order to have the TCK pass, we need to keep these constants around.  Note that adding these constants seemed to add
-         * 4 K to size of squawk.suite.
+         * 7 K to size of squawk.suite.
+         * 
+         * WAIT - doesnt tanslator transform teh getstatic into a constant anyway?
          */
-//        if (fieldType != null && Modifier.hasConstant(modifiers) && fieldType.isPrimitive() && Modifier.isFinal(modifiers)) {
-//            return false;
-//        }
+        //if (Isolate.currentIsolate().getBootstrapSuite().contains(klass)) {
+            if (fieldType != null && Modifier.hasConstant(modifiers) /*&& fieldType.isPrimitive()*/ && Modifier.isFinal(modifiers)) {
+                return false;
+            }
+        //}
         if (type == Suite.LIBRARY) {
             return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers);
         } else {
@@ -334,11 +338,6 @@ final class SymbolParser extends ByteBufferDecoder {
     }
 
     /**
-     * Synchronization lock for {@link #strip}.
-     */
-    private static final Object PRUNE_LOCK = new Object();
-
-    /**
      * Prunes the symbols based on a given suite type.
      *
      * @param klass  the enclosing class
@@ -346,28 +345,26 @@ final class SymbolParser extends ByteBufferDecoder {
      * @param types  the collection to which the types in the signatures of the remaining members should be added
      * @return the stripped symbols
      */
-    byte[] strip(Klass klass, int type, SquawkVector types) {
-        synchronized(PRUNE_LOCK) {
-            if (symbolsBuffer == null) {
-                symbolsBuffer = new ByteBufferEncoder();
-                membersBuffer = new ByteBufferEncoder();
-            }
-            symbolsBuffer.reset();
-
-            // Place holder for flags
-            int flagsPos = symbolsBuffer.count;
-            symbolsBuffer.addUnsignedByte(0);
-
-            int flags = 0;
-            flags |= stripFields(klass, type, INSTANCE_FIELDS, types);
-            flags |= stripFields(klass, type, STATIC_FIELDS, types);
-            flags |= stripMethods(klass, type, VIRTUAL_METHODS, types);
-            flags |= stripMethods(klass, type, STATIC_METHODS, types);
-
-            symbolsBuffer.buffer[flagsPos] = (byte)flags;
-
-            return symbolsBuffer.toByteArray();
+    synchronized byte[] strip(Klass klass, int type, SquawkVector types) {
+        if (symbolsBuffer == null) {
+            symbolsBuffer = new ByteBufferEncoder();
+            membersBuffer = new ByteBufferEncoder();
         }
+        symbolsBuffer.reset();
+
+        // Place holder for flags
+        int flagsPos = symbolsBuffer.count;
+        symbolsBuffer.addUnsignedByte(0);
+
+        int flags = 0;
+        flags |= stripFields(klass, type, INSTANCE_FIELDS, types);
+        flags |= stripFields(klass, type, STATIC_FIELDS, types);
+        flags |= stripMethods(klass, type, VIRTUAL_METHODS, types);
+        flags |= stripMethods(klass, type, STATIC_METHODS, types);
+
+        symbolsBuffer.buffer[flagsPos] = (byte) flags;
+
+        return symbolsBuffer.toByteArray();
     }
 
     /**
