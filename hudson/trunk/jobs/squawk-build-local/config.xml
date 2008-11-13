@@ -1,6 +1,20 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <customWorkspace>/scratch/dw29446/hudson/test-ws</customWorkspace>
+  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <description>simple squawk build, from local directory test-ws.</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>4</numToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <jdk>(Default)</jdk>
+  <triggers class="vector"/>
   <builders>
     <hudson.tasks.Shell>
       <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
@@ -29,7 +43,7 @@ java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed
 </command>
     </hudson.tasks.Shell>
   </builders>
-  <publishers class="vector">
+  <publishers>
     <hudson.tasks.ArtifactArchiver>
       <artifacts>squawk, squawk.suite</artifacts>
       <latestOnly>false</latestOnly>
@@ -43,18 +57,6 @@ java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
   </publishers>
-  <buildWrappers class="vector"/>
-  <scm class="hudson.scm.NullSCM"/>
-  <canRoam>true</canRoam>
-  <disabled>false</disabled>
-  <jdk>(Default)</jdk>
-  <triggers class="vector"/>
-  <logRotator>
-    <daysToKeep>-1</daysToKeep>
-    <numToKeep>4</numToKeep>
-  </logRotator>
-  <keepDependencies>false</keepDependencies>
-  <properties/>
-  <description>simple squawk build, from local directory test-ws.</description>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <buildWrappers/>
+  <customWorkspace>/scratch/dw29446/hudson/test-ws</customWorkspace>
 </project>

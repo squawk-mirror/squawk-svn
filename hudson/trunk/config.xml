@@ -4,36 +4,33 @@
   <mode>NORMAL</mode>
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
   <securityRealm class="hudson.security.SecurityRealm$None"/>
-  <systemMessage>&lt;h1&gt;Test/Integeration Server for Squawk Project&lt;/h1&gt;&#x0D;
-derek.white@sun.com&lt;p&gt;&#x0D;
-&#x0D;
-&lt;table cellspacing=&quot;20&quot;&gt;&#x0D;
-&lt;tr&gt;&lt;th&gt;Automatic&lt;th&gt;Manual - TCK&lt;th&gt;Manual - Other&#x0D;
-&lt;tr&gt;&#x0D;
-&lt;td&gt;&#x0D;
-&lt;ul&gt;&#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/&quot;&gt;normal-build&lt;/a&gt; &#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/&quot;&gt;full-debug-build&lt;/a&gt; &#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/&quot;&gt;small-build&lt;/a&gt; &#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-flash-memory-matrix/&quot;&gt;build-flash-memory-matrix&lt;/a&gt;&#x0D;
-&lt;/ul&gt;&#x0D;
-&#x0D;
-&lt;td&gt;&#x0D;
-&lt;ul&gt;&#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; &#x0D;
-&lt;ul&gt;plus one of:&#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-local&lt;/a&gt; &#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-from-svn&lt;/a&gt; &#x0D;
-&lt;/ul&gt;&#x0D;
-&lt;/ul&gt;&#x0D;
-&lt;i&gt;When the TCK is running, you can check console of the &lt;br&gt;&#x0D;
-currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; job to see progress.&lt;/i&gt;&#x0D;
-&#x0D;
-&lt;td&gt;&#x0D;
-&lt;ul&gt;&#x0D;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/squawk-build-local/&quot;&gt;squawk-build-local&lt;/a&gt; &#x0D;
-&lt;/ul&gt;&#x0D;
+  <systemMessage>&lt;h1&gt;Test/Integration Server for Squawk Project&lt;/h1&gt;&#xd;
+&lt;b&gt;&lt;i&gt;New!&lt;/i&gt;&lt;/b&gt; Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@sun.com&lt;p&gt;&#xd;
+&#xd;
+&lt;table cellspacing=&quot;20&quot;&gt;&#xd;
+&lt;tr&gt;&lt;th&gt;Automatic&lt;th&gt;Manual - TCK&lt;th&gt;Manual - Other&#xd;
+&lt;tr&gt;&#xd;
+&lt;td&gt;&#xd;
+&lt;ul&gt;&lt;i&gt;Jobs will start a few minutes after SVN checkin&lt;/i&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/&quot;&gt;normal-build&lt;/a&gt; &#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/&quot;&gt;full-debug-build&lt;/a&gt; &#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/&quot;&gt;small-build&lt;/a&gt; &#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-flash-memory-matrix/&quot;&gt;build-flash-memory-matrix&lt;/a&gt;&#xd;
+&lt;/ul&gt;&#xd;
+&#xd;
+&lt;td&gt;&#xd;
+&lt;ul&gt;&lt;i&gt;TCK run starts at 2am, EST&lt;/i&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; &#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-local&lt;/a&gt; &#xd;
+&lt;/ul&gt;&#xd;
+&lt;i&gt;When the TCK is running, you can check console of the &lt;br&gt;&#xd;
+currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; job to see progress.&lt;/i&gt;&#xd;
+&#xd;
+&lt;td&gt;&#xd;
+&lt;ul&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/squawk-build-local/&quot;&gt;squawk-build-local&lt;/a&gt; &#xd;
+&lt;/ul&gt;&#xd;
 &lt;/table&gt;</systemMessage>
   <jdks>
     <jdk>

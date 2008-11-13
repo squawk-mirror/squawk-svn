@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson.tasks.Mailer_-DescriptorImpl>
   <hudsonUrl>http://squawk-sqa.east:8080/</hudsonUrl>
-  <adminAddress>derek.white@sun.com</adminAddress>
+  <adminAddress>Squawk Hudson Server &lt;derek.white@sun.com&gt;</adminAddress>
   <useSsl>false</useSsl>
 </hudson.tasks.Mailer_-DescriptorImpl>

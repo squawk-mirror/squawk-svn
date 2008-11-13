@@ -1,30 +1,32 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <customWorkspace>/scratch/dw29446/hudson/test-ws</customWorkspace>
+  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <description>Run the smoke test in the local workspace test-ws.</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>4</numToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <triggers class="vector"/>
   <builders>
     <hudson.tasks.Shell>
       <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.5.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.5.0/jre/lib/i386:$LD_LIBRARY_PATH
 /home/dw29446/bin/runsmoketest.sh</command>
     </hudson.tasks.Shell>
   </builders>
-  <publishers class="vector">
+  <publishers>
     <hudson.tasks.Mailer>
       <recipients>derek.white@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
   </publishers>
-  <buildWrappers class="vector"/>
-  <scm class="hudson.scm.NullSCM"/>
-  <canRoam>true</canRoam>
-  <disabled>false</disabled>
-  <triggers class="vector"/>
-  <logRotator>
-    <daysToKeep>-1</daysToKeep>
-    <numToKeep>4</numToKeep>
-  </logRotator>
-  <keepDependencies>false</keepDependencies>
-  <properties/>
-  <description>Run the smoke test in the local workspace test-ws.</description>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <buildWrappers/>
+  <customWorkspace>/scratch/dw29446/hudson/test-ws</customWorkspace>
 </project>

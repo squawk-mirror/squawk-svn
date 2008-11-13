@@ -1,5 +1,34 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <matrix-project>
+  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <description>Build squawk in several configurations, with FLASH_MEMORY=TRUE and ENABLE_DYNAMIC_CLASSLOADING=FALSE:&#xd;
+&lt;ul&gt;&#xd;
+&lt;li&gt;ASSERTIONS_ENABLED&#xd;
+&lt;li&gt;DEBUG_CODE_ENABLED&#xd;
+&lt;/ul&gt;&#xd;
+&#xd;
+&lt;b&gt;No floats&lt;/b&gt; builds disabled (we know they don&apos;t work now anyway).&#xd;
+&lt;b&gt;Can&apos;t actually run FLASH_MEMORY builds&lt;/b&gt; on desktop, due to different channel operations, etc.</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>3</numToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <local>trunk</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <useUpdate>true</useUpdate>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <triggers class="vector"/>
   <axes serialization="custom">
     <unserializable-parents/>
     <list>
@@ -33,43 +62,16 @@ java -jar build.jar -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DAS
 java -jar build.jar -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -prod -mac -o2 rom -metadata cldc imp debugger</command>
     </hudson.tasks.Shell>
   </builders>
-  <publishers class="vector">
+  <publishers>
     <hudson.tasks.ArtifactArchiver>
       <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.Mailer>
-      <recipients>derek.white@sun.com</recipients>
+      <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
   </publishers>
-  <buildWrappers class="vector"/>
-  <scm class="hudson.scm.SubversionSCM">
-    <locations>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
-        <local>trunk</local>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
-    </locations>
-    <useUpdate>true</useUpdate>
-  </scm>
-  <canRoam>true</canRoam>
-  <disabled>false</disabled>
-  <triggers class="vector"/>
-  <logRotator>
-    <daysToKeep>-1</daysToKeep>
-    <numToKeep>3</numToKeep>
-  </logRotator>
-  <keepDependencies>false</keepDependencies>
-  <properties/>
-  <description>Build squawk in several configurations, with FLASH_MEMORY=TRUE and ENABLE_DYNAMIC_CLASSLOADING=FALSE:&#x0D;
-&lt;ul&gt;&#x0D;
-&lt;li&gt;ASSERTIONS_ENABLED&#x0D;
-&lt;li&gt;DEBUG_CODE_ENABLED&#x0D;
-&lt;/ul&gt;&#x0D;
-&#x0D;
-&lt;b&gt;No floats&lt;/b&gt; builds disabled (we know they don&apos;t work now anyway).&#x0D;
-&lt;b&gt;Can&apos;t actually run FLASH_MEMORY builds&lt;/b&gt; on desktop, due to different channel operations, etc.</description>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <buildWrappers/>
 </matrix-project>

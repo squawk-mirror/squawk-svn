@@ -1,12 +1,14 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <matrix-config>
-  <builders class="vector"/>
-  <publishers class="vector"/>
-  <buildWrappers class="vector"/>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
   <scm class="hudson.scm.NullSCM"/>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <triggers class="vector"/>
-  <keepDependencies>false</keepDependencies>
-  <properties/>
+  <builders/>
+  <publishers/>
+  <buildWrappers/>
 </matrix-config>

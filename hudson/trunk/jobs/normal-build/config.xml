@@ -1,5 +1,38 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
+  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <description>Do a &quot;normal&quot; build from SVN. Do more testing than the matrix builds.</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>2</numToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+    <hudson.security.AuthorizationMatrixProperty/>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <local>trunk</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <useUpdate>true</useUpdate>
+    <browser class="hudson.scm.browsers.FishEyeSVN">
+      <url>http://fisheye4.atlassian.com/browse/squawk/</url>
+      <rootModule></rootModule>
+    </browser>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <jdk>(Default)</jdk>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>5 * * * *
+</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
   <builders>
     <hudson.tasks.Shell>
       <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
@@ -22,19 +55,20 @@ java -jar build.jar OperandStackEffect
 java -jar build.jar Verifier
 ./squawk -h
 ./squawk -version
-$HUDSON_HOME/bin/runsmoketest.sh
+$HUDSON_HOME/bin/runsmoketest.sh DELEGATING
 
 /usr/bin/rm -rf tempdoc
 java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc</command>
     </hudson.tasks.Shell>
   </builders>
-  <publishers class="vector">
+  <publishers>
     <hudson.tasks.ArtifactArchiver>
       <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.JavadocArchiver>
       <javadocDir>trunk/tempdoc/javadoc</javadocDir>
+      <keepAll>false</keepAll>
     </hudson.tasks.JavadocArchiver>
     <hudson.tasks.BuildTrigger>
       <childProjects>full-debug-build, small-build, build-matrix</childProjects>
@@ -45,36 +79,10 @@ java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed
       </threshold>
     </hudson.tasks.BuildTrigger>
     <hudson.tasks.Mailer>
-      <recipients>derek.white@sun.com</recipients>
+      <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
   </publishers>
-  <buildWrappers class="vector"/>
-  <scm class="hudson.scm.SubversionSCM">
-    <locations>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
-        <local>trunk</local>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
-    </locations>
-    <useUpdate>true</useUpdate>
-  </scm>
-  <canRoam>true</canRoam>
-  <disabled>false</disabled>
-  <jdk>(Default)</jdk>
-  <triggers class="vector">
-    <hudson.triggers.SCMTrigger>
-      <spec>5 * * * *
-</spec>
-    </hudson.triggers.SCMTrigger>
-  </triggers>
-  <logRotator>
-    <daysToKeep>-1</daysToKeep>
-    <numToKeep>2</numToKeep>
-  </logRotator>
-  <keepDependencies>false</keepDependencies>
-  <properties/>
-  <description>Do a &quot;normal&quot; build from SVN. Do more testing than the matrix builds.</description>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <buildWrappers/>
 </project>
