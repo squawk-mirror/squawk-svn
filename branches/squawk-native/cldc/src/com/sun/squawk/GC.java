@@ -872,15 +872,6 @@ public class GC implements GlobalStaticFields {
 
         // Trace.
         long free = freeMemory();
-//        if (isTracing(TRACE_BASIC)) {
-//            VM.print("** GC ** (count: ");
-//            VM.print(getCollectionCount());
-//            VM.print(", backward branch count:");
-//            VM.print(VM.getBranchCount());
-//            VM.print(", free memory:");
-//            VM.print(free);
-//            VM.println(" bytes)");
-//        }
 
         // Prunes 'dead' isolates from weakly linked global list of isolates.
         VM.pruneIsolateList();
@@ -1456,7 +1447,7 @@ public class GC implements GlobalStaticFields {
          * Write the symbol table entries.
          */
 /*if[!FLASH_MEMORY]*/
-        if (isHosted || VM.isVerbose() || VM.getCurrentIsolate().getMainClassName().equals("com.sun.squawk.SuiteCreator")) {
+        if (isHosted || VM.isVerbose()) {
             Method method = body.getDefiningMethod();
             String name = method.toString();
             String file = body.getDefiningClass().getSourceFilePath();

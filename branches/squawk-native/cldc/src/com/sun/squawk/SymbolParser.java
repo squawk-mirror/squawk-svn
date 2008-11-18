@@ -324,11 +324,9 @@ final class SymbolParser extends ByteBufferDecoder {
          * 
          * WAIT - doesnt tanslator transform teh getstatic into a constant anyway?
          */
-        //if (Isolate.currentIsolate().getBootstrapSuite().contains(klass)) {
-            if (fieldType != null && Modifier.hasConstant(modifiers) /*&& fieldType.isPrimitive()*/ && Modifier.isFinal(modifiers)) {
-                return false;
-            }
-        //}
+//        if (fieldType != null && Modifier.hasConstant(modifiers) && fieldType.isPrimitive() && Modifier.isFinal(modifiers)) {
+//            return false;
+//        }
         if (type == Suite.LIBRARY) {
             return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers);
         } else {
@@ -465,7 +463,7 @@ final class SymbolParser extends ByteBufferDecoder {
                 } else {
                     // Stripping this method:
                     if ((Modifier.isAbstract(modifiers) || klass.isInterface())
-                        && !Modifier.isSuitePrivate(klass.getModifiers())) {
+                        && !(Modifier.isPackagePrivate(modifiers) || Modifier.isSuitePrivate(klass.getModifiers()))) {
                         // If a class with abstract methods, or an interface, is exported from a suite, but the abstract methods are not exported,
                         // then there is no way to extend or implement the exported class or interface.
                         throw new IllegalStateException("Can't strip method " + name + " because it is abstract in a class exported from a suite: " + klass);

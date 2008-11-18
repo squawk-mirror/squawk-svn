@@ -39,35 +39,36 @@ public abstract class Platform {
      * Factory method to create an Platform instance based on the value of the "os.name" and
      * "os.arch" {@link System#getProperties system properties}.
      *
+     * @param env the build env
      * @return the Platform instance or null if "os.name" and "os.arch" denote an unknown Platform
      */
     public static Platform createPlatform(Build env) {
         String osName = System.getProperty("os.name").toLowerCase();
         String osArch = System.getProperty("os.arch").toLowerCase();
 
-	if (isX86Architecture()) {
-		if (osName.startsWith("windows")) {
-			return new Windows_X86(env);
-		} else if (osName.startsWith("sunos")) {
-			return new SunOS_X86(env);
-		} else if (osName.startsWith("linux")) {
-			return new Linux_X86(env);
-		} else if (osName.startsWith("mac os x")) {
-			return new MacOSX_X86(env); 
-		} else {
-			return null;
-		} 
-	} else if (osName.startsWith("mac os x") && osArch.equals("ppc")) {
-		return new MacOSX_PPC(env);
-	} else if (osName.startsWith("sunos") && osArch.equals("sparc")) {
-		return new SunOS_Sparc(env);
-	} else if (osName.startsWith("linux") && osArch.equals("ppc")) {
-		return new Linux_PPC(env);
-    } else if (osName.startsWith("vxworks") && osArch.equals("ppc")) {
-        return new VxWorks_PPC(env);
-	} else { 
-		return null;
-	}
+        if (isX86Architecture()) {
+            if (osName.startsWith("windows")) {
+                return new Windows_X86(env);
+            } else if (osName.startsWith("sunos")) {
+                return new SunOS_X86(env);
+            } else if (osName.startsWith("linux")) {
+                return new Linux_X86(env);
+            } else if (osName.startsWith("mac os x")) {
+                return new MacOSX_X86(env);
+            }
+        } else if (osArch.equals("ppc")) {
+            if (osName.startsWith("mac os x")) {
+                return new MacOSX_PPC(env);
+            } else if (osName.startsWith("linux")) {
+                return new Linux_PPC(env);
+            } else if (osName.startsWith("vxworks")) {
+                return new VxWorks_PPC(env);
+            }
+        } else if (osArch.equals("sparc") && osName.startsWith("sunos")) {
+            return new SunOS_Sparc(env);
+        }
+        
+        return null;
     }
 
     /**

@@ -198,37 +198,6 @@ public class RawMemoryAccess {
         wasMalloced = true;
     }
 
-//    /**
-//     * Initializes an instance of <code>RawMemoryAccess</code> with the given parameters,
-//     *  and set the object to the mapped state.
-//     *
-//     * @param base The physical memory address of the region.
-//     *
-//     * @param size The size of the area in bytes.
-//     *
-//     *
-//     * @exception OffsetOutOfBoundsException    Thrown if the address is invalid.
-//     *
-//     * @exception SizeOutOfBoundsException Thrown if the size is negative or
-//     *            extends into an invalid range of memory.
-//     *
-//     */
-//    void init(Address base, UWord size)
-//            throws SizeOutOfBoundsException,
-//            OffsetOutOfBoundsException {
-//        if (size.loeq(UWord.zero())) {
-//            throw new SizeOutOfBoundsException();
-//        } else if (base.loeq(Address.zero())) {
-//            throw new OffsetOutOfBoundsException();
-//        }
-//
-//        reachable_size = size;
-//        vbase = base;
-//        if (GC.inRam(base, base.addOffset(size.toOffset()))) {
-//            throw new SecurityException("invalid memory range");
-//        }
-//    }
-    
     /**
      * Construct an instance of <code>RawMemoryAccess</code> with the given parameters,
      *  and set the object to the mapped state.

@@ -477,9 +477,7 @@ void freeBuffer(Address buffer) {
     while (i != BufferCount) {
         if (Buffers[i] == buffer) {
 //fprintf(stderr, format("freeBuffer: buffer=%A\n"), buffer);
-//fprintf(stderr, format("done printf\n"));
             sysVallocFree(buffer);
-//fprintf(stderr, format("done freeBuffer\n"));
         } else {
             Buffers[insert] = Buffers[i];
             insert++;
