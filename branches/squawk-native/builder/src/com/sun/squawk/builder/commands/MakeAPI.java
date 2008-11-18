@@ -31,7 +31,6 @@ import com.sun.javadoc.*;
 import com.sun.squawk.builder.*;
 import java.lang.reflect.Modifier;
 
-
 /**
  * This class produces source, javadoc and class files for the components
  * (i.e. classes, fields and methods) in a suite that can be bound to at load time.
@@ -1024,6 +1023,7 @@ public class MakeAPI extends Command {
         return true;
     }
 }
+
 /**
  * A <code>SourceFile</code> instance is used to generate a Java source file.
  */

@@ -45,7 +45,7 @@ public abstract class Platform {
         String osName = System.getProperty("os.name").toLowerCase();
         String osArch = System.getProperty("os.arch").toLowerCase();
 
-        if (isX86Architecture()) {
+	if (isX86Architecture()) {
 		if (osName.startsWith("windows")) {
 			return new Windows_X86(env);
 		} else if (osName.startsWith("sunos")) {
@@ -63,8 +63,8 @@ public abstract class Platform {
 		return new SunOS_Sparc(env);
 	} else if (osName.startsWith("linux") && osArch.equals("ppc")) {
 		return new Linux_PPC(env);
-        } else if (osName.startsWith("vxworks") && osArch.equals("ppc")) {
-                return new VxWorks_PPC(env);
+    } else if (osName.startsWith("vxworks") && osArch.equals("ppc")) {
+        return new VxWorks_PPC(env);
 	} else { 
 		return null;
 	}

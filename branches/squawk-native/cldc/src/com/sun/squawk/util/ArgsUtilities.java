@@ -40,7 +40,7 @@ public class ArgsUtilities {
     /**
      * Skip svn entries, etc...
      */
-    public final static String[] skipList = {".svn"};
+    public final static String[] skipList = {".svn", ".DS_Store"};
 
     private static boolean nameInSkipList(String name) {
         for (int i = 0; i < skipList.length; i++) {
