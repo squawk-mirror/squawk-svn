@@ -321,6 +321,10 @@ public final class Suite {
      * @return  the ObjectMemory containing this suite if it is in read-only memory or null
      */
     private ObjectMemory getReadOnlyObjectMemoryHosted() throws HostedPragma {
+        ObjectMemory result = GC.lookupReadOnlyObjectMemoryByRoot(this);
+        if (result != null) {
+            return result;
+        }
         String uri = (isBootstrap() ? ObjectMemory.BOOTSTRAP_URI : "file://" + name + FILE_EXTENSION);
         return GC.lookupReadOnlyObjectMemoryBySourceURI(uri);
     }
@@ -705,6 +709,7 @@ public final class Suite {
                 om = ObjectMemoryLoader.load(uri, true).objectMemory;
             } catch (IOException e) {
                 if (errorOnIOException) {
+                    new RuntimeException().printStackTrace();
                     throw new Error("IO error while loading suite from '" + uri + "': " + e);
                 } else {
                     return null;
@@ -777,7 +782,7 @@ public final class Suite {
         ObjectMemory parentMemory = null;
         if (!isBootstrap()) {
             parentMemory = parent.getReadOnlyObjectMemory();
-            Assert.that(parentMemory != null);
+            Assert.always(parentMemory != null, "parent not found: " + parent);
         }
         ObjectMemorySerializer.save(dos, uri, cb, parentMemory, bigEndian);
 

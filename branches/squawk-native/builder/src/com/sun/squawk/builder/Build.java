@@ -318,7 +318,11 @@ public class Build {
             StringTokenizer st = new StringTokenizer(dependencies);
             while (st.hasMoreTokens()) {
                 String dependency = st.nextToken();
-                classPathBuffer.append(dependency).append(File.separatorChar).append("classes");
+                File classesDir = new File(new File(baseDir, dependency), "classes"); // check relative to target first
+                if (!classesDir.exists() || !classesDir.isDirectory()) {
+                     classesDir = new File(dependency, "classes"); // check relative to current dir
+                }
+                classPathBuffer.append(classesDir);
                 if (st.hasMoreTokens()) {
                 	classPathBuffer.append(File.pathSeparatorChar);
                 }
@@ -371,23 +375,55 @@ public class Build {
     }
 
     /**
-     * Creates and installs a LinkTarget command.
+     * Creates and installs a LinkTarget and a run command.
      *
      * @param baseDir        the parent directory for primary source directory and the output directory
      * @param parent         path to the parent suite file
      * @param dependencies   the space separated names of the LinkTarget commands that this command depends upon
+     * @param extraSuitePath the suitepath to search (beyond "." and baseDir and dependency dirs)
      * @return the created and installed command
      */
-    public LinkTarget addLinkTarget(String baseDir, String parent, String dependencies) {
+    public LinkTarget addLinkTarget(String baseDir, String parent, String dependencies, String extraSuitePath) {
         String basicName = new File(baseDir).getName();
-        LinkTarget command = new LinkTarget(baseDir, parent, this, basicName);
-        
-        command.dependsOn(basicName); // "foo-suite" is dependent on "foo", the compiler target
+        String compileCmdStr = basicName;
+        String suiteCmdStr   = basicName + "-suite";
+        String runCmdStr     = basicName + "-run";
+
+        StringBuffer suitePathBuffer = new StringBuffer(".");
+        suitePathBuffer.append(File.pathSeparatorChar).append(baseDir);
         if (dependencies != null) {
-            command.dependsOn(dependencies);
+            StringTokenizer st = new StringTokenizer(dependencies);
+            while (st.hasMoreTokens()) {
+                String dependency = st.nextToken();
+                File dependencyDir = new File(baseDir, dependency); // check relative to target first
+                if (!dependencyDir.exists() || !dependencyDir.isDirectory()) {
+                    dependencyDir = new File(dependency); // check relative to current dir
+                }
+                if (!dependencyDir.exists() || !dependencyDir.isDirectory()) {
+                    continue; // skip non-directories
+                }
+                suitePathBuffer.append(File.pathSeparatorChar).append(dependencyDir);
+            }
         }
-        addCommand(command);
-        return command;
+        if (extraSuitePath != null && extraSuitePath.length() != 0) {
+            suitePathBuffer.append(File.pathSeparatorChar).append(toPlatformPath(extraSuitePath, true));
+        }
+        
+        String fullSuitePath = suitePathBuffer.toString();
+ System.err.println("fullSuitePath: " + fullSuitePath);
+        LinkTarget suiteCmd = new LinkTarget(baseDir, parent, this, basicName, fullSuitePath);
+        
+        suiteCmd.dependsOn(compileCmdStr); // suite command depends on compile command
+        if (dependencies != null) {
+            suiteCmd.dependsOn(dependencies);
+        }
+        addCommand(suiteCmd);
+        
+        // add run command:
+        Command runCmd = addSquawkCommand(runCmdStr, null, "-suitepath:" + fullSuitePath + " -suite:" + basicName, "", "", "run application in " + basicName);
+        runCmd.dependsOn(suiteCmdStr);// run command depends on suite command
+
+        return suiteCmd;
     }
     
     /**
@@ -431,9 +467,6 @@ public class Build {
                     return description;
                 }
                 return super.getDescription();
-            }
-            public void usage(String errMsg) {
-               defaultUsage(null, errMsg);
             }
         };
         addCommand(command);
@@ -479,10 +512,6 @@ public class Build {
             Generator gen = generator(name);
             return "generates the file " + gen.getGeneratedFile(baseDir);
         }
-
-        public void usage(String errMsg) {
-            defaultUsage(null, errMsg);
-        }
     }
 
     protected File[] getSiblingBuilderDotPropertiesFiles() {
@@ -503,13 +532,27 @@ public class Build {
     	}
     }
     
+    private HashSet<File> loadedPropertyFiles = new HashSet<File>();
+    
     /**
-     * Installs commands from a properties file.
+     * Installs commands from a properties file or directory.
+     * If dotPropertiesFile is a directory, try to load dotPropertiesFile + "/builder.properties".
      *
      * @param pluginsFile  the properties file to load from
      */
     protected void processBuilderDotPropertiesFile(File dotPropertiesFile) {
+        if (dotPropertiesFile.isDirectory()) {
+            processBuilderDotPropertiesFile(new File(dotPropertiesFile, "builder.properties"));
+            return;
+        } else if (!dotPropertiesFile.exists()) {
+            throw new BuildException("builder properties file doesn't exist: " + dotPropertiesFile);
+        } else if (loadedPropertyFiles.contains(dotPropertiesFile)) {
+            log(verbose, "property file already loaded: " + dotPropertiesFile);
+            return;
+        }
+        
     	log(verbose, "Reading commands from: " + dotPropertiesFile.getPath());
+        loadedPropertyFiles.add(dotPropertiesFile);
     	Properties savedproperties = new Properties();
     	InputStream in = null;
     	try {
@@ -617,17 +660,30 @@ public class Build {
     	}
     }
     
+    /**
+     * Convert a space-seperated class path into a platform-specific classpath
+     * @param path string of class path elements that may be space seperated
+     * @return string of classpath elements that are seperated by platofrms seperator
+     */
+    public String spacesToPath(String path) {
+        if (path == null) {
+            return null;
+        }
+        return path.replace(' ', File.pathSeparatorChar);
+    }
+
+    
     protected void processBuilderDotPropertiesFile(String type, String name, File dotPropertiesFile, int propertyIndex, HashMap<String, String> attributes) {
         Command cmd = null;
         String baseDir = dotPropertiesFile.getParentFile().getPath();
         if (type.equals("Target")) {
-            cmd = addTarget(Boolean.valueOf(attributes.get("j2me")), baseDir, attributes.get("dependsOn"), attributes.get("extraClassPath"), attributes.get("extraSourceDirs"));
+            cmd = addTarget(Boolean.valueOf(attributes.get("j2me")), baseDir, attributes.get("dependsOn"), spacesToPath(attributes.get("extraClassPath")), attributes.get("extraSourceDirs"));
         } else if (type.equals("LinkTarget")) {
-            cmd = addLinkTarget(baseDir, attributes.get("parent"), attributes.get("dependsOn"));
+            cmd = addLinkTarget(baseDir, attributes.get("parent"), attributes.get("dependsOn"), attributes.get("suitePath"));
         } else {
             throw new BuildException("Unsupported type " + type + " on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
         }
-        
+        cmd.setBaseDir(dotPropertiesFile.getParentFile());
         String triggers = attributes.get("triggers");
         if (triggers != null) {
             cmd.triggers(triggers);
@@ -644,18 +700,115 @@ public class Build {
     }
     
     /**
+     * Dynamically make a "user" commmand (either user-suite or user-run)
+     * @param staticCmd 
+     * @param args
+     * @return extra arguemnts to run with...
+     */
+    class UserCommand extends Command {
+
+        final String description;
+        
+        UserCommand(Build env, String name, String description) {
+            super(env, name);
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void usage(String errMsg) {
+            PrintStream out = System.err;
+
+            if (errMsg != null) {
+                out.println(errMsg);
+            }
+            out.println("Usage: " + getName() + " [options] module ");
+            out.println("where module is directory containing a \"src\" directory, and options include:");
+            out.println();
+            out.println("    -parent:<suite_dir>   parent library or module (directory) containing a parent suite");
+            out.println("    -cp:classpath>        classes to compile against");
+            out.println("as well as most romize options. Run 'romize -h' for more details");
+        }
+
+        public void run(String[] args) {
+            int argi = 0;
+            String parent = "";
+            String cp = "-cp:.";
+            Vector<String> extraArgs = new Vector<String>();
+            while ((argi < args.length) && args[argi].startsWith("-")) {
+                if (args[argi].startsWith("-parent:")) {
+                    parent = args[argi].substring("-parent:".length());
+                } else if (args[argi].startsWith("-cp:")) {
+                    cp = args[argi];
+                } else {
+                    extraArgs.add(args[argi]);
+                }
+                argi++;
+            }
+
+            if (argi >= args.length) {
+                throw new CommandException(this, "module not specified");
+            }
+
+            String userBaseDir = args[argi++];
+
+            // collect remaining (non-option) arguments
+            for (int i = argi; i < args.length; i++) {
+                extraArgs.add(args[i]);
+            }
+
+            Command compileCommand = getCommand("user-compile");
+            Vector<String> compileArgs = new Vector<String>();
+            compileArgs.add(cp);
+            if (parent.length() != 0) {
+                compileArgs.add("-parent:" + parent);
+
+            }
+            compileArgs.add(userBaseDir);
+            compileCommand.run(toStringArray(compileArgs));
+
+            String dependency = null;
+            if (parent.length() != 0) {
+                File parentFile = new File(parent);
+                if (parentFile.isDirectory()) {
+                    dependency = parent;
+                    parent = parentFile.getName();
+                }
+            }
+
+            log(brief, "[linking user project at " + userBaseDir + "...]");
+            LinkTarget cmd = addLinkTarget(userBaseDir, parent, dependency, null);
+
+            if (getName().equals("user-suite")) {
+                cmd.run(toStringArray(extraArgs));
+            } else if (getName().equals("user-run")) {
+                String cmdName = cmd.getName();
+                cmd.run(NO_ARGS);
+                cmdName = cmdName.substring(0, cmdName.indexOf("-suite")) + "-run";
+                Command runcmd = env.getCommand(cmdName);
+                runcmd.run(toStringArray(extraArgs));
+            } else {
+                throw new RuntimeException("Dynamic command not found: " + getName());
+            }
+        }
+    }
+
+    /**
      * Installs the built-in commands.
      */
     private void installBuiltinCommands() {
     	
     	File[] siblingBuilderDotPropertiesFiles = getSiblingBuilderDotPropertiesFiles();
-    	processBuilderDotPropertiesFiles(siblingBuilderDotPropertiesFiles);
 
         addGen("OPC",                "cldc/src");
         addGen("OperandStackEffect", "translator/src");
         addGen("Mnemonics",          "translator/src");
         addGen("Verifier",           "translator/src");
         addGen("SwitchDotC",         "vmcore/src");
+        
+        processBuilderDotPropertiesFiles(siblingBuilderDotPropertiesFiles);
 
         // Add the "clean" command
         addCommand(new Command(this, "clean") {
@@ -728,10 +881,6 @@ public class Build {
             		}
             	}
             }
-            
-            public void usage(String errMsg) {
-               defaultUsage(null, errMsg);
-            }
                         
             public void run(String[] args) {
                 if (args.length != 0) {
@@ -762,9 +911,6 @@ public class Build {
 
         // Add the "jvmenv" command
         addCommand(new Command(this, "jvmenv") {
-            public void usage(String errMsg) {
-               defaultUsage(null, errMsg);
-            }
             public String getDescription() {
                 return "displays required environment variables for running the Squawk VM";
             }
@@ -844,9 +990,6 @@ public class Build {
 
         // Add "squawk.jar" command
         addCommand(new Command(this, "squawk.jar") {
-            public void usage(String errMsg) {
-               defaultUsage(null, errMsg);
-            }
             public void run(String[] args) {
                 String cmd = "jar cf squawk.jar @" + new File("hosted-support", "squawk.jar.filelist");
                 log(info, "[running '" + cmd + "' ...]");
@@ -871,9 +1014,6 @@ public class Build {
         });
 
         addCommand(new Command(this, "arm_asm_tests") {  // run JUnit tests for the ARM assembler
-            public void usage(String errMsg) {
-               defaultUsage(null, errMsg);
-            }
             public void run(String[] args) {
                 System.out.println("Running JUnit test for the ARM assembler ");
                 exec("java -cp " + toPlatformPath("compilertests/junit-3.8.1.jar:compiler/classes:hosted-support/classes:cldc/classes:compilertests/classes ", true) +
@@ -927,15 +1067,19 @@ public class Build {
                 out.println("Usage: user-compile [options] module ");
                 out.println("where module is directory containing a \"src\" directory, and options include:");
                 out.println();
-                out.println("    -cp:classpath>        classes to compile against");
+                out.println("    -cp:<classpath>        classes to compile against");
+                out.println("    -parent:<parentdir>    module that this module depends on");
             }
                         
             public void run(String[] args) {
                 int argi = 0;
                 String cp = "";
+                String parent = null;
                 while (args[argi].startsWith("-")) {
                     if (args[argi].startsWith("-cp:")) {
                         cp = args[argi].substring("-cp:".length());
+                    } else if (args[argi].startsWith("-parent:")) {
+                        parent = args[argi].substring("-parent:".length());
                     } else {
                     	throw new CommandException(this, "malformed option " + args[argi]);
                     }
@@ -944,7 +1088,12 @@ public class Build {
                 String userBaseDir = args[argi];
                 log(brief, "[compiling user project at " + userBaseDir + "...]");
                 
-                Target compileTarget = addTarget(true, userBaseDir, "cldc imp", cp);
+                String dependencies =  "cldc imp";
+                if (parent != null) {
+                    dependencies = dependencies + " " + parent;
+                }
+
+                Target compileTarget = addTarget(true, userBaseDir, dependencies, cp);
                 compileTarget.run(NO_ARGS);
             }
         });
@@ -1005,63 +1154,10 @@ public class Build {
         }); 
                 
         // Add the "user-suite" command
-        addCommand(new Command(this, "user-suite") {
-            public String getDescription() {
-                return "link a user-project";
-            }
-            
-            public void usage(String errMsg) {
-                PrintStream out = System.err;
-
-                if (errMsg != null) {
-                    out.println(errMsg);
-                }
-                out.println("Usage: user-suite [options] module ");
-                out.println("where module is directory containing a \"src\" directory, and options include:");
-                out.println();
-                out.println("    -parent:<suite>       parent library");
-                out.println("    -cp:classpath>        classes to compile against");
-                out.println("as well as most romize options. Run 'romize -h' for more details");
-            }
-                    
-            public void run(String[] args) {
-                int argi = 0;
-                String parent = "";
-                String cp = "-cp:.";
-                Vector<String> extraArgs = new Vector<String>();
-                while ((argi < args.length) &&  args[argi].startsWith("-")) {
-                    if (args[argi].startsWith("-parent:")) {
-                        parent = args[argi].substring("-parent:".length());
-                    } else if (args[argi].startsWith("-cp:")) {
-                        cp = args[argi];
-                    } else {
-                        extraArgs.add(args[argi]);
-                    }
-                    argi++;
-                }
-              
-                if (argi >= args.length) {
-                    throw new CommandException(this, "module not specified");
-                }
-                
-                String userBaseDir = args[argi++];
-
-                // collect remaining (non-option) arguments
-                for (int i = argi; i < args.length; i++) {
-                     extraArgs.add(args[i]);
-                }
-                
-                Command compileCommand = getCommand("user-compile");
-                String[] cmpArgs = new String[2];
-                cmpArgs[0] = cp;
-                cmpArgs[1] = userBaseDir;
-                compileCommand.run(cmpArgs);
-                
-                log(brief, "[linking user project at " + userBaseDir + "...]");
-                Command cmd = addLinkTarget(userBaseDir, parent, userBaseDir);
-                cmd.run(toStringArray(extraArgs));
-            }
-        });
+        addCommand(new UserCommand(this, "user-suite", "link a user-project"));
+        
+        // Add the "user-run" command
+        addCommand(new UserCommand(this, "user-run", "run a user-project"));
         
         // Add the "user-clean" command
         addCommand(new Command(this, "user-clean") {
@@ -1080,13 +1176,15 @@ public class Build {
             public void run(String[] args) {
                 if (args.length < 1) {
                     throw new CommandException(this, "module not specified");
+                } else if (args[0].indexOf('-') >= 0) {
+                    throw new CommandException(this, "no options allowed for user-clean");
                 }
                 String userBaseDir = args[0];
                 log(brief, "[cleaning user project at " + userBaseDir + ']');
                 
-                Target compileTarget = addTarget(true, userBaseDir, "cldc imp");
+                Target compileTarget = addTarget(true, userBaseDir, "");
                 compileTarget.clean();
-                Command cmd = addLinkTarget(userBaseDir, null, userBaseDir);
+                Command cmd = addLinkTarget(userBaseDir, null, userBaseDir, null);
                 cmd.clean();
             }
         });
@@ -1714,7 +1812,7 @@ public class Build {
         out.println("    -64                 build for a 64 bit system");
         out.println("    -nodeps             do not check dependencies (default for commands)");
         out.println("    -deps               check dependencies (default for targets)");
-        out.println("    -plugins:<file>     load commands from properties in 'file'");
+        out.println("    -plugins:<file_dir> load commands from properties in 'file', or from 'dir'/builder.properties");
         out.println("    -override:<file>    file to use to override the build.properties file found locally, defaults to build.override");
         out.println("                        MUST BE SPECIFIED AS FIRST BUILD-OPTION");
         out.println("    -D<name>=<value>    sets a builder property");

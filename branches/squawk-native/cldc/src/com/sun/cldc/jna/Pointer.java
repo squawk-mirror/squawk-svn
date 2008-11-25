@@ -27,6 +27,7 @@ package com.sun.cldc.jna;
 
 import com.sun.squawk.Address;
 import com.sun.squawk.GC;
+import com.sun.squawk.Klass;
 import com.sun.squawk.NativeUnsafe;
 import com.sun.squawk.UWord;
 import com.sun.squawk.Unsafe;
@@ -34,6 +35,7 @@ import com.sun.squawk.VM;
 import com.sun.squawk.realtime.OffsetOutOfBoundsException;
 import com.sun.squawk.realtime.RawMemoryFloatAccess;
 import com.sun.squawk.realtime.SizeOutOfBoundsException;
+import com.sun.squawk.util.Assert;
 import com.sun.squawk.vm.CID;
 
 /**
@@ -348,8 +350,26 @@ public class Pointer extends RawMemoryFloatAccess {
             throw new IllegalStateException("not malloced");
         }
         NativeUnsafe.free(addr);
-		// TODO: Mark this Pointer as invalid.
-        //addr = Address.zero();
+        invalidate();
+    }
+    
+    /**
+     * Free the backing native memory for this pointer if this pointer was created by allocating memory.
+     * If this pointer points to a subset of another buffer, or points to a "pinned" object, do nothing.
+     * After releasing the pointer,
+     * all accesses to memory through this pointer will throw an exception.
+     * 
+     * @throws java.lang.IllegalStateException if release has already been called on this pointer.
+     */
+    public final void release() throws IllegalStateException {
+        Address addr = getAddress();
+        if (addr.isZero()) {
+            throw new IllegalStateException();
+        }
+        if (wasMalloced()) {
+            NativeUnsafe.free(addr);
+        }
+        invalidate();
     }
     
     /**
@@ -362,7 +382,7 @@ public class Pointer extends RawMemoryFloatAccess {
     /**
      * Create a native buffer containing the C-string version of the String <code>vaue</code>.
      * 
-     * The returned point can be freed when not needed.
+     * The returned pointer should be freed when not needed.
      * 
      * @param value the string to copy
      * @return Pointer the newly allocated memory
@@ -380,6 +400,71 @@ public class Pointer extends RawMemoryFloatAccess {
             result.setString(0, data);
             return result;
         }
+    }
+    
+    /**
+     * Get a pointer to the interior of a Java array. 
+     * Check that the range requested is within the array bounds.
+     * @param array
+     * @param offset
+     * @param len
+     * @return
+     */
+    private static Address getPtrToArray(byte[] array, int offset, int len) {
+        Assert.that(GC.setGCEnabled(false) == false);
+        int alen = array.length;
+        if (offset < 0 || (offset + len) > alen) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+        return Address.fromObject(array).add(offset);
+    }
+    
+    /**
+     * Create a native buffer pointing to either the array data directly,
+     * or to a copy of the array data.
+     * bytes
+     * The returned point can be released when not needed.
+     * 
+     * @param array the array to access
+     * @return Pointer the C-accessible version of the array data
+     * @throws OutOfMemoryError if the underlying memory cannot be allocated
+     * @throws IllegalArgumentException if array is not really an array
+     */
+    public static Pointer createArrayBuffer(Object array) throws OutOfMemoryError {
+        Assert.always(GC.setGCEnabled(false) == false);
+        Klass klass = GC.getKlass(array);
+        if (!klass.isArray()) {
+            throw new IllegalArgumentException();
+        }
+        int length = GC.getArrayLength(array);
+        int elemsize = klass.getComponentType().getDataSize();
+        return new Pointer(Address.fromObject(array), length * elemsize);
+    }
+        
+    /**
+     * Create a native buffer pointing to either the array data directly,
+     * or to a copy of the array data.
+     * bytes
+     * The returned pointer can be released when not needed.
+     * 
+     * @param array the array to access
+     * @param offset index of the first element to access
+     * @param number number of elements to access
+     * @return Pointer the C-accessible version of the array data
+     * @throws OutOfMemoryError if the underlying memory cannot be allocated
+     * @throws IllegalArgumentException if array is not really an array
+     */
+    public static Pointer createArrayBuffer(Object array, int offset, int number) throws OutOfMemoryError {
+        Assert.always(GC.setGCEnabled(false) == false);
+        Klass klass = GC.getKlass(array);
+        if (!klass.isArray()) {
+            throw new IllegalArgumentException();
+        }
+
+        int length = GC.getArrayLength(array);
+        int elemsize = klass.getComponentType().getDataSize();
+        checkMultiBounds(length + elemsize, offset, number, elemsize);
+        return new Pointer(Address.fromObject(array).add(offset * elemsize), number * elemsize);
     }
  
     /**

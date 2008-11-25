@@ -21,37 +21,31 @@
  * Park, CA 94025 or visit www.sun.com if you need additional
  * information or have any questions.
  */
-package com.sun.cldc.jna;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+package com.sun.cldc.jna.ptr;
 
 /**
- * The GlobalVarNamed annotation can be applied to method declarations in a 
- * Library to indicate that the body of the method should be a getter or setter 
- * or a C global variable with the specified name.
- * 
- * When applied to a method with no parameters and a non-void return type, 
- * a getter method will be generated for the C variable with
- * the specified name.
- * 
- * When applied to a method with one parameters and a void return type, 
- * a setter method will be generated for the C variable with
- * the specified name.
- * 
- * All other cases will result in an error at code generation time.
- * 
- * Example: Accessors for the C variable "errno"
- * 
- *    @GlobalVarNamed("errno")
- *    public int getLastError();
- * 
- *    @GlobalVarNamed("errno")
- *    public void setLastError(int value);
- * 
+ *
+ * Represents a pointer to a 32-bit integer
  */
-@Retention(RetentionPolicy.RUNTIME)
-public @interface GlobalVarNamed {
-
-    String value();
+public class IntByReference extends ByReference {
+    
+    public IntByReference(int value) {
+        super(4);
+        setValue(value);
+        getPointer().setInt(0, value);
+    }
+    
+    public int getValue() {
+        return getPointer().getInt(0);
+    }
+    
+    public void setValue(int newValue) {
+        getPointer().setInt(0, newValue);
+    }
+    
+    public void free() {
+        getPointer().release();
+    }
+    
 }

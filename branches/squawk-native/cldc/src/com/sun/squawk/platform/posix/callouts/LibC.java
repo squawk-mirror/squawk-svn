@@ -227,7 +227,7 @@ public class LibC {
     public final static int	O_EXCL		= 0x0800;		/* error if already exists */
     /* [XSI] directory restrcted delete */
 
-    public static final int STAT_SIZE = VarPointer.lookup("sysSIZEOFSTAT", 4).getInt();
+    public static final int STAT_SIZE = VarPointer.getVarPointer("sysSIZEOFSTAT", 4).getInt(0);
     /* [XSI] directory */ public static final int S_IFBLK = 24576;
     /* [XSI] named pipe (fifo) */ public static final int S_IFCHR = 8192;
     /* [XSI] character special */ public static final int S_IFDIR = 16384;
@@ -266,7 +266,7 @@ public class LibC {
     /* pure static class */
      LibC() {}
     
-     private static final VarPointer errnoPtr = VarPointer.lookup("errno", 4);
+     private static final VarPointer errnoPtr = VarPointer.getVarPointer("errno", 4);
 
     /**
      * Reads the C-level errno variable
@@ -274,7 +274,7 @@ public class LibC {
      * @return the error number
      */
     public static int errno() {
-        return errnoPtr.getInt();
+        return errnoPtr.getInt(0);
     }
     
     /**
@@ -333,13 +333,14 @@ public class LibC {
      * open or create a file for reading or writing
      * 
      * @param name String
-     * @param oflag
+     * @param oflag std libc open flags
+     * @param mode  the mode for any created file
      * @return If successful, returns a non-negative integer, termed a file descriptor.  Returns
      *         -1 on failure, and sets errno to indicate the error.
      */
-    public static int open(String name, int oflag) {
+    public static int open(String name, int oflag, int mode) {
         Pointer name0 = Pointer.createStringBuffer(name);
-        int result = openPtr.call2(name0, oflag);
+        int result = openPtr.call3(name0, oflag, mode);
         name0.free();
         return result;
     }

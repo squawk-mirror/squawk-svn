@@ -111,7 +111,7 @@ public class Romizer {
     }
     
     /**
-     * The name of the suite being romized.
+     * The name of the suite being romized (the full name)
      */
     private String suiteName;
 
@@ -431,6 +431,7 @@ public class Romizer {
             }
 
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
 
@@ -617,7 +618,7 @@ public class Romizer {
             if (excludeFile != null) {
                 excludeClasses(classNames, excludeFile);
             }
-            suite = new Suite(suiteName, parentSuite);
+            suite = new Suite(new File(suiteName).getName(), parentSuite);
             for (String className: noClassDefFoundErrorClasses) {
             	if (suite.shouldThrowNoClassDefFoundErrorFor(className)) {
             		noClassDefFoundErrorClasses.remove(className);
@@ -781,7 +782,10 @@ public class Romizer {
         Suite strippedSuite = suite.strip(suiteType, suite.getName(), suite.getParent());
         strippedSuite.close();
 
-        String url = "file://" + strippedSuite.getName() + Suite.FILE_EXTENSION;
+System.err.println("strippedSuite.getName(): " + strippedSuite.getName());
+System.err.println("suiteName: " + suiteName);
+        String suiteFileName =  suiteName + Suite.FILE_EXTENSION;
+        String url = "file://" + suiteFileName;
         DataOutputStream dos = Connector.openDataOutputStream(url);
 
         // Save the (canonical) address at which the suite will be saved
@@ -790,13 +794,13 @@ public class Romizer {
         // The boostrap suite has a special URI
         String uri = strippedSuite.getParent() == null ? ObjectMemory.BOOTSTRAP_URI : url;
         strippedSuite.save(dos, uri, VM.isBigEndian());
-        generatedFiles.addElement(new File(strippedSuite.getName() + Suite.FILE_EXTENSION).getAbsolutePath());
+        generatedFiles.addElement(new File(suiteFileName).getAbsolutePath());
 
         // Create the <suiteName>.metadata file of all the class files from which the suite was created
         if (createMetadata) {
-            String metadataUrl = "file://" + strippedSuite.getName() + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_METADATA;
+            String metadataUrl = "file://" + suiteFileName + Suite.FILE_EXTENSION_METADATA;
             DataOutputStream metadataDos = Connector.openDataOutputStream(metadataUrl);
-            Suite metadataSuite = suite.strip(Suite.METADATA, suiteName + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_METADATA, strippedSuite);
+            Suite metadataSuite = suite.strip(Suite.METADATA, strippedSuite.getName() + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_METADATA, strippedSuite);
             int memorySizePrior = NativeUnsafe.getMemorySize();
             ObjectMemory objectMemory;
             ObjectGraphSerializer.pushObjectMap();
@@ -808,7 +812,7 @@ public class Romizer {
             GC.unRegisterReadOnlyObjectMemory(objectMemory);
             NativeUnsafe.setMemorySize(memorySizePrior);
             GC.setAllocTop(Address.zero().add(memorySizePrior));
-            generatedFiles.addElement(new File(strippedSuite.getName() + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_METADATA).getAbsolutePath());
+            generatedFiles.addElement(new File(suiteFileName + Suite.FILE_EXTENSION_METADATA).getAbsolutePath());
         }
 
         // Create the <suiteName>_classes.jar file of all the class files from which the suite was created

@@ -37,15 +37,16 @@ import com.sun.squawk.platform.posix.callouts.LibC.Stat;
  */
 public class DefaultFileHandler implements BaseFileHandler {
 
+    public final static int INVALID_HANDLE = -1;
     /*
      * Placeholder for the file handle from the native layer.
-     * Value of <code>0</code> indicates that file is either closed or
+     * Value of <code>INVALID_HANDLE</code> indicates that file is either closed or
      * does not exists
      */
     /** Read handle. */
-    private int readHandle  = 0;
+    private int readHandle  = INVALID_HANDLE;
     /** Write handle. */
-    private int writeHandle = 0;
+    private int writeHandle = INVALID_HANDLE;
 
     /** File name. */
     private String nativeFileName;
@@ -519,7 +520,7 @@ public class DefaultFileHandler implements BaseFileHandler {
     public void openForRead() throws IOException {
         // @TODO: Check that file isn't dir first?
         
-        readHandle = LibC.open(nativeFileName, LibC.O_RDONLY);
+        readHandle = LibC.open(nativeFileName, LibC.O_RDONLY, 0);
 //System.err.println("openForRead: " + readHandle);
         LibC.errCheckNeg(readHandle);
     }
@@ -529,10 +530,11 @@ public class DefaultFileHandler implements BaseFileHandler {
      * @throws IOException if any error occurs during input/output operations.
      */
     public void closeForRead() throws IOException {
-        LibC.errCheckNeg(LibC.close(readHandle));
+        if (readHandle >= 0) {
+            LibC.errCheckNeg(LibC.close(readHandle));
 //System.err.println("closeForRead: " + readHandle);
-
-        readHandle = -1;
+            readHandle = -1;
+        }
     }
 
     /**
@@ -541,7 +543,7 @@ public class DefaultFileHandler implements BaseFileHandler {
      */
     public void openForWrite() throws IOException {
         // @TODO: Check that file isn't dir first?
-        writeHandle = LibC.open(nativeFileName, LibC.O_WRONLY);
+        writeHandle = LibC.open(nativeFileName, LibC.O_WRONLY, 0666);
 //System.err.println("openForWrite: " + writeHandle);
 
         LibC.errCheckNeg(writeHandle);
@@ -552,9 +554,11 @@ public class DefaultFileHandler implements BaseFileHandler {
      * @throws IOException if any error occurs during input/output operations.
      */
     public void closeForWrite() throws IOException {
-        LibC.errCheckNeg(LibC.close(writeHandle));
-//   System.err.println("closeForWrite: " + writeHandle);
-        writeHandle = -1;
+        if (writeHandle >= 0) {
+               System.err.println("closeForWrite: " + writeHandle);
+            LibC.errCheckNeg(LibC.close(writeHandle));
+            writeHandle = -1;
+        }
     }
 
     /**
@@ -562,10 +566,8 @@ public class DefaultFileHandler implements BaseFileHandler {
      * @throws IOException if any error occurs during input/output operations.
      */    
     public void closeForReadWrite() throws IOException {
-        LibC.errCheckNeg(LibC.close(readHandle));
-        readHandle = -1;
-        LibC.errCheckNeg(LibC.close(writeHandle));
-        writeHandle = -1;
+        closeForRead();
+        closeForWrite();
     }
 
     /**
@@ -876,6 +878,15 @@ public class DefaultFileHandler implements BaseFileHandler {
      */
     private String getNativePathForRoot(String root) {
         return "/";
+    }
+
+    public void create() throws IOException {
+         // @TODO: Check that file isn't dir first?
+        int tHandle = LibC.open(nativeFileName, (LibC.O_WRONLY | LibC.O_CREAT | LibC.O_TRUNC), 0666);
+//System.err.println("openForWrite: " + writeHandle);
+
+        LibC.errCheckNeg(tHandle);
+        LibC.close(tHandle);
     }
 
 //    /**

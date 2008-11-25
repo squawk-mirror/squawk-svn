@@ -30,6 +30,15 @@ package com.sun.cldc.jna;
  * by the preprocessor after code generation.
  */
 public interface LibraryImport {
+    /**
+     * The value of any constant set to "IMPORT" will be the value of the C macro with the same name as the constant field's.
+     */
     public final static int IMPORT = 0;
+    
+    /**
+     * The value of any constant set to "DEFINED" will be true if there is a defiend C macro with the same name 
+     * as the constant field's, otherwise false.
+     */
+    public final static boolean DEFINED = true;
 
 }

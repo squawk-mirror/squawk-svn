@@ -514,7 +514,7 @@ public final class Lisp2GenerationalCollector extends GarbageCollector {
         GC.setAllocationParameters(heapStart, youngGenerationStart, youngGenerationEnd, heapEnd);
 
         // Output trace information.
-        if (GC.GC_TRACING_SUPPORTED && GC.isTracing(GC.TRACE_BASIC)) {
+        if (GC.isTracing(GC.TRACE_BASIC)) {
             markingStack.setup(heapEnd, Lisp2Bitmap.getStart());
             traceVariables();
         }

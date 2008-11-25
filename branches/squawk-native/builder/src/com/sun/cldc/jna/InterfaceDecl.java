@@ -1,3 +1,27 @@
+/*
+ * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
+ * 
+ * This code is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2
+ * only, as published by the Free Software Foundation.
+ * 
+ * This code is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License version 2 for more details (a copy is
+ * included in the LICENSE file that accompanied this code).
+ * 
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this work; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ * 
+ * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
+ * Park, CA 94025 or visit www.sun.com if you need additional
+ * information or have any questions.
+ */
+
 package com.sun.cldc.jna;
 
 import java.lang.annotation.Annotation;
@@ -11,27 +35,26 @@ import java.util.HashSet;
 /**
  * A parsed out version of the Class for easy code generation
  */
-class InterfaceDecl {
+public class InterfaceDecl {
 
     Class interfaceClass;
     String[] includes;
-    String library;
+    String libraryName;
     ArrayList<Field> defines;
     HashSet<String> globals;
     ArrayList<Field> instanceVars;
     ArrayList<Class> structs;
-    ArrayList<Method> methods;
+    HashMap<String, Method> methods;
     HashMap<String, Method> getters;
     HashMap<String, Method> setters;
 
     public InterfaceDecl(Class interfaceClass) throws JNAGenException {
-        super();
         this.interfaceClass = interfaceClass;
         defines = new ArrayList<Field>();
         globals = new HashSet<String>();
         instanceVars = new ArrayList<Field>();
         structs = new ArrayList<Class>();
-        methods = new ArrayList<Method>();
+        methods = new HashMap<String, Method>();
         includes = new String[0];
         getters = new HashMap<String, Method>();
         setters = new HashMap<String, Method>();
@@ -64,35 +87,29 @@ class InterfaceDecl {
     }
 
     void processClass() throws JNAGenException {
+        
+        // read class annotations:
+        @SuppressWarnings("unchecked")
+        Includes inclAnnot = (Includes) interfaceClass.getAnnotation(Includes.class);
+        if (inclAnnot != null) {
+            includes = inclAnnot.value();
+            //includes = inclStr.split("[,\\s]+");
+        }
+
+        @SuppressWarnings("unchecked")
+        NativeName libNameAnnot = (NativeName) interfaceClass.getAnnotation(NativeName.class);
+        if (libNameAnnot != null) {
+            libraryName = libNameAnnot.value();
+        }
+   
+        // read fields:
         Field[] fields = interfaceClass.getDeclaredFields();
         for (int i = 0; i < fields.length; i++) {
             Field f = fields[i];
             int modifier = f.getModifiers();
             if (Modifier.isStatic(modifier)) {
                 if (Modifier.isFinal(modifier)) {
-                    try {
-                        if (f.getName().equals("INCLUDES")) {
-                            Object val = f.get(null);
-                            if (val instanceof String[]) {
-                                includes = (String[]) val;
-                            } else {
-                                throw new JNAGenException("The interface " + interfaceClass.getName() + " has an INCLUDES field not of type String[]");
-                            }
-                        } else if (f.getName().equals("LIBRARY")) {
-                            Object val = f.get(null);
-                            if (val instanceof String) {
-                                library = (String) val;
-                            } else {
-                                throw new JNAGenException("The interface " + interfaceClass.getName() + " has an LIBRARY field not of type String");
-                            }
-                        } else {
-                            defines.add(f);
-                        }
-                    } catch (IllegalArgumentException ex) {
-                        ex.printStackTrace();
-                    } catch (IllegalAccessException ex) {
-                        ex.printStackTrace();
-                    }
+                    defines.add(f);
                 } else {
                     throw new RuntimeException("not expecting non-final static fields in interface");
                 }
@@ -100,24 +117,27 @@ class InterfaceDecl {
                 instanceVars.add(f);
             }
         }
+        
+        // read methods:
         Method[] meths = interfaceClass.getDeclaredMethods();
         for (int i = 0; i < meths.length; i++) {
             Method m = meths[i];
             String nativeName = null;
             boolean doAccessor = false;
             boolean mayBeSetter = m.getName().indexOf("set") == 0;
-            Annotation annot = m.getAnnotation(GlobalVarNamed.class);
+            NativeName annot = m.getAnnotation(NativeName.class);
             if (annot != null) {
-                GlobalVarNamed globalVarNamed = (GlobalVarNamed) annot;
+                nativeName = annot.value();
+            }
+            if (m.getAnnotation(GlobalVar.class) != null) {
                 doAccessor = true;
-                nativeName = globalVarNamed.value();
-            } else if (m.getAnnotation(GlobalVar.class) != null) {
-                doAccessor = true;
-                String javaName = m.getName();
-                if (mayBeSetter) {
-                    nativeName = javaName.substring(3);
+            }
+
+            if (nativeName == null) {
+                if (doAccessor && mayBeSetter) {
+                    nativeName = m.getName().substring(3);
                 } else {
-                    nativeName = javaName;
+                    nativeName = m.getName();
                 }
             }
 
@@ -130,7 +150,7 @@ class InterfaceDecl {
                 }
             } else {
                 if (Modifier.isAbstract(m.getModifiers())) {
-                    methods.add(m);
+                    methods.put(nativeName, m);
                 }
             }
         }

@@ -139,17 +139,17 @@ public interface BaseFileHandler {
 //     */
 //    public Vector listRoots();
 //
-//    /**
-//     * Create file corresponding to this file handler. The
-//     * file is created immediately on the actual file system upon invocation of
-//     * this method.  Files are created with zero length and data can be put
-//     * into the file through write method after opening the file.This method
-//     * does not create any directories specified in the file's path.
-//     *
-//     * @throws IOException if invoked on the existing file or unexpected error
-//     *                     occurs.
-//     */
-//    public void create() throws IOException;
+    /**
+     * Create file corresponding to this file handler. The
+     * file is created immediately on the actual file system upon invocation of
+     * this method.  Files are created with zero length and data can be put
+     * into the file through write method after opening the file.This method
+     * does not create any directories specified in the file's path.
+     *
+     * @throws IOException if invoked on the existing file or unexpected error
+     *                     occurs.
+     */
+    public void create() throws IOException;
 
     /**
      * Check is file or directory corresponding to this filehandler exists.

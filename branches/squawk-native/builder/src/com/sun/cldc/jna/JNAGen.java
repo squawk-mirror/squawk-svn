@@ -38,6 +38,9 @@ import java.lang.reflect.*;
 import java.net.URL;
 import java.net.URLClassLoader;
 
+/**
+ * Exception thrown when error occurs reading/parsing/writing JNA class files.
+ */
 class JNAGenException extends Exception {
     JNAGenException(String msg) {
             super(msg);
@@ -50,6 +53,13 @@ class JNAGenException extends Exception {
  * C functions, structures, and constants.
  * 
  * This is part of CLDC Java Native Access
+ * 
+ * 
+ * @TODO: Support C++ better by:
+ *    - handling name mangling
+ *    - handle calling C++ methods by creating "pointer to member" values?
+ *       - We'd need these at runtime on the target though. Serialize the data at JNAGen-time into a Java array, then 
+ *         at runtime recreate the "pointer to member" from Java data?
  * 
  * @see com.sun.cldc.jna
  */
@@ -175,16 +185,17 @@ public class JNAGen extends Command {
         metaPrintln(0, "package " + interfaceDecl.interfaceClass.getPackage().getName() + ";");
         metaPrintln(0, "");
         metaPrintln(0, "import com.sun.cldc.jna.*;");
+        metaPrintln(0, "import " + interfaceDecl.interfaceClass.getName() + ".*;");
         metaPrintln(0, "");
         out.println();
     }
     
-    /* only supprto top-level library defn */
+    /* only supprto top-level libraryName defn */
     private void printLibraryDefinition(InterfaceDecl interfaceDecl) {        
-        if (interfaceDecl.library == null) {
+        if (interfaceDecl.libraryName == null) {
             out.println("    /* used default library */");
         } else {
-            metaPrintln(1, "public final static NativeLibrary NATIVE_LIBRARY = new NativeLibrary(\\\"" + interfaceDecl.library + "\\\");");
+            metaPrintln(1, "public final static NativeLibrary NATIVE_LIBRARY = NativeLibrary.getInstance(\\\"" + interfaceDecl.libraryName + "\\\");");
         }
         metaPrintln(0, "");
         out.println();
@@ -197,6 +208,14 @@ public class JNAGen extends Command {
         args[0] = f.getName();
         metaPrintln(level, "public final static " + f.getType().getSimpleName() + " " + f.getName() + " = " + format + ";", args);
     }
+    
+     private void printAnIfDefDefine(Field f, int level) {
+         out.println("#ifdef " + f.getName());
+         metaPrintln(level, "public final static " + f.getType().getSimpleName() + " " + f.getName() + " = true;");
+         out.println("#else");
+         metaPrintln(level, "public final static " + f.getType().getSimpleName() + " " + f.getName() + " = false;");
+         out.println("#endif");
+    }
         
     private void printDefines(InterfaceDecl interfaceDecl, int level) throws JNAGenException {
         if (interfaceDecl.defines.size() == 0) {
@@ -208,14 +227,22 @@ public class JNAGen extends Command {
         
         // Field[] fields = interfaceClass.getDeclaredFields();
         for (Field f : interfaceDecl.defines) {
-            if (f.getType().equals(Integer.TYPE)) {
-                printADefine(f, "%d", level);
-            } else if (f.getType().equals(Long.TYPE)) {
-                printADefine(f, "%dll", level);
-            } else if (f.getType().equals(String.class)) {
-                printADefine(f, "\"%s\"", level);
-            } else {
-                throw new JNAGenException("JNAGEn cannot handle fields of type " + f.getType() + " for field " + f);
+            try {
+                if (f.getType().equals(Boolean.TYPE) && f.getBoolean(null) == LibraryImport.DEFINED) {
+                    printAnIfDefDefine(f, level);
+                } else if (f.getType().equals(Integer.TYPE)) {
+                    printADefine(f, "%d", level);
+                } else if (f.getType().equals(Long.TYPE)) {
+                    printADefine(f, "%dll", level);
+                } else if (f.getType().equals(String.class)) {
+                    printADefine(f, "\"%s\"", level);
+                } else {
+                    throw new JNAGenException("JNAGEn cannot handle fields of type " + f.getType() + " for field " + f);
+                }
+            } catch (IllegalArgumentException ex) {
+                ex.printStackTrace();
+            } catch (IllegalAccessException ex) {
+                ex.printStackTrace();
             }
         }
         metaPrintln(0, "");
@@ -228,12 +255,13 @@ public class JNAGen extends Command {
     }
 
     private void printVarPtr(InterfaceDecl interfaceDecl, String nativeName, int varSize, int level) {
-        metaPrint(level, "public static VarPointer " + getPtrName(nativeName) + " = VarPointer.getVarPointer(");
-        if (interfaceDecl.library != null) {
-            metaPrint(0, "NATIVE_LIBRARY, ");
+        StringBuffer varStr = new StringBuffer("private final static VarPointer " + getPtrName(nativeName) + " = VarPointer.getVarPointer(");
+        if (interfaceDecl.libraryName != null) {
+            varStr = varStr.append("NATIVE_LIBRARY, ");
         }
-        metaPrintln(0, "\\\"" + nativeName + "\\\", " + varSize + ");");
-        metaPrintln(0, "");
+        varStr = varStr.append( "\\\"" + nativeName + "\\\", " + varSize + ");");
+        metaPrintln(level, varStr.toString());
+        metaPrintln(level, "");
     }
     
     /**
@@ -341,19 +369,18 @@ public class JNAGen extends Command {
         metaPrintln(level, "/*----------------------------- variables -----------------------------*/");
         metaPrintln(0, "");
         
-        for (String name : interfaceDecl.globals) {
-            Method getter = interfaceDecl.getters.get(name);
-            Method setter = interfaceDecl.setters.get(name);
-            Method protoMethod = (getter != null) ? getter : setter;
+        for (String varname : interfaceDecl.globals) {
+            Method getter = interfaceDecl.getters.get(varname);
+            Method setter = interfaceDecl.setters.get(varname);
             Class varType = getVariableType(getter, setter);
             int size = getVariableSize(varType);
 
-            printVarPtr(interfaceDecl, name, size, level);
+            printVarPtr(interfaceDecl, varname, size, level);
             if (getter != null) {
-                printGetter(getter, name, level);
+                printGetter(getter, varname, level);
             }
             if (setter != null) {
-                printSetter(setter, name, level);
+                printSetter(setter, varname, level);
             }
         }
         metaPrintln(0, "");
@@ -366,39 +393,69 @@ public class JNAGen extends Command {
         return m.getName() + "Ptr";
     }
         
-    private void printFunctionPtr(InterfaceDecl interfaceDecl, Method m, int level) {
-        metaPrint(level, "private final static Function " + getPtrName(m) + " = Function.getFunction(");
-        if (interfaceDecl.library != null) {
-            metaPrint(0, "NATIVE_LIBRARY, ");
-        }
-        metaPrintln(0, "\\\"" + m.getName() + "\\\");");
+    private void printFunctionPtr(InterfaceDecl interfaceDecl, String nativeName, Method m, int level) {
+        String optLibStr = (interfaceDecl.libraryName != null) ? "NATIVE_LIBRARY, " : "";
+        String fStr = 
+                "private final static Function " + getPtrName(m) + " = Function.getFunction(" + optLibStr + "\\\"" + nativeName + "\\\");";
+        metaPrintln(level, fStr);
         metaPrintln(level, "");
     }
-    
-    private static byte[] dummyByteArray = new byte[0];
-    
-    private String createNativeParam(Class type, int i, int level) throws JNAGenException {
+        
+    /**
+     * Print any declarations and initializations to create the native parameter, and return the name of the native parameter
+     * @param type
+     * @param i
+     * @param level
+     * @param firstHalf
+     * @return name of the native param
+     * @throws com.sun.cldc.jna.JNAGenException
+     */
+    private String createNativeParam(Class type, int i, int level, boolean firstHalf) throws JNAGenException {
         if (type.equals(String.class)) {
-            metaPrintln(level + 1, "Pointer var" + i + " = Pointer.createStringBuffer(arg" + i + ");");
+            metaPrintln(level,              "Pointer var" + i + " = Pointer.createStringBuffer(arg" + i + ");");
+            return "var" + i;
         } else if (Structure.class.isAssignableFrom(type)) {
-            metaPrintln(level + 1, "arg" + i + ".allocateMemory();");
-            metaPrintln(level + 1, "arg" + i + ".write();");
-            metaPrintln(level + 1, "Pointer var" + i + " = arg" + i + ".getPointer();");
-        } else if (type.isPrimitive()) {
+            metaPrintln(level,              "arg" + i + ".allocateMemory();");
+            metaPrintln(level,              "arg" + i + ".write();");
+            metaPrintln(level,              "Pointer var" + i + " = arg" + i + ".getPointer();");
+            return "var" + i;
+        } else if (PointerType.class.isAssignableFrom(type)) {
+            metaPrintln(level,              "Pointer var" + i + " = arg" + i + ".getPointer();");
+            return "var" + i;
+        } else if (Pointer.class.isAssignableFrom(type)) {
             return "arg" + i;
-        } else {
+        } else if (type.isPrimitive()) {
+            if (type.equals(Long.TYPE) ||
+                    type.equals(Double.TYPE)) {
+                if (firstHalf) {
+                    metaPrintln(level,      "int var" + i + " = (int)(arg" + i + " >>> 32);");
+                    return "var" + i;
+                } else {
+                    metaPrintln(level,      "int var" + (i + 1) + " = (int)(arg" + i + ");");
+                    return "var" + (i + 1);
+                }
+            } else {
+                return "arg" + i;
+            }
+         } else if (type.isArray() && type.getComponentType().isPrimitive()) {
+            metaPrintln(level,              "Pointer var" + i + " = Pointer.createArrayBuffer(arg" + i + ");");
+            return "var" + i;
+         } else {
             throw new JNAGenException("Can't translate arguments of type " + type);
         }
-        return "var" + i;
     }
     
     private void cleanupNativeParam(Class type, int i, int level) throws JNAGenException {
         if (type.equals(String.class)) {
-            metaPrintln(level + 1, "arg" + i + ".free();");
+            metaPrintln(level,              "var" + i + ".free();");
         } else if (Structure.class.isAssignableFrom(type)) {
-            metaPrintln(level + 1, "arg" + i + ".read();");
-            metaPrintln(level + 1, "arg" + i + ".freeMemory();");
+            metaPrintln(level,              "arg" + i + ".read();");
+            metaPrintln(level,              "arg" + i + ".freeMemory();");
         } else if (type.isPrimitive()) {
+        } else if (PointerType.class.isAssignableFrom(type)) {
+        } else if (Pointer.class.isAssignableFrom(type)) {
+        } else if (type.isArray() && type.getComponentType().isPrimitive()) {
+            metaPrintln(level,              "var" + i + ".free();");
         } else {
             throw new JNAGenException("Can't translate arguments of type " + type);
         }
@@ -406,18 +463,48 @@ public class JNAGen extends Command {
     
     private void convertReturn(Class type, int level) throws JNAGenException {
         if (type.equals(String.class)) {
-            metaPrintln(level + 1, type.getSimpleName() + " result = Function.returnString(result0);");
+            metaPrintln(level,          type.getSimpleName() + " result = Function.returnString(result0);");
         } else if (Structure.class.isAssignableFrom(type)) {
-            metaPrintln(level + 1, type.getSimpleName() + " result = " + type.getSimpleName() + "();");
-            metaPrintln(level + 1, "Pointer rp = new Pointer(result0, result.size());");
-            metaPrintln(level + 1, "result.useMemory(rp);");
-            metaPrintln(level + 1, "result.read();");
-        } else if (type.isPrimitive() && !type.equals(Long.TYPE) && !type.equals(Double.TYPE)) {
-            metaPrintln(level + 1, type.getSimpleName() + " result = (" +  type.getSimpleName() + ")result0;");
+            metaPrintln(level,          type.getSimpleName() + " result = new " + type.getSimpleName() + "();");
+            metaPrintln(level,          "Pointer rp = new Pointer(result0, result.size());");
+            metaPrintln(level,          "result.useMemory(rp);");
+            metaPrintln(level,          "result.read();");
+            metaPrintln(level,          "result.freeMemory();");
+        } else if (type.isPrimitive()) {
+            if (type.equals(Boolean.TYPE)) {
+                metaPrintln(level,      "boolean result = (result0 == 0) ? false : true;");
+            } else if (type.equals(Long.TYPE) || type.equals(Double.TYPE)) {
+                throw new JNAGenException("Can't translate return values of type " + type);
+            } else if (type.equals(Float.TYPE)) {
+                metaPrintln(level,      type.getSimpleName() + " result =  Float.intBitsToFloat(result0);");
+            } else {
+                metaPrintln(level,      type.getSimpleName() + " result = (" +  type.getSimpleName() + ")result0;");
+            }
         } else {
             throw new JNAGenException("Can't translate return values of type " + type);
         }
     }
+    
+    /**
+     * The fastest way to get Java array data into C is to "pin" the object and pass a pointer.
+     * Given that we should never call a C routine that blocks then this should be OK - GC should 
+     * never be callable anyway. To be paranoid though, disable GC around all calls that need to "pin"
+     * an object.
+     * 
+     * @param m method being called
+     * @return true if the method will pin one or more objects over eth call to the C function.
+     */
+    private boolean shouldDisableGC(Method m) {
+        Class[] parameterTypes = m.getParameterTypes();
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class type = parameterTypes[i];
+            if (type.isArray() && type.getComponentType().isPrimitive()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     /***
      * Given a method, print code to do any translation of Java->C parameters, and return an array of strings naming the native parameter variables.
      * @param parameterTypes
@@ -425,14 +512,30 @@ public class JNAGen extends Command {
      */
     private String[] createNativeParams(Method m, int level) throws JNAGenException {
         Class[] parameterTypes = m.getParameterTypes();
-        String[] result = new String[parameterTypes.length];
+        int numNativeParamss = 0;
         for (int i = 0; i < parameterTypes.length; i++) {
-            result[i] = createNativeParam(parameterTypes[i], i, level);
+            Class type = parameterTypes[i];
+            numNativeParamss++;
+            if (type.equals(Long.TYPE) ||
+                type.equals(Double.TYPE)) {
+                numNativeParamss++;
+            }
+        }
+        
+        String[] result = new String[numNativeParamss];
+        int j = 0;
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class type = parameterTypes[i];
+            result[j++] = createNativeParam(type, i, level, true);
+            if (type.equals(Long.TYPE) ||
+                type.equals(Double.TYPE)) {
+                result[j++] = createNativeParam(type, i, level, false);
+            }
         }
         return result;
     }
     
-    private void cleanUpNativeParams(Method m, String[] nativeParams, int level) throws JNAGenException {
+    private void cleanUpNativeParams(Method m, int level) throws JNAGenException {
         Class[] parameterTypes = m.getParameterTypes();
         for (int i = 0; i < parameterTypes.length; i++) {
             cleanupNativeParam(parameterTypes[i], i, level);
@@ -440,13 +543,16 @@ public class JNAGen extends Command {
     }
 
     private void printMethodDecl(Method m, int level) {
-        metaPrint(level, "public " + m.getReturnType().getName() + " " + m.getName() + "(");
+        StringBuffer argsStr = new StringBuffer("public " + m.getReturnType().getSimpleName() + " " + m.getName() + "(");
         Class[] parameterTypes = m.getParameterTypes();
         for (int i = 0; i < parameterTypes.length; i++) {
-            String comma = (i != 0 ? ", " : "");
-            metaPrint(0, comma + parameterTypes[i].getSimpleName() + " arg" + i);
+            if (i != 0) {
+                argsStr = argsStr.append(", ");
+            }
+            argsStr = argsStr.append(parameterTypes[i].getSimpleName()).append(" arg" + i);
         }
-        metaPrintln(0, ") {");
+        argsStr = argsStr.append(") {");
+        metaPrintln(level, argsStr.toString());
     }
      
 //    private void printGlobalGetter(InterfaceDecl interfaceDecl, Method m, String nativeName, int level) throws JNAGenException {
@@ -497,26 +603,53 @@ public class JNAGen extends Command {
 //            throw ex;
 //        }
 //    }
-        
-    private void printMethod(InterfaceDecl interfaceDecl, Method m, int level) throws JNAGenException {
+            
+    /**
+     * Create a method that calls out to C code.
+     * @param interfaceDecl
+     * @param m method
+     * @param level nesting level
+     * @throws com.sun.cldc.jna.JNAGenException
+     */
+    private void printMethod(InterfaceDecl interfaceDecl, String nativeName, Method m, int level) throws JNAGenException {
         try {
-            printFunctionPtr(interfaceDecl, m, level);
+            boolean disableGC = shouldDisableGC(m);
+            
+            printFunctionPtr(interfaceDecl, nativeName, m, level);
             printMethodDecl(m, level);
-
-            Class[] parameterTypes = m.getParameterTypes();
-            int numParams = parameterTypes.length;
-            String[] nativeParams = createNativeParams(m, level);
-            metaPrint(level + 1, "int result0 = ");
-            metaPrint(0, getPtrName(m) + ".call" + numParams + "(");
-            for (int i = 0; i < numParams; i++) {
-                String comma = i != 0 ? ", " : "";
-                metaPrint(0, comma + nativeParams[i]);
+            
+            level++;
+                        
+            if (disableGC) {
+                metaPrintln(level, "boolean oldGCState = GC.setGCEnabled(false);");
+                metaPrintln(level, "/*------------------- DISABLE GC: ---------------------------*/");
+                metaPrintln(level, "try {");
+                level++;
             }
-            metaPrintln(0, ");");
-            convertReturn(m.getReturnType(), level);
-            cleanUpNativeParams(m, nativeParams, level);
-            metaPrintln(level + 1, "return result;");
 
+            String[] nativeParams = createNativeParams(m, level);
+            int numParams = nativeParams.length; // may be larger than parameterTypes.length for longs and double parameters
+            StringBuffer callStr = new StringBuffer("int result0 = " + getPtrName(m) + ".call" + numParams + "(");
+            for (int i = 0; i < numParams; i++) {
+                if (i != 0) {
+                    callStr = callStr.append(", ");
+                }
+                callStr = callStr.append(nativeParams[i]);
+            }
+            metaPrintln(level, callStr.append(");").toString());
+            convertReturn(m.getReturnType(), level);
+            cleanUpNativeParams(m, level);
+            
+            if (disableGC) {
+                level--;
+                metaPrintln(level, "} finally {");
+                metaPrintln(level+1, "GC.setGCEnabled(oldGCState);");
+                metaPrintln(level+1, "/*------------------- ENABLE GC: ---------------------------*/");
+                metaPrintln(level, "}");
+            }
+            
+            metaPrintln(level, "return result;");
+            level--;
             metaPrintln(level, "}");
             metaPrintln(level, "");
         } catch (JNAGenException ex) {
@@ -525,15 +658,23 @@ public class JNAGen extends Command {
             throw ex;
         }
     }
-        
+    
+    /**
+     * Create the methods that call out to C code for the given class.
+     * 
+     * @param interfaceDecl
+     * @param level nesting level
+     * @throws com.sun.cldc.jna.JNAGenException
+     */
     private void printMethods(InterfaceDecl interfaceDecl, int level) throws JNAGenException {   
         if (interfaceDecl.methods.size() == 0) {
             return;
         }
         
         metaPrintln(level, "/*----------------------------- methods -----------------------------*/");
-        for (Method m : interfaceDecl.methods) {
-            printMethod(interfaceDecl, m, level);
+        for (String nativeName : interfaceDecl.methods.keySet()) {
+            Method m = interfaceDecl.methods.get(nativeName);
+            printMethod(interfaceDecl, nativeName, m, level);
         }
         out.println();
     }
@@ -569,44 +710,103 @@ public class JNAGen extends Command {
         metaPrintln(level, "public " + f.getType().getSimpleName() + " " + f.getName() + ";");
     }
     
+    
     private void printFieldReader(Field f, int level) {
-        metaPrintln(level + 1, f.getName() + " = p.getInt(%d);", new String[] {getOffsetStr(f)});
+        Class type = f.getType();
+        IfDef annot = f.getAnnotation(IfDef.class);
+        boolean notDef = false;
+        if (annot == null) { 
+            //annot = f.getAnnotation(IfNDef.class);
+            if (annot != null) {
+                notDef = true;
+            }
+        }
+                
+        String ifdef = (annot != null) ? annot.value() : null;
+        String getter = "UNKNOWN";
+        if (type.isPrimitive()) {
+            if (type.equals(Integer.TYPE)) {
+                getter = "getInt";
+            } else if (type.equals(Long.TYPE)) {
+                getter = "getLong";
+            } else if (type.equals(Byte.TYPE)) {
+                getter = "getByte";
+            } else if (type.equals(Short.TYPE)) {
+                getter = "getShort";
+            } else {
+                throw new RuntimeException("Can't handle fields of type " + type + " in field " + f);
+            }
+        } else {
+            throw new RuntimeException("Can't handle fields of type " + type + " in field " + f);
+        }
+        if (ifdef != null) {
+            out.println("#ifdef " + ifdef);
+        }
+        metaPrintln(level + 1, "o." + f.getName() + " = p." + getter + "(%d);", new String[]{getOffsetStr(f)});
+        if (ifdef != null) {
+            out.println("#endif");
+        }
     }
-    
+   
     private void printFieldWriter(Field f, int level) {
-        metaPrintln(level + 1, "p.setInt(%d, " + f.getName() + ");", new String[] {getOffsetStr(f)});
+        Class type = f.getType();
+        String setter = "UNKNOWN";
+        if (type.isPrimitive()) {
+            if (type.equals(Integer.TYPE)) {
+                setter = "setInt";
+            } else if (type.equals(Long.TYPE)) {
+                setter = "setLong";
+            } else if (type.equals(Byte.TYPE)) {
+                setter = "setByte";
+            } else if (type.equals(Short.TYPE)) {
+                setter = "setShort";
+            } else {
+                throw new RuntimeException("Can't handle fields of type " + type + " in field " + f);
+            }
+        } else {
+            throw new RuntimeException("Can't handle fields of type " + type + " in field " + f);
+        }
+        metaPrintln(level + 1, "p." + setter + "(%d, o." + f.getName() + ");", new String[]{getOffsetStr(f)});
     }
-    
-    private void printStructSupport(InterfaceDecl interfaceDecl, int level) throws JNAGenException {
-        if (interfaceDecl.instanceVars.size() == 0) {
+        
+    private void printStructSupport(StructureDecl structDecl, int level) throws JNAGenException {
+        String structName = structDecl.interfaceClass.getSimpleName();
+        String structImplName = structName + "Impl";
+        if (structDecl.instanceVars.size() == 0) {
             return;
         }
-                        
-        for (Field f : interfaceDecl.instanceVars) {
-            printFieldDecl(f, level);
+
+        metaPrintln(level, "protected " + structImplName + "() {}");
+        metaPrintln(0, "");
+
+        if (!structDecl.hasMethod("size", StructureDecl.NO_PARAMS)) {
+            metaPrintln(level, "public int size() {");
+            metaPrintln(level + 1, "return %d;", new String[]{getSizeofStr(structDecl.interfaceClass)});
+            metaPrintln(level, "}");
+            metaPrintln(0, "");
         }
-        metaPrintln(0, "");
-        
-        metaPrintln(level, "public int size() {");
-        metaPrintln(level + 1, "return %d;", new String[] {getSizeofStr(interfaceDecl.interfaceClass)});
-        metaPrintln(level, "}");
-        metaPrintln(0, "");
-        
-        metaPrintln(level, "public void read() {");
-        metaPrintln(level + 1,     "Pointer p = getPointer();");
-        for (Field f : interfaceDecl.instanceVars) {
-            printFieldReader(f, level);
+
+        if (!structDecl.hasMethod("read", StructureDecl.NO_PARAMS)) {
+            metaPrintln(level, "public void read() {");
+            metaPrintln(level + 1, "Pointer p = getPointer();");
+            metaPrintln(level + 1,  structName + " o = ("  + structName + ")this;"); // downcast from FooImpl to Foo, to get access to fields
+            for (Field f : structDecl.instanceVars) {
+                printFieldReader(f, level);
+            }
+            metaPrintln(level, "}");
+            metaPrintln(0, "");
         }
-        metaPrintln(level, "}");
-        metaPrintln(0, "");
-        
-        metaPrintln(level, "public void write() {");
-        metaPrintln(level + 1,     "Pointer p = getPointer();");
-        for (Field f : interfaceDecl.instanceVars) {
-            printFieldWriter(f, level);
+
+        if (!structDecl.hasMethod("write", StructureDecl.NO_PARAMS)) {
+            metaPrintln(level, "public void write() {");
+            metaPrintln(level + 1, "Pointer p = getPointer();");
+            metaPrintln(level + 1,  structName + " o = ("  + structName + ")this;"); // downcast from FooImpl to Foo, to get access to fields
+            for (Field f : structDecl.instanceVars) {
+                printFieldWriter(f, level);
+            }
+            metaPrintln(level, "}");
+            metaPrintln(0, "");
         }
-        metaPrintln(level, "}");
-        metaPrintln(0, "");
 
     }
                
@@ -614,9 +814,14 @@ public class JNAGen extends Command {
 
     private void printClassHeader(InterfaceDecl interfaceDecl, int level) {
         if (level == 1) {
-            metaPrintln(level - 1, "public class " + interfaceDecl.interfaceClass.getSimpleName() + "Import extends Library {");
+            metaPrintln(level - 1, "public class " + interfaceDecl.interfaceClass.getSimpleName() + "Import implements Library {");
         } else {
-            metaPrintln(level - 1, "public static class " + interfaceDecl.interfaceClass.getSimpleName() + "Impl extends Structure {");
+            StructureDecl structureDecl = (StructureDecl)interfaceDecl;
+            if (structureDecl.providesSomeImpl()) {
+                metaPrintln(level - 1, "public static abstract class " + interfaceDecl.interfaceClass.getSimpleName() + "Impl extends Structure {");
+            } else {
+                metaPrintln(level - 1, "public static class " + interfaceDecl.interfaceClass.getSimpleName() + "Impl extends Structure {");
+            }
         }
         metaPrintln(level - 1, "");
         out.println();
@@ -630,8 +835,15 @@ public class JNAGen extends Command {
     
     private void printInnerClasses(InterfaceDecl interfaceDecl, int level) throws JNAGenException {
         for (Class innerClass : interfaceDecl.interfaceClass.getDeclaredClasses()) {
-            InterfaceDecl innerDecl = new InterfaceDecl(innerClass);
-            printClass(innerDecl, level + 1);
+            if (innerClass.isInterface()) {
+                InterfaceDecl innerDecl = new InterfaceDecl(innerClass);
+                printClass(innerDecl, level + 1);
+            } else if (Structure.class.isAssignableFrom(innerClass)) {
+                StructureDecl structDecl = new StructureDecl(innerClass);
+                printClass(structDecl, level + 1);
+            } else {
+                throw new JNAGenException("Class " + innerClass + " is not an interface or a subclass of Structure");
+            }
         }
     }
         
@@ -652,7 +864,9 @@ public class JNAGen extends Command {
         printVars(interfaceDecl, level);
         printMethods(interfaceDecl, level);
 
-        printStructSupport(interfaceDecl, level);
+        if (interfaceDecl instanceof StructureDecl) {
+            printStructSupport((StructureDecl)interfaceDecl, level);
+        }
         printInnerClasses(interfaceDecl, level);
 
         printClassFooter(interfaceDecl, level);
@@ -694,6 +908,7 @@ public class JNAGen extends Command {
             printCopyright(interfaceDecl);
             printMain(interfaceDecl);
         } catch (JNAGenException ex) {
+            System.err.println(ex.toString());
             System.err.println("While importing library defined by " + interfaceClass);
         }
     }
@@ -775,11 +990,6 @@ public class JNAGen extends Command {
     @Override
     public void run(String[] args) throws BuildException {
         generate(baseDir, new File[] {new File(baseDir, "classes")});
-    }
-
-    @Override
-    public void usage(String errMsg) {
-        this.defaultUsage(null, errMsg);
     }
 
 }

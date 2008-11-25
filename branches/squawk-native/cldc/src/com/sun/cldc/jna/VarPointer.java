@@ -53,27 +53,27 @@ public final class VarPointer extends Pointer {
      * @return an objecta that can be used to call the named function
      * @throws RuntimeException if there is no function by that name.
      */
-    public static VarPointer lookup(String varName, int size) {
+    public static VarPointer getVarPointer(String varName, int size) {
         return NativeLibrary.getDefaultInstance().getGlobalVariableAddress(varName, size);
+    }
+
+    /**
+     * Dynamically look up a native variable by name.
+     * 
+     * Look up the symbol in the default list of loaded libraries.
+     * 
+     * @param lib native library to lookup in
+     * @param varName
+     * @param size the size of the variable in bytes
+     * @return an objecta that can be used to call the named function
+     * @throws RuntimeException if there is no function by that name.
+     */
+    public static VarPointer getVarPointer(NativeLibrary lib, String varName, int size) {
+        return lib.getGlobalVariableAddress(varName, size);
     }
 
     public String toString() {
         return "VarPointer(" + name + ", " + address().toUWord().toInt() + ")";
-    }
-
-    public int getInt(long offset) {
-        int result = super.getInt(offset);
-        if (DEBUG) {
-            VM.print(name);
-            VM.print("  = ");
-            VM.print(result);
-            VM.println();
-        }
-        return result;
-    }
- 
-    public int getInt() {
-        return getInt(0);
     }
 
 }

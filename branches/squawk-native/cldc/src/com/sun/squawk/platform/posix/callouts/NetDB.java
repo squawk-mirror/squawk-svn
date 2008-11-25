@@ -35,7 +35,7 @@ public class NetDB {
     /** pure static class */
     private NetDB() {}
     
-    private static final VarPointer h_errnoPtr = VarPointer.lookup("h_errno", 4);
+    private static final VarPointer h_errnoPtr = VarPointer.getVarPointer("h_errno", 4);
         
     private static final Function gethostbynamePtr = Function.getFunction("gethostbyname");
 
@@ -70,7 +70,7 @@ public class NetDB {
      * @return one of the error codes defined in this class.
      */
     public static int h_errno() {
-        return h_errnoPtr.getInt();
+        return h_errnoPtr.getInt(0);
     }
     
     /** C STRUCTURE HostEnt

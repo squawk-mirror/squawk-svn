@@ -181,6 +181,9 @@ public class JavaApplicationManager {
 
         } catch (Error e) {
             System.err.println(e);
+            if (VM.isVerbose()) {
+                e.printStackTrace();
+            }
         }
 
         /*

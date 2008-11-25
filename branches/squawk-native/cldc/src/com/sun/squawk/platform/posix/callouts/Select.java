@@ -15,7 +15,7 @@ public class Select {
     /** 
      * The size of an fd_set in bytes
      */
-    public static final int FD_SIZE = VarPointer.lookup("sysFD_SIZE", 4).getInt();
+    public static final int FD_SIZE = VarPointer.getVarPointer("sysFD_SIZE", 4).getInt(0);
     
     private static final Function selectPtr = Function.getFunction("select");    
     private static final Function sysFD_SETPtr = Function.getFunction("sysFD_SET");

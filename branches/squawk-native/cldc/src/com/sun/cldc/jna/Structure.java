@@ -149,8 +149,8 @@ public abstract class Structure {
             VM.print("Freeing memory for ");
             VMprintStruct();
         }
-        backingNativeMemory.free(); // set the ptr to an invalid address
-		backingNativeMemory = null;
+        backingNativeMemory.free();
+        backingNativeMemory = null;
     }
 
     /**

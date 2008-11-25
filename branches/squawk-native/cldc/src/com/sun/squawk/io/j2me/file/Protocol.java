@@ -27,11 +27,14 @@ package com.sun.squawk.io.j2me.file;
 import com.sun.squawk.VM;
 import com.sun.squawk.platform.BaseFileHandler;
 import com.sun.squawk.io.ConnectionBaseAdapter;
+import com.sun.squawk.io.j2me.ParameterParser;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;
 import java.io.OutputStream;
 import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.Vector;
 import javax.microedition.io.*;
 
 /**
@@ -128,7 +131,78 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      */
     public Connection openPrim(String name, int mode, boolean timeouts)
             throws IOException {
-        return openPrimImpl(name, mode, timeouts, true);
+
+        class Parameters extends ParameterParser {
+            boolean append;
+            Vector path = new Vector();
+            public boolean parameter(String key, String value) {
+                if (key.equals("append")) {
+                    append = value.equals("true");
+                } else if (key.equals("pathelement")) {
+                    path.addElement(value);
+                } else {
+                    return false;
+                }
+                return true;
+            }
+        }
+        
+        if (!name.startsWith("//")) {
+            throw new IllegalArgumentException("Missing protocol separator");
+        }
+
+        Parameters p = new Parameters();
+        String realfileName = p.parse(name.substring(2));
+
+        try {
+            if (mode == Connector.READ) {
+                if (realfileName.endsWith("/")) {
+                    throw new IllegalArgumentException("Directory listing not yet supported");
+                } else {
+                    if (p.path.size() != 0 /*&& !(new File(realfileName).isAbsolute()*/) {
+                        boolean found = false;
+                        Enumeration e = p.path.elements();
+                        while (e.hasMoreElements()) {
+                            String path = (String) e.nextElement();
+                            String possibleName = path + sep + realfileName;
+                            if (exists(possibleName)) {
+                                found = true;
+                                realfileName = possibleName;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            throw new IOException();
+                        }
+                    }
+                }
+            } else if (mode == Connector.WRITE) {
+                if (p.path.size() != 0 /*&& !(new File(realfileName).isAbsolute()*/) {
+                    boolean found = false;
+                    Enumeration e = p.path.elements();
+                    while (e.hasMoreElements()) {
+                        String path = (String) e.nextElement();
+                        String possibleName = path + sep + realfileName;
+                        try {
+                            create(possibleName);
+                            found = true;
+                            realfileName = possibleName;
+                            break;
+                        } catch (IOException ex) {
+                        }
+                    }
+                    if (!found) {
+                        throw new IOException();
+                    }
+                }
+            } else {
+                throw new IllegalArgumentException("Bad mode");
+            }
+        } catch (IOException ex) {
+            throw new ConnectionNotFoundException(name);
+        }
+        fileName = "//" + realfileName;
+        return openPrimImpl(fileName, mode, timeouts, true);
     }
 
 //    /**
@@ -191,7 +265,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 
         // IOException when target file doesn't exist
         if (!fileHandler.exists()) {
-            throw new IOException("Target file doesn't exist");
+            throw new IOException("Target file doesn't exist: " + fileURL);
         }
 
 //        if (!fileHandler.canRead()) { // no read access
@@ -950,6 +1024,28 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //          fileHandler.createPrivateDir(fileRoot);
         }
     }
+ 
+    /**
+     * return true if the specified file exists
+     * @param name
+     * @return
+     */
+    public static boolean exists(String name) {
+        BaseFileHandler handler = getFileHandler();
+        handler.connect("", name);
+        return handler.exists();
+    }
+
+    /**
+     * Create a file for writing
+     * @param name full pathname to file
+     * @throws IOException if file can't be created
+     */
+    public static void create(String name) throws IOException {
+        BaseFileHandler handler = getFileHandler();
+        handler.connect("", name);
+        handler.create();
+    }
 
     /**
      * Opens the file connection.
@@ -964,14 +1060,10 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
             throws IOException {
 
 //System.err.println("openPrimImple(name: " + name +")");
-        if (!name.startsWith("//")) {
-            throw new IllegalArgumentException("Missing protocol separator");
-        }
-
         if (unescape) {
             name = EscapedUtil.getUnescapedString(name);
         }
-        String fileURL = "file:" + name;
+        fileURL = "file:" + name;
 
         // Perform security checks before any object state changes since
         // this method is used not only by Connector.open() but
@@ -993,10 +1085,9 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
                 throw new IllegalArgumentException("Invalid mode");
         }
 
-        this.fileURL = fileURL;
         this.mode = mode;
 
-        // boolean isAbsolute = false;
+//        boolean isAbsolute = false;
         int pathStart = 2;
 
         if (name.indexOf('/', 2) == 2) {
@@ -1071,6 +1162,8 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //            classSecurityToken.checkIfPermissionAllowed(
 //                Permissions.FILE_CONNECTION_READ);
 //        }
+        
+        
 
         if (mode == Connector.WRITE) {
             throw new IllegalStateException("Connection is write only");
@@ -1472,4 +1565,6 @@ class EscapedUtil {
         return !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
                 (c >= '0' && c <= '9') || ("/:-_.!~*'()".indexOf(c) != -1));
     }
+
+    private EscapedUtil() {} // pure static class
 } // End  of EscapeUtil

@@ -39,6 +39,8 @@ public class LinkTarget extends Command {
     final String baseName;
     final File baseDir;
     final String parent;
+    final String suitePath;
+
         
     /**
      * Creates a new suite command.
@@ -46,9 +48,10 @@ public class LinkTarget extends Command {
      * @param baseDir        the base directory under which the various intermediate and output directories are created
      * @param parent         the location of the parent suite
      * @param env Build      the builder environment in which this command will run
+     * @param suitePath      the suitepath to search (beyond "." and baseDir)
      */
-    public LinkTarget(String baseDir, String parent, Build env) {
-        this(baseDir, parent, env, new File(baseDir).getName());
+    public LinkTarget(String baseDir, String parent, Build env, String suitePath) {
+        this(baseDir, parent, env, new File(baseDir).getName(), suitePath);
     }
     
     /**
@@ -58,12 +61,14 @@ public class LinkTarget extends Command {
      * @param parent         the location of the parent suite
      * @param env Build      the builder environment in which this command will run
      * @param baseName       the basic command name (the name of the dir)
+     * @param suitePath      the suitepath to search (beyond "." and baseDir)
      */
-    public LinkTarget(String baseDir, String parent, Build env, String baseName) {
+    public LinkTarget(String baseDir, String parent, Build env, String baseName, String suitePath) {
         super(env, baseName + "-suite");
         this.parent = parent;
         this.baseDir = new File(baseDir);
         this.baseName = baseName;
+        this.suitePath = suitePath;
     }
     
     @Override
@@ -74,30 +79,38 @@ public class LinkTarget extends Command {
     @Override
     public void run(String[] args) {
         String curParent = parent;
+        String extraSuitePath = null;
         Vector<String> extraArgs = new Vector<String>();
         for (int i = 0; i < args.length; i++) {
             if (args[i].startsWith("-")) {
                 if (args[i].startsWith("-parent:")) {
                     curParent = args[i].substring("-parent:".length());
                     continue;
+                } else if (args[i].startsWith("-suitepath:")) {
+                    extraSuitePath = args[i].substring("-suitepath:".length());
+                    continue;
                 } 
             }
             extraArgs.add(args[i]); // collect other options
         }
-       
+        
         // note that by default, dependnecies will run before this, including compiling source...
             
-//        String suitepath = "";
-//        try {
-//            suitepath = new File(".").getCanonicalPath() + ":" + new File(userBaseDir).getCanonicalPath();
-//        } catch (IOException e) {
-//            System.out.println("Bad suite path for " + userBaseDir);
-//            System.out.println(e);
-//        }
-//        if (curParent.length() != 0) {
-//            suitepath = suitepath + ":" + curParent;
-//        }
-//      System.out.println("Linking user project at " + baseDir + "...");
+        String curSuitePath = null;
+        if (suitePath != null && suitePath.length() != 0) {
+            curSuitePath = suitePath;
+        }
+        if (extraSuitePath != null) {
+            if (curSuitePath != null) {
+                curSuitePath += File.pathSeparator + extraSuitePath;
+            } else {
+                curSuitePath = extraSuitePath;
+            }
+        } else {
+            if (curSuitePath == null) {
+                curSuitePath = "";
+            }
+        }
 
         final File dstFile = new File(baseDir, baseDir.getName() + ".suite"); // name of the 
         final File classesDir = new File(baseDir, "j2meclasses");
@@ -108,7 +121,7 @@ public class LinkTarget extends Command {
                 return dstFile;
             }
         }));
-        FileSet.Selector isOutOfDateFromResources = new FileSet.DependSelector(new FileSet.Mapper() {
+        FileSet.Selector isOutOfDateFromAnyFile = new FileSet.DependSelector(new FileSet.Mapper() {
             public File map(File from) {
                 return dstFile;
             }
@@ -118,13 +131,12 @@ public class LinkTarget extends Command {
         // a later modification date than the suite file.
         if (!dstFile.exists() ||
                 (classesDir.exists() && !new FileSet(classesDir, isOutOfDateFromClasses).list().isEmpty()) ||
-                (resourcesDir.exists() && !new FileSet(resourcesDir, isOutOfDateFromResources).list().isEmpty())) {
-            Vector<String> rargs = new Vector<String>(9 + extraArgs.size());
-
+                (resourcesDir.exists() && !new FileSet(resourcesDir, isOutOfDateFromAnyFile).list().isEmpty())) {
+            Vector<String> rargs = new Vector<String>();
             rargs.add("-cp:" + classesDir);
-            // rargs[1] = "-metadata"; // dummay arg // "-suitepath:" + suitepath;
+            rargs.add("-suitepath:" + curSuitePath);
             rargs.add("-boot:squawk");
-            if (curParent.length() != 0) {
+            if (curParent != null && curParent.length() != 0) {
                 rargs.add("-parent:" + curParent);
             }
             rargs.add("-o:" + new File(baseDir, baseDir.getName()));

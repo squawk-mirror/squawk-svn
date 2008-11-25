@@ -437,6 +437,10 @@ public class ObjectMemoryLoader {
 
         // Load the oop map
         BitSet oopMap = loadOopMap(size);
+        if (url.indexOf("squawk.suite") < 0) {
+            new RuntimeException().printStackTrace();
+System.err.println("Loading memory from :" + url + ", size: " + size + ", oopmap: " + oopMap);
+        }
 
         // Skip the padding
         skipMemoryPadding(parent == null ? "" : parent.getURI(), size);

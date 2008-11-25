@@ -195,7 +195,7 @@ public class RawMemoryAccess {
         if (vbase.isZero()) {
             throw new OutOfMemoryError("malloc failed in RawMemoryAccess");
         }
-        wasMalloced = true;
+        state = MALLOCED;
     }
 
     /**
@@ -253,6 +253,7 @@ public class RawMemoryAccess {
         } /*else if (base < 0) {
             throw new OffsetOutOfBoundsException();
         }*/
+        state = SHARED;
 
         reachable_size = UWord.fromPrimitive(sz);
         
@@ -304,11 +305,7 @@ public class RawMemoryAccess {
      */
     final void checkRead(int offset, int size) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
         Assert.that(size > 0 && size <= 8);
-        
-        if (offset < 0 ||
-                offset > (reachable_size.toPrimitive() - size)) {
-            throw new OffsetOutOfBoundsException();
-        }
+        checkBounds(reachable_size.toPrimitive(), offset, size);
         if (vbase.isZero()) {
             throw new SizeOutOfBoundsException();
         }
@@ -338,6 +335,34 @@ public class RawMemoryAccess {
      * not permitted by the security manager.
      */
     protected final void checkMultiRead(int offset, int number, int elemsize) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
+        checkMultiBounds(reachable_size.toInt(), offset, number, elemsize);
+         if (vbase.isZero()) {
+            throw new SizeOutOfBoundsException();
+        }
+    }
+   
+    /**
+     * Do a bounds check on accessing a range.
+     * <p>
+     *
+     * @param length the length pof the memory area being accessed, in bytes
+     * @param offset The offset in bytes from the beginning of the raw memory area
+     *      from which to read.
+     * @param number The number of items to load.
+     * @param elemsize The size of the each item in bytes
+     *
+     * @throws OffsetOutOfBoundsException Thrown if the offset is negative or greater than the size of the
+     *      raw memory area.  The role of the {@link SizeOutOfBoundsException} somewhat overlaps
+     *      this exception since it is thrown if the offset is within the object but outside the
+     *      mapped area. (See {@link RawMemoryAccess#map(long base, long size)}).
+     *
+     * @throws SizeOutOfBoundsException  Thrown if the object is not mapped,
+     *      or if the short falls in an invalid address range.
+     * 
+     * @throws java.lang.SecurityException Thrown if this access is
+     * not permitted by the security manager.
+     */
+    protected static void checkMultiBounds(int length, int offset, int number, int elemsize) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
         if (number < 0) {
             throw new IllegalArgumentException();
         }
@@ -347,7 +372,7 @@ public class RawMemoryAccess {
         }
         
         if (offset < 0 ||
-                offset > (reachable_size.toPrimitive() - bsize)) {
+                offset > (length - bsize)) {
             throw new OffsetOutOfBoundsException();
         }
     }
@@ -821,12 +846,36 @@ public class RawMemoryAccess {
      * @throws java.lang.SecurityException Thrown if this access is
      * not permitted by the security manager.
      */
-    final void checkWrite(int offset, int size) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
+    protected static void checkBounds(int length, int offset, int size) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
         Assert.that(size > 0 && size <= 8);
         if (offset < 0 ||
-                offset > (reachable_size.toPrimitive() - size)) {
+                offset > (length - size)) {
             throw new OffsetOutOfBoundsException();
         }
+    }
+    
+    /**
+     * Do a bounds check on a write.
+     * <p>
+     *
+     * @param offset The offset in bytes from the beginning of the raw memory area
+     *      from which to write.
+     * @param size The size of the write in bytes
+     *
+     * @throws OffsetOutOfBoundsException Thrown if the offset is negative or greater than the size of the
+     *      raw memory area.  The role of the {@link SizeOutOfBoundsException} somewhat overlaps
+     *      this exception since it is thrown if the offset is within the object but outside the
+     *      mapped area. (See {@link RawMemoryAccess#map(long base, long size)}).
+     *
+     * @throws SizeOutOfBoundsException  Thrown if the object is not mapped,
+     *      or if the short falls in an invalid address range.
+     * 
+     * @throws java.lang.SecurityException Thrown if this access is
+     * not permitted by the security manager.
+     */
+    final void checkWrite(int offset, int size) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
+        Assert.that(size > 0 && size <= 8);
+        checkBounds(reachable_size.toPrimitive(), offset, size);
         if (vbase.isZero()) {
             throw new SizeOutOfBoundsException();
         }
@@ -856,17 +905,9 @@ public class RawMemoryAccess {
      * not permitted by the security manager.
      */
     protected final void checkMultiWrite(int offset, int number, int elemsize) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
-        if (number < 0) {
-            throw new IllegalArgumentException();
-        }
-        int bsize = number * elemsize;
-        if (bsize < 0) {
-            throw new OffsetOutOfBoundsException();
-        }
-        
-        if (offset < 0 ||
-            offset > (reachable_size.toPrimitive() - bsize)) {
-            throw new OffsetOutOfBoundsException();
+        checkMultiBounds(reachable_size.toInt(), offset, number, elemsize);
+        if (vbase.isZero()) {
+            throw new SizeOutOfBoundsException();
         }
     }
 
@@ -1229,14 +1270,22 @@ public class RawMemoryAccess {
      * @return
      */
     protected boolean wasMalloced() {
-        return wasMalloced;
+        return state == MALLOCED;
     }
+    
+    /**
+     * Set the pointer value to NULL
+     */
+    protected final void invalidate() {
+        vbase = Address.zero();
+    }
+    
     /**
      * Virtual base address.
      * <p>It is null if the RawMemoryAccess object is not mapped.
      */
-    final Address vbase;
-
+    protected Address vbase;
+    
     /*
     The size that can be accessed with this RawMemoryAccess object is
     not necessarily the size that is mapped. The spec says: "If the
@@ -1254,6 +1303,12 @@ public class RawMemoryAccess {
      */
     private final UWord reachable_size;
     
-    /** set true when this specific RawMemoryAccess allocated native memory. */
-    private boolean wasMalloced;
+    /* @TODO: switch over to subclasses */ 
+    private final static int SHARED = 0;
+    private final static int MALLOCED = 1;
+    private final static int STACK = 2;
+
+    
+    /** set MALLOCED when this specific RawMemoryAccess allocated native memory. */
+    final private byte state;
 }

@@ -96,7 +96,7 @@ public abstract class DynamicStructure extends Structure {
      */
     protected static int[] initLayout(Class c, int numFields) {
         String name = c.getName().replace('.', '_').replace('$', '_')+ "_layout";
-        VarPointer p = VarPointer.lookup(name, (numFields + 2) * 4);
+        VarPointer p = VarPointer.getVarPointer(name, (numFields + 2) * 4);
         int len = p.getInt(0);
         if (len - 2 < numFields) {
             throw new IllegalStateException();

@@ -29,17 +29,17 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * The GlobalVar annotation can be applied to method declarations in a 
  * Library to indicate that the body of the method should be a getter or setter 
- * or a C global variable of a similar name.
+ * or a C global variable of a similar name.<p>
  * 
  * When applied to a method with no parameters and a non-void return type, 
  * a getter method will be generated for the C variable with
- * the same name as the method.
+ * the same name as the method.<p>
  * 
  * When applied to a method with a name starting with "set", and 
  * with one parameters and a void return type, a setter method will be
- * generated for the C variable with the name as the method (ignoring teh prefix "set").
+ * generated for the C variable with the name as the method (ignoring teh prefix "set").<p>
  * 
- * All other cases will result in an error at code generation time.
+ * All other cases will result in an error at code generation time.<p>
  * 
  * Example: Accessors for  the C variable "errno"
  * 
@@ -48,6 +48,9 @@ import java.lang.annotation.RetentionPolicy;
  * 
  *    @GlobalVar
  *    public void seterrno(int value);
+ * 
+ * The GlobalVar annotation can be used with the {@link NativeName} annotation to specify
+ * a sperate natve name for the global variable getter and/or setter.
  * 
  */
 @Retention(RetentionPolicy.RUNTIME)
