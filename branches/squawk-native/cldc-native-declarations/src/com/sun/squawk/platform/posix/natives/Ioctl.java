@@ -30,7 +30,7 @@ import com.sun.cldc.jna.*;
  *
  * java wrapper around #include <sys/ioctl.h>
  */
-@Includes({"<sys/ioctl.h>"})
+@Includes({"<sys/ioctl.h>", "<sys/filio.h>"})
 public interface Ioctl extends Library {
 
     Ioctl INSTANCE = (Ioctl)
