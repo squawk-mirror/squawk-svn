@@ -42,7 +42,7 @@ public interface GCFSockets {
      * @return a native handle to the network connection.
      * @throws IOException 
      */
-    public int open0(String hostname, int port, int mode) throws IOException;
+    public int open(String hostname, int port, int mode) throws IOException;
     
     /**
      * Opens a server TCP connection to clients.
@@ -126,14 +126,14 @@ public interface GCFSockets {
      * @return number of bytes that can be read without blocking
      * @throws IOException 
      */
-    public int available0(int handle) throws IOException;
+    public int available(int handle) throws IOException;
 
     /**
      * Closes the socket connection.
      * @param handle the socket descriptor
      * @throws IOException 
      */
-    public void close0(int handle) throws IOException;
+    public void close(int handle) throws IOException;
     
     /**
      * set a socket option

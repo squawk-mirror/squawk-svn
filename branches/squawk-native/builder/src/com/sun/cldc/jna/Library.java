@@ -23,37 +23,28 @@
  */
 package com.sun.cldc.jna;
 
-/*if[!SQUAWK]*/
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-/*end[SQUAWK]*/
-
 /**
- * The Includes annotation can be applied to the top-level interface declarations in a JNA
- * Library declaration to indicate the C include files that contain the relevent #defines and structure definitions
- * for that library
+ * Library is a "stub" version of the runtime's Library class used by native library <i>?declarations</i>.
+ * It is the interface that all Library interface declarations should extend.
  * 
- * Example:
- * 
- *    @Includes( "<errno.h>", 
- *               "<fcntl.h>",
- *                "<sys/stat.h>")
- *    public interface LibC extends LibraryImport { ... }
- * 
+ * Import annotations can be used in Library declaration interfaces, but they will be stripped
+ * by the preprocessor after code generation.
  */
-/*if[!SQUAWK]*/
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-/*end[SQUAWK]*/
+public interface Library {
+    /**
+     * The value of any constant set to "IMPORT" will be the value of the C macro with the same name as the constant field's.
+     */
+    public final static int IMPORT = 0;
 
-public
-/*if[!SQUAWK]*/
-        @
-/*end[SQUAWK]*/
-        interface
-        Includes {
+    /**
+     * The value of any constant named foo_SIZEOF that is set to "SIZEOF" will be the value in C of sizeof(foo)
+     */
+    public final static int SIZEOF = 1;
+    
+    /**
+     * The value of any constant set to "DEFINED" will be true if there is a defiend C macro with the same name 
+     * as the constant field's, otherwise false.
+     */
+    public final static boolean DEFINED = true;
 
-    String[] value();
 }

@@ -154,6 +154,20 @@ public abstract class Structure {
     }
 
     /**
+     * Release the backing memory for the structure, if it was malloced
+     *
+     * @throws IllegalStateException if the memory has already been freed.
+     */
+    public void release() throws IllegalStateException {
+        if (DEBUG) {
+            VM.print("Releasing memory for ");
+            VMprintStruct();
+        }
+        backingNativeMemory.release();
+        backingNativeMemory = null;
+    }
+
+    /**
      * Set the backing memory to zeros.
      */
     public void clear() {

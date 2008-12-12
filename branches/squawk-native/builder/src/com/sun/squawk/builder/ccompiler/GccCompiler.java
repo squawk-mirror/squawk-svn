@@ -53,6 +53,7 @@ public class GccCompiler extends CCompiler {
             // think about -frtl-abstract-sequences, not in gcc 4.0.1 though.
             if (options.o3)                 { buf.append("-DMAXINLINE -O3 ");   }
 //          if (options.o3)                 { buf.append("-DMAXINLINE -O3 -Winline ");   }
+            buf.append("  -ffunction-sections -fdata-sections ");
         }
         if (options.tracing)            { buf.append("-DTRACE ");           }
         if (options.profiling)          { buf.append("-DPROFILING ");       }
@@ -63,7 +64,6 @@ public class GccCompiler extends CCompiler {
         
         if (options.nativeVerification) { buf.append("-DNATIVE_VERIFICATION=true ");          }
  
-        buf.append("  -ffunction-sections -fdata-sections ");
         // Required for definition of RTLD_DEFAULT handle sent to dlsym
         buf.append("-D_GNU_SOURCE ");
 

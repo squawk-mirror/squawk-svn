@@ -495,7 +495,7 @@ public class Klass {
      * @return true if it does
      */
     public final boolean hasMain() {
-        return indexForMain != -1;
+        return indexForMain >= 0;
     }
 
    /**
@@ -520,7 +520,7 @@ public class Klass {
      * @return true if it does
      */
     public final boolean hasDefaultConstructor() {
-        return indexForInit != -1;
+        return indexForInit >= 0;
     }
 
     /**
@@ -2668,7 +2668,7 @@ public class Klass {
         SymbolParser parser = metadata.getSymbolParser();
         int category = SymbolParser.VIRTUAL_METHODS;
         int mid = parser.lookupMethod(category, offset);
-        if (mid != -1) {
+        if (mid >= 0) {
             return new Method(metadata, mid);
         }
         return null;
@@ -2880,14 +2880,14 @@ public class Klass {
             methodID = parser.lookupMethod(SymbolParser.VIRTUAL_METHODS, index);
         }
         
-        if (methodID == -1) {
+        if (methodID < 0) {
             index = getMethodIndex(body, true);
             if (index >= 0) {
                 methodID = parser.lookupMethod(SymbolParser.STATIC_METHODS, index);
             }
         }
 
-        if (methodID != -1) {
+        if (methodID >= 0) {
             return new Method(metadata, methodID);
         }
         return null;
@@ -2989,8 +2989,8 @@ public class Klass {
      * @throws NotInlinedPragma as this method saves the current frame pointer
      */
     final void main(String[] args) throws NotInlinedPragma {
-        int index = indexForMain & 0xFF;
-        if (index != 0xFF) {
+        int index = indexForMain;
+        if (index >= 0) {
             Assert.that(GC.getKlass(staticMethods[index]) == Klass.BYTECODE_ARRAY);
             VMThread thread = VMThread.currentThread();
             thread.setAppThreadTop(thread.framePointerAsOffset(VM.getFP()));
@@ -3366,7 +3366,7 @@ public class Klass {
      */
     final void clinit() {
         int index = indexForClinit;
-        if (index != -1) {
+        if (index >= 0) {
             // Verbose trace.
             if (VM.isVeryVerbose()) {
                   VM.print("[initializing ");

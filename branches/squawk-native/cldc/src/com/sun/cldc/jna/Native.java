@@ -44,14 +44,22 @@ public class Native {
     public static final int POINTER_SIZE = 4;
     public static final int LONG_SIZE = 4;
     public static final int WCHAR_SIZE = 2;
+
+    public final static String DEFAULT = "RTLD";
             
     private Native() {}
     
     public static Library loadLibrary(String name,
                                       Class interfaceClass) {
         try {
-            NativeLibrary nl = NativeLibrary.getInstance(name);
-            Class implClass = Class.forName(interfaceClass.getName() + "_Impl");
+
+            NativeLibrary nl;
+            if (name.equals(DEFAULT)) {
+                nl = NativeLibrary.getDefaultInstance();
+            } else {
+                nl = NativeLibrary.getInstance(name);
+            }
+            Class implClass = Class.forName(interfaceClass.getName() + "Impl");
             Object implementation = implClass.newInstance();
 
             return (Library) implementation;

@@ -29,7 +29,7 @@ import com.sun.squawk.platform.SystemEvents;
 import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
 import com.sun.cldc.jna.*;
-import com.sun.squawk.platform.posix.callouts.*;
+import com.sun.squawk.platform.posix.natives.*;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.util.IntSet;
 
@@ -51,21 +51,23 @@ public class SystemEventsImpl extends SystemEvents {
     private IntSet readSet;
     private IntSet writeSet;
     
-    private Time.Struct_TimeVal zeroTime;
-    private Time.Struct_TimeVal timeoutTime;
+    private Time.timeval zeroTime;
+    private Time.timeval timeoutTime;
 
     private int maxFD = 0; // system-wide highwater mark....
+
+
     
     private static int copyIntoFDSet(IntSet src, Pointer fd_set) {
 //System.err.println("Copying from " + src + " to " + fd_set);
         int num = src.size();
         int[] data = src.getElements();
         int localMax = 0;
-        Select.FD_ZERO(fd_set);
+        FD_ZERO(fd_set);
         for (int i = 0; i < num; i++) {
             int fd = data[i];
             Assert.that(fd > 0);
-            Select.FD_SET(fd, fd_set);
+            Select.INSTANCE.FD_SET(fd, fd_set);
             if (fd > localMax) {
                 localMax = fd;
             }
@@ -73,22 +75,51 @@ public class SystemEventsImpl extends SystemEvents {
         return localMax;
     }
 
+
+    /**
+     * initializes a descriptor set fdset to the null set
+     * @param fd_set
+     */
+    public static void FD_ZERO(Pointer fd_set) {
+        fd_set.clear(Select.fd_set_SIZEOF);
+    }
+
+    /**
+     * replaces an already allocated fdset_copy file descriptor set with a copy of fdset_orig.
+     *
+     * @param fdset_orig
+     * @param fdset_copy
+     */
+    public static void FD_COPY(Pointer fdset_orig, Pointer fdset_copy) {
+//        System.err.println("FD_COPY from: " + fdset_orig + " to: " + fdset_copy + " (size = " + FD_SIZE + ")");
+        Pointer.copyBytes(fdset_orig, 0, fdset_copy, 0, Select.fd_set_SIZEOF);
+    }
+
+    /**
+     * Allocate a new fd_struct in c memory.
+     * @return pointer to new memory
+     */
+    public static Pointer FD_ALLOCATE() {
+        return new Pointer(Select.fd_set_SIZEOF);
+    }
+
+
     public SystemEventsImpl() {
-        masterReadSet = Select.FD_ALLOCATE();
-        masterWriteSet = Select.FD_ALLOCATE();
+        masterReadSet = FD_ALLOCATE();
+        masterWriteSet = FD_ALLOCATE();
 
         readSet = new IntSet();
         writeSet = new IntSet();
-        tempReadSet = Select.FD_ALLOCATE();
-        tempWriteSet = Select.FD_ALLOCATE();
+        tempReadSet = FD_ALLOCATE();
+        tempWriteSet = FD_ALLOCATE();
 
-        zeroTime = new Time.Struct_TimeVal();
+        zeroTime = new Time.timeval();
         zeroTime.tv_sec = 0;
         zeroTime.tv_usec = 0;
         zeroTime.allocateMemory();
         zeroTime.write();
 
-        timeoutTime = new Time.Struct_TimeVal();
+        timeoutTime = new Time.timeval();
         timeoutTime.allocateMemory();
     }
     
@@ -101,9 +132,9 @@ public class SystemEventsImpl extends SystemEvents {
      */
     private void setupTempSet(IntSet set, Pointer master, Pointer temp) {
          if (set.size() != 0) {
-            Select.FD_COPY(master, temp);
+            FD_COPY(master, temp);
         } else {
-             Select.FD_ZERO(temp);
+            FD_ZERO(temp);
         }
     }
     
@@ -114,7 +145,7 @@ public class SystemEventsImpl extends SystemEvents {
      */
     private void printFDSet(Pointer fd_set) {
         for (int i = 0; i < maxFD + 1; i++) {
-            if (Select.FD_ISSET(i, fd_set)) {
+            if (Select.INSTANCE.FD_ISSET(i, fd_set)) {
                 VM.println("    fd: " + i);
             }
         }
@@ -146,16 +177,16 @@ public class SystemEventsImpl extends SystemEvents {
             theTimout = timeoutTime.getPointer();
         }
 
-        int num = Select.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
+        int num = Select.INSTANCE.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
         if (num < 0) {
-            System.err.println("select error: " + LibC.errno());
+            System.err.println("select error: " + LibC.INSTANCE.errno());
         }
 
         if (num > 0) {
             if (readSet.size() != 0) {
                 for (int i = 0; i < readSet.size(); i++) {
                     int fd = readSet.getElements()[i];
-                    if (Select.FD_ISSET(fd, tempReadSet)) {
+                    if (Select.INSTANCE.FD_ISSET(fd, tempReadSet)) {
                         readSet.remove(fd);
                         VMThread.signalOSEvent(fd);
                         num--;
@@ -165,7 +196,7 @@ public class SystemEventsImpl extends SystemEvents {
             if (writeSet.size() != 0) {
                 for (int i = 0; i < writeSet.size(); i++) {
                     int fd = writeSet.getElements()[i];
-                    if (Select.FD_ISSET(fd, tempWriteSet)) {
+                    if (Select.INSTANCE.FD_ISSET(fd, tempWriteSet)) {
                         writeSet.remove(fd);
                         VMThread.signalOSEvent(fd);
                         num--;

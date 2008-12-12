@@ -26,7 +26,6 @@
 package com.sun.cldc.jna;
 
 import com.sun.squawk.Address;
-import com.sun.squawk.VM;
 
 /**
  * A pointer to a native variable that can be read/wrote from Java.
@@ -34,42 +33,12 @@ import com.sun.squawk.VM;
  *  This needs to be extended to handle cases where ints are not 4 bytes, etc.
  */
 public final class VarPointer extends Pointer {
-    private final static boolean DEBUG = false;
 
     private String name; // for debugging/tracing
 
     VarPointer(String name, Address varAddr, int size) {
         super(varAddr, size);
         this.name = name;
-    }
-
-    /**
-     * Dynamically look up a native variable by name.
-     * 
-     * Look up the symbol in the default list of loaded libraries.
-     * 
-     * @param varName 
-     * @param size the size of the variable in bytes
-     * @return an objecta that can be used to call the named function
-     * @throws RuntimeException if there is no function by that name.
-     */
-    public static VarPointer getVarPointer(String varName, int size) {
-        return NativeLibrary.getDefaultInstance().getGlobalVariableAddress(varName, size);
-    }
-
-    /**
-     * Dynamically look up a native variable by name.
-     * 
-     * Look up the symbol in the default list of loaded libraries.
-     * 
-     * @param lib native library to lookup in
-     * @param varName
-     * @param size the size of the variable in bytes
-     * @return an objecta that can be used to call the named function
-     * @throws RuntimeException if there is no function by that name.
-     */
-    public static VarPointer getVarPointer(NativeLibrary lib, String varName, int size) {
-        return lib.getGlobalVariableAddress(varName, size);
     }
 
     public String toString() {

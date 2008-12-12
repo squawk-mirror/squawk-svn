@@ -278,8 +278,8 @@ public class RawMemoryAccess {
             if (vbase.isZero() && !reachable_size.isZero()) {
                 throw new SizeOutOfBoundsException();
             }
-            if (GC.inRam(vbase, vbase.add(sz))) {
-                throw new SecurityException("invalid memory range");
+            if (GC.isGCEnabled() && GC.inRam(vbase, vbase.add(sz))) {
+                throw new SecurityException("invalid memory range - base: " + base + ", size: " + size);
             }
         }
     }

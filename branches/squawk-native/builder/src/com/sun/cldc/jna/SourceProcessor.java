@@ -44,9 +44,12 @@ public class SourceProcessor {
     String inputFileName;
     
     Pattern packagePattern = Pattern.compile("package\\s*\\S+;");
-    Pattern libraryPattern = Pattern.compile("interface\\s*(\\w+)\\s*extends\\s*LibraryImport");
+    Pattern libraryPattern = Pattern.compile("interface\\s*(\\w+)\\s*extends\\s*Library");
     Pattern structPattern = Pattern.compile("class\\s*(\\w+)\\s*extends\\s*Structure");
-    Pattern importPattern = Pattern.compile("(\\w+)(\\s*)=(\\s*)IMPORT");
+    Pattern constImportPattern = Pattern.compile("(\\w+)(\\s*)=(\\s*)IMPORT");
+    Pattern constDefinedPattern = Pattern.compile("(\\w+)(\\s*)=(\\s*)DEFINED");
+    Pattern constSizeOfPattern = Pattern.compile("(\\w+)(\\s*)=(\\s*)SIZEOF");
+
     Pattern annotationPattern = Pattern.compile("@\\w+(\\(.*\\))?");
 
     String replaceString = "LIBRARY CLASS NOT PARSED CORRECTLY";
@@ -178,22 +181,39 @@ public class SourceProcessor {
         while (m.find()) {
             // m.appendReplacement(outbuf, "interface $1 extends Library, $1Import");
             // m.appendReplacement(outbuf, "interface $1 implements Library");
-            m.appendReplacement(outbuf, "interface $1");
+            //m.appendReplacement(outbuf, "interface $1");
 
             libName = m.group(1);
         }
-        replaceString = "$1$2=$3" + libName + "Import.$1";
+        replaceString = "$1$2=$3" + libName + JNAGen.GEN_CLASS_SUFFIX + ".$1";
         m.appendTail(outbuf);
         return outbuf;
     }
 
     private StringBuffer replaceImportDecl(StringBuffer inbuf) {
         StringBuffer outbuf = new StringBuffer();
-        Matcher m = importPattern.matcher(inbuf);
+        Matcher m = constImportPattern.matcher(inbuf);
         while (m.find()) {
             m.appendReplacement(outbuf, replaceString);
         }
         m.appendTail(outbuf);
+
+        inbuf = outbuf;
+        outbuf = new StringBuffer();
+        m = constDefinedPattern.matcher(inbuf);
+        while (m.find()) {
+            m.appendReplacement(outbuf, replaceString);
+        }
+        m.appendTail(outbuf);
+
+        inbuf = outbuf;
+        outbuf = new StringBuffer();
+        m = constSizeOfPattern.matcher(inbuf);
+        while (m.find()) {
+            m.appendReplacement(outbuf, replaceString);
+        }
+        m.appendTail(outbuf);
+
         return outbuf;
     }
     
@@ -206,7 +226,7 @@ public class SourceProcessor {
         Matcher m = structPattern.matcher(inbuf);
         while (m.find()) {
             //String structName = m.group(1);
-            m.appendReplacement(outbuf, "class $1 extends " + libName + "Import.$1Impl");
+            m.appendReplacement(outbuf, "class $1 extends " + libName + JNAGen.GEN_CLASS_SUFFIX + ".$1Impl");
         }
         m.appendTail(outbuf);
         return outbuf;

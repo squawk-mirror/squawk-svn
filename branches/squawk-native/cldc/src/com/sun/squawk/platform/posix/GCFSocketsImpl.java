@@ -28,13 +28,11 @@ import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
 import com.sun.cldc.jna.Pointer;
 import com.sun.squawk.platform.GCFSockets;
-import com.sun.cldc.jna.IntStar;
-import com.sun.squawk.platform.posix.callouts.Ioctl;
-import com.sun.squawk.platform.posix.callouts.LibC;
-import com.sun.squawk.platform.posix.callouts.Socket;
-import com.sun.squawk.platform.posix.callouts.NetDB;
+import com.sun.cldc.jna.ptr.IntByReference;
+import com.sun.squawk.platform.posix.natives.*;
+import com.sun.squawk.platform.posix.natives.LibC.*;
+
 import com.sun.squawk.util.Assert;
-import com.sun.squawk.platform.posix.callouts.LibC.*;
 import java.io.IOException;
 
 /**
@@ -44,25 +42,25 @@ public class GCFSocketsImpl implements GCFSockets {
         
     /** Read errno, try to clean up fd, and create exception. */
     private static IOException newError(int fd, String msg)  {
-        int err_code = LibC.errno(); // @TODO: NOT THREAD_SAFE!
+        int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
         VM.print(msg);
         VM.print(": errno: ");
         VM.print(err_code);
         VM.println();
-        Socket.shutdown(fd, 2);
-        Socket.close(fd);
+        Socket.INSTANCE.shutdown(fd, 2);
+        LibC.INSTANCE.close(fd);
         return new IOException(" errno: " + err_code + " on fd: " + fd + " during " + msg);
     }
     
     private void set_blocking_flags(int fd, boolean is_blocking) throws IOException{
-        int flags = LibC.fcntl(fd, LibC.F_GETFL, 0);
+        int flags = LibC.INSTANCE.fcntl(fd, LibC.F_GETFL, 0);
         if (flags >= 0) {
             if (is_blocking == true) {
                 flags &= ~LibC.O_NONBLOCK;
             } else {
                 flags |= LibC.O_NONBLOCK;
             }
-            int res = LibC.fcntl(fd, LibC.F_SETFL, flags);
+            int res = LibC.INSTANCE.fcntl(fd, LibC.F_SETFL, flags);
             if (res != -1) {
                 return;
             }
@@ -73,35 +71,35 @@ public class GCFSocketsImpl implements GCFSockets {
     /**
      * @inheritDoc
      */
-    public int open0(String hostname, int port, int mode) throws IOException {
+    public int open(String hostname, int port, int mode) throws IOException {
         // init_sockets(); win32 only
         int fd = -1;
 
-        fd = Socket.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
-System.err.println("Socket.socket fd: " + fd);
+        fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
+//System.err.println("Socket.socket fd: " + fd);
         if (fd < 0) {
             throw newError(fd, "socket create");
         }
 
         set_blocking_flags(fd, /*is_blocking*/ false);
 
-        NetDB.HostEnt phostent;
+        NetDB.hostent phostent;
         // hostname is always NUL terminated. See socket/Protocol.java for detail.
-        phostent = NetDB.gethostbyname(hostname);
+        phostent = NetDB.INSTANCE.gethostbyname(hostname);
         if (phostent == null) {
-            throw newError(fd, "gethostbyname (herrono = " + NetDB.h_errno() + ")");
+            throw newError(fd, "gethostbyname (herrono = " + NetDB.INSTANCE.h_errno() + ")");
         }
 
-        Socket.SockAddr destination_sin = new Socket.SockAddr();
+        Socket.sockaddr_in destination_sin = new Socket.sockaddr_in();
         destination_sin.sin_family = Socket.AF_INET;
         destination_sin.sin_port = Inet.htons((short) port);
         destination_sin.sin_addr = phostent.h_addr_list[0];
 
-System.err.println("   addr  " + Socket.inet_ntop(destination_sin.sin_addr));
-System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
+//System.err.println("   addr  " + inet_ntop(destination_sin.sin_addr).toString());
+//System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
 
-        if (Socket.connect(fd, destination_sin) < 0) {
-            int err_code = LibC.errno(); // @TODO: NOT THREAD_SAFE!
+        if (Socket.INSTANCE.connect(fd, destination_sin, destination_sin.size()) < 0) {
+            int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
             if (err_code == LibC.EINPROGRESS || err_code == LibC.EWOULDBLOCK) {
                 // When the socket is ready for connect, it becomes *writable*
                 // (according to BSD socket spec of select())
@@ -113,7 +111,23 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
 
         return fd;
     }
-    
+
+    /**
+     * Takes an IPv4 Internet address and returns string representing the address
+     * in `.' notation
+     * 
+     * @param in the opaque bytes of an IPv4 "struct in_addr"
+     * @return String
+     */
+    public static String inet_ntop(int in) {
+        Pointer charBuf = new Pointer(Socket.INET_ADDRSTRLEN);
+        IntByReference addrBuf = new IntByReference(in); // the addr is passed by value (to handle IPv6)
+        String result = Socket.INSTANCE.inet_ntop(Socket.AF_INET, addrBuf, charBuf, Socket.INET_ADDRSTRLEN);
+        addrBuf.free();
+        charBuf.free();
+        return result;
+    }
+
     /**
      * Opens a server TCP connection to clients.
      * Creates, binds, and listens
@@ -127,28 +141,28 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
     public int openServer(int port, int backlog) throws IOException {
         int fd = -1;
 
-        fd = Socket.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
+        fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
         if (fd < 0) {
             throw newError(fd, "socket create");
         }
         
         set_blocking_flags(fd, /*is_blocking*/ false);
 
-        IntStar option_val = new IntStar(1);
-        if (Socket.setSockOpt(fd, Socket.SOL_SOCKET, Socket.SO_REUSEADDR, option_val) < 0) {
+        IntByReference option_val = new IntByReference(1);
+        if (Socket.INSTANCE.setsockopt(fd, Socket.SOL_SOCKET, Socket.SO_REUSEADDR, option_val, 4) < 0) {
             throw newError(fd, "setSockOpt");
         }
-        option_val.freeMemory();
+        option_val.free();
         
-        Socket.SockAddr local_sin = new Socket.SockAddr();
+        Socket.sockaddr_in local_sin = new Socket.sockaddr_in();
         local_sin.sin_family = Socket.AF_INET;
         local_sin.sin_port = Inet.htons((short) port);
         local_sin.sin_addr = Socket.INADDR_ANY;
-        if (Socket.bind(fd, local_sin) < 0) {
+        if (Socket.INSTANCE.bind(fd, local_sin) < 0) {
             throw newError(fd, "bind");
         }
         
-       if (Socket.listen(fd, backlog) < 0) {
+       if (Socket.INSTANCE.listen(fd, backlog) < 0) {
             throw newError(fd, "listen");
         }
                
@@ -167,12 +181,13 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
     public int accept(int fd) throws IOException {
         VMThread.getSystemEvents().waitForReadEvent(fd);
 
-        Socket.SockAddr remote_sin = new Socket.SockAddr();
-        int newSocket = Socket.accept(fd, remote_sin);
+        Socket.sockaddr_in remote_sin = new Socket.sockaddr_in();
+        IntByReference address_len = new IntByReference(4);
+        int newSocket = Socket.INSTANCE.accept(fd, remote_sin, address_len);
         if (newSocket < 0) {
             throw newError(fd, "accept");
         }
-        
+        address_len.free();
         set_blocking_flags(newSocket, /*is_blocking*/ false);
         // we could read info about client from remote_sin, but don't need to.
         
@@ -183,7 +198,12 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
      * @inheritDoc
      */
     public int readBuf(int fd, byte b[], int offset, int length) throws IOException {
-        int result = LibC.read(fd, b, offset, length); // We rely on open0() for setting the socket to non-blocking
+        byte[] buf = b;
+        if (offset != 0) {
+            buf = new byte[length];
+            System.arraycopy(b, offset, buf, 0, length);
+        }
+        int result = LibC.INSTANCE.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
 
         if (result == 0) {
             // If remote side has shut down the connection gracefully, and all
@@ -193,12 +213,12 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
             // This is true for Win32/CE and Linux
             result = -1;
         } else if (result < 0) {
-            int err_code = LibC.errno();
+            int err_code = LibC.INSTANCE.errno();
             if (err_code == LibC.EWOULDBLOCK) {
                 VMThread.getSystemEvents().waitForReadEvent(fd);
-                result = LibC.read(fd, b, offset, length); // We rely on open0() for setting the socket to non-blocking
+                result = LibC.INSTANCE.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
             }
-            LibC.errCheckNeg(result);
+            LibCUtil.errCheckNeg(result);
         }
 
         return result;
@@ -230,15 +250,21 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
      */
     public int writeBuf(int fd, byte buffer[], int off, int len) throws IOException {
         int result = 0;
-        result = LibC.write(fd, buffer, off, len);// We rely on open0() for setting the socket to non-blocking
+                byte[] buf = buffer;
+        if (off != 0) {
+            buf = new byte[len];
+            System.arraycopy(buffer, off, buf, 0, len);
+        }
+
+        result = LibC.INSTANCE.write(fd, buf, len);// We rely on open0() for setting the socket to non-blocking
 
         if (result < 0) {
-            int err_code = LibC.errno();
+            int err_code = LibC.INSTANCE.errno();
             if (err_code == LibC.EWOULDBLOCK) {
                 VMThread.getSystemEvents().waitForWriteEvent(fd);
-                result = LibC.write(fd, buffer, off, len); // We rely on open0() for setting the socket to non-blocking
+                result = LibC.INSTANCE.write(fd, buf, len); // We rely on open0() for setting the socket to non-blocking
             } 
-            LibC.errCheckNeg(result);
+            LibCUtil.errCheckNeg(result);
         }
 
         return result;
@@ -253,22 +279,28 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
         return result;
     }
 
-    public int available0(int fd) throws IOException {
+    /**
+     * @inheritDoc
+     */
+    public int available(int fd) throws IOException {
         Pointer buf = new Pointer(4);
-        int err = Ioctl.ioctl(fd, Ioctl.FIONREAD, buf.address().toUWord().toPrimitive());
+        int err = Ioctl.INSTANCE.ioctl(fd, Ioctl.FIONREAD, buf.address().toUWord().toPrimitive());
         int result = buf.getInt(0);
         buf.free();
-        LibC.errCheckNeg(err);
+        LibCUtil.errCheckNeg(err);
 //        System.err.println("available0(" + fd + ") = " + result);
         return result; 
 
     }
 
-    public void close0(int fd) throws IOException {
+    /**
+     * @inheritDoc
+     */
+    public void close(int fd) throws IOException {
         // NOTE: this would block the VM. A real implementation should
         // make this a async native method.
-        Socket.shutdown(fd, 2);
-        Socket.close(fd);
+        Socket.INSTANCE.shutdown(fd, 2);
+        LibC.INSTANCE.close(fd);
     }
     
     /**
@@ -280,10 +312,10 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
      * @throws IOException on error
      */
     public void setSockOpt(int socket, int option_name, int option_value) throws IOException {
-        IntStar value = new IntStar(option_value);
-        int err = Socket.setSockOpt(socket, Socket.SOL_SOCKET, option_name, value);
-        value.freeMemory();
-        LibC.errCheckNeg(err);
+        IntByReference value = new IntByReference(option_value);
+        int err = Socket.INSTANCE.setsockopt(socket, Socket.SOL_SOCKET, option_name, value, 4);
+        value.free();
+        LibCUtil.errCheckNeg(err);
     }
   
     /**
@@ -294,11 +326,15 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
      * @throws IOException on error
      */
     public int getSockOpt(int socket, int option_name) throws IOException {
-        IntStar value = new IntStar(0);
-        int err = Socket.getSockOpt(socket, Socket.SOL_SOCKET, option_name, value);
-        int result = value.get();
-        value.freeMemory();
-        LibC.errCheckNeg(err);
+        IntByReference value = new IntByReference(0);
+        IntByReference opt_len = new IntByReference(0);
+
+        int err = Socket.INSTANCE.getsockopt(socket, Socket.SOL_SOCKET, option_name, value, opt_len);
+        int result = value.getValue();
+        value.free();
+        Assert.that(opt_len.getValue() == 4);
+        opt_len.free();
+        LibCUtil.errCheckNeg(err);
         return result;
     }
 

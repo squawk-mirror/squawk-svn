@@ -419,53 +419,68 @@ public class Pointer extends RawMemoryFloatAccess {
         return Address.fromObject(array).add(offset);
     }
     
-    /**
-     * Create a native buffer pointing to either the array data directly,
-     * or to a copy of the array data.
-     * bytes
-     * The returned point can be released when not needed.
-     * 
-     * @param array the array to access
-     * @return Pointer the C-accessible version of the array data
-     * @throws OutOfMemoryError if the underlying memory cannot be allocated
-     * @throws IllegalArgumentException if array is not really an array
-     */
-    public static Pointer createArrayBuffer(Object array) throws OutOfMemoryError {
-        Assert.always(GC.setGCEnabled(false) == false);
-        Klass klass = GC.getKlass(array);
-        if (!klass.isArray()) {
-            throw new IllegalArgumentException();
-        }
-        int length = GC.getArrayLength(array);
-        int elemsize = klass.getComponentType().getDataSize();
-        return new Pointer(Address.fromObject(array), length * elemsize);
-    }
-        
-    /**
-     * Create a native buffer pointing to either the array data directly,
-     * or to a copy of the array data.
-     * bytes
-     * The returned pointer can be released when not needed.
-     * 
-     * @param array the array to access
-     * @param offset index of the first element to access
-     * @param number number of elements to access
-     * @return Pointer the C-accessible version of the array data
-     * @throws OutOfMemoryError if the underlying memory cannot be allocated
-     * @throws IllegalArgumentException if array is not really an array
-     */
-    public static Pointer createArrayBuffer(Object array, int offset, int number) throws OutOfMemoryError {
-        Assert.always(GC.setGCEnabled(false) == false);
-        Klass klass = GC.getKlass(array);
-        if (!klass.isArray()) {
-            throw new IllegalArgumentException();
-        }
-
-        int length = GC.getArrayLength(array);
-        int elemsize = klass.getComponentType().getDataSize();
-        checkMultiBounds(length + elemsize, offset, number, elemsize);
-        return new Pointer(Address.fromObject(array).add(offset * elemsize), number * elemsize);
-    }
+//    /**
+//     * Get ready to allow creating array buffers.
+//     * @return previous state
+//     */
+//    public static boolean setUpArrayBufferState() {
+//        return GC.setGCEnabled(false);
+//    }
+//
+//    /**
+//     * Clean up after creating array buffers.
+//     * @return previous state
+//     */
+//    public static void tearDownArrayBufferState(boolean oldState) {
+//        GC.setGCEnabled(oldState);
+//    }
+//    /**
+//     * Create a native buffer pointing to either the array data directly,
+//     * or to a copy of the array data.
+//     * bytes
+//     * The returned point can be released when not needed.
+//     *
+//     * @param array the array to access
+//     * @return Pointer the C-accessible version of the array data
+//     * @throws OutOfMemoryError if the underlying memory cannot be allocated
+//     * @throws IllegalArgumentException if array is not really an array
+//     */
+//    public static Pointer createArrayBuffer(Object array) throws OutOfMemoryError {
+//        Assert.always(GC.setGCEnabled(false) == false);
+//        Klass klass = GC.getKlass(array);
+//        if (!klass.isArray()) {
+//            throw new IllegalArgumentException();
+//        }
+//        int length = GC.getArrayLength(array);
+//        int elemsize = klass.getComponentType().getDataSize();
+//        return new Pointer(Address.fromObject(array), length * elemsize);
+//    }
+//
+//    /**
+//     * Create a native buffer pointing to either the array data directly,
+//     * or to a copy of the array data.
+//     * bytes
+//     * The returned pointer can be released when not needed.
+//     *
+//     * @param array the array to access
+//     * @param offset index of the first element to access
+//     * @param number number of elements to access
+//     * @return Pointer the C-accessible version of the array data
+//     * @throws OutOfMemoryError if the underlying memory cannot be allocated
+//     * @throws IllegalArgumentException if array is not really an array
+//     */
+//    public static Pointer createArrayBuffer(Object array, int offset, int number) throws OutOfMemoryError {
+//        Assert.always(GC.setGCEnabled(false) == false);
+//        Klass klass = GC.getKlass(array);
+//        if (!klass.isArray()) {
+//            throw new IllegalArgumentException();
+//        }
+//
+//        int length = GC.getArrayLength(array);
+//        int elemsize = klass.getComponentType().getDataSize();
+//        checkMultiBounds(length + elemsize, offset, number, elemsize);
+//        return new Pointer(Address.fromObject(array).add(offset * elemsize), number * elemsize);
+//    }
  
     /**
      * Copy <code>len</code> bytes from <code>src</code> to <code>dst</code> starting at the given offsets.
@@ -491,5 +506,30 @@ public class Pointer extends RawMemoryFloatAccess {
         dst.checkMultiWrite(dstOffset, len, 1);
         src.checkMultiRead(srcOffset, len, 1);
         VM.copyBytes(src.address(), srcOffset, dst.address(), dstOffset, len, false);
+    }
+
+       /**
+     * Do a bounds check on accessing a range.
+     * <p>
+     *
+     * @param length the length pof the memory area being accessed, in bytes
+     * @param offset The offset in bytes from the beginning of the raw memory area
+     *      from which to read.
+     * @param number The number of items to load.
+     * @param elemsize The size of the each item in bytes
+     *
+     * @throws OffsetOutOfBoundsException Thrown if the offset is negative or greater than the size of the
+     *      raw memory area.  The role of the {@link SizeOutOfBoundsException} somewhat overlaps
+     *      this exception since it is thrown if the offset is within the object but outside the
+     *      mapped area. (See {@link RawMemoryAccess#map(long base, long size)}).
+     *
+     * @throws SizeOutOfBoundsException  Thrown if the object is not mapped,
+     *      or if the short falls in an invalid address range.
+     *
+     * @throws java.lang.SecurityException Thrown if this access is
+     * not permitted by the security manager.
+     */
+    static void checkMultiBounds1(int length, int offset, int number, int elemsize) throws OffsetOutOfBoundsException, SizeOutOfBoundsException {
+        checkMultiBounds(length, offset, number, elemsize);
     }
 }

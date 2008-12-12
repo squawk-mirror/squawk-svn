@@ -782,8 +782,8 @@ public class Romizer {
         Suite strippedSuite = suite.strip(suiteType, suite.getName(), suite.getParent());
         strippedSuite.close();
 
-System.err.println("strippedSuite.getName(): " + strippedSuite.getName());
-System.err.println("suiteName: " + suiteName);
+//System.err.println("strippedSuite.getName(): " + strippedSuite.getName());
+//System.err.println("suiteName: " + suiteName);
         String suiteFileName =  suiteName + Suite.FILE_EXTENSION;
         String url = "file://" + suiteFileName;
         DataOutputStream dos = Connector.openDataOutputStream(url);

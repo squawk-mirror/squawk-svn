@@ -1,36 +1,42 @@
 /*
  * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
+ *
  * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
  * Park, CA 94025 or visit www.sun.com if you need additional
  * information or have any questions.
  */
 
-package com.sun.squawk.platform.posix.callouts;
+package com.sun.squawk.platform.posix.natives;
 
 import com.sun.cldc.jna.*;
+import com.sun.cldc.jna.ptr.*;
 
 /**
  *
- * This is the Java interface to the BSD sockets API
+ * java wrapper around BSD sockets
  */
-public class Socket extends LibC {
+@Includes({"<sys/socket.h>", "<netinet/in.h>"})
+public interface Socket extends Library {
+    Socket INSTANCE = (Socket)
+            Native.loadLibrary("RTLD",
+                               Socket.class);
+        
     //            /* Supported address families. */
     //#define AF_UNSPEC	0
     //#define AF_UNIX		1	/* Unix domain sockets 		*/
@@ -44,42 +50,42 @@ public class Socket extends LibC {
     //#define AF_X25		9	/* Reserved for X.25 project 	*/
     //#define AF_INET6	10	/* IP version 6			*/
     //#define AF_MAX		12	/* For now.. */
-    public final static int AF_INET = 2;
+    public final static int AF_INET = IMPORT;
     
     /* Socket types. */
     //#define SOCK_RDM	4		/* reliably-delivered message	*/
     //#define SOCK_SEQPACKET	5		/* sequential packet socket	*/
     //#define SOCK_PACKET	10		/* linux specific way of	*/
-    public final static int SOCK_STREAM = 1; /* stream (connection) socket	*/
-    public final static int SOCK_DGRAM = 2;  /* datagram (conn.less) socket	*/
-    public final static int SOCK_RAW = 3;    /* raw socket			*/
+    public final static int SOCK_STREAM = IMPORT; /* stream (connection) socket	*/
+    public final static int SOCK_DGRAM = IMPORT;  /* datagram (conn.less) socket	*/
+    public final static int SOCK_RAW = IMPORT;    /* raw socket			*/
     
     /* Definitions of bits in internet address integers. */
-    public final static int INADDR_ANY = 0x00000000;
+    public final static int INADDR_ANY = IMPORT;
     
-    public final static int INET_ADDRSTRLEN = 16;
+    public final static int INET_ADDRSTRLEN = IMPORT;
     
     /* Socket options */
     /*
      * Level number for (get/set)sockopt() to apply to socket itself.
      */
-    public final static int SOL_SOCKET = 0xffff;		/* options for socket level */
+    public final static int SOL_SOCKET = IMPORT;		/* options for socket level */
     /*
      * Option flags per-socket.
      */
-    public final static int SO_DEBUG = 0x0001;		/* turn on debugging info recording */
-    public final static int SO_ACCEPTCONN = 0x0002;		/* socket has had listen() */
-    public final static int SO_REUSEADDR = 0x0004;		/* allow local address reuse */
-    public final static int SO_KEEPALIVE = 0x0008;		/* keep connections alive */
-    public final static int SO_DONTROUTE = 0x0010;		/* just use interface addresses */
-    public final static int SO_BROADCAST = 0x0020;		/* permit sending of broadcast msgs */
+    public final static int SO_DEBUG = IMPORT;		/* turn on debugging info recording */
+    public final static int SO_ACCEPTCONN = IMPORT;		/* socket has had listen() */
+    public final static int SO_REUSEADDR = IMPORT;		/* allow local address reuse */
+    public final static int SO_KEEPALIVE = IMPORT;		/* keep connections alive */
+    public final static int SO_DONTROUTE = IMPORT;		/* just use interface addresses */
+    public final static int SO_BROADCAST = IMPORT;		/* permit sending of broadcast msgs */
 //#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
 //#define	SO_USELOOPBACK	0x0040		/* bypass hardware when possible */
 //#define SO_LINGER	0x0080          /* linger on close if data present (in ticks) */
 //#else
 //#define SO_LINGER	0x1080          /* linger on close if data present (in seconds) */
 //#endif	/* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
-    public final static int SO_OOBINLINE = 0x0100;		/* leave received OOB data in line */
+    public final static int SO_OOBINLINE = IMPORT;		/* leave received OOB data in line */
 //#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
 //#define	SO_REUSEPORT	0x0200		/* allow local address & port reuse */
 //#define	SO_TIMESTAMP	0x0400		/* timestamp received dgram traffic */
@@ -92,26 +98,6 @@ public class Socket extends LibC {
 //#define SO_WANTOOBFLAG	0x8000		/* APPLE: Want OOB in MSG_FLAG on receive */
 //#endif
 //#endif	/* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */ 
-        
-    /* Actual function pointers for calling out to libs */
-    private static final Function socketPtr     = Function.getFunction("socket");
-    private static final Function connectPtr    = Function.getFunction("connect");
-    private static final Function bindPtr       = Function.getFunction("bind");
-    private static final Function listenPtr     = Function.getFunction("listen");
-    private static final Function acceptPtr     = Function.getFunction("accept");
-    private static final Function shutdownPtr   = Function.getFunction("shutdown");
-/*if[TRUE]*/
-    private static final Function inet_ntopPtr  = Function.getFunction("inet_ntop");
-    private static final Function inet_ptonPtr  = Function.getFunction("inet_pton");
-/*else[TRUE]*/
-//    private static final Function inet_ntoaPtr  = Function.getFunction("inet_ntoa");
-//    private static final Function inet_atonPtr  = Function.getFunction("inet_aton");
-/*end[TRUE]*/
-    private static final Function setSockOptPtr = Function.getFunction("setsockopt");
-    private static final Function getSockOptPtr = Function.getFunction("getsockopt");
-    
-    /* pure static class */
-    private Socket() {}
 
     /**
      * socket() creates an endpoint for communication and returns a descriptor.
@@ -128,27 +114,18 @@ public class Socket extends LibC {
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-     public static int socket(int domain, int type, int protocol) {
-         return socketPtr.call3(domain, type, protocol);
-     }    
+     int socket(int domain, int type, int protocol);
      
     /**
      * initiate a connection on a socket.
      * 
      * @param socket socket descriptor
-     * @param address ptr to a SockAddr_In buffer
+     * @param address ptr to a sockaddr_in buffer
+     * @param address_len pass in sockaddr_in.size()
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int connect(int socket, SockAddr address) {
-        address.allocateMemory();
-        address.write();
-System.err.println("Socket.connect(" + socket + ", " + address);
-System.err.println("   mem " + address.getPointer());      
-        int result = connectPtr.call3(socket, address.getPointer(), address.size());
-        address.freeMemory();
-        return result;
-    }
+    int connect(int socket, sockaddr_in address, int address_len);
     
     /**
      * bind a socket to a port
@@ -158,38 +135,18 @@ System.err.println("   mem " + address.getPointer());
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int bind(int socket, SockAddr myaddress) {
-        myaddress.allocateMemory();
-        myaddress.write();
-//System.err.println("Socket.connect(" + socket + ", " + address);
-//System.err.println("   mem " + address.getPointer());      
-        int result = bindPtr.call3(socket, myaddress.getPointer(), myaddress.size());
-        myaddress.freeMemory();
-        return result;
-    }
+    int bind(int socket, sockaddr_in myaddress);
     
     /**
      * accept a connection from a client
      * 
      * @param socket socket descriptor
      * @param remoteAddress ptr to a SockAddr_In buffer that will contain the address of the remote client
+     * @param address_len pointer to int containing the size of an IP address
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int accept(int socket, SockAddr remoteAddress) {
-        remoteAddress.allocateMemory();
-        IntStar addr_len = new IntStar(remoteAddress.size());
-        remoteAddress.write();
-//System.err.println("Socket.accept(" + socket);
-        int result = acceptPtr.call3(socket, remoteAddress.getPointer(), addr_len.getPointer());
-        int errno = LibC.errno();
-        remoteAddress.read();
-//System.err.println("   errno " + errno);
-//System.err.println("   remote address " + remoteAddress);
-        addr_len.freeMemory();
-        remoteAddress.freeMemory();
-        return result;
-    }
+    int accept(int socket, sockaddr_in remoteAddress, IntByReference address_len);
      
     /**
      * listen for connections on socket
@@ -199,11 +156,7 @@ System.err.println("   mem " + address.getPointer());
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int listen(int socket, int backlog) {
-//System.err.println("Socket.listen(" + socket + ", " + socket);
-        int result = listenPtr.call2(socket, backlog);
-        return result;
-    }
+    int listen(int socket, int backlog);
     
     /**
      * initiate a connection on a socket.
@@ -214,9 +167,7 @@ System.err.println("   mem " + address.getPointer());
      *             receives will be disallowed.
      * @return  A -1 is returned if an error occurs, otherwise zero is returned
      */
-     public static int shutdown(int socket, int how) {
-         return shutdownPtr.call2(socket, how);
-     }
+     int shutdown(int socket, int how);
      
     /** C STRUCTURE sockaddr_in  /
      struct sockaddr_in {
@@ -233,22 +184,11 @@ System.err.println("   mem " + address.getPointer());
 	char		sa_data[14];	/* [XSI] addr value (actually larger) 
 };
      */
-    public final static class SockAddr extends DynamicStructure {
-        /* layout indexes */
-        final static int SIN_LEN_INDEX = 1;
-        final static int SIN_FAMILY_INDEX = 2;
-        final static int SIN_PORT_INDEX = 3;
-        final static int SIN_ADDR_INDEX = 4;
-        
-        private final static int[] layout = initLayout(SockAddr.class, 4);
-        
-        public int[] getLayout() {
-            return layout;
-        }
-        
+    public final static class sockaddr_in extends Structure {        
         /** u_char 
          * DOES NOT EXIST ON SOLARIS!
          */
+        @IfNDef("sun")
         public int sin_len;
         
         /** u_char */
@@ -260,34 +200,34 @@ System.err.println("   mem " + address.getPointer());
         /** in_addr is an opaque type that is typically a 4-byte int for IPv4.*/
         public int sin_addr;
                 
-        public SockAddr() {
+        public sockaddr_in() {
             sin_len = size(); // default....
         }
         
-        public void read() {
-            Pointer p = getPointer();
-            if (layout[SIN_LEN_INDEX] >= 0) {
-                sin_len = p.getByte(layout[SIN_LEN_INDEX]) & 0xFF;
-                sin_family = p.getByte(layout[SIN_FAMILY_INDEX]) & 0xFF;
-            } else {    // Solaris and ?
-                sin_family = p.getShort(layout[SIN_FAMILY_INDEX]) & 0xFFFF;
-            }
-            sin_port    = p.getShort(layout[SIN_PORT_INDEX]) & 0xFFFF;
-            sin_addr    = p.getInt(layout[SIN_ADDR_INDEX]);
-        }
-
-        public void write() {
-            Pointer p = getPointer();
-            clear();
-            if (layout[SIN_LEN_INDEX] >= 0) {
-                p.setByte(layout[SIN_LEN_INDEX], (byte) sin_len);
-                p.setByte(layout[SIN_FAMILY_INDEX], (byte) sin_family);
-            } else {   // Solaris and ?
-                p.setShort(layout[SIN_FAMILY_INDEX], (byte) sin_family);
-            }
-            p.setShort(layout[SIN_PORT_INDEX],  (short)sin_port);
-            p.setInt(layout[SIN_ADDR_INDEX],    sin_addr);
-        }
+//        public void read() {
+//            Pointer p = getPointer();
+//            if (layout[SIN_LEN_INDEX] >= 0) {
+//                sin_len = p.getByte(layout[SIN_LEN_INDEX]) & 0xFF;
+//                sin_family = p.getByte(layout[SIN_FAMILY_INDEX]) & 0xFF;
+//            } else {    // Solaris and ?
+//                sin_family = p.getShort(layout[SIN_FAMILY_INDEX]) & 0xFFFF;
+//            }
+//            sin_port    = p.getShort(layout[SIN_PORT_INDEX]) & 0xFFFF;
+//            sin_addr    = p.getInt(layout[SIN_ADDR_INDEX]);
+//        }
+//
+//        public void write() {
+//            Pointer p = getPointer();
+//            clear();
+//            if (layout[SIN_LEN_INDEX] >= 0) {
+//                p.setByte(layout[SIN_LEN_INDEX], (byte) sin_len);
+//                p.setByte(layout[SIN_FAMILY_INDEX], (byte) sin_family);
+//            } else {   // Solaris and ?
+//                p.setShort(layout[SIN_FAMILY_INDEX], (byte) sin_family);
+//            }
+//            p.setShort(layout[SIN_PORT_INDEX],  (short)sin_port);
+//            p.setInt(layout[SIN_ADDR_INDEX],    sin_addr);
+//        }
         
         public String toString() {
             return "Struct_SockAddr{len: " + sin_len + ", family: " + sin_family + ", port: " + sin_port + ", sin_addr: " + sin_addr + "}";
@@ -305,28 +245,20 @@ System.err.println("   mem " + address.getPointer());
      * @param in_addr (OUT) on sucessful return will contain the 32 bits of an IPv4 "struct in_addr"
      * @return true if success
      */
-    public static boolean inet_pton(String str, IntStar in_addr) {
-        Pointer name0 = Pointer.createStringBuffer(str);
-        int result =  inet_ptonPtr.call3(AF_INET, name0, in_addr.getPointer());
-        name0.free();
-        return (result == 0) ? false : true;
-    }
+    boolean inet_pton(String str, IntByReference in_addr);
 
     /**
      * Takes an IPv4 Internet address and returns string representing the address
      * in `.' notation
      * 
-     * @param in the opaque bytes of an IPv4 "struct in_addr"
-     * @return String
+     * @param af family (should be AF_INET)
+     * @param src a pointer to the src internet address
+     * @param dst  a pointer to tmp buffer used to store characters for the result.
+     * @param size  the size of the tmp dst buffer 
+     * @return String (created from the characters in the dst buffer)
      */
-    public static String inet_ntop(int in) {
-        Pointer charBuf = new Pointer(INET_ADDRSTRLEN);
-        IntStar addrBuf = new IntStar(in); // the addr is passed by value (to handle IPv6)
-        String result = Function.returnString(inet_ntopPtr.call4(AF_INET, addrBuf.getPointer(), charBuf, INET_ADDRSTRLEN));
-        addrBuf.freeMemory();
-        charBuf.free();
-        return result;
-    }
+    String inet_ntop(int af, IntByReference src, Pointer dst, int size);
+    
 /*else[TRUE]*/
 //    /**
 //     * Interprets the specified character string as an Internet address, placing the
@@ -363,18 +295,11 @@ System.err.println("   mem " + address.getPointer());
      * @param level 
      * @param option_name 
      * @param option_value 
+     * @param option_len (option_value.size()
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int setSockOpt(int socket, int level, int option_name, Structure option_value) {
-        option_value.allocateMemory();
-        option_value.write();
-//System.err.println("Socket.setSockOpt(" + socket);
-        int result = setSockOptPtr.call5(socket, level, option_name, option_value.getPointer(), option_value.size());
-//System.err.println("   address " + option_value);
-        option_value.freeMemory();
-        return result;
-    }
+    int setsockopt(int socket, int level, int option_name, ByReference option_value, int option_len);
     
     /**
      * get a socket option
@@ -383,20 +308,10 @@ System.err.println("   mem " + address.getPointer());
      * @param level 
      * @param option_name 
      * @param option_value 
+     * @param option_len On return, the by-reference int will contain the size of the option_value data
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    public static int getSockOpt(int socket, int level, int option_name, Structure option_value) {
-        IntStar opt_len = new IntStar(option_value.size());
-        option_value.allocateMemory();
-        
-System.err.println("Socket.getSockOpt(" + socket);
-        int result = getSockOptPtr.call5(socket, level, option_name, option_value.getPointer(), opt_len.getPointer());
-System.err.println("   address " + option_value);
-System.err.println("   real opt_len " + opt_len.get());
-        option_value.read();
-        option_value.freeMemory();
-        opt_len.freeMemory();
-        return result;
-    }
+    int getsockopt(int socket, int level, int option_name, ByReference option_value, IntByReference option_len);
+
 }

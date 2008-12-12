@@ -23,22 +23,26 @@
  */
 package com.sun.cldc.jna;
 
-/**
- * LibraryImport is the interface that all Library interface declarations should extend.
- * 
- * Import annotations can be used in Library declaration interfaces, but they will be stripped
- * by the preprocessor after code generation.
- */
-public interface LibraryImport {
-    /**
-     * The value of any constant set to "IMPORT" will be the value of the C macro with the same name as the constant field's.
-     */
-    public final static int IMPORT = 0;
-    
-    /**
-     * The value of any constant set to "DEFINED" will be true if there is a defiend C macro with the same name 
-     * as the constant field's, otherwise false.
-     */
-    public final static boolean DEFINED = true;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
+/**
+ * The IfDef annotation can be applied to field, 
+ * variable, method, and structure definitions to specify a 
+ * to specify that the item should be conditionally imported 
+ * only if the named C macro is defined.
+ * 
+ * An "unimported" field, variable, method, or structure may have a Java declaration,
+ * but the definition is unspecified. Any use of the unimported name may result in an runtime exception.
+ * 
+ * @TODO Only implemented for constant definitions and structure fields for now...
+ * 
+ */
+@Retention(RetentionPolicy.RUNTIME)
+public @interface IfDef {
+    /**
+     * Returns the name of the C macro that the element is dependent on.
+     * @return String
+     */
+    String value();
 }

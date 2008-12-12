@@ -23,37 +23,26 @@
  */
 package com.sun.cldc.jna;
 
-/*if[!SQUAWK]*/
-import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-/*end[SQUAWK]*/
 
 /**
- * The Includes annotation can be applied to the top-level interface declarations in a JNA
- * Library declaration to indicate the C include files that contain the relevent #defines and structure definitions
- * for that library
+ * The IfNDef annotation can be applied to field, 
+ * variable, method, and structure definitions to specify a 
+ * to specify that the item should be conditionally imported 
+ * only if the named C macro is NOT defined.
  * 
- * Example:
+ * An "unimported" field, variable, method, or structure may have a Java declaration,
+ * but the definition is unspecified. Any use of the unimported name may result in an runtime exception.
  * 
- *    @Includes( "<errno.h>", 
- *               "<fcntl.h>",
- *                "<sys/stat.h>")
- *    public interface LibC extends LibraryImport { ... }
+ * @TODO Only implemented for constant definitions and structure fields for now...
  * 
  */
-/*if[!SQUAWK]*/
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-/*end[SQUAWK]*/
-
-public
-/*if[!SQUAWK]*/
-        @
-/*end[SQUAWK]*/
-        interface
-        Includes {
-
-    String[] value();
+public @interface IfNDef {
+    /**
+     * Returns the name of the C macro that the element is dependent on.
+     * @return String
+     */
+    String value();
 }

@@ -46,6 +46,11 @@ public class Assert {
     public static final boolean SHOULD_NOT_REACH_HERE_ALWAYS_ENABLED = true;
 
     /**
+     * Whether Assert.always is a fatal error or throws an exception (usually TRUE)
+     */
+    public static final boolean ASSERT_ALWAYS_IS_FATAL = true;
+
+    /**
      * Don't let anyone instantiate this class.
      */
     private Assert() {}
@@ -213,9 +218,13 @@ public class Assert {
      */
     public static void always(boolean cond, String msg) {
         if (!cond) {
-            VM.print("Assertion failed: ");
-            VM.println(msg);
-            VM.fatalVMError();
+            if (ASSERT_ALWAYS_IS_FATAL) {
+                VM.print("Assertion failed: ");
+                VM.println(msg);
+                VM.fatalVMError();
+            } else {
+                throwAssertFailedException("Assertion failed: " + msg);
+            }
         }
     }
 
@@ -232,8 +241,12 @@ public class Assert {
      */
     public static void always(boolean cond) {
         if (!cond) {
-            VM.println("Assertion failed");
-            VM.fatalVMError();
+            if (ASSERT_ALWAYS_IS_FATAL) {
+                VM.println("Assertion failed");
+                VM.fatalVMError();
+            } else {
+                throwAssertFailedException("Assertion failed");
+            }
         }
     }
 }

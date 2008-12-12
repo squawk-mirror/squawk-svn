@@ -316,7 +316,7 @@ System.err.println("Lookedup OM: " + uri);
         System.arraycopy(current, 0, arr, 0, current.length);
         arr[current.length] = om;
         readOnlyObjectMemories = arr;
-System.err.println("Registered OM: " + om.getURI());
+//System.err.println("Registered OM: " + om.getURI());
 /*if[!FLASH_MEMORY]*/
         if (VM.isVeryVerbose()) {
             PrintStream out = null;
@@ -721,6 +721,14 @@ System.err.println("Registered OM: " + om.getURI());
         boolean oldState = gcEnabled;
         gcEnabled = newState;
         return oldState;
+    }
+
+    /**
+     * Is Garnage collection enabled?
+     * @return true if GC enabled.
+     */
+    public static boolean isGCEnabled() {
+        return gcEnabled;
     }
 
     /**

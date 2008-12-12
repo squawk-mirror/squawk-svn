@@ -21,45 +21,39 @@
  * Park, CA 94025 or visit www.sun.com if you need additional
  * information or have any questions.
  */
+package com.sun.cldc.jna;
 
-package com.sun.squawk.platform.posix.callouts;
-
-import com.sun.cldc.jna.*;
+/*if[!SQUAWK]*/
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+/*end[SQUAWK]*/
 
 /**
- * java wrapper around #include <sys/time.h>
+ * The Includes annotation can be applied to the top-level interface declarations in a JNA
+ * Library declaration to indicate the C include files that contain the relevent #defines and structure definitions
+ * for that library
+ * 
+ * Example:
+ * 
+ *    @Includes( "<errno.h>", 
+ *               "<fcntl.h>",
+ *                "<sys/stat.h>")
+ *    public interface LibC extends LibraryImport { ... }
+ * 
  */
-public class Time {
-    
-    /* pure static class */
-    private Time() {}
-    /**
-     * 
-         struct timeval {
-             time_t       tv_sec;   // seconds since Jan. 1, 1970 
-             suseconds_t  tv_usec;  // and microseconds 
-     };
-     */
-     public final static class Struct_TimeVal extends Structure {
-        public long tv_sec;  // seconds since Jan. 1, 1970  (really an unsigned int)
-        public long tv_usec; // microseconds, (really an unsigned int)
-        
-        public void read() {
-            Pointer p = getPointer();
-            tv_sec = ((long)p.getInt(0)) & 0xFFFFFFFF;
-            tv_usec = ((long)p.getInt(4)) & 0xFFFFFFFF;
-        }
+/*if[!SQUAWK]*/
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+/*end[SQUAWK]*/
 
-         public void write() {
-             Pointer p = getPointer();
-             p.setInt(0, (int) tv_sec);
-             p.setInt(4, (int) tv_usec);
-         }
+public
+/*if[!SQUAWK]*/
+        @
+/*end[SQUAWK]*/
+        interface
+        Includes {
 
-        public int size() {
-            return 4 * 2;
-        }
-    
-     }
-
+    String[] value();
 }

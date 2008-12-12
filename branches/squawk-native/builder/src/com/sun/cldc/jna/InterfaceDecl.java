@@ -44,7 +44,7 @@ public class InterfaceDecl {
     HashSet<String> globals;
     ArrayList<Field> instanceVars;
     ArrayList<Class> structs;
-    HashMap<String, Method> methods;
+    HashMap<Method, String> methods;
     HashMap<String, Method> getters;
     HashMap<String, Method> setters;
 
@@ -54,7 +54,7 @@ public class InterfaceDecl {
         globals = new HashSet<String>();
         instanceVars = new ArrayList<Field>();
         structs = new ArrayList<Class>();
-        methods = new HashMap<String, Method>();
+        methods = new HashMap<Method, String>();
         includes = new String[0];
         getters = new HashMap<String, Method>();
         setters = new HashMap<String, Method>();
@@ -150,7 +150,7 @@ public class InterfaceDecl {
                 }
             } else {
                 if (Modifier.isAbstract(m.getModifiers())) {
-                    methods.put(nativeName, m);
+                    methods.put(m, nativeName);
                 }
             }
         }

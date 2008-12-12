@@ -122,7 +122,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
             );
         }
 //System.err.println("open: hostname: " + hostname + " port: " + port + " mode: " + mode);
-        handle = gcfSockets.open0(remoteHostName, port, mode);
+        handle = gcfSockets.open(remoteHostName, port, mode);
         opens++;
         copen = true;
         this.mode = mode;
@@ -135,7 +135,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
         
    /**
      * Open the connection
-     * @param the accepted socket handle
+     * @param fd the accepted socket handle
      */
     public Protocol(int fd) {
         handle = fd;
@@ -221,7 +221,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
      * @exception  IOException  if an I/O error occurs when closing the
      *                          connection.
      */
-    synchronized public void close() throws IOException {
+    public synchronized void close() throws IOException {
         if (copen) {
             copen = false;
             realClose();
@@ -235,7 +235,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
      */
     synchronized void realClose() throws IOException {
         if (--opens == 0) {
-             gcfSockets.close0(this.handle);
+             gcfSockets.close(this.handle);
         }
     }
 
@@ -259,6 +259,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
         return new DataOutputStream(openOutputStream());
     }
 
+/*if[DEBUG_CODE_ENABLED]*/
     /**
      * test code
      * 
@@ -270,7 +271,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
             Thread twiddler = new Thread(new Runnable() {
                 public void run() {
                     while (true) {
- //                       VM.print('$');
+                        VM.print('$');
                         Thread.yield();
                     }
                 }
@@ -301,6 +302,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
             ex.printStackTrace();
         }
     }
+/*end[DEBUG_CODE_ENABLED]*/
 
     public void setSocketOption(byte option, int value) throws IllegalArgumentException, IOException {
         ensureOpen();
@@ -468,7 +470,7 @@ class PrivateInputStream extends InputStream {
      */
     synchronized public int available() throws IOException {
         ensureOpen();
-        return Protocol.gcfSockets.available0(parent.handle);
+        return Protocol.gcfSockets.available(parent.handle);
     }
 
     /**

@@ -212,7 +212,11 @@ public final class ChannelConstants {
         DLOPEN                                  = 1996,
         DLCLOSE                                 = 1997,
         DLERROR                                 = 1998,
-        DLSYM                                   = 1999;
+        DLSYM                                   = 1999,
+        
+        /* Book keeping */
+        LAST_OPCODE                             = 1999;
+
             
 /*if[DEBUG_CODE_ENABLED]*/
     private static final String[] Mnemonics = {

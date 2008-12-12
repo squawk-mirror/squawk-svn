@@ -25,7 +25,7 @@ package com.sun.squawk.io.j2me.file;
 //package com.sun.midp.io.j2me.file;
 
 import com.sun.squawk.VM;
-import com.sun.squawk.platform.BaseFileHandler;
+import com.sun.squawk.platform.GCFFile;
 import com.sun.squawk.io.ConnectionBaseAdapter;
 import com.sun.squawk.io.j2me.ParameterParser;
 import java.io.IOException;
@@ -64,7 +64,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
     /** File original URL */
     private String fileURL;
     /** A peer to the native file */
-    private BaseFileHandler fileHandler;
+    private GCFFile fileHandler;
 
 //    /** Indicates if there is a need to try to load alternative file handler */
 //    private static boolean hasOtherFileHandler = true;
@@ -1031,7 +1031,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * @return
      */
     public static boolean exists(String name) {
-        BaseFileHandler handler = getFileHandler();
+        GCFFile handler = getFileHandler();
         handler.connect("", name);
         return handler.exists();
     }
@@ -1042,7 +1042,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * @throws IOException if file can't be created
      */
     public static void create(String name) throws IOException {
-        BaseFileHandler handler = getFileHandler();
+        GCFFile handler = getFileHandler();
         handler.connect("", name);
         handler.create();
     }
@@ -1261,7 +1261,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //     *         empty array is returned if there are no roots available.
 //     */
 //    public static Vector listRoots() {
-//        BaseFileHandler fh = getFileHandler();
+//        GCFFile fh = getFileHandler();
 //        return fh.listRoots();
 //    }
 //
@@ -1326,8 +1326,8 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * Gets the file handler.
      * @return handle to current file connection
      */
-    private static BaseFileHandler getFileHandler() {
-//        String def = "com.sun.midp.io.j2me.file.DefaultFileHandler";
+    private static GCFFile getFileHandler() {
+//        String def = "com.sun.midp.io.j2me.file.GCFFileImpl";
 //        String n = null;
 //        if (hasOtherFileHandler) {
 //            n = Configuration.getProperty(
@@ -1338,7 +1338,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //        }
 //        if (hasOtherFileHandler) {
 //            try {
-//                return (BaseFileHandler) (Class.forName(n)).newInstance();
+//                return (GCFFile) (Class.forName(n)).newInstance();
 //            } catch (ClassNotFoundException e) {
 //                hasOtherFileHandler = false;
 //            } catch (Error e) {
@@ -1349,9 +1349,9 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //                hasOtherFileHandler = false;
 //            }
 //        }
-        return new com.sun.squawk.platform.posix.DefaultFileHandler();
+        return new com.sun.squawk.platform.posix.GCFFileImpl();
 //        try {
-//            return (BaseFileHandler) (Class.forName(def)).newInstance();
+//            return (GCFFile) (Class.forName(def)).newInstance();
 //        } catch (ClassNotFoundException e) {
 //        } catch (Error e) {
 //        } catch (IllegalAccessException e) {
@@ -1360,6 +1360,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //        throw new Error("Unable to create FileConnection Handler");
     }
 
+/*if[DEBUG_CODE_ENABLED]*/
     /**
      * test code
      * @param args
@@ -1379,10 +1380,13 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
             }, "Twiddler Thread");
             twiddler.setPriority(Thread.MIN_PRIORITY);
             VM.setAsDaemonThread(twiddler);
+            System.err.println("starting twiddler");
+
             twiddler.start();
 
             StreamConnection conn = null;
             InputStream is = null;
+            System.err.println("openning connection on " + args[0]);
 
             try {
                 conn = (StreamConnection) Connector.open(args[0], Connector.READ);
@@ -1405,6 +1409,8 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
             ex.printStackTrace();
         }
     }
+/*end[DEBUG_CODE_ENABLED]*/
+
 }
 
 /**

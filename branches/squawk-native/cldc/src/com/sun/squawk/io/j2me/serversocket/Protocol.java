@@ -47,8 +47,8 @@ public class Protocol extends ConnectionBase
     /** Socket object used by native code */
     int handle;
 
-    /** Access mode */
-    private int mode;
+//    /** Access mode */
+//    private int mode;
 
     /** Open count */
     int opens = 0;
@@ -152,7 +152,7 @@ public class Protocol extends ConnectionBase
      */
     synchronized void realClose() throws IOException {
         if (--opens == 0) {
-             gcfSockets.close0(this.handle);
+             gcfSockets.close(this.handle);
         }
     }
 

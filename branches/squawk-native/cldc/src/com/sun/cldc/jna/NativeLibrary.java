@@ -72,6 +72,10 @@ public class NativeLibrary {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        if (DEBUG) {
+            VM.print("Calling DLSYM on ");
+            VM.println(name);
+        }
         Pointer name0 = Pointer.createStringBuffer(name);
         int result = VM.execSyncIO(ChannelConstants.DLSYM, ptr.toUWord().toInt(), name0.address().toUWord().toInt(), 0, 0, 0, 0, null, null);
         name0.free();
@@ -142,7 +146,11 @@ public class NativeLibrary {
      */
     public static NativeLibrary getInstance(String name) {
         Pointer name0 = Pointer.createStringBuffer(name);
-        int result = VM.execSyncIO(ChannelConstants.DLOPEN, name0.address().toUWord().toInt(), 0, 0, 0, 0, 0, 0, null, null);
+        if (DEBUG) {
+            VM.print("Calling DLOPEN on ");
+            VM.println(name);
+        }
+        int result = VM.execSyncIO(ChannelConstants.DLOPEN, name0.address().toUWord().toInt(), 0, 0, 0, 0, 0, null, null);
         Address r = Address.fromPrimitive(result);
         name0.free();
         if (r.isZero()) {
@@ -169,6 +177,10 @@ public class NativeLibrary {
         if (closed || ptr.isZero()) {
             throw new RuntimeException("closed or RTLD_DEFAULT");
         }
+        if (DEBUG) {
+            VM.print("Calling DLCLOSE on ");
+            VM.println(name);
+        }
         Pointer name0 = Pointer.createStringBuffer(name);
         int result = VM.execSyncIO(ChannelConstants.DLCLOSE, ptr.toUWord().toInt(), 0, 0, 0, 0, 0, 0, null, null);
         name0.free();
@@ -183,7 +195,10 @@ public class NativeLibrary {
      * @return String (may be null)
      */
     public static String errorStr() {
-        int result = VM.execSyncIO(ChannelConstants.DLERROR, 0, 0, 0, 0, 0, 0, 0, null, null);
+        if (DEBUG) {
+            VM.println("Calling DLERROR");
+        }
+        int result = VM.execSyncIO(ChannelConstants.DLERROR, 0, 0, 0, 0, 0, 0, null, null);
         Address r = Address.fromPrimitive(result);
         if (r.isZero()) {
             return null;

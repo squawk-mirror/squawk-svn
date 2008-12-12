@@ -3277,6 +3277,14 @@ hbp.dumpState();
      *                      Non-blocking I/O                                 *
     \*-----------------------------------------------------------------------*/
 
+    private static void checkOpcode(int opcode) {
+/*if[DEBUG_CODE_ENABLED]*/
+        if (opcode < 0 || opcode > ChannelConstants.LAST_OPCODE) {
+            throw new Error("Unknown Channel opcode: " + opcode);
+        }
+/*end[DEBUG_CODE_ENABLED]*/
+    }
+
     /**
      * Executes a non-blocking I/O operation whose result is guaranteed to be available immediately.
      * This mechanism requires 2 calls to the IO sub-system. The first sets up the globals used to pass the parameters and
@@ -3294,6 +3302,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     public static int execSyncIO(int op, int i1, int i2, int i3, int i4, int i5, int i6, Object send, Object receive) {
+        checkOpcode(op);
         executeCIO(-1, op, -1, i1, i2, i3, i4, i5, i6, send, receive);
         return serviceResult();
     }
@@ -3317,6 +3326,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     public static int execSyncIO(int context, int op, int i1, int i2, int i3, int i4, int i5, int i6, Object send, Object receive) {
+        checkOpcode(op);
         executeCIO(context, op, -1, i1, i2, i3, i4, i5, i6, send, receive);
         return serviceResult();
     }
@@ -3329,6 +3339,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     public static int execSyncIO(int op, int i1) {
+        checkOpcode(op);
         executeCIO(-1, op, -1, i1, 0, 0, 0, 0, 0, null, null);
         return serviceResult();
     }
@@ -3342,6 +3353,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     static int execSyncIO(int op, int i1, int i2) {
+        checkOpcode(op);
         executeCIO(-1, op, -1, i1, i2, 0, 0, 0, 0, null, null);
         return serviceResult();
     }
@@ -3357,6 +3369,7 @@ hbp.dumpState();
      * @return           the result status
      */
     static int execSyncIO(int context, int op, int i1, int i2) {
+        checkOpcode(op);
         executeCIO(context, op, -1, i1, i2, 0, 0, 0, 0, null, null);
         return serviceResult();
     }
@@ -3437,6 +3450,7 @@ hbp.dumpState();
         if (context == 0) {
             throw new IOException("No native I/O peer for isolate");
         }
+        checkOpcode(op);
         for (;;) {
             executeCIO(context, op, channel, i1, i2, i3, i4, i5, i6, send, receive);
             int result = serviceResult();
