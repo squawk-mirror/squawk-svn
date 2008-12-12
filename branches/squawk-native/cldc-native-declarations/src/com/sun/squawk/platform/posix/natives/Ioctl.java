@@ -30,7 +30,7 @@ import com.sun.cldc.jna.*;
  *
  * java wrapper around #include <sys/ioctl.h>
  */
-@Includes({"<sys/ioctl.h>", "<sys/filio.h>"})
+@Includes({"<sys/types.h>", "<sys/ioctl.h>", "<sys/filio.h>"})
 public interface Ioctl extends Library {
 
     Ioctl INSTANCE = (Ioctl)
@@ -45,7 +45,7 @@ public interface Ioctl extends Library {
 
     public final static int IOCPARM_MASK = IMPORT;		/* parameter length, at most 13 bits */
 
-    public final static int IOCPARM_MAX = IMPORT;	/* max size of ioctl args */
+   // public final static int IOCPARM_MAX = IMPORT;	/* max size of ioctl args */
     /* no parameters */
     public final static int IOC_VOID = IMPORT;
     /* copy parameters out */
@@ -55,7 +55,7 @@ public interface Ioctl extends Library {
     /* copy paramters in and out */
     public final static int IOC_INOUT = IMPORT;
     /* mask for IN/OUT/VOID */
-    public final static int IOC_DIRMASK = IMPORT;
+    //public final static int IOC_DIRMASK = IMPORT;
 
 
     public final static int FIOCLEX = IMPORT;		/* set close on exec on fd */
@@ -65,7 +65,7 @@ public interface Ioctl extends Library {
     public final static int FIOASYNC = IMPORT;	/* set/clear async i/o */
     public final static int FIOSETOWN = IMPORT;	/* set owner */
     public final static int FIOGETOWN = IMPORT;	/* get owner */
-    public final static int FIODTYPE = IMPORT;	    /* get d_type */
+    //public final static int FIODTYPE = IMPORT;	    /* get d_type */
 
 
     /**
