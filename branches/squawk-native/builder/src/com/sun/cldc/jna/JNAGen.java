@@ -773,19 +773,37 @@ public class JNAGen extends Command {
         metaPrintln(level, "public " + f.getType().getSimpleName() + " " + f.getName() + ";");
     }
     
-    
-    private void printFieldReader(Field f, int level) {
-        Class type = f.getType();
-        IfDef annot = f.getAnnotation(IfDef.class);
+    void startIfDefField(Field f) {
+        IfDef ifdef = f.getAnnotation(IfDef.class);
+        IfNDef ifndef = f.getAnnotation(IfNDef.class);
         boolean notDef = false;
-        if (annot == null) { 
-            //annot = f.getAnnotation(IfNDef.class);
-            if (annot != null) {
-                notDef = true;
+        String ifdefStr = null;
+        if (ifdef != null) {
+            ifdefStr = ifdef.value();
+        } else if (ifndef != null) {
+            notDef = true;
+            ifdefStr = ifndef.value();
+        }
+        if (ifdefStr != null) {
+            if (notDef) {
+                out.println("#ifndef " + ifdefStr);
+            } else {
+                out.println("#ifdef " + ifdefStr);
             }
         }
-                
-        String ifdef = (annot != null) ? annot.value() : null;
+    }
+
+    void endIfDefField(Field f) {
+        IfDef ifdef = f.getAnnotation(IfDef.class);
+        IfNDef ifndef = f.getAnnotation(IfNDef.class);
+        if (ifdef != null || ifndef != null) {
+            out.println("#endif");
+        }
+    }
+
+    private void printFieldReader(Field f, int level) {
+        Class type = f.getType();
+        
         //String getter = "UNKNOWN";
         if (type.isPrimitive()) {
             if (type.equals(Integer.TYPE)) {
@@ -802,15 +820,11 @@ public class JNAGen extends Command {
         } else {
             throw new RuntimeException("Can't handle fields of type " + type + " in field " + f);
         }
-        if (ifdef != null) {
-            out.println("#ifdef " + ifdef);
-        }
+        startIfDefField(f);
         String getter = "getGetter(" + getSizeStr(f) + ")";
 
         metaPrintln(level + 1, "o." + f.getName() + " = p.%s(%d);", new String[]{getter, getOffsetStr(f)});
-        if (ifdef != null) {
-            out.println("#endif");
-        }
+        endIfDefField(f);
     }
    
     private void printFieldWriter(Field f, int level) {
@@ -831,9 +845,11 @@ public class JNAGen extends Command {
         } else {
             throw new RuntimeException("Can't handle fields of type " + type + " in field " + f);
         }
+        startIfDefField(f);
         String setter = "getSetter(" + getSizeStr(f) + ")";
         String cast = "actualJavaType(" + getSizeStr(f) + ")";
         metaPrintln(level + 1, "p.%s(%d, (%s)o." + f.getName() + ");", new String[]{setter, getOffsetStr(f), cast});
+        endIfDefField(f);
     }
         
     private void printStructSupport(StructureDecl structDecl, int level) throws JNAGenException {
