@@ -27,6 +27,12 @@
                     <location>phoneme</location>
                     <encoding>UTF-8</encoding>
                 </source-folder>
+                <source-folder>
+                    <label>native</label>
+                    <type>java</type>
+                    <location>native</location>
+                    <encoding>UTF-8</encoding>
+                </source-folder>
             </folders>
             <ide-actions/>
             <view>
@@ -38,6 +44,10 @@
                     <source-folder style="packages">
                         <label>phoneme</label>
                         <location>phoneme</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>native</label>
+                        <location>native</location>
                     </source-folder>
                     <source-file>
                         <location>build.xml</location>
@@ -51,6 +61,7 @@
             <compilation-unit>
                 <package-root>src</package-root>
                 <package-root>phoneme</package-root>
+                <package-root>native</package-root>
                 <classpath mode="compile">cjna/generated</classpath>
                 <built-to>classes.jar</built-to>
                 <source-level>1.5</source-level>
