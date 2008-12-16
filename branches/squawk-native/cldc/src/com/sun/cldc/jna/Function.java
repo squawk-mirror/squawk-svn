@@ -28,7 +28,6 @@ package com.sun.cldc.jna;
 import com.sun.squawk.Address;
 import com.sun.squawk.NativeUnsafe;
 import com.sun.squawk.VM;
-import com.sun.squawk.vm.ChannelConstants;
 
 /**
  * A pointer to a native function that can be called from Java.
@@ -61,46 +60,6 @@ public final class Function {
         this.name = name;
     }
 
-    /**
-     * Dynamically look up a native function by name.
-     * 
-     * Look up the symbol in the specified library
-     * 
-     * @param lib the runtime library to look in
-     * @param funcName
-     * @return an object that can be used to call the named function
-     * @throws RuntimeException if there is no function by that name.
-     */
-    public static Function getFunction(NativeLibrary lib, String funcName) {
-        Pointer name0 = Pointer.createStringBuffer(funcName);
-        int result = VM.execSyncIO(ChannelConstants.DLSYM, 0, name0.address().toUWord().toInt(), 0, 0, 0, 0, null, null);
-        name0.free();
-        if (DEBUG) {
-            VM.print("Function Lookup for ");
-            VM.print(funcName);
-            VM.print(" = ");
-            VM.printAddress(Address.fromPrimitive(result));
-            VM.println();
-        }
-        if (result == 0) {
-            throw new RuntimeException("Can't find native symbol " + funcName);
-        }
-        return new Function(funcName, Address.fromPrimitive(result));
-    }
-    
-    /**
-     * Dynamically look up a native function by name.
-     * 
-     * Look up the symbol in the default list of loaded libraries.
-     * 
-     * @param funcName
-     * @return an object that can be used to call the named function
-     * @throws RuntimeException if there is no function by that name.
-     */
-    public static Function getFunction(String funcName) {
-        return getFunction(NativeLibrary.getDefaultInstance(), funcName);      
-    }
-
      /**
      * Dynamically look up a native function by name in the named library.
      * 
@@ -110,7 +69,7 @@ public final class Function {
      * @throws RuntimeException if there is no function by that name.
      */
     public static Function getFunction(String libraryName, String funcName) {
-        return getFunction(NativeLibrary.getInstance(libraryName), funcName);      
+        return NativeLibrary.getInstance(libraryName).getFunction(funcName);
     }
     
     /**

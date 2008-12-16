@@ -259,51 +259,6 @@ public class Protocol extends ConnectionBase implements SocketConnection {
         return new DataOutputStream(openOutputStream());
     }
 
-/*if[DEBUG_CODE_ENABLED]*/
-    /**
-     * test code
-     * 
-     * @param args
-     */
-    public static void main(String[] args) {
-        try {
-            System.err.println("creating twiddler");
-            Thread twiddler = new Thread(new Runnable() {
-                public void run() {
-                    while (true) {
-                        VM.print('$');
-                        Thread.yield();
-                    }
-                }
-            }, "Twiddler Thread");
-            twiddler.setPriority(Thread.MIN_PRIORITY);
-            VM.setAsDaemonThread(twiddler);
-            twiddler.start();
-
-            StreamConnection c = (StreamConnection)Connector.open("socket://www.sun.com:80");
-            DataOutputStream out = c.openDataOutputStream();
-            DataInputStream in = c.openDataInputStream();
-            
-            byte[] data = "GET /index.html HTTP/1.1\r\nHost: www.sun.com\r\n\r\n".getBytes();
-            out.write(data, 0, data.length);
-
-            StringBuffer strbuf = new StringBuffer();
-            
-            int b = 0;
-            while ((b = in.read(data, 0, data.length)) != -1) {
-                for (int i = 0; i < b; i++) {
-                    System.err.print((char) data[i]);
-                    //strbuf.append((char)data[i]);
-                }
-            }
-        //System.err.println("Read: " + strbuf.toString());
-            
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-/*end[DEBUG_CODE_ENABLED]*/
-
     public void setSocketOption(byte option, int value) throws IllegalArgumentException, IOException {
         ensureOpen();
         

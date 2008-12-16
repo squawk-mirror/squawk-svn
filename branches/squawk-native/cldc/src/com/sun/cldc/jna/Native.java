@@ -48,20 +48,42 @@ public class Native {
     public final static String DEFAULT = "RTLD";
             
     private Native() {}
+
+    /** kludge to pass loading library to the implementation class! */
+    private static volatile NativeLibrary libraryLoading;
+    private static final Object lock = new Object();
+
+    /**
+     * Kludge to pass loading library to default constructor of
+     * implementation class.
+     * @return NativeLibrary or null if not loading a NativeLibrary.
+     */
+    public static NativeLibrary getLibraryLoading() {
+        return libraryLoading;
+    }
     
     public static Library loadLibrary(String name,
                                       Class interfaceClass) {
         try {
+            Object implementation = null;
+            synchronized (lock) {
+                try {
+                    String customName = Platform.commonLibraryMapping(name);
+                    if (customName != null) {
+                        name = customName;
+                    }
 
-            NativeLibrary nl;
-            if (name.equals(DEFAULT)) {
-                nl = NativeLibrary.getDefaultInstance();
-            } else {
-                nl = NativeLibrary.getInstance(name);
+                    if (name == null || name.length() == 0 || name.equals(DEFAULT)) {
+                        libraryLoading = NativeLibrary.getDefaultInstance();
+                    } else {
+                        libraryLoading = NativeLibrary.getInstance(name);
+                    }
+                    Class implClass = Class.forName(interfaceClass.getName() + "Impl");
+                    implementation = implClass.newInstance();
+                } finally {
+                    libraryLoading = null;
+                }
             }
-            Class implClass = Class.forName(interfaceClass.getName() + "Impl");
-            Object implementation = implClass.newInstance();
-
             return (Library) implementation;
         } catch (InstantiationException ex) {
             ex.printStackTrace();

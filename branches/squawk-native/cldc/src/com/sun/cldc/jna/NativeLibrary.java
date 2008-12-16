@@ -62,6 +62,18 @@ public class NativeLibrary {
         this.name = name;
         this.ptr = ptr;
     }
+    
+    private static String nativeLibraryName(String baseName) {
+        if (Platform.isSolaris() || Platform.isLinux()) {
+            return "lib" + baseName + ".so";
+        } else if (Platform.isMac()) {
+            return "lib" + baseName + ".dylib";
+        } else if (Platform.isWindows()) {
+            return baseName + ".dll";
+        } else {
+            throw new RuntimeException("Unsupported platform");
+        }
+    }
 
     /**
      * getFunction a symbol's address by name (warpper around dlsym)
@@ -87,7 +99,6 @@ public class NativeLibrary {
      * 
      * Look up the symbol in the specified library
      * 
-     * @param lib the runtime library to look in
      * @param funcName
      * @return an objecta that can be used to call the named function
      * @throws RuntimeException if there is no function by that name.
@@ -145,7 +156,8 @@ public class NativeLibrary {
      * @return NativeLibrary
      */
     public static NativeLibrary getInstance(String name) {
-        Pointer name0 = Pointer.createStringBuffer(name);
+        String nativeName = nativeLibraryName(name);
+        Pointer name0 = Pointer.createStringBuffer(nativeName);
         if (DEBUG) {
             VM.print("Calling DLOPEN on ");
             VM.println(name);
@@ -162,7 +174,7 @@ public class NativeLibrary {
     /**
      * Return reference to the "default" library. All lookups in the default library
      * will follow the platform's default getFunction semantics.
-     * The Library will be looked up in a platform-dependant manor.
+     * The Library will be looked up in a platform-dependant maner.
      * 
      * @return NativeLibrary
      */
@@ -172,6 +184,7 @@ public class NativeLibrary {
 
     /**
      * Close the library, as in dlclose.
+     * @throws RuntimeException if dlcose fails
      */
     public void dispose() {
         if (closed || ptr.isZero()) {
@@ -184,6 +197,9 @@ public class NativeLibrary {
         Pointer name0 = Pointer.createStringBuffer(name);
         int result = VM.execSyncIO(ChannelConstants.DLCLOSE, ptr.toUWord().toInt(), 0, 0, 0, 0, 0, 0, null, null);
         name0.free();
+        if (result != 0) {
+            throw new RuntimeException("Error on dlclose: " + errorStr());
+        }
         closed = true;
     }
     

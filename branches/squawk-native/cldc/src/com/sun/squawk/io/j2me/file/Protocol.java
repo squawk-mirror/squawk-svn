@@ -1360,57 +1360,6 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //        throw new Error("Unable to create FileConnection Handler");
     }
 
-/*if[DEBUG_CODE_ENABLED]*/
-    /**
-     * test code
-     * @param args
-     */
-    public static void main(String[] args) {
-        try {
-            System.err.println("creating twiddler"); // start thread to verify that sockets are non-blocking...
-
-            Thread twiddler = new Thread(new Runnable() {
-
-                public void run() {
-                    while (true) {
-                        VM.print('$');
-                        Thread.yield();
-                    }
-                }
-            }, "Twiddler Thread");
-            twiddler.setPriority(Thread.MIN_PRIORITY);
-            VM.setAsDaemonThread(twiddler);
-            System.err.println("starting twiddler");
-
-            twiddler.start();
-
-            StreamConnection conn = null;
-            InputStream is = null;
-            System.err.println("openning connection on " + args[0]);
-
-            try {
-                conn = (StreamConnection) Connector.open(args[0], Connector.READ);
-
-                is = conn.openInputStream();
-                int ch;
-                while ((ch = is.read()) != -1) {
-                    System.out.print((char) ch);
-                }
-            } finally {
-                try {
-                    is.close();
-                    conn.close();
-                } catch (Exception ex) {
-                    // ignore any null pointers etc for this example test
-                }
-            }
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-/*end[DEBUG_CODE_ENABLED]*/
-
 }
 
 /**

@@ -34,7 +34,7 @@ import com.sun.cldc.jna.ptr.*;
 @Includes({"<sys/socket.h>", "<netinet/in.h>"})
 public interface Socket extends Library {
     Socket INSTANCE = (Socket)
-            Native.loadLibrary("RTLD",
+            Native.loadLibrary("socket",
                                Socket.class);
         
     //            /* Supported address families. */

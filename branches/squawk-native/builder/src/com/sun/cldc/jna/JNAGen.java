@@ -106,7 +106,7 @@ public class JNAGen extends Command {
         out.println(line + "\");");
     }
     
-        /**
+    /**
      * Print a line with "indent" containing a "printf" of the String "line"
      * @param indent spaces to indent in the "printf"
      * @param line the text to print
@@ -179,6 +179,20 @@ public class JNAGen extends Command {
         metaPrintln(0, "");
         out.println("}\n");
     }
+
+    private void printConstructor(InterfaceDecl interfaceDecl, int level) {
+        metaPrintln(level, "public " + interfaceDecl.interfaceClass.getSimpleName() + GEN_CLASS_SUFFIX + "() {");
+        level++;
+        metaPrintln(level, "NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();");
+
+        for (String initializer : fieldInitializers) {
+            metaPrintln(level, initializer);
+        }
+        fieldInitializers.clear();
+        level--;
+        metaPrintln(level, "}");
+        metaPrintln(level, "");
+    }
     
     private void printIncludes(InterfaceDecl interfaceDecl) {
         out.println("#include <stddef.h>");
@@ -204,13 +218,14 @@ public class JNAGen extends Command {
     
     /* only supprto top-level libraryName defn */
     private void printLibraryDefinition(InterfaceDecl interfaceDecl) {        
-        if (interfaceDecl.libraryName == null) {
-            out.println("    /* used default library */");
-        } else {
-            metaPrintln(1, "public final static NativeLibrary NATIVE_LIBRARY = NativeLibrary.getInstance(\\\"" + interfaceDecl.libraryName + "\\\");");
-        }
-        metaPrintln(0, "");
-        out.println();
+//        if (interfaceDecl.libraryName == null) {
+//            //out.println("    /* used default library */");
+//            metaPrintln(1, "public final static NativeLibrary NATIVE_LIBRARY = NativeLibrary.getDefaultInstance();");
+//        } else {
+//            metaPrintln(1, "public final static NativeLibrary NATIVE_LIBRARY = NativeLibrary.getInstance(\\\"" + interfaceDecl.libraryName + "\\\");");
+//        }
+//        metaPrintln(0, "");
+//        out.println();
     }
     
     /*------------------------- DEFINES --------------------------*/
@@ -284,20 +299,18 @@ public class JNAGen extends Command {
     }
    
     /*------------------------- GLOBAL VARIABLES --------------------------*/
+    Vector<String> fieldInitializers = new Vector<String>();
+
     private static String getPtrName(String nativeName) {
         return nativeName + "Ptr";
     }
 
     private void printVarPtr(InterfaceDecl interfaceDecl, String nativeName, int varSize, int level) {
-        StringBuffer varStr = new StringBuffer("private final static Pointer " + getPtrName(nativeName) + " = ");
-        if (interfaceDecl.libraryName != null) {
-            varStr = varStr.append("NATIVE_LIBRARY");
-        } else {
-            varStr = varStr.append("NativeLibrary.getDefaultInstance()");
-        }
+        String varDeclStr = "private final Pointer " + getPtrName(nativeName) + ";";
+        String varInitStr = getPtrName(nativeName) + " = jnaNativeLibrary.getGlobalVariableAddress(\\\"" + nativeName + "\\\", " + varSize + ");";
 
-        varStr = varStr.append(".getGlobalVariableAddress(\\\"" + nativeName + "\\\", " + varSize + ");");
-        metaPrintln(level, varStr.toString());
+        fieldInitializers.add(varInitStr);
+        metaPrintln(level, varDeclStr);
         metaPrintln(level, "");
     }
     
@@ -432,12 +445,14 @@ public class JNAGen extends Command {
         
     private void printFunctionPtr(InterfaceDecl interfaceDecl, String nativeName, Method m, int level) {
         if (!functionPointers.contains(nativeName)) {
+            String varDeclStr = "private final Function " + getPtrName(m) + ";";
+            String varInitStr = getPtrName(m) + " = jnaNativeLibrary.getFunction(\\\"" + nativeName + "\\\");";
+
+            fieldInitializers.add(varInitStr);
+
             functionPointers.add(nativeName);
 
-            String optLibStr = (interfaceDecl.libraryName != null) ? "NATIVE_LIBRARY, " : "";
-            String fStr =
-                    "private final static Function " + getPtrName(m) + " = Function.getFunction(" + optLibStr + "\\\"" + nativeName + "\\\");";
-            metaPrintln(level, fStr);
+            metaPrintln(level, varDeclStr);
             metaPrintln(level, "");
         }
     }
@@ -671,8 +686,8 @@ public class JNAGen extends Command {
             if (disableGC) {
                 metaPrintln(level, "boolean oldState = PrivatePointer.setUpArrayBufferState();");
                 metaPrintln(level, "/*------------------- DISABLE GC: ---------------------------*/");
-//                metaPrintln(level, "try {");
-//                level++;
+//              metaPrintln(level, "try {");
+//              level++;
             }
 
             String[] nativeParams = createNativeParams(m, level);
@@ -694,11 +709,11 @@ public class JNAGen extends Command {
             cleanUpNativeParams(m, level);
             
             if (disableGC) {
-//                level--;
-//                metaPrintln(level, "} finally {");
+//              level--;
+//              metaPrintln(level, "} finally {");
                 metaPrintln(level+1, "PrivatePointer.tearDownArrayBufferState(oldState);");
                 metaPrintln(level+1, "/*------------------- ENABLE GC: ---------------------------*/");
-//                metaPrintln(level, "}");
+//              metaPrintln(level, "}");
             }
 
             if (!isVoid) {
@@ -942,12 +957,15 @@ public class JNAGen extends Command {
 
         printDefines(interfaceDecl, level);
 
-        if (level == 1) {
-            printLibraryDefinition(interfaceDecl);
-        }
+//        if (level == 1) {
+//            printLibraryDefinition(interfaceDecl);
+//        }
         printVars(interfaceDecl, level);
         printMethods(interfaceDecl, level);
 
+        if (level == 1) {
+            printConstructor(interfaceDecl, level);
+        }
         if (interfaceDecl instanceof StructureDecl) {
             printStructSupport((StructureDecl)interfaceDecl, level);
         }
