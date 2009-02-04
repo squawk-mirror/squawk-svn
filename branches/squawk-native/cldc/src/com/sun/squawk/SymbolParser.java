@@ -322,7 +322,8 @@ final class SymbolParser extends ByteBufferDecoder {
          * In order to have the TCK pass, we need to keep these constants around.  Note that adding these constants seemed to add
          * 7 K to size of squawk.suite.
          * 
-         * WAIT - doesnt tanslator transform teh getstatic into a constant anyway?
+         * WAIT - doesnt tanslator transform the getstatic into a constant anyway?
+         * NO - it has to leave the getstatic to get the exception thrown. Could transform to error func though...
          */
 //        if (fieldType != null && Modifier.hasConstant(modifiers) && fieldType.isPrimitive() && Modifier.isFinal(modifiers)) {
 //            return false;

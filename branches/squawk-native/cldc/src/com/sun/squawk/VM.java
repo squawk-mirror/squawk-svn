@@ -3755,7 +3755,7 @@ hbp.dumpState();
         public static long getTotalWaitTime() {
             return VMThread.getTotalWaitTime();
         }
-
+        
         /**
          * Get the number of objects allocated since reboot.
          *

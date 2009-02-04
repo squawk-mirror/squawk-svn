@@ -1873,9 +1873,9 @@ VM.println();
     }
 
 
-       /* OS events are just like squawk events, but the event IDs come from the OS< and may confict with squawk event IDs
-     *  so we need to keep them seperate. Put a class around these two!!!!
-     * /
+    /* OS events are just like squawk events, but the event IDs come from the OS< and may confict with squawk event IDs
+     * so we need to keep them seperate. Put a class around these two!!!!
+     */
 
     /**
      * Block a thread waiting for an OS event.

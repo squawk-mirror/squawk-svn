@@ -1695,8 +1695,6 @@ void Squawk_run(int argc, char *argv[]) {
  */
 void Squawk_main(int argc, char *argv[]) {
 #if KERNEL_SQUAWK
-	printf("[SQUAWK] Running in Kernel mode\n");
-
     /* Doing this here guaratees that all configurations (including
      * Java_com_sun_squawk_vm_Main_squawk() via JNI) have access to
      * a kernel/user split. However, Nik felt this option should be
@@ -1705,7 +1703,6 @@ void Squawk_main(int argc, char *argv[]) {
     char *kernelArgs[MAX_JVM_ARGS];
     int   kernelArgsCount = 0;
 
-	printf("[SQUAWK] Preprocessing arguments\n");
     preprocessArgs(argv, &argc, kernelArgs, &kernelArgsCount);
     if (kernelMode) {
         Squawk_setSignalHandlers();

@@ -48,7 +48,7 @@ GC!=com.sun.squawk.CheneyCollector             com.sun.squawk.CheneyCollector*
 ###############################################
 # Classes only used when PLATFORM_TYPE = DELEGATING 
 ###############################################
-#PLATFORM_TYPE!=DELEGATING                      com.sun.squawk.io.j2me.channel.*
+PLATFORM_TYPE!=DELEGATING                      com.sun.squawk.io.j2me.channel.*
 
 ###############################################
 # Classes only used when PLATFORM_TYPE = NATIVE 

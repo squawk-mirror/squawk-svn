@@ -275,13 +275,10 @@ public class GC implements GlobalStaticFields {
             for (int i = 0; i != readOnlyObjectMemories.length; ++i) {
                 ObjectMemory om = readOnlyObjectMemories[i];
                 if (om.getURI().equals(uri)) {
-System.err.println("Lookedup OM: " + uri);
                     return om;
                 }
             }
         }
-      System.err.println("Lookup failed: " + uri);
-
         return null;
     }
 
@@ -316,7 +313,7 @@ System.err.println("Lookedup OM: " + uri);
         System.arraycopy(current, 0, arr, 0, current.length);
         arr[current.length] = om;
         readOnlyObjectMemories = arr;
-//System.err.println("Registered OM: " + om.getURI());
+
 /*if[!FLASH_MEMORY]*/
         if (VM.isVeryVerbose()) {
             PrintStream out = null;

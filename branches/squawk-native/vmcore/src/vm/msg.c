@@ -57,7 +57,7 @@ typedef struct messageStruct {
  */
 INLINE void assumeInterruptsAreDisabled() { }
 INLINE void *safeMalloc(unsigned length) {
-    printf("Trying to allocate %d bytes\n", length);
+//  printf("Trying to allocate %d bytes\n", length);
     return malloc(length);
 }
 

@@ -2105,7 +2105,6 @@ public class Build {
      */
     private void updateProperty(String name, String value, boolean isBooleanProperty, boolean derivedProperty) {
         String old = isBooleanProperty ? properties.getProperty(name, "true") : properties.getProperty(name);
-//        System.err.println("******** setting prop " + name + " to " + value + ", was " + old);
         if (!value.equals(old)) {
             properties.setProperty(name, value);
             if (!derivedProperty) {
