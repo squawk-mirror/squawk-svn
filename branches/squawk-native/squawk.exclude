@@ -67,6 +67,10 @@ PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.BaseInputStream
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.BaseOutputStream
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.ParameterParser
 
+#Not implemented yet:
+com.sun.squawk.platform.windows.*
+
+
 ###############################################
 # Classes that don't need to be on device, but on desktop:
 ###############################################

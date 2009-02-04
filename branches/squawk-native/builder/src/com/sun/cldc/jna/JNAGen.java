@@ -982,6 +982,7 @@ public class JNAGen extends Command {
         out.println("        case 2: return \"getShort\";");
         out.println("        case 4: return \"getInt\";");
         out.println("        case 8: return \"getLong\";");
+        out.println("        default: exit(1);");
         out.println("    }");
         out.println("}");
         out.println("");
@@ -992,6 +993,7 @@ public class JNAGen extends Command {
         out.println("        case 2: return \"setShort\";");
         out.println("        case 4: return \"setInt\";");
         out.println("        case 8: return \"setLong\";");
+        out.println("        default: exit(1);");
         out.println("    }");
         out.println("}");
         out.println("");
@@ -1002,6 +1004,7 @@ public class JNAGen extends Command {
         out.println("        case 2: return \"short\";");
         out.println("        case 4: return \"int\";");
         out.println("        case 8: return \"long\";");
+        out.println("        default: exit(1);");
         out.println("    }");
         out.println("}");
         out.println("");
@@ -1029,8 +1032,9 @@ public class JNAGen extends Command {
         printPackages(interfaceDecl);
         printClass(interfaceDecl, 1);
         
-        out.println("    fchmod(fileno(out), 0444);");
         out.println("    fclose(out);");
+        out.println("    chmod(argv[1], 0444);");
+
         out.println("}\n");
     }
 

@@ -35,7 +35,8 @@ import java.io.IOException;
 public class MscCompiler extends CCompiler {
 	public static final String VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE = "VS80COMNTOOLS";
 	public static final String VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE = "VS90COMNTOOLS";
-    
+    public static final String MS_PLATFORM_SDK_VARIABLE = "Mstools";
+
     protected String clCommandString;
 
     public MscCompiler(Build env, Platform platform) {
@@ -82,17 +83,25 @@ public class MscCompiler extends CCompiler {
 
     public String getClCommandString() {
         if (clCommandString == null) {
+            final String[] envvars = {
+                VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE,
+                VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE,
+                MS_PLATFORM_SDK_VARIABLE};
+
             clCommandString = "cl";
-            String toolsDirectory = System.getProperty(VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE);
-            if (toolsDirectory == null) {
-            	toolsDirectory = System.getProperty(VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE);
+            String toolsDirectory = null;
+            for (int i = 0; i < envvars.length; i++) {
+                toolsDirectory = System.getProperty(envvars[i]);
+                if (toolsDirectory == null) {
+                    toolsDirectory = System.getenv(envvars[i]);
+                    if (toolsDirectory != null) {
+                        break;
+                    }
+                } else {
+                    break;
+                }
             }
-            if (toolsDirectory == null) {
-            	toolsDirectory = System.getenv(VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE);
-            }
-            if (toolsDirectory == null) {
-            	toolsDirectory = System.getenv(VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE);
-            }
+           
             if (toolsDirectory == null) {
             	toolsDirectory = "";
             }

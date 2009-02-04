@@ -104,20 +104,12 @@ public class GccVxWorksPPCCompiler extends GccCompiler {
     public File compile(File[] includeDirs, File source, File dir, boolean disableOpts) {
         File object = new File(dir, source.getName().replaceAll("\\.c", "\\.o"));
 
-        String ccName = (platform.getToolsDir().getAbsolutePath() + "/") + "ccppc";
+        String ccName = "ccppc";
 
         File[] newIncludes = new File[] {
-            new File("/WindRiver/vxworks-6.3/target/h/wrn/", "coreip") // For networking
+            //new File("/WindRiver/vxworks-6.3/target/h/wrn/", "coreip") // For networking
+            new File("coreip") // For networking
         };
-        
-        //File[] oldIncludes = includeDirs;
-        //includeDirs = new File[oldIncludes.length + 1];
-
-        //for(int i = 0; i < oldIncludes.length; i++)
-        //    includeDirs[i] = oldIncludes[i].getAbsoluteFile();
-
-        //includeDirs[includeDirs.length - 1] = source.getParentFile().getAbsoluteFile();
-        //includeDirs[includeDirs.length - 1] = new File("/WindRiver/diab/5.4.0.0", "include");
 
         env.exec(ccName + " -c " +
                  options(disableOpts) + " " +
@@ -135,7 +127,7 @@ public class GccVxWorksPPCCompiler extends GccCompiler {
         String output;
         String exec;
 
-        String ccName = (platform.getToolsDir().getAbsolutePath() + "/") + "ccppc";
+        String ccName = "ccppc";
         
         File[] newObjects = new File[objects.length];
 
@@ -146,7 +138,9 @@ public class GccVxWorksPPCCompiler extends GccCompiler {
         exec = "--gc-sections -o " + output + " " + Build.join(newObjects);
         
         // TODO: /WindRiver/... is hardcoded..  fix this?
-        env.exec(ccName + " -r -Wl,-X -T /WindRiver/vxworks-6.3/target/h/tool/gnu/ldscripts/link.OUT " + exec);
+      //  env.exec(ccName + " -r -Wl,-X -T /WindRiver/vxworks-6.3/target/h/tool/gnu/ldscripts/link.OUT " + exec);
+        env.exec(ccName + " -r -Wl,-X " + exec);
+
         return new File(output);
     }
     
