@@ -218,7 +218,7 @@ public class Assert {
      */
     public static void always(boolean cond, String msg) {
         if (!cond) {
-            if (ASSERT_ALWAYS_IS_FATAL) {
+            if (ASSERT_ALWAYS_IS_FATAL || VMThread.currentThread().isServiceThread()) {
                 VM.print("Assertion failed: ");
                 VM.println(msg);
                 VM.fatalVMError();
@@ -241,7 +241,7 @@ public class Assert {
      */
     public static void always(boolean cond) {
         if (!cond) {
-            if (ASSERT_ALWAYS_IS_FATAL) {
+            if (ASSERT_ALWAYS_IS_FATAL || VMThread.currentThread().isServiceThread()) {
                 VM.println("Assertion failed");
                 VM.fatalVMError();
             } else {

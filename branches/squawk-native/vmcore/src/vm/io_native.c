@@ -76,6 +76,54 @@ int sysFD_ISSET(int i1, fd_set* set) {
     return FD_ISSET(i1, set);
 }
 
+/*---------------------------- Structure Layouts ----------------------------*/
+
+#define com_sun_squawk_platform_posix_callouts_Libc_Stat_layout_LEN 5
+const int com_sun_squawk_platform_posix_callouts_Libc_Stat_layout[com_sun_squawk_platform_posix_callouts_Libc_Stat_layout_LEN] = {
+    com_sun_squawk_platform_posix_callouts_Libc_Stat_layout_LEN, 
+    sizeof(struct stat),
+    offsetof(struct stat, st_mode),
+    offsetof(struct stat, st_mtime),
+    offsetof(struct stat, st_size)
+};
+
+#define com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN 6
+
+#ifdef sun
+const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
+    com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
+    sizeof(struct sockaddr_in),
+    -1,
+    offsetof(struct sockaddr_in, sin_family),
+    offsetof(struct sockaddr_in, sin_port),
+    offsetof(struct sockaddr_in, sin_addr)
+};
+#else /* ! sun */
+#ifdef VXWORKS
+// HACK: These values shoult not be hard-coded.  Need to find out how to include the correct definitions
+const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
+    com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
+    72,
+    0,
+    8,
+    16,
+    32
+};
+#else
+const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
+    com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
+    sizeof(struct sockaddr_in),
+    offsetof(struct sockaddr_in, sin_len),
+    offsetof(struct sockaddr_in, sin_family),
+    offsetof(struct sockaddr_in, sin_port),
+    offsetof(struct sockaddr_in, sin_addr)
+};
+#endif /* !VXWORKS */
+#endif /* ! sun */
+
+int sysFD_SIZE; __attribute__((used))
+int sysSIZEOFSTAT;  __attribute__((used))
+
 /*---------------------------- Event Queue ----------------------------*/
 
 /*
@@ -197,6 +245,8 @@ int getEvent(int removeEventFlag) {
  * @param  argc        the number of extra arguments in 'args'
  */
 void CIO_initialize(char *classPath, char** args, int argc) {
+    sysFD_SIZE = sizeof(fd_set);
+    sysSIZEOFSTAT = sizeof(struct stat);
 }
 
 /******* per-context data ************/
@@ -262,12 +312,16 @@ typedef struct dlentryStruct {
     void* entry;
 } dlentry;
 
-#define DL_TABLE_SIZE 5
+#define DL_TABLE_SIZE 9
 
 static dlentry dltable[DL_TABLE_SIZE] = {
+    {"sysFD_SIZE",      &sysFD_SIZE},
+    {"sysSIZEOFSTAT",   &sysSIZEOFSTAT},
     {"sysFD_CLR",       &sysFD_CLR},
     {"sysFD_SET",       &sysFD_SET},
     {"sysFD_ISSET",     &sysFD_ISSET},
+    {"com_sun_squawk_platform_posix_callouts_Libc_Stat_layout", &com_sun_squawk_platform_posix_callouts_Libc_Stat_layout},
+    {"_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout", &_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout},
     {"testIntStar1",    &testIntStar1},
     {"testIntStar2",    &testIntStar2}
 };

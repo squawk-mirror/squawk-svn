@@ -421,6 +421,11 @@ public class Build {
             }
             String baseDirPath;
 
+            if (!env.getBooleanProperty("AUTOGEN_JNA_NATIVES")) {
+                System.out.println("    Skipping generation JNA files in " + baseDir);
+                return;
+            }
+
             if (custom) {
                  baseDirPath = baseDir.getPath();
             } else {

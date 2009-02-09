@@ -60,7 +60,9 @@ public class Test {
             DataOutputStream out = c.openDataOutputStream();
             DataInputStream in = c.openDataInputStream();
 
-            byte[] data = "GET /index.html HTTP/1.1\r\nHost: www.sun.com\r\n\r\n".getBytes();
+            // specify 1.0 to get non-persistent connections.
+            // Otherwise we have to parse the replies to detect when full reply is received.
+            byte[] data = "GET /index.html HTTP/1.0\r\nHost: www.sun.com\r\n\r\n".getBytes();
             out.write(data, 0, data.length);
 
             StringBuffer strbuf = new StringBuffer();

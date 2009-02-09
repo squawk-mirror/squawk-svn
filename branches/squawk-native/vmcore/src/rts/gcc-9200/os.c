@@ -53,7 +53,6 @@ int main(int argc, char *argv[]);
 extern int disableARMInterrupts();
 extern void enableARMInterrupts();
 void initTrapHandlers();
-void stopVM(int);
 
 int dma_buffer_size;
 char* dma_buffer_address;

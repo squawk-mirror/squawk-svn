@@ -190,6 +190,7 @@ const char *format(const char* fmt);
 /*
  * Forward declaration of VM exit routine.
  */
+NORETURN void stopVM0(int, boolean);
 NORETURN void stopVM(int);
 
 /*
@@ -743,6 +744,15 @@ static void printCacheStats() {
  * @param exitCode the exit code
  */
 NORETURN void stopVM(int exitCode) {
+    stopVM0(exitCode, true);
+}
+
+/**
+ * Stops the VM running.
+ *
+ * @param exitCode the exit code
+ */
+NORETURN void stopVM0(int exitCode, boolean cleanup) {
     static boolean inStop = false;
 
 /*
@@ -754,7 +764,10 @@ fprintf(stderr, "VM is in a blocking system call!!! WILL CRASH????");
     if (!inStop) {
         inStop = true;
         finalizeStreams();
-        freeBuffers();
+
+        if (cleanup) {
+            freeBuffers();
+        }
 /*if[!EMULATOR_LAUNCHER]*/
         fprintf(stderr, "\n\n");
 #ifndef FLASH_MEMORY
@@ -1578,11 +1591,11 @@ extern  void fatalInterpreterError0(char *msg, int opcode, int iparm, ByteAddres
     boolean userStack = FALSE;
 
     fprintf(stderr, "fatalInterpreterError %s -- %s:%d\n", msg, file, line);
-    fprintf(stderr, "    opcode: %x\n", opcode);
+    fprintf(stderr, "    opcode: 0x%x\n", opcode);
     if (opcode != (opcode & 0xFF)) {
            fprintf(stderr, "    opcode overflowed!\n");
     }
-    fprintf(stderr, "    iparm: %x\n", iparm);
+    fprintf(stderr, "    iparm: 0x%x\n", iparm);
 
 #ifdef FLASH_MEMORY
     printValueInRange(_ip, "ip", com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, "code");
