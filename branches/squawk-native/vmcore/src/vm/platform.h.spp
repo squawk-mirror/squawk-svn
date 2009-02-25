@@ -72,7 +72,6 @@
 #include <string.h>
 #include <signal.h>
 #include <math.h>
-//#include <setjmp.h>
 
 #ifdef _MSC_VER
 #    include <io.h>
@@ -203,3 +202,6 @@
 #error "unspecified platform type"
 #endif
 
+#if PLATFORM_TYPE_DELEGATING
+#include <setjmp.h>
+#endif
