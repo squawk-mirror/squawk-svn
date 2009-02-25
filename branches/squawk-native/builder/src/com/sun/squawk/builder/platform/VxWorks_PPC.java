@@ -45,7 +45,7 @@ public class VxWorks_PPC extends Unix {
      * {@inheritDoc}
      */
     public File getToolsDir() {
-        return new File("/WindRiver/gnu/3.4.4-vxworks-6.3/x86-win32/", "bin");
+        return new File("tools/windows-x86");
     }
 
     /**

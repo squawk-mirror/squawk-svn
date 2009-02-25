@@ -351,12 +351,13 @@ public class RomCommand extends Command {
             File[] includeDirs;
 
             if (ccompiler.isCrossPlatform()) {
-                includeDirs = new File[]{FP_SRC_DIR,
+                includeDirs = new File[]{VM_SRC_DIR, FP_SRC_DIR,
                             new File(VM_SRC_RTS_DIR, ccompiler.getName())
                         };
             } else {
                 includeDirs = new File[]{new File(jdk.getHome(), "include"),
                             jdk.getJNI_MDIncludePath(),
+                            VM_SRC_DIR,
                             FP_SRC_DIR,
                             new File(VM_SRC_RTS_DIR, ccompiler.getName())
                         };

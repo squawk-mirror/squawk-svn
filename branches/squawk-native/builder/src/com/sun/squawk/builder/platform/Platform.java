@@ -131,7 +131,7 @@ public abstract class Platform {
     }
     
     /**
-     * Returns true on any varient of x86 architectures and OSs
+     * Returns true if host is on any varient of x86 architectures and OSs
      *
      * @return boolean
      */

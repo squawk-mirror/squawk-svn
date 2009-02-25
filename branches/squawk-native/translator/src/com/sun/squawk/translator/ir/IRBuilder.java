@@ -1978,6 +1978,8 @@ public final class IRBuilder {
         if (!callee.isHosted()) {
             if (callee.isConstructor()) {
                 opc_invokeinit(callee);
+            } else if (callee.isFinal() || callee.isPrivate()) {
+                opc_invokevirtual(callee);
             } else {
                 /*
                  * The callee must be somewhere in superclass hierarchy

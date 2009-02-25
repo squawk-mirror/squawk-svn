@@ -38,48 +38,25 @@ public class Platform {
     public final static int DELEGATING = 1;
     public final static int NATIVE = 2;
     public final static int SOCKET = 3;
-    
+
+    public final static boolean IS_BARE_METAL = (/*VAL*/999/*PLATFORM_TYPE*/ == BARE_METAL);
+    public final static boolean IS_DELEGATING = (/*VAL*/999/*PLATFORM_TYPE*/ == DELEGATING);
+    public final static boolean IS_NATIVE = (/*VAL*/999/*PLATFORM_TYPE*/ == NATIVE);
+    public final static boolean IS_SOCKET = (/*VAL*/999/*PLATFORM_TYPE*/ == SOCKET);
+
     private static GCFSockets gcfSockets;
     
     private Platform() { }
     
-    /**
-     * @return true if this should run on the bare metal.
-     */
-    public static boolean isBareMetal() {
-        return /*VAL*/999/*PLATFORM_TYPE*/ == BARE_METAL;
-    }
-    
-   /**
-     * @return true if this should run by delegating all IO to another JVM (HotSpot) via JNI.
-     */
-    public static boolean isDelegating() {
-        return /*VAL*/999/*PLATFORM_TYPE*/ == DELEGATING;
-    }
-
-    /**
-     * @return true if this should run on the native OS.
-     */
-    public static boolean isNative() {
-        return /*VAL*/999/*PLATFORM_TYPE*/ == NATIVE;
-    }
-
-    /**
-     * @return true if this should run by delegating all IO to another process (HotSpot) via sockets.
-     */
-    public static boolean isSocket() {
-        return /*VAL*/999/*PLATFORM_TYPE*/ == SOCKET;
-    }
-    
     public static synchronized GCFSockets getGCFSockets() {
-/*if[PLATFORM_TYPE_NATIVE]*/
-        if (gcfSockets == null) {
-            gcfSockets = new GCFSocketsImpl();
+        if (IS_NATIVE) {
+            if (gcfSockets == null) {
+                gcfSockets = new GCFSocketsImpl();
+            }
+            return gcfSockets;
+        } else {
+            return null;
         }
-        return gcfSockets;
-/*else[PLATFORM_TYPE_NATIVE]*/ 
-//     return null;
-/*end[PLATFORM_TYPE_NATIVE]*/
     }
     
     /**
@@ -88,11 +65,11 @@ public class Platform {
      * @return
      */
     public static SystemEvents createSystemEvents() {
-/*if[PLATFORM_TYPE_NATIVE]*/
-        return new com.sun.squawk.platform.posix.SystemEventsImpl();
-/*else[PLATFORM_TYPE_NATIVE]*/
-//     return null;
-/*end[PLATFORM_TYPE_NATIVE]*/
+        if (IS_NATIVE) {
+            return new com.sun.squawk.platform.posix.SystemEventsImpl();
+        } else {
+            return null;
+        }
     }
-    
+
 }

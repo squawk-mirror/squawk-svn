@@ -76,7 +76,7 @@ public class GccCompiler extends CCompiler {
             append(' ').
             append(get64BitOption()).append(' ');
 
-        if (Platform.isX86Architecture()) {
+        if (isTargetX86Architecture()) {
             buf.append("-ffloat-store ");
         }
 

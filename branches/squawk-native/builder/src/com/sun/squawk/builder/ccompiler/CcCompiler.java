@@ -63,7 +63,7 @@ public class CcCompiler extends CCompiler {
             !options.o2 &&
             !options.o3)                { buf.append("-xsb -g ");           }
         
-        if (Platform.isX86Architecture()) {
+        if (isTargetX86Architecture()) {
             buf.append("-fstore ");
         }
 

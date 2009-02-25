@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="45">
+<configurationDescriptor version="51">
   <logicalFolder name="root" displayName="root" projectFiles="true">
     <logicalFolder name="src" displayName="src" projectFiles="true">
       <logicalFolder name="rts" displayName="rts" projectFiles="true">
@@ -52,6 +52,7 @@
           <itemPath>src/rts/vxworks/os.c</itemPath>
           <itemPath>src/rts/vxworks/os_devices.c</itemPath>
           <itemPath>src/rts/vxworks/os_devices.h</itemPath>
+          <itemPath>src/rts/vxworks/os_main.c</itemPath>
           <itemPath>src/rts/vxworks/os_math.h</itemPath>
         </logicalFolder>
       </logicalFolder>
@@ -111,11 +112,11 @@
       <itemPath>vmcore-Makefile.mk</itemPath>
     </logicalFolder>
   </logicalFolder>
-  <sourceEncoding>UTF-8</sourceEncoding>
   <projectmakefile>vmcore-Makefile.mk</projectmakefile>
   <confs>
     <conf name="Default" type="0">
       <toolsSet>
+        <developmentServer>localhost</developmentServer>
         <compilerSet>GNU|GNU</compilerSet>
         <platform>5</platform>
       </toolsSet>
@@ -245,6 +246,9 @@
       </item>
       <item path="src/rts/vxworks/os_devices.h">
         <itemTool>3</itemTool>
+      </item>
+      <item path="src/rts/vxworks/os_main.c">
+        <itemTool>0</itemTool>
       </item>
       <item path="src/rts/vxworks/os_math.h">
         <itemTool>3</itemTool>

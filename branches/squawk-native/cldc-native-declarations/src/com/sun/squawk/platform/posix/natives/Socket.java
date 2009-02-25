@@ -235,7 +235,6 @@ public interface Socket extends Library {
                  
     } /* SockAddr */
 
-/*if[TRUE]*/
     /**
      * Interprets the specified character string as an Internet address, placing the
      * address into the structure provided.  It returns 1 if the string was successfully interpreted, or 0 if
@@ -258,35 +257,6 @@ public interface Socket extends Library {
      * @return String (created from the characters in the dst buffer)
      */
     String inet_ntop(int af, IntByReference src, Pointer dst, int size);
-    
-/*else[TRUE]*/
-//    /**
-//     * Interprets the specified character string as an Internet address, placing the
-//     * address into the structure provided.  It returns 1 if the string was successfully interpreted, or 0 if
-//     * the string is invalid
-//     * 
-//     * @param str 
-//     * @param in_addr (OUT) on sucessful return will contain the 32 bits of an IPv4 "struct in_addr"
-//     * @return true if success
-//     */
-//    public static boolean inet_aton(String str, IntStar in_addr) {
-//        Pointer name0 = Pointer.createStringBuffer(str);
-//        int result =  inet_atonPtr.call2(name0, in_addr.getPointer());
-//        name0.free();
-//        return (result == 0) ? false : true;
-//    }
-//
-//    /**
-//     * Takes an IPv4 Internet address and returns string representing the address
-//     * in `.' notation
-//     * 
-//     * @param in the opaque bytes of an IPv4 "struct in_addr"
-//     * @return String
-//     */
-//    public static String inet_ntoa(int in) {
-//        return Function.returnString(inet_ntoaPtr.call1(in));
-//    }
-/*end[TRUE]*/
     
     /**
      * set a socket option

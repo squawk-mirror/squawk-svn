@@ -237,7 +237,7 @@ public class Connector {
                 // make sure we try j2me before giving up, but don't search 2x if we don't have to
                 result = openPrim(protocol, protocol, name, mode, timeouts, "j2me");
             }
-            if (result == null && Platform.isDelegating()) {
+            if (result == null && Platform.IS_DELEGATING) {
                 // try to channel out to embedded JVM
                 result = openPrim("channel", protocol, name, mode, timeouts, platform);
             }
