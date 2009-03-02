@@ -484,4 +484,10 @@ public final class Double {
     public static double longBitsToDouble(long bits) {
         return VM.longBitsToDouble(bits);
     }
+
+    @Java5Marker
+    public static Double valueOf(final double val) {
+        return new Double(val);
+    }
+
 }

@@ -30,90 +30,12 @@ import java.util.*;
  * A Command instance describes a builder command.
  */
 public abstract class Command {
-
-    /**
-     * A sentinel iterator over an empty collection.
-     */
-    public final static Iterator EMPTY_ITERATOR = new Iterator() {
-
-        /**
-         * {@inheritDoc}
-         *
-         * @return <tt>false</tt>
-         */
-        public boolean hasNext() {
-            return false;
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Throws NoSuchElementException.
-         */
-        public Object next() {
-            throw new NoSuchElementException();
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Throws  UnsupportedOperationException.
-         */
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-    };
-
-    /**
-     * An iterator that translates a command name to a command as it iterates
-     * over a collection of command names.
-     */
-    class CommandNameIterator implements Iterator {
-
-        private final Iterator nameIterator;
-
-        CommandNameIterator(Collection commandNames) {
-            nameIterator = commandNames.iterator();
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * @return <tt>false</tt>
-         */
-        public boolean hasNext() {
-            return nameIterator.hasNext();
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Throws NoSuchElementException.
-         */
-        public Object next() {
-            String name = (String)nameIterator.next();
-            Command command = env.getCommand(name);
-            if (command == null) {
-                throw new BuildException("command not found: " + name);
-            }
-            return command;
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Throws  UnsupportedOperationException.
-         */
-        public void remove() {
-            nameIterator.remove();
-        }
-
-    }
+    protected static final List<String> EMPTY_STRING_LIST = new ArrayList<String>();
 
     protected final Build env;
     protected final String name;
-    private ArrayList dependencies;
-    private ArrayList triggeredCommands;
+    private ArrayList<String> dependencies;
+    private ArrayList<String> triggeredCommands;
 
     /**
      * Creates a new command.
@@ -161,11 +83,11 @@ public abstract class Command {
      */
     public final void dependsOn(String names) {
         StringTokenizer st = new StringTokenizer(names);
+        if (dependencies == null) {
+            dependencies = new ArrayList<String>();
+        }
         while (st.hasMoreTokens()) {
             String name = st.nextToken();
-            if (dependencies == null) {
-                dependencies = new ArrayList();
-            }
             dependencies.add(name);
         }
     }
@@ -175,8 +97,8 @@ public abstract class Command {
      *
      * @return an iteration of the dependencies of this command
      */
-    public final Iterator getDependencies() {
-        return dependencies == null ? EMPTY_ITERATOR : new CommandNameIterator(dependencies);
+    public final List<String> getDependencies() {
+        return dependencies == null ? EMPTY_STRING_LIST : dependencies;
     }
 
     /**
@@ -188,11 +110,11 @@ public abstract class Command {
      */
     public final void triggers(String names) {
         StringTokenizer st = new StringTokenizer(names);
+        if (triggeredCommands == null) {
+            triggeredCommands = new ArrayList<String>();
+        }
         while (st.hasMoreTokens()) {
             String name = st.nextToken();
-            if (triggeredCommands == null) {
-                triggeredCommands = new ArrayList();
-            }
             triggeredCommands.add(name);
         }
     }
@@ -202,8 +124,8 @@ public abstract class Command {
      *
      * @return an iteration of the commands triggered by this command
      */
-    public final Iterator getTriggeredCommands() {
-        return triggeredCommands == null ? EMPTY_ITERATOR : new CommandNameIterator(triggeredCommands);
+    public final List<String> getTriggeredCommands() {
+        return triggeredCommands == null ? EMPTY_STRING_LIST : triggeredCommands;
     }
 
     /**

@@ -235,4 +235,9 @@ class Float /*extends Number*/ {
         return VM.intBitsToFloat(bits);
     }
 
+    @Java5Marker
+    public static Float valueOf(final float val) {
+        return new Float(val);
+    }
+
 }

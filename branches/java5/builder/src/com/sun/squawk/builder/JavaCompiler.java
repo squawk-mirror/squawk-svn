@@ -26,7 +26,6 @@ package com.sun.squawk.builder;
 
 import java.io.*;
 import java.lang.reflect.*;
-import java.net.*;
 import java.util.*;
 
 import com.sun.squawk.builder.util.*;
@@ -39,11 +38,8 @@ import com.sun.squawk.builder.util.*;
 public class JavaCompiler {
 
     final Build env;
-
-    /**
-     * Controls if javamake should be used.
-     */
-    public boolean javamake = true;
+    private Method javacMethod;
+    private Method javadocMethod;
 
     /**
      * Controls if javac is called via Build.exec()
@@ -53,7 +49,7 @@ public class JavaCompiler {
     /**
      * The set of compiler options.
      */
-    private List args = new ArrayList();
+    private List<String> args = new ArrayList<String>();
 
     /**
      * Creates an object for performing Java source compilations.
@@ -75,32 +71,21 @@ public class JavaCompiler {
         Properties properties = System.getProperties();
         if(properties.getProperty("use.external.javac", "false").equals("true") ||
             env.getPlatform().toString().toLowerCase().equals("linux-ppc")) {
-            javamake = false;
             externalJavac = true;
         }
     }
-
-    private Method javacMethod;
-    private Class  javamakeClass;
-    private Method javamakeMethod;
-    private Method javadocMethod;
 
     /**
      * Initializes the reflection objects used to invoke the various tools used for compilation.
      */
     private void initializeTools() {
-        if (javamakeMethod != null || javacMethod != null) {
-            // Already initialized
-            return;
-        }
         env.log(env.verbose, "[initializing Java compiler tools]");
-
 
         // Try to initialize javadoc
         String javadocClassName = System.getProperty("builder.tools.javadoc.class", "com.sun.tools.javadoc.Main");
         String javadocMethodName = System.getProperty("builder.tools.javadoc.method", "execute");
         try {
-            Class javadocClass = Class.forName(javadocClassName);
+            Class<?> javadocClass = Class.forName(javadocClassName);
             javadocMethod = javadocClass.getMethod(javadocMethodName, new Class[] {String[].class});
             if (!Modifier.isStatic(javadocMethod.getModifiers())) {
                 throw new BuildException("javadoc entry method must be static");
@@ -111,35 +96,11 @@ public class JavaCompiler {
             env.log(env.verbose, "[internal javadoc not found]");
         }
 
-        // Try to initialize javamake
-        if (javamake) {
-            String javamakeClassName = "com.sun.tools.javamake.Main";
-            String javamakeMethodName = "mainProgrammatic";
-            Method customizeOutput = null;
-            try {
-                javamakeClass = Class.forName(javamakeClassName);
-                javamakeMethod = javamakeClass.getMethod(javamakeMethodName, new Class[] {String[].class});
-
-                customizeOutput = javamakeClass.getMethod("customizeOutput", new Class[]{ boolean.class, boolean.class, boolean.class });
-                customizeOutput.invoke(null, new Object[] {new Boolean(env.info), new Boolean(env.info), Boolean.TRUE});
-
-                return;
-            } catch (NoSuchMethodException e) {
-                throw new BuildException("cannot find javamake entry method: " + javamakeMethodName + "(String[])");
-            } catch (InvocationTargetException e) {
-                throw new BuildException("reflection error invoking " + customizeOutput, e);
-            } catch (IllegalAccessException e) {
-                throw new BuildException("reflection error invoking " + customizeOutput, e);
-            } catch (ClassNotFoundException e) {
-                env.log(env.verbose, "[javamake not found, switching to standard compilation: add javamake.jar to builder's classpath to prevent this]");
-            }
-        }
-
-        // Fall back on javac
+        // Try to initialize javac
         String javacClassName = System.getProperty("builder.tools.javac.class", "com.sun.tools.javac.Main");
         String javacMethodName = System.getProperty("builder.tools.javac.method", "compile");
         try {
-            Class javacClass = Class.forName(javacClassName);
+            Class<?> javacClass = Class.forName(javacClassName);
             javacMethod = javacClass.getMethod(javacMethodName, new Class[] {String[].class});
             if (!Modifier.isStatic(javacMethod.getModifiers())) {
                 throw new BuildException("javac entry method must be static");
@@ -156,7 +117,7 @@ public class JavaCompiler {
      * Resets the arguments to be empty.
      */
     public void reset() {
-        args = new ArrayList();
+        args = new ArrayList<String>();
     }
 
     /**
@@ -204,109 +165,7 @@ public class JavaCompiler {
     public void compile(String classPath, File outputDir, File[] srcDirs, boolean j2me) {
         initializeTools();
 
-        // Try to use javamake first
-        if (javamakeMethod != null) {
-            javamake(srcDirs, classPath, outputDir, j2me);
-        } else {
-            javac(srcDirs, classPath, outputDir, j2me);
-        }
-    }
-
-    /**
-     * Performs a compilation via the javamake tool. The first element in <code>srcDirs</code> is the primary
-     * source directory and will be used for javamake's project file (i.e. javamake.pdb) as well as the
-     * args file given to javamake (i.e. javamake.input).
-     *
-     * @param srcDirs        the directories with the files to (conditionally) compile
-     * @param classPath      the compilation classpath
-     * @param outputDir      the compilation output directory
-     * @param bootclasspath  true if <code>classPath</code> is a boot classpath
-     * @throws BuildException if javamake is available but was not successfully executed
-     */
-    private void javamake(File[] srcDirs, String classPath, File outputDir, boolean bootclasspath) {
-
-        File primarySrcDir = srcDirs[0];
-        StringBuffer args = new StringBuffer(2000);
-
-        // Create the project path
-        if (classPath != null) {
-            StringTokenizer st = new StringTokenizer(Build.toPlatformPath(classPath, true), File.pathSeparator);
-            if (st.hasMoreTokens()) {
-                args.append("-projclasspath ");
-                while (st.hasMoreTokens()) {
-                    File dirOrJar = new File(st.nextToken());
-                    if (dirOrJar.isDirectory()) {
-                        File classesJar = new File(dirOrJar.getPath() + ".jar");
-                        if (!classesJar.exists()) {
-                            throw new BuildException("cannot find " + classesJar);
-                        }
-                        dirOrJar = classesJar;
-                    }
-                    args.append(dirOrJar.getPath());
-                    if (st.hasMoreTokens()) {
-                        args.append(File.pathSeparatorChar);
-                    }
-                }
-            }
-        }
-
-        // Prepend the output directory to the class path
-        if (classPath == null) {
-            classPath = outputDir.getPath();
-        } else {
-            classPath = Build.toPlatformPath(outputDir.getPath() + ':' + classPath, true);
-        }
-
-        args.append(" -pdb ").
-            append(new File(primarySrcDir, "javamake.pdb").getPath()).
-            append(bootclasspath ? " -bootclasspath " : " -classpath ").
-            append(outputDir.getPath()).
-            append(" -d ").
-            append(outputDir.getPath());
-
-        for (Iterator iterator = this.args.iterator(); iterator.hasNext(); ) {
-            String arg = (String)iterator.next();
-            if (arg.equals("-bootclasspath")) {
-                args.append(' ').append(arg);
-                if (!iterator.hasNext()) {
-                    throw new BuildException("-bootclasspath requires a value");
-                }
-                args.append(' ').append(iterator.next());
-            } else {
-                // add -C to the non-javamake arg to pass it through to the compiler
-                args.append(" -C").append(arg);
-            }
-        }
-
-        // Add the source files to the args
-        for (int i = 0; i != srcDirs.length; ++i) {
-            File srcDir = srcDirs[i];
-            List files = new FileSet(srcDir, Build.JAVA_SOURCE_SELECTOR).list();
-            for (Iterator iterator = files.iterator(); iterator.hasNext(); ) {
-                args.append(' ').append(((File)iterator.next()).getPath());
-            }
-        }
-        // Generate the args file for javamake
-        File argsFile = new File(primarySrcDir, "javamake.input");
-        createArgsFile(args.toString(), argsFile);
-
-        // Run javamake
-        try {
-            env.log(env.info, "[running 'javamake @" + argsFile + "'...]");
-            Object instance = javamakeClass.newInstance();
-            javamakeMethod.invoke(instance, new Object[] { new String[] { "@" + argsFile } });
-        } catch (IllegalAccessException e) {
-            throw new BuildException("cannot instantiate or invoke javamake", e);
-        } catch (InstantiationException e) {
-            throw new BuildException("cannot create javamake instance", e);
-        } catch (InvocationTargetException e) {
-            throw new BuildException("reflection error invoking javamake", e);
-        } catch (IllegalArgumentException e) {
-            throw new BuildException("reflection error invoking javamake", e);
-        }
-
-        // Create classes.jar if it does not exist or is older than any of the class files in the classes directory
-        updateClassesJar(outputDir);
+        javac(srcDirs, classPath, outputDir, j2me);
     }
 
     /**
@@ -334,8 +193,8 @@ public class JavaCompiler {
      * @param outputDir  the output directory where the classes reside
      * @return the set of Java source files in <code>srcDir</code> that were modified more recently than their corresponding class files
      */
-    private List getModifiedFiles(File[] srcDirs, File outputDir) {
-        List modifiedFiles = null;
+    private List<File> getModifiedFiles(File[] srcDirs, File outputDir) {
+        List<File> modifiedFiles = null;
         for (int i = 0; i != srcDirs.length; ++i) {
             File srcDir = srcDirs[i];
             FileSet.Selector outOfDate = new FileSet.AndSelector(Build.JAVA_SOURCE_SELECTOR, new FileSet.DependSelector(new FileSet.SourceDestDirMapper(srcDir, outputDir) {
@@ -372,7 +231,7 @@ public class JavaCompiler {
         File primarySrcDir = srcDirs[0];
 
         // Refine the sources to be compiled to those whose class files are out of date
-        List files = getModifiedFiles(srcDirs, outputDir);
+        List<File> files = getModifiedFiles(srcDirs, outputDir);
         if (files.isEmpty()) {
             // Nothing needs to be recompiled
             env.log(env.info, "[no javac recompilation necessary]");
@@ -388,13 +247,13 @@ public class JavaCompiler {
         args.append(outputDir.getPath());
 
         // Add the other args
-        for (Iterator iterator = this.args.iterator(); iterator.hasNext(); ) {
-            args.append(' ').append((String)iterator.next());
+        for (String arg: this.args) {
+            args.append(' ').append(arg);
         }
 
         // Add the sources files
-        for (Iterator iterator = files.iterator(); iterator.hasNext(); ) {
-            args.append(' ').append(((File)iterator.next()).getPath());
+        for (File file: files) {
+            args.append(' ').append(file.getPath());
         }
 
         // Generate the args file for javac
@@ -410,7 +269,7 @@ public class JavaCompiler {
             } else {
                 int result = ((Integer)javacMethod.invoke(null, new Object[] { new String[] {"@" + argsFile} })).intValue();
                 if (result != 0) {
-                    throw new BuildException("javamake compilation failed", result);
+                    throw new BuildException("javac compilation failed", result);
                 }
             }
         } catch (IllegalAccessException e) {
@@ -441,10 +300,10 @@ public class JavaCompiler {
         }
     }
 
-    public static void createArgsFile(Collection args, File argsFile) {
+    public static void createArgsFile(Collection<String> args, File argsFile) {
         StringBuffer buf = new StringBuffer(1000);
-        for (Iterator iter = args.iterator(); iter.hasNext(); ) {
-            buf.append(iter.next()).append(' ');
+        for (String arg: args) {
+            buf.append(arg).append(' ');
         }
         createArgsFile(buf.toString(), argsFile);
     }

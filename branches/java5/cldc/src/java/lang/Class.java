@@ -50,7 +50,8 @@ import com.sun.squawk.util.*;
  * @version 1.106, 12/04/99 (CLDC 1.0, Spring 2000)
  * @since   JDK1.0, CLDC 1.0
  */
-public final class Class {
+@Java5Marker("Added <T>")
+public final class Class<T> {
 
     private Klass klass;
 
@@ -287,6 +288,21 @@ public final class Class {
     public java.io.InputStream getResourceAsStream(String name) {
         return klass.getResourceAsStream(name);
     }
+    
+    /**
+     * Returns the <code>Class</code> representing the component type of an
+     * array.  If this class does not represent an array class this method
+     * returns null.
+     *
+     * @return the <code>Class</code> representing the component type of this
+     * class if this class is an array
+     * @see     java.lang.reflect.Array
+     * @since JDK1.1
+     */
+    public Class getComponentType() {
+        return Klass.asClass(klass.getComponentType());
+    }
+
 }
 
 

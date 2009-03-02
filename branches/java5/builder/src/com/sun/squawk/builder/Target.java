@@ -32,29 +32,14 @@ import java.util.*;
  */
 public final class Target extends Command {
 
-    public final String classPath;
+    protected final String extraClassPath;
     public final boolean j2me;
     public final boolean preprocess;
     public final File baseDir;
     public final File[] srcDirs;
 
-    public List extraArgs;
-    public String version;
+    public List<String> extraArgs;
 
-    /**
-     * Creates a new compilation command.
-     *
-     * @param classPath      the class path to compile against
-     * @param j2me           specifies if the classes being compiled are to be deployed on a J2ME platform
-     * @param baseDir        the base directory under which the various intermediate and output directories are created
-     * @param srcDirs        the directories that are searched recursively for the source files to be compiled
-     * @param preprocess     specifies if the files should be {@link Preprocessor preprocessed} before compilation
-     * @param env Build      the builder environment in which this command will run
-     */
-    public Target(String classPath, boolean j2me, String baseDir, File[] srcDirs, boolean preprocess, Build env) {
-    	this(classPath, j2me, baseDir, srcDirs, preprocess, env, baseDir);
-    }
-    
     /**
      * Creates a new compilation command.
      *
@@ -66,13 +51,32 @@ public final class Target extends Command {
      * @param env Build      the builder environment in which this command will run
      * @param   name  the name of this command
      */
-    public Target(String classPath, boolean j2me, String baseDir, File[] srcDirs, boolean preprocess, Build env, String name) {
+    public Target(String extraClassPath, boolean j2me, String baseDir, File[] srcDirs, boolean preprocess, Build env, String name) {
         super(env, name);
-        this.classPath = classPath;
+        this.extraClassPath = extraClassPath;
         this.j2me = j2me;
         this.baseDir = new File(baseDir);
         this.srcDirs = srcDirs;
         this.preprocess = preprocess;
+    }
+
+    protected String getClassPathString() {
+        StringBuffer classPathBuffer = new StringBuffer();
+        List<String> dependencies = getDependencies();
+        for (String dependency: dependencies) {
+            Command command = env.getCommand(dependency);
+            if (command instanceof Target) {
+                classPathBuffer.append(dependency).append(File.separatorChar).append("classes");
+                classPathBuffer.append(File.pathSeparatorChar);
+            }
+        }
+        if (extraClassPath != null && extraClassPath.length() != 0) {
+            classPathBuffer.append(File.pathSeparatorChar).append(Build.toPlatformPath(extraClassPath, true));
+        }
+        if (classPathBuffer.length() == 0) {
+            return null;
+        }
+        return classPathBuffer.toString();
     }
 
     /**
@@ -81,7 +85,7 @@ public final class Target extends Command {
      * {@inheritDoc}
      */
     public void run(String[] args) {
-        env.javac(classPath, baseDir, srcDirs, j2me, version, extraArgs, preprocess);
+        env.javac(getClassPathString(), baseDir, srcDirs, j2me, extraArgs, preprocess);
     }
 
     /**
@@ -111,6 +115,7 @@ public final class Target extends Command {
             Build.clear(new File(baseDir, "preprocessed"), true);
         }
         if (j2me) {
+            Build.clear(new File(baseDir, "weaved"), true);
             Build.clear(new File(baseDir, "j2meclasses"), true);
         }
         Build.clear(new File(baseDir, "javadoc"), true);

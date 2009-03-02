@@ -25,6 +25,7 @@
 package com.sun.squawk.builder.launcher;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -34,6 +35,10 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.StringTokenizer;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 public class Launcher {
 
@@ -45,8 +50,7 @@ public class Launcher {
 	        if (toolsJar != null) {
 	        	urls.add(toolsJar);
 	        }
-	        URL buildCommandsJar = getBuildCommandsJar();
-	        urls.add(buildCommandsJar);
+	        addBuildCommandsJars(urls);
     	} catch (MalformedURLException e) {
     		throw new RuntimeException("Problems building class path to launch builder", e);
     	}
@@ -71,19 +75,44 @@ public class Launcher {
 		}
     }
 
-    public static URL getBuildCommandsJar() throws MalformedURLException {
+    public static void addBuildCommandsJars(List<URL> urls) throws MalformedURLException {
+        try {
+            Class.forName("com.sun.squawk.builder.Build");
+            // If Build class is already on my classpath, then go ahead and use it then.
+            return;
+        } catch (ClassNotFoundException e1) {
+        }
 		URL launcherJarUrl = Launcher.class.getProtectionDomain().getCodeSource().getLocation();
         try {
             // URL's don't handle encoded spaces well, switch to URI:
             File launcherJarFile = new File(launcherJarUrl.toURI().getPath());
             File buildCommandsJarFile = new File(launcherJarFile.getParent(), "build-commands.jar");
-            if (buildCommandsJarFile.exists()) {
-                return buildCommandsJarFile.toURL();
+            if (!buildCommandsJarFile.exists()) {
+                // the above doesn't work if path has space! ???!.
+                buildCommandsJarFile = new File("build-commands.jar");
             }
-            // the above doesn't work if path has space! ???!.
-            buildCommandsJarFile = new File("build-commands.jar");
             if (buildCommandsJarFile.exists()) {
-                return buildCommandsJarFile.toURL();
+                try {
+                    JarFile jar = new JarFile(buildCommandsJarFile);
+                    Manifest manifest = jar.getManifest();
+                    if (manifest != null) {
+                        Attributes attributes = manifest.getMainAttributes();
+                        if (attributes != null) {
+                            String classPathString = attributes.getValue(Attributes.Name.CLASS_PATH);
+                            if (classPathString != null) {
+                                StringTokenizer tokenizer = new StringTokenizer(classPathString, " ");
+                                while (tokenizer.hasMoreTokens()) {
+                                    String token = tokenizer.nextToken();
+                                    File file = new File(token);
+                                    urls.add(file.toURL());
+                                }
+                            }
+                        }
+                    }
+                    urls.add(buildCommandsJarFile.toURL());
+                    return;
+                } catch (IOException e) {
+                }
             }
 		   throw new RuntimeException("Unable to locate build-commands.jar.  Expected to find it at " + buildCommandsJarFile.getPath());
         } catch (URISyntaxException uRISyntaxException) {
@@ -97,12 +126,10 @@ public class Launcher {
         try {
             // just check whether this throws an exception
             Class.forName("com.sun.tools.javac.Main");
-            System.out.println("Launcher: com.sun.tools.javac.Main already in classpath.");
             toolsJarAvailable = true;
         } catch (Exception e1) {
             try {
                 Class.forName("sun.tools.javac.Main");
-                System.out.println("Launcher: sun.tools.javac.Main already in classpath.");
                 toolsJarAvailable = true;
             } catch (Exception e2) {
                 // ignore
@@ -125,7 +152,6 @@ public class Launcher {
         if (!toolsJar.exists()) {
         	throw new RuntimeException("Unable to locate tools.jar. Expected to find it in " + toolsJar.getPath());
         }
-        System.out.println("Launcher: Found tools.jar in " + toolsJar.getPath() + ", by popping up a level from jre.");
         return toolsJar.toURL();
     }
     
