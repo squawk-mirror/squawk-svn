@@ -1,6 +1,5 @@
 package net.sourceforge.retroweaver.runtime.java.lang;
 
-import com.sun.squawk.Java5Marker;
 import java.util.Iterator;
 
 
@@ -8,7 +7,6 @@ import java.util.Iterator;
  * Replacements for methods added to java.lang.Iterable in Java 1.5, used
  * for targets of the "foreach" statement.
  */
-@Java5Marker
 public final class Iterable_ {
 
 	private Iterable_() {
