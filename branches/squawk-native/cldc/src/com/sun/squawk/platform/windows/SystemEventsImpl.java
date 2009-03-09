@@ -1,4 +1,4 @@
-//if[EXCLUDE]
+
 /*
  * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
@@ -30,7 +30,7 @@ import com.sun.squawk.platform.SystemEvents;
 import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
 import com.sun.cldc.jna.*;
-import com.sun.squawk.platform.posix.natives.*;
+import com.sun.squawk.platform.windows.natives.*;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.util.IntSet;
 

@@ -209,6 +209,7 @@ public final class ChannelConstants {
 /*end[OLD_IIC_MESSAGES]*/
         
         /* Native Platform Support */
+        NATIVE_PLATFORM_NAME                    = 1995,
         DLOPEN                                  = 1996,
         DLCLOSE                                 = 1997,
         DLERROR                                 = 1998,

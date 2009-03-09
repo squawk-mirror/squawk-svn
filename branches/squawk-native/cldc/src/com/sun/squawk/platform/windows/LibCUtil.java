@@ -1,4 +1,4 @@
-//if[EXCLUDE]
+
 /*
  * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
@@ -26,7 +26,7 @@
 package com.sun.squawk.platform.windows;
 
 import java.io.IOException;
-import com.sun.squawk.platform.posix.natives.LibC;
+import com.sun.squawk.platform.windows.natives.LibC;
 
 /**
  * Helper statics for LibC.

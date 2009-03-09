@@ -26,7 +26,7 @@
  * Platform dependent startup code directly included by squawk.c.spp
  */
 
-#define VXLOADARG(arg) if(arg != NULL) { argv[argc] = arg; argc++; } else (void)0
+#define VXLOADARG(arg) if(arg != NULL) { argv[argc] = arg; argc++; printf("arg: %s\n", arg);} else (void)0
 
 /**
  * Entry point for the VxWorks operating system.
@@ -49,9 +49,21 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
 	VXLOADARG(arg8);
 	VXLOADARG(arg9);
 	VXLOADARG(arg10);
+
+printf("argc: %d\n", argc);
 	
     // Switch directories so squawk.suite will always be found
-    cd("/c/squawk");
+    //cd("/c/squawk");
 
     return Squawk_main_wrapper(argc, argv); 
 }
+
+/**
+ * Entry point used by FRC.
+ */
+int FRC_UserProgram_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
+    fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
+    cd("/c/ni-rt/system");
+    return os_main("-suite:robot", null, null, null, null, null, null, null, null, null);
+}
+

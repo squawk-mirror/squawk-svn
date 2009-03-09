@@ -3852,7 +3852,7 @@ public class Klass {
      * @param   name       the name of the class to lookup.
      * @return the Klass instance for <code>name</code>, or null if it doesn't exists
      */
-    private static Klass lookupKlass(String name) {
+    public static Klass lookupKlass(String name) {
         Isolate isolate = VM.getCurrentIsolate();
         Suite suite = isolate.getLeafSuite();
         if (suite == null) {

@@ -39,6 +39,8 @@
 
 #define FT2INT64(ft) ((jlong)(ft).dwHighDateTime << 32 | (jlong)(ft).dwLowDateTime)
 
+/* The package that conmtains the native code to use for a "NATIVE" platform type*/
+ #define sysPlatformName() "com.sun.squawk.platform.windows"
 
 /* This standard C function is not provided on Windows */
 char* strsignal(int signum) {
@@ -81,6 +83,14 @@ jlong sysTimeMicros(void) {
 
 jlong sysTimeMillis(void) {
     return sysTimeMicros() / 1000;
+}
+
+/**
+ * Sleep Squawk for specified milliseconds
+ */
+void osMilliSleep(long long millis) {
+// this should probably become SleepEx, and hook into async event handling...
+    Sleep(millis);
 }
 
 /**
@@ -127,7 +137,7 @@ INLINE void* sysValloc(size_t size) {
  * @param ptr to to chunk allocated by sysValloc
  */
 INLINE void sysVallocFree(void* ptr) {
-    VirtualFree(buffer, 0, MEM_RELEASE);
+    VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
 /** 
@@ -224,7 +234,38 @@ void osprofstart(int interval) {
     } \
 }
 
+#define USE_CUSTOM_DL_CODE 1
 
+static HMODULE defaultRTLD = 0;
+
+void* sys_RTLD_DEFAULT() {
+    if (defaultRTLD == 0) {
+        //GetModuleHandleEx(0,0,&defaultRTLD); // winxp only
+        defaultRTLD = GetModuleHandle(NULL);
+    }
+    return (void*)defaultRTLD;
+}
+
+void* sysdlopen(char* name) {
+    return LoadLibrary(name);
+}
+
+int sysdlclose(void* handle) {
+    return FreeLibrary(handle);
+}
+
+void* sysdlerror() {
+    DWORD err = GetLastError();
+    if (err == 0) {
+        return NULL;
+    } else {
+       return "some error occurred"; // TODO: at sprintf the errno to a buffer, or call FormatMessage
+    }
+}
+
+void* dlsym(void* handle, const char* symbol) {
+    return GetProcAddress(handle, symbol);
+}
 
 
 #undef VOID

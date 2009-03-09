@@ -43,6 +43,11 @@ public class Test {
      */
     public static void main(String[] args) throws IOException {
         try {
+            String host = args[0];
+            String port = "80";
+            if (args.length > 1) {
+                port = args[1];
+            }
             System.err.println("creating twiddler");
             Thread twiddler = new Thread(new Runnable() {
                 public void run() {
@@ -56,13 +61,14 @@ public class Test {
             VM.setAsDaemonThread(twiddler);
             twiddler.start();
 
-            StreamConnection c = (StreamConnection)Connector.open("socket://www.sun.com:80");
+            StreamConnection c = (StreamConnection)Connector.open("socket://" + host + ":" + port);
             DataOutputStream out = c.openDataOutputStream();
             DataInputStream in = c.openDataInputStream();
 
             // specify 1.0 to get non-persistent connections.
             // Otherwise we have to parse the replies to detect when full reply is received.
-            byte[] data = "GET /index.html HTTP/1.0\r\nHost: www.sun.com\r\n\r\n".getBytes();
+            String command = "GET /index.html HTTP/1.0\r\nHost: " + host + "\r\n\r\n";
+            byte[] data = command.getBytes();
             out.write(data, 0, data.length);
 
             StringBuffer strbuf = new StringBuffer();

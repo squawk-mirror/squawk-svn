@@ -46,6 +46,35 @@ jlong sysTimeMillis(void) {
     return sysTimeMicros() / 1000;
 }
 
+#define MAX_MICRO_SLEEP 999999
+
+/**
+ * Sleep Squawk for specified milliseconds
+ */
+void osMilliSleep(long long millis) {
+    if (millis <= 0) {
+        return;
+    }
+    long long elapsed = sysTimeMillis();
+    long long seconds = millis / 1000;
+    if (seconds > 0) {
+        // too long for usleep, so get close
+        sleep(seconds);
+    }
+    elapsed = sysTimeMillis() - elapsed;
+    if (elapsed < millis) {
+        millis = millis - elapsed;
+        long long micro = millis * 1000;
+        if (micro > MAX_MICRO_SLEEP) {
+            micro = MAX_MICRO_SLEEP;
+        }
+        usleep(micro);
+    }
+}
+
+/* The package that conmtains the native code to use for a "NATIVE" platform type*/
+ #define sysPlatformName() "com.sun.squawk.platform.posix"
+
 /**
  * Gets the page size (in bytes) of the system.
  *

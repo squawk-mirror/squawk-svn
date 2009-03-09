@@ -2669,7 +2669,7 @@ public class Build {
         preprocessor.processAssertions = j2me;
         preprocessor.verbose = verbose;
         // @TODO: Should be true for desktop builds. host == target?
-        preprocessor.showLineNumbers = false;
+        preprocessor.showLineNumbers = true;
 
         for (int i = 0; i != srcDirs.length; ++i) {
 

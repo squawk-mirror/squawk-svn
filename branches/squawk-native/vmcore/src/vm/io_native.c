@@ -40,35 +40,13 @@
 #endif
 
 /****** HARD CODED FOR MAC FOR NOW:  *************/
-#define MAX_MICRO_SLEEP 999999
-
-void osMilliSleep(long long millis) {
-    if (millis <= 0) {
-        return;
-    }
-    long long elapsed = sysTimeMillis();
-    long long seconds = millis / 1000;
-    if (seconds > 0) {
-        // too long for usleep, so get close
-        sleep(seconds);
-    } 
-    elapsed = sysTimeMillis() - elapsed;
-    if (elapsed < millis) {
-        millis = millis - elapsed;
-        long long micro = millis * 1000;
-        if (micro > MAX_MICRO_SLEEP) {
-            micro = MAX_MICRO_SLEEP;
-        }
-        usleep(micro);
-    }
-}
 
 
-int sysFD_SET(int i1, fd_set* set) {
+void sysFD_SET(int i1, fd_set* set) {
     FD_SET(i1, set);
 }
 
-int sysFD_CLR(int i1, fd_set* set) {
+void sysFD_CLR(int i1, fd_set* set) {
     FD_CLR(i1, set);
 }
 
@@ -89,7 +67,7 @@ const int com_sun_squawk_platform_posix_callouts_Libc_Stat_layout[com_sun_squawk
 
 #define com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN 6
 
-#ifdef sun
+#if defined(sun) || defined(_MSC_VER)
 const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
     com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
     sizeof(struct sockaddr_in),
@@ -98,8 +76,8 @@ const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layo
     offsetof(struct sockaddr_in, sin_port),
     offsetof(struct sockaddr_in, sin_addr)
 };
-#else /* ! sun */
-#ifdef VXWORKS
+#elif defined(VXWORKS)
+
 // HACK: These values shoult not be hard-coded.  Need to find out how to include the correct definitions
 const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
     com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
@@ -118,11 +96,11 @@ const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layo
     offsetof(struct sockaddr_in, sin_port),
     offsetof(struct sockaddr_in, sin_addr)
 };
-#endif /* !VXWORKS */
-#endif /* ! sun */
+#endif /* else */
 
-int sysFD_SIZE; __attribute__((used))
-int sysSIZEOFSTAT;  __attribute__((used))
+
+int sysFD_SIZE; FORCE_USED
+int sysSIZEOFSTAT; FORCE_USED
 
 /*---------------------------- Event Queue ----------------------------*/
 
@@ -308,7 +286,7 @@ void testIntStar2(int *outparam) {
 
 /* INTERNAL DYNAMIC SYMBOL SUPPORT */
 typedef struct dlentryStruct {
-    char* name;
+    const char* name;
     void* entry;
 } dlentry;
 
@@ -320,26 +298,15 @@ static dlentry dltable[DL_TABLE_SIZE] = {
     {"sysFD_CLR",       &sysFD_CLR},
     {"sysFD_SET",       &sysFD_SET},
     {"sysFD_ISSET",     &sysFD_ISSET},
-    {"com_sun_squawk_platform_posix_callouts_Libc_Stat_layout", &com_sun_squawk_platform_posix_callouts_Libc_Stat_layout},
-    {"_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout", &_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout},
+    {"com_sun_squawk_platform_posix_callouts_Libc_Stat_layout", (void*)&com_sun_squawk_platform_posix_callouts_Libc_Stat_layout},
+    {"_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout", (void*)&_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout},
     {"testIntStar1",    &testIntStar1},
     {"testIntStar2",    &testIntStar2}
 };
     
-
-void* sysdlsym(void* handle, char* name) {
-    int i;
-    for (i = 0; i < DL_TABLE_SIZE; i++) {
-        if (strcmp(name, dltable[i].name) == 0) {
-            return dltable[i].entry;
-        }
-    }
-    
-    return dlsym(handle, name);
-}
-
-
 #ifndef USE_CUSTOM_DL_CODE
+#define sys_RTLD_DEFAULT() RTLD_DEFAULT
+
 void* sysdlopen(char* name) {
     return dlopen(name, RTLD_LAZY);
 }
@@ -353,6 +320,24 @@ void* sysdlerror() {
 }
 
 #endif /* !USE_CUSTOM_DL_CODE */
+
+void* sysdlsym(void* handle, char* name) {
+    int i;
+    for (i = 0; i < DL_TABLE_SIZE; i++) {
+        if (strcmp(name, dltable[i].name) == 0) {
+            return dltable[i].entry;
+        }
+    }
+
+    if (handle == 0) {
+        handle = sys_RTLD_DEFAULT();
+    }
+    
+    return (void*)dlsym(handle, name);
+}
+
+
+
 
 /**
  * Executes an operation on a given channel for an isolate.
@@ -398,7 +383,7 @@ void* sysdlerror() {
             // the call that periodically resyncs our clock with the power controller
             res = getEvent(true);
             // improve fairness of thread scheduling - see bugzilla #568
-// @TODO: Check that bare-matel version is OK: It unconditionally resets the bc.
+// @TODO: Check that bare-metal version is OK: It unconditionally resets the bc.
 //        This can give current thread more time, if there was no event.
 //        better idea is to give new thread new quanta in threadswitch?
             if (res) {
@@ -467,6 +452,10 @@ void* sysdlerror() {
         /*--------------------------- POSIX NATIVE OPS ---------------------------*/
 
 /* WARNING! NONE OF THIS IS 64-bit safe! */
+        case ChannelConstants_NATIVE_PLATFORM_NAME: {
+            res = (int)sysPlatformName();
+            break;
+        }
 
         case ChannelConstants_DLOPEN: {
             res = (int)sysdlopen((char*)i1);
@@ -484,11 +473,7 @@ void* sysdlerror() {
         }
 
         case ChannelConstants_DLSYM: {
-            void* handle = RTLD_DEFAULT;
-            if (i1 != 0) {
-                handle = (void*) i1;
-            }
-            res = (int)sysdlsym(handle, (char*)i2);
+            res = (int)sysdlsym((void*) i1, (char*)i2);
             break;
         }
 

@@ -28,6 +28,7 @@ import com.sun.squawk.VM;
 import com.sun.squawk.platform.GCFFile;
 import com.sun.squawk.io.ConnectionBaseAdapter;
 import com.sun.squawk.io.j2me.ParameterParser;
+import com.sun.squawk.platform.Platform;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;
@@ -1327,37 +1328,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * @return handle to current file connection
      */
     private static GCFFile getFileHandler() {
-//        String def = "com.sun.midp.io.j2me.file.GCFFileImpl";
-//        String n = null;
-//        if (hasOtherFileHandler) {
-//            n = Configuration.getProperty(
-//                               "com.sun.midp.io.j2me.fileHandlerImpl");
-//            if (n == null) {
-//                hasOtherFileHandler = false;
-//            }
-//        }
-//        if (hasOtherFileHandler) {
-//            try {
-//                return (GCFFile) (Class.forName(n)).newInstance();
-//            } catch (ClassNotFoundException e) {
-//                hasOtherFileHandler = false;
-//            } catch (Error e) {
-//                hasOtherFileHandler = false;
-//            } catch (IllegalAccessException e) {
-//                hasOtherFileHandler = false;
-//            } catch (InstantiationException e) {
-//                hasOtherFileHandler = false;
-//            }
-//        }
-        return new com.sun.squawk.platform.posix.GCFFileImpl();
-//        try {
-//            return (GCFFile) (Class.forName(def)).newInstance();
-//        } catch (ClassNotFoundException e) {
-//        } catch (Error e) {
-//        } catch (IllegalAccessException e) {
-//        } catch (InstantiationException e) {
-//        }
-//        throw new Error("Unable to create FileConnection Handler");
+        return Platform.getFileHandler();
     }
 
 }

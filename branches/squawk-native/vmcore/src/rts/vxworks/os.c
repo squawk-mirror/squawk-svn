@@ -24,10 +24,9 @@
 
 #define open(filename, flags) open(filename, flags, 0644);
 
-// Map the default dlsym handle to null
-// VxWorks doesn't use the handle.
-#define RTLD_DEFAULT NULL
-#define RTLD_LAZY NULL
+
+/* The package that conmtains the native code to use for a "NATIVE" platform type*/
+ #define sysPlatformName() "com.sun.squawk.platform.posix"
 
 #include <stdlib.h>
 #include <sys/times.h>
@@ -166,12 +165,44 @@ jlong sysTimeMillis(void) {
 }
 
 
+#define MAX_MICRO_SLEEP 999999
+
+/**
+ * Sleep Squawk for specified milliseconds
+ */
+void osMilliSleep(long long millis) {
+    if (millis <= 0) {
+        return;
+    }
+    long long elapsed = sysTimeMillis();
+    long long seconds = millis / 1000;
+    if (seconds > 0) {
+        // too long for usleep, so get close
+        sleep(seconds);
+    }
+    elapsed = sysTimeMillis() - elapsed;
+    if (elapsed < millis) {
+        millis = millis - elapsed;
+        long long micro = millis * 1000;
+        if (micro > MAX_MICRO_SLEEP) {
+            micro = MAX_MICRO_SLEEP;
+        }
+        usleep(micro);
+    }
+}
+
 void startTicker(int interval) {
     fprintf(stderr, "Profiling not implemented");
     exit(0);
 }
 
 #define USE_CUSTOM_DL_CODE 1
+
+
+// Map the default dlsym handle to null
+// VxWorks doesn't use the handle.
+#define sys_RTLD_DEFAULT() (void*)NULL
+#define RTLD_LAZY NULL
 
 void* sysdlopen(char* name) {
     return NULL;

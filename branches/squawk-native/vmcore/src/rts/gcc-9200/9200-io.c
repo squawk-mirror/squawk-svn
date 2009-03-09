@@ -135,6 +135,26 @@ static void setDeepSleepEventOutstanding(long long target) {
 	outstandingDeepSleepEvent = 1;
 }
 
+/**
+ * Sleep Squawk for specified milliseconds
+ */
+void osMilliSleep(long long millisecondsToWait) {
+    long long target = ((long long) getMilliseconds()) + millisecondsToWait;
+    if (target <= 0) {
+        target = 0x7FFFFFFFFFFFFFFFLL; // overflow detected
+    }
+//  diagnosticWithValue("GLOBAL_WAITFOREVENT - deepSleepEnabled", deepSleepEnabled);
+//  diagnosticWithValue("GLOBAL_WAITFOREVENT - sleepManagerRunning", sleepManagerRunning);
+//  diagnosticWithValue("GLOBAL_WAITFOREVENT - minimumDeepSleepMillis", minimumDeepSleepMillis);
+    if ((millisecondsToWait < 0x7FFFFFFFFFFFFFFFLL) && deepSleepEnabled && !sleepManagerRunning && (millisecondsToWait >= minimumDeepSleepMillis)) {
+//     diagnosticWithValue("GLOBAL_WAITFOREVENT - deep sleeping for", (int)millisecondsToWait);
+       setDeepSleepEventOutstanding(target);
+    } else {
+//     diagnosticWithValue("GLOBAL_WAITFOREVENT - shallow sleeping for", (int)millisecondsToWait);
+       doShallowSleep(target);
+    }
+}
+
 /******************************************************************
  * Serial port support
  ******************************************************************/
@@ -557,18 +577,7 @@ int avr_low_result = 0;
             break;
     	case ChannelConstants_GLOBAL_WAITFOREVENT: {
                 long long millisecondsToWait = rebuildLongParam(i1, i2);
-                long long target = ((long long) getMilliseconds()) + millisecondsToWait;
-                if (target <= 0) target = 0x7FFFFFFFFFFFFFFFLL; // overflow detected
-//		diagnosticWithValue("GLOBAL_WAITFOREVENT - deepSleepEnabled", deepSleepEnabled);
-//		diagnosticWithValue("GLOBAL_WAITFOREVENT - sleepManagerRunning", sleepManagerRunning);
-//		diagnosticWithValue("GLOBAL_WAITFOREVENT - minimumDeepSleepMillis", minimumDeepSleepMillis);
-                if ((millisecondsToWait < 0x7FFFFFFFFFFFFFFFLL) && deepSleepEnabled && !sleepManagerRunning && (millisecondsToWait >= minimumDeepSleepMillis)) {
-//		diagnosticWithValue("GLOBAL_WAITFOREVENT - deep sleeping for", (int)millisecondsToWait);
-                    setDeepSleepEventOutstanding(target);
-                } else {
-//		    diagnosticWithValue("GLOBAL_WAITFOREVENT - shallow sleeping for", (int)millisecondsToWait);
-                    doShallowSleep(target);
-                }
+                osMilliSleep(millisecondsToWait);
                 res = 0;
             }
             break;

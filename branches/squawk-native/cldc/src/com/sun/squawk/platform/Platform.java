@@ -24,7 +24,10 @@
 
 package com.sun.squawk.platform;
 
-import com.sun.squawk.platform.posix.GCFSocketsImpl;
+import com.sun.squawk.Klass;
+import com.sun.squawk.VM;
+import com.sun.squawk.util.Assert;
+
 
 /**
  *
@@ -45,13 +48,39 @@ public class Platform {
     public final static boolean IS_SOCKET = (/*VAL*/999/*PLATFORM_TYPE*/ == SOCKET);
 
     private static GCFSockets gcfSockets;
+    private static GCFFile gcfFile;
+
+    public final static String NATIVE_PLATFORM_NAME = com.sun.cldc.jna.NativeLibrary.nativePlatformName();
     
     private Platform() { }
-    
+
+    private static Object getInstance(String name) {
+        Exception e = null;
+        String fullname =  NATIVE_PLATFORM_NAME + "." + name;
+        try {
+            VM.println("looking for class " + fullname);
+            Klass klass = Klass.lookupKlass(fullname);
+            if (klass != null) {
+                VM.println("found  class ");
+
+                Object result = klass.newInstance();
+                VM.println(" got instance ");
+                return result;
+            }
+        } catch (InstantiationException ex) {
+            e = ex;
+        } catch (IllegalAccessException ex) {
+            e = ex;
+        }
+        VM.println("Error loading platform " + fullname + "\n   " + e);
+        VM.stopVM(1);
+        return null;
+    }
+
     public static synchronized GCFSockets getGCFSockets() {
         if (IS_NATIVE) {
             if (gcfSockets == null) {
-                gcfSockets = new GCFSocketsImpl();
+                gcfSockets = (GCFSockets) getInstance("GCFSocketsImpl");
             }
             return gcfSockets;
         } else {
@@ -66,10 +95,21 @@ public class Platform {
      */
     public static SystemEvents createSystemEvents() {
         if (IS_NATIVE) {
-            return new com.sun.squawk.platform.posix.SystemEventsImpl();
+            return (SystemEvents) getInstance("SystemEventsImpl");
         } else {
             return null;
         }
     }
 
+    public static GCFFile getFileHandler() {
+        if (IS_NATIVE) {
+            if (gcfFile == null) {
+                gcfFile = (GCFFile) getInstance("GCFFileImpl");
+            }
+            return gcfFile;
+        } else {
+            return null;
+        }
+    }
+    
 }

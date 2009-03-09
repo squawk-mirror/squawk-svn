@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(__i386__) || defined(__i386) || defined(_M_IX86)
+#if defined(__i386__) || defined(__i386) || defined(_M_IX86) || defined(_M_X64)  || defined(_M_AMD64)
 #    define PROCESSOR_ARCHITECTURE_X86 1
 #    define ARM_FPA 0
 #elif defined(__ppc__) || defined(__ppc)
@@ -88,10 +88,12 @@
 #    include <windows.h>
 #    define pathSeparatorChar ';'
 #    define fileSeparatorChar '\\'
+#    define FORCE_USED
 #else
 #    define JLONG_CONSTANT(c) c ## LL
 #    define pathSeparatorChar ':'
 #    define fileSeparatorChar '/'
+#    define FORCE_USED __attribute__((used))
 #endif /* _MSC_VER */
 
 #ifndef _MSC_VER

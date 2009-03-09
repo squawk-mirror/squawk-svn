@@ -33,6 +33,14 @@
 
 #include "platform.h"
 #include "buildflags.h"
+
+
+/**
+ * Forward definition of printf/fprintf helper function.
+ */
+const char *format(const char* fmt);
+
+
 #include "os.c"
 
 // Single or user and kernel Squawk systems.
@@ -181,11 +189,6 @@ const jlong MAX_UJLONG = (jlong)0x7fffffff << 32 | 0xffffffff;
 #ifndef TRACESTART
 #define TRACESTART MAX_UJLONG
 #endif
-
-/**
- * Forward definition of printf/fprintf helper function.
- */
-const char *format(const char* fmt);
 
 /*
  * Forward declaration of VM exit routine.

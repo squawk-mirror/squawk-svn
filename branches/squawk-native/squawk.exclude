@@ -67,8 +67,8 @@ PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.BaseInputStream
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.BaseOutputStream
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.ParameterParser
 
-#Not implemented yet:
-com.sun.squawk.platform.windows.*
+#in progress:
+PLATFORM_TYPE!=NATIVE                           com.sun.squawk.platform.windows.*
 
 
 ###############################################
