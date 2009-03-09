@@ -157,16 +157,17 @@ public class Build {
 
     /**
      * Gets the instance through which JDK tools can be accessed.
+     * @return the JDK instance
      */
     public JDK getJDK() {
         return jdk;
     }
 
     /**
-     * The host platform. This is used to access tools required for running the builder and has not
+     * The host platform. This is used to access tools required for running the builder and has no
      * relationship with the target platform that a Squawk executable will be built for.
      */
-    private final Platform platform;
+    private Platform platform;
 
     /**
      * Gets the object that represents the host platform.
@@ -180,7 +181,7 @@ public class Build {
     /**
      * The Java source preprocessor.
      */
-    private final Preprocessor preprocessor;
+    private Preprocessor preprocessor;
 
     /**
      * Gets the Java source preprocessor.
@@ -194,7 +195,7 @@ public class Build {
     /**
      * The C function macroizer.
      */
-    private final Macroizer macroizer;
+    private Macroizer macroizer;
 
     /**
      * Gets the C function macroizer.
@@ -231,7 +232,7 @@ public class Build {
     /**
      * The interface to run a Java source compiler.
      */
-    private final JavaCompiler javaCompiler;
+    private JavaCompiler javaCompiler;
 
     /**
      * Gets the object used to do a Java compilation as well as run javadoc.
@@ -306,12 +307,58 @@ public class Build {
             srcDirs = new File[] { primarySrcDir };
         }
 
-        Target command = new Target(extraClassPath, j2me, baseDir, srcDirs, true, this, baseDir);
+        StringBuffer classPathBuffer = new StringBuffer();
+        if (dependencies != null) {
+            StringTokenizer st = new StringTokenizer(dependencies);
+            while (st.hasMoreTokens()) {
+                String dependency = st.nextToken();
+                classPathBuffer.append(dependency).append(File.separatorChar).append("classes");
+                if (st.hasMoreTokens()) {
+                	classPathBuffer.append(File.pathSeparatorChar);
+                }
+            }
+        }
+        if (extraClassPath != null && extraClassPath.length() != 0) {
+        	classPathBuffer.append(File.pathSeparatorChar).append(toPlatformPath(extraClassPath, true));
+        }
+        String classPath;
+        if (classPathBuffer.length() == 0) {
+        	classPath = null;
+        } else {
+        	classPath = classPathBuffer.toString();
+        }
+
+        Target command = new Target(classPath, j2me, baseDir, srcDirs, true, this, baseDir);
         if (dependencies != null) {
             command.dependsOn(dependencies);
         }
         addCommand(command);
         return command;
+    }
+
+    /**
+     * Creates and installs a Target.
+     *
+     * @param j2me           compiles for a J2ME platform
+     * @param baseDir        the parent directory for primary source directory and the output directory(s). This will also be the name of the command.
+     * @param dependencies   the space separated names of the Java compilation targets that this command depends upon
+     * @param extraClassPath the class path in addition to that derived from <code>dependencies</code>
+     * @return the created and installed command
+     */
+    public Target addTarget(boolean j2me, String baseDir, String dependencies, String extraClassPath) {
+        return addTarget(j2me, baseDir, dependencies, extraClassPath, null);
+    }
+
+    /**
+     * Creates and installs a Target.
+     *
+     * @param j2me           compiles for a J2ME platform
+     * @param baseDir        the parent directory for primary source directory and the output directory(s). This will also be the name of the command.
+     * @param dependencies   the space separated names of the Java compilation targets that this command depends upon
+     * @return the created and installed command
+     */
+    public Target addTarget(boolean j2me, String baseDir, String dependencies) {
+        return addTarget(j2me, baseDir, dependencies, null, null);
     }
 
     /**
@@ -337,6 +384,7 @@ public class Build {
      * @param extraVMArgs String
      * @param mainClassName String
      * @param args String
+     * @param description 
      * @return the created and installed command
      */
     public Command addSquawkCommand(String name, String classPath, String extraVMArgs, String mainClassName, String args, final String description) {
@@ -402,19 +450,18 @@ public class Build {
         }
     }
 
-    protected File[] getSiblingBuilderDotPropertiesFiles() {
-    	List<File> dotPropertiesFiles = new ArrayList<File>();
-    	File[] siblingDirs = new File(".").listFiles();
+    protected void addSiblingBuilderDotPropertiesFiles(File rootDir, List<File> files) {
+    	File[] siblingDirs = rootDir.listFiles();
     	for (File siblingDir: siblingDirs) {
     		File dotPropertiesFile = new File(siblingDir, "builder.properties");
     		if (dotPropertiesFile.canRead()) {
-    			dotPropertiesFiles.add(dotPropertiesFile);
+    	        log(verbose, "Reading builder.properties: " + dotPropertiesFile.getPath());
+    			files.add(dotPropertiesFile);
     		}
     	}
-    	return dotPropertiesFiles.toArray(new File[dotPropertiesFiles.size()]);
     }
     
-    protected void processBuilderDotPropertiesFiles(File[] dotPropertiesFiles) {
+    protected void processBuilderDotPropertiesFiles(List<File> dotPropertiesFiles) {
     	for (File dotProperties: dotPropertiesFiles) {
     		processBuilderDotPropertiesFile(dotProperties);
     	}
@@ -435,7 +482,7 @@ public class Build {
     	} catch (IOException e) {
     	}
     	if (in != null) {
-    		try {in.close();} catch (IOException e) {};
+    		try {in.close();} catch (IOException e) {}
     		in = null;
     	}
     	int propertyIndex = 0;
@@ -551,8 +598,9 @@ public class Build {
      */
     private void installBuiltinCommands() {
     	
-    	File[] siblingBuilderDotPropertiesFiles = getSiblingBuilderDotPropertiesFiles();
-    	processBuilderDotPropertiesFiles(siblingBuilderDotPropertiesFiles);
+    	List<File> dotPropertiesFiles = new ArrayList<File>();
+    	addSiblingBuilderDotPropertiesFiles(new File("."), dotPropertiesFiles);
+    	processBuilderDotPropertiesFiles(dotPropertiesFiles);
 
         addGen("OPC",                "cldc/src");
         addGen("OperandStackEffect", "translator/src");
@@ -818,9 +866,9 @@ public class Build {
                     argi++;
                 }
                 String userBaseDir = args[argi];
-                System.out.println("Compiling user project at " + userBaseDir);
+                log(brief, "[compiling user project at " + userBaseDir + "...]");
                 
-                Target compileTarget = addTarget(true, userBaseDir, "cldc imp", cp, null);
+                Target compileTarget = addTarget(true, userBaseDir, "cldc imp", cp);
                 compileTarget.run(NO_ARGS);
             }
         });
@@ -891,9 +939,9 @@ public class Build {
             }
             public void run(String[] args) {
                 String userBaseDir = args[0];
-                System.out.println("Cleaning user project at " + userBaseDir);
+                log(brief, "[cleaning user project at " + userBaseDir + ']');
                 
-                Target compileTarget = addTarget(true, userBaseDir, "cldc imp", null, null);
+                Target compileTarget = addTarget(true, userBaseDir, "cldc imp");
                 compileTarget.clean();
                 Build.delete(new File(userBaseDir, userBaseDir + ".suite"));
                 Build.delete(new File(userBaseDir, userBaseDir + ".suite.api"));
@@ -914,7 +962,21 @@ public class Build {
      * @return the command registered with the given name or null if there is no such command
      */
     public Command getCommand(String name) {
-        return (Command)commands.get(name);
+        return commands.get(name);
+    }
+
+    /**
+     * Gets the command with a given name.
+     *
+     * @param name   the name of the command to get
+     * @return the command registered with the given name or null if there is no such command
+     */
+    public Command getCommandForced(String name) {
+        Command command = commands.get(name);
+        if (command == null) {
+            throw new BuildException("command not found: " + name);
+        }
+        return command;
     }
 
     /**
@@ -926,9 +988,9 @@ public class Build {
      */
     public void runCommand(final String name, String[] args) {
         if (name.equals("<all>")) {
-            for (Object target: commands.values()) {
-                if (target instanceof Target) {
-                    run((Target)target, NO_ARGS);
+            for (Command command: commands.values()) {
+                if (command instanceof Target) {
+                    run((Target) command, NO_ARGS);
                 }
             }
             runCommand("squawk.jar", NO_ARGS);
@@ -950,11 +1012,8 @@ public class Build {
      */
     public void run(Command command, String[] args) {
         if (checkDependencies) {
-            for (String commandName: command.getDependencies()) {
-                Command dependency = getCommand(commandName);
-                if (command == null) {
-                    throw new BuildException("dependency not found: " + commandName);
-                }
+            for (String dependencyName: command.getDependencyNames()) {
+                Command dependency = getCommandForced(dependencyName);
                 if (!runSet.contains(dependency)) {
                     run(dependency, NO_ARGS);
                 }
@@ -973,15 +1032,13 @@ public class Build {
             	for (int i=0; i < args.length; i++) {
                 	log(info, "  arg[" + i +"]: " + args[i]);
             	}
+            	log(info, "  description: " + command.getDescription());
             }
             command.run(args);
             runSet.add(command);
 
-            for (String commandName: command.getTriggeredCommands()) {
-                Command triggeredCommand = getCommand(commandName);
-                if (triggeredCommand == null) {
-                    throw new BuildException("trigger not found: " + commandName);
-                }
+            for (String triggeredCommandName: command.getTriggeredCommandNames()) {
+                Command triggeredCommand = getCommandForced(triggeredCommandName);
                 run(triggeredCommand, NO_ARGS);
             }
         }
@@ -990,7 +1047,7 @@ public class Build {
     /**
      * The set of commands that have been run.
      */
-    private final Set<Command> runSet = new HashSet<Command>();
+    private Set<Command> runSet = new HashSet<Command>();
 
     /**
      * Clears the set of commands that have been run.
@@ -1225,7 +1282,7 @@ public class Build {
                     throw new BuildException("cannot remove file/directory " + file.getPath());
                 }
                 return true;
-    		};
+    		}
     	}).run(file);
     }
 
@@ -1348,10 +1405,13 @@ public class Build {
      *                           Command line interface                          *
     \*---------------------------------------------------------------------------*/
 
+    public Build() {
+    }
+    
     /**
      * Creates an instance of the builder.
      */
-    public Build(String buildDotOverrideFileName) {
+    public void initialize(String buildDotOverrideFileName) {
         File defaultProperties = new File("build.properties");
         if (defaultProperties.exists()) {
             properties = loadProperties(defaultProperties, null);
@@ -1385,8 +1445,6 @@ public class Build {
 
     /**
      * Prints some information describing the builder's configuration.
-     *
-     * @param stdout  where to print
      */
     private void printConfiguration() {
 
@@ -1414,17 +1472,7 @@ public class Build {
      */
     public static void main(String[] args) {
         long start = System.currentTimeMillis();
-        String buildDotOverrideFileName = null;
-        if (args != null && args.length > 0) {
-        	String arg = args[0];
-	        if (arg.startsWith("-override:")) {
-	        	buildDotOverrideFileName = arg.substring("-override:".length());
-		        String[] newArgs = new String[args.length - 1];
-		        System.arraycopy(args, 1, newArgs, 0, newArgs.length);
-		        args = newArgs;
-	        }
-        }
-        Build builder = new Build(buildDotOverrideFileName);
+        Build builder = new Build();
         try {
             builder.mainProgrammatic(args);
             System.out.println("Total time: " + ((System.currentTimeMillis() - start) / 1000) + "s");
@@ -1450,7 +1498,17 @@ public class Build {
      * @param args  the equivalent to the command line arguments
      */
     public void mainProgrammatic(String... args) {
-        args = extractBuilderArgs(args);
+        String buildDotOverrideFileName = null;
+        int startArgsIndex = 0;
+        if (args != null && args.length > 0) {
+            String arg = args[0];
+            if (arg.startsWith("-override:")) {
+                buildDotOverrideFileName = arg.substring("-override:".length());
+                startArgsIndex++;
+            }
+        }
+        initialize(buildDotOverrideFileName);
+        args = extractBuilderArgs(args, startArgsIndex);
         printConfiguration();
 
         String name = args[0];
@@ -1622,7 +1680,7 @@ public class Build {
      *
      * @param name    the property's name
      * @param value   the property's new value
-     * @return isBooleanProperty specifies if this is a boolean property
+     * @param isBooleanProperty specifies if this is a boolean property
      */
     private void updateProperty(String name, String value, boolean isBooleanProperty) {
         String old = isBooleanProperty ? properties.getProperty(name, "true") : properties.getProperty(name);
@@ -1661,11 +1719,11 @@ public class Build {
      * @param args  the command line arguments
      * @return <code>args</code> after the builder specific args have been extracted
      */
-    private String[] extractBuilderArgs(String[] args) {
+    private String[] extractBuilderArgs(String[] args, int startIndex) {
 
         builderArgs.clear();
 
-        int argc = 0;
+        int argc = startIndex;
         CCompiler.Options cOptions = ccompiler.options;
         boolean production = false;
 
@@ -2048,10 +2106,11 @@ public class Build {
      *
      * @param   classPath  the class path
      * @param   baseDir    the base directory for generated directories (i.e. "preprocessed", "classes" and "j2meclasses")
-     * @param   srcDirs the set of directories that are searched recursively for the Java source files to be compiled
+     * @param   srcDirs    the set of directories that are searched recursively for the Java source files to be compiled
      * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
+     * @param   version    set the java language version (default is 1.5 if version is null)
+     * @param   extraArgs  extra javac arguments
      * @param   preprocess runs the {@link Preprocessor} over the sources if true
-     * @return the directory the compiled classes were written to
      */
     public void javac(String classPath, File baseDir, File[] srcDirs, boolean j2me, List<String> extraArgs, boolean preprocess) {
 
@@ -2263,6 +2322,11 @@ public class Build {
 
         log(info, "[running preverifier ...]");
 
+        // Ensure that the preverifier is executable which may not be the case if
+        // Squawk was checked out with a Java CVS client (Java doesn't know anything
+        // about 'execute' file permissions and so cannot preserve them).
+        chmod(platform.preverifier(), "+x");
+
         if (classPath == null) {
             classPath = "";
         } else {
@@ -2280,7 +2344,7 @@ public class Build {
      * functionality of the jar command line tool when using the 'c' switch.
      *
      * @param out      the jar file to create
-     * @param files    the files to put in the jar file
+     * @param fileSets    the files to put in the jar file
      * @param manifest the entries that will used to create manifest in the jar file.
      *                 If this value is null, then no manifest will be created
      */

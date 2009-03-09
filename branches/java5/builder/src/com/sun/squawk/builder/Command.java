@@ -30,7 +30,6 @@ import java.util.*;
  * A Command instance describes a builder command.
  */
 public abstract class Command {
-    protected static final List<String> EMPTY_STRING_LIST = new ArrayList<String>();
 
     protected final Build env;
     protected final String name;
@@ -46,6 +45,8 @@ public abstract class Command {
     public Command(Build env, String name) {
         this.env = env;
         this.name = name;
+        dependencies = new ArrayList<String>();
+        triggeredCommands = new ArrayList<String>();
     }
 
     /**
@@ -83,11 +84,11 @@ public abstract class Command {
      */
     public final void dependsOn(String names) {
         StringTokenizer st = new StringTokenizer(names);
-        if (dependencies == null) {
-            dependencies = new ArrayList<String>();
-        }
         while (st.hasMoreTokens()) {
             String name = st.nextToken();
+            if (dependencies == null) {
+                dependencies = new ArrayList<String>();
+            }
             dependencies.add(name);
         }
     }
@@ -97,8 +98,8 @@ public abstract class Command {
      *
      * @return an iteration of the dependencies of this command
      */
-    public final List<String> getDependencies() {
-        return dependencies == null ? EMPTY_STRING_LIST : dependencies;
+    public final List<String> getDependencyNames() {
+        return dependencies;
     }
 
     /**
@@ -110,11 +111,11 @@ public abstract class Command {
      */
     public final void triggers(String names) {
         StringTokenizer st = new StringTokenizer(names);
-        if (triggeredCommands == null) {
-            triggeredCommands = new ArrayList<String>();
-        }
         while (st.hasMoreTokens()) {
             String name = st.nextToken();
+            if (triggeredCommands == null) {
+                triggeredCommands = new ArrayList<String>();
+            }
             triggeredCommands.add(name);
         }
     }
@@ -124,8 +125,8 @@ public abstract class Command {
      *
      * @return an iteration of the commands triggered by this command
      */
-    public final List<String> getTriggeredCommands() {
-        return triggeredCommands == null ? EMPTY_STRING_LIST : triggeredCommands;
+    public final List<String> getTriggeredCommandNames() {
+        return triggeredCommands;
     }
 
     /**

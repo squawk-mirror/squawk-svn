@@ -62,7 +62,7 @@ public final class Target extends Command {
 
     protected String getClassPathString() {
         StringBuffer classPathBuffer = new StringBuffer();
-        List<String> dependencies = getDependencies();
+        List<String> dependencies = getDependencyNames();
         for (String dependency: dependencies) {
             Command command = env.getCommand(dependency);
             if (command instanceof Target) {

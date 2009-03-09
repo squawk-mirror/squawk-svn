@@ -38,6 +38,8 @@ import java.lang.reflect.Modifier;
  * by {@link Suite#printAPI} and the classpath and sourcepath used to build the suite.
  *
  */
+// TODO: get rid of the SuppressWarnings annotations
+@SuppressWarnings(value={"unchecked"})
 public class MakeAPI extends Command {
 
     /**
@@ -1029,6 +1031,7 @@ public class MakeAPI extends Command {
 /**
  * A <code>SourceFile</code> instance is used to generate a Java source file.
  */
+@SuppressWarnings(value={"unchecked"})
 class SourceFile {
 
     private final PrintWriter out;
@@ -1197,6 +1200,7 @@ class SourceFile {
  * by the output of {@link Suite#printAPI}.
  *
  */
+@SuppressWarnings(value={"unchecked"})
 final class Suite {
 
     /**
@@ -1467,10 +1471,10 @@ nextField:  for (Iterator iter = fields.entrySet().iterator(); iter.hasNext(); )
     private static String parseWordOrEOF(StreamTokenizer st, String source, String validSet) {
         try {
             int token = st.nextToken();
-            if (token == st.TT_EOF) {
+            if (token == StreamTokenizer.TT_EOF) {
                 return null;
             }
-            if (token != st.TT_WORD) {
+            if (token != StreamTokenizer.TT_WORD) {
                 throw new BuildException(source + ": invalid token " + st);
             }
             String value = st.sval;
