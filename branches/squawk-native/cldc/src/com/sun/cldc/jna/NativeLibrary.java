@@ -44,7 +44,7 @@ import com.sun.squawk.vm.ChannelConstants;
  */
 public class NativeLibrary {
 
-    private final static boolean DEBUG = true;
+    private final static boolean DEBUG = false;
     
 
     private final static NativeLibrary RTLD_DEFAULT = new NativeLibrary("RTLD_DEFAULT", Address.zero());
