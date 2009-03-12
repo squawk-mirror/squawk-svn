@@ -1,0 +1,5 @@
+open 10.0.0.2
+user
+
+put tests/TestRobot/TestRobot.suite /ni-rt/system/robot.suite
+quit

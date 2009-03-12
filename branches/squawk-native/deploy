@@ -1,0 +1,10 @@
+#!/bin/bash
+d user-suite -endian:big tests/TestRobot
+#ftp -u 10.0.0.2 tests/TestRobot/TestRobot.suite /ni-rt/system/
+ftp -n 10.0.0.2 <<EOF
+user guest guest
+hash
+put tests/TestRobot/TestRobot.suite /ni-rt/system/robot.suite
+quit
+EOF
+# end
