@@ -594,6 +594,53 @@ public class Build {
     }
     
     /**
+     * Copy files from sourceRootPath, contained in subPaths, to destinationRootPath.  If any of the files being copy already exist
+     * in siblingRootPath, then ignore it.
+     * 
+     * @param sourceRootPath
+     * @param destinationRootPath
+     * @param siblingRootPath
+     * @param subPaths
+     */
+    public void copy(String sourceRootPath, String destinationRootPath, String siblingRootPath, String... subPaths) {
+        for (String subPath: subPaths) {
+            boolean goDeep = subPath.equals("**");
+            if (goDeep) {
+                subPath = "";
+            }
+            File sourceDir = new File(sourceRootPath, subPath);
+            File[] sourceFiles = sourceDir.listFiles();
+            File destinationDir = new File(destinationRootPath, subPath);
+            boolean didNoCopy = true;
+            File siblingDir = new File(siblingRootPath, subPath);
+            if (sourceFiles != null) {
+                for (File sourceFile: sourceFiles) {
+                    if (sourceFile.isDirectory()) {
+                        if (goDeep) {
+                            String path = sourceFile.getName();
+                            copy(sourceRootPath + File.separator + path, destinationRootPath + File.separator + path, siblingRootPath + File.separator + path, "**");
+                        }
+                        continue;
+                    }
+                    File siblingFile = new File(siblingDir, sourceFile.getName());
+                    if (siblingFile.exists()) {
+                        continue;
+                    }
+                    if (didNoCopy) {
+                        mkdir(destinationDir);
+                        didNoCopy = false;
+                    }
+                    File destinationFile = new File(destinationDir, sourceFile.getName());
+                    cp(sourceFile, destinationFile, false);
+                }
+            }
+            if (!goDeep && didNoCopy) {
+                throw new RuntimeException("Did not find any entries to copy from: " + sourceDir.getPath());
+            }
+        }
+    }
+    
+    /**
      * Installs the built-in commands.
      */
     private void installBuiltinCommands() {
@@ -648,45 +695,6 @@ public class Build {
                 return "copies the source code from the phoneME source tree into ours in order to be able to compile cldc and imp";
             }
             
-            /**
-             * Copy files from sourceRootPath, caontained in subPaths, to destinationRootPath.  If any of the files being copy already exist
-             * in siblingRootPath, then ignore it.
-             * 
-             * @param sourceRootPath
-             * @param destinationRootPath
-             * @param siblingRootPath
-             * @param subPaths
-             */
-            public void copy(String sourceRootPath, String destinationRootPath, String siblingRootPath, String... subPaths) {
-            	for (String subPath: subPaths) {
-            		File sourceDir = new File(sourceRootPath, subPath);
-            		File[] sourceFiles = sourceDir.listFiles();
-            		File destinationDir = new File(destinationRootPath, subPath);
-            		boolean didNoCopy = true;
-            		File siblingDir = new File(siblingRootPath, subPath);
-            		if (sourceFiles != null) {
-	            		for (File sourceFile: sourceFiles) {
-	            			if (sourceFile.isDirectory()) {
-	            				continue;
-	            			}
-	            			File siblingFile = new File(siblingDir, sourceFile.getName());
-	            			if (siblingFile.exists()) {
-	            				continue;
-	            			}
-	            			if (didNoCopy) {
-	                    		mkdir(destinationDir);
-	                    		didNoCopy = false;
-	            			}
-	            			File destinationFile = new File(destinationDir, sourceFile.getName());
-	            			cp(sourceFile, destinationFile, false);
-	            		}
-            		}
-            		if (didNoCopy) {
-            			throw new RuntimeException("Did not find any entries to copy from: " + sourceDir.getPath());
-            		}
-            	}
-            }
-            
             public void run(String[] args) {
             	delete(new File("cldc/phoneme"));
             	delete(new File("imp/phoneme"));
@@ -708,6 +716,22 @@ public class Build {
             	copy(phoneMeSourceRoot + "midp/src/rms/rms_api/classes", "imp/phoneme", "imp/src", "javax/microedition/rms");
             	copy(phoneMeSourceRoot + "midp/src/rms/rms_api/reference/classes", "imp/phoneme", "imp/src", "javax/microedition/rms");
             	copy(phoneMeSourceRoot + "midp/src/rms/rms_exc/reference/classes", "imp/phoneme", "imp/src", "javax/microedition/rms");
+            }
+        });
+
+        // Add the "copyjavacard3" command
+        addCommand(new Command(this, "copyjavacard3") {
+            public String getDescription() {
+                return "copies the source code from the javacard3 source tree into ours in order to be able to compile it to run on Squawk";
+            }
+            
+            public void run(String[] args) {
+                delete(new File("../javacard3/sdk-src"));
+                delete(new File("../javacard3/sdk-lib"));
+                String phoneMeSourceRoot = "../bundles/sdk/src/";
+                copy(phoneMeSourceRoot + "api", "../javacard3/sdk-src", "../javacard3/src", "**");
+                
+                cp(new File("../bundles/sdk/src/crypto.jar"), new File("../javacard3/sdk-lib/crypto.jar"), false);
             }
         });
 
