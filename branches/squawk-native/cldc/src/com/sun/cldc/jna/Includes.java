@@ -23,11 +23,12 @@
  */
 package com.sun.cldc.jna;
 
-/*if[!SQUAWK]*/
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+/*if[SQUAWK]*/
+/*else[SQUAWK]*/
+//import java.lang.annotation.ElementType;
+//import java.lang.annotation.Retention;
+//import java.lang.annotation.RetentionPolicy;
+//import java.lang.annotation.Target;
 /*end[SQUAWK]*/
 
 /**
@@ -43,14 +44,16 @@ import java.lang.annotation.Target;
  *    public interface LibC extends LibraryImport { ... }
  * 
  */
-/*if[!SQUAWK]*/
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+/*if[SQUAWK]*/
+/*else[SQUAWK]*/
+//@Retention(RetentionPolicy.RUNTIME)
+//@Target(ElementType.TYPE)
 /*end[SQUAWK]*/
 
 public
-/*if[!SQUAWK]*/
-        @
+/*if[SQUAWK]*/
+/*else[SQUAWK]*/
+//        @
 /*end[SQUAWK]*/
         interface
         Includes {
