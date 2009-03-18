@@ -36,9 +36,9 @@ package com.sun.cldc.jna;
  */
 public interface JNAPlatform extends Library {
 
-    boolean __APPLE__ = JNAPlatformImpl.__APPLE__;
-    boolean sun = JNAPlatformImpl.sun;
-    boolean VXWORKS = JNAPlatformImpl.VXWORKS;
-    boolean _MSC_VER = JNAPlatformImpl._MSC_VER;
+//    boolean __APPLE__ = JNAPlatformImpl.__APPLE__;
+//    boolean sun = JNAPlatformImpl.sun;
+//    boolean VXWORKS = JNAPlatformImpl.VXWORKS;
+//    boolean _MSC_VER = JNAPlatformImpl._MSC_VER;
 
 }

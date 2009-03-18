@@ -37,6 +37,22 @@
 #include <netdb.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
+
+#if defined(VXWORKS)
+#include <vxWorks.h>
+#include <msgQLib.h>
+#include <msgQSmLib.h>
+#include <stdio.h>
+#include <smNameLib.h>
+
+#include "netinet/in.h"
+
+/*
+#include <vxWorksCommon.h>
+#include <in.h>
+*/
+#endif
+
 #endif
 
 /****** HARD CODED FOR MAC FOR NOW:  *************/
@@ -76,18 +92,7 @@ const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layo
     offsetof(struct sockaddr_in, sin_port),
     offsetof(struct sockaddr_in, sin_addr)
 };
-#elif defined(VXWORKS)
-
-// HACK: These values shoult not be hard-coded.  Need to find out how to include the correct definitions
-const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
-    com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
-    72,
-    0,
-    8,
-    16,
-    32
-};
-#else
+#else /* linux mac osx, vxworks */
 const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
     com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
     sizeof(struct sockaddr_in),
@@ -452,10 +457,12 @@ void* sysdlsym(void* handle, char* name) {
         /*--------------------------- POSIX NATIVE OPS ---------------------------*/
 
 /* WARNING! NONE OF THIS IS 64-bit safe! */
-        case ChannelConstants_NATIVE_PLATFORM_NAME: {
+/*
+        case ChannelConstants_INTERNAL_NATIVE_PLATFORM_NAME: {
             res = (int)sysPlatformName();
             break;
         }
+*/
 
         case ChannelConstants_DLOPEN: {
             res = (int)sysdlopen((char*)i1);

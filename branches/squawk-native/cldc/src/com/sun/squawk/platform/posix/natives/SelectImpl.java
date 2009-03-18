@@ -31,7 +31,7 @@ package com.sun.squawk.platform.posix.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class SelectImpl implements Select {
+public abstract class SelectImpl implements Select {
 
     /*----------------------------- defines -----------------------------*/
 

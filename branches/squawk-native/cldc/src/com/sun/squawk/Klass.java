@@ -417,7 +417,7 @@ public class Klass {
      * @throws java.lang.InstantiationException
      * @throws java.lang.IllegalAccessException 
      */
-    public final Object newInstance() throws InstantiationException, IllegalAccessException {
+    public final Object newInstance() /*throws InstantiationException, IllegalAccessException */ {
         Assert.always(!(isSquawkArray() || isInterface() || isAbstract()) && hasDefaultConstructor());
         Object res = GC.newInstance(this);
         try {

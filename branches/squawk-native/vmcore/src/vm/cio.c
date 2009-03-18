@@ -315,6 +315,11 @@ void cioExecute(void) {
 
 #endif /* OLD_IIC_MESSAGES */
 
+/* WARNING! NOT 64-bit safe! */
+        case ChannelConstants_INTERNAL_NATIVE_PLATFORM_NAME: {
+            com_sun_squawk_ServiceOperation_result = (int)sysPlatformName();
+            break;
+        }
 
 #if NATIVE_VERIFICATION
         case ChannelConstants_COMPUTE_SHA1_FOR_MEMORY_REGION:{

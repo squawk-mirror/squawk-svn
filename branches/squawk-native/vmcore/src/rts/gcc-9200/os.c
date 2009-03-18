@@ -256,6 +256,9 @@ INLINE void sysVallocFree(void* ptr) {
  */
 INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
 
+/* The package that conmtains the native code to use for a "NATIVE" platform type*/
+ #define sysPlatformName() "Spot"
+
 INLINE void osloop() {
 	//no-op on spot platform
 }

@@ -69,7 +69,7 @@ void osMilliSleep(long long millis) {
 }
 
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
- #define sysPlatformName() "com.sun.squawk.platform.posix"
+ #define sysPlatformName() "linux"
 
 /**
  * Gets the page size (in bytes) of the system.

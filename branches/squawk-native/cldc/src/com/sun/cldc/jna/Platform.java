@@ -23,55 +23,56 @@
  */
 package com.sun.cldc.jna;
 
+import com.sun.squawk.Address;
+import com.sun.squawk.Klass;
+import com.sun.squawk.VM;
+import com.sun.squawk.vm.ChannelConstants;
 import java.util.Hashtable;
 
 /**
  *
  * Provide simplified platform information
  */
-public final class Platform {
+public abstract class Platform {
+    private final static boolean DEBUG = true;
+
+    private final static Platform INSTANCE = makePlatform();
+
+    public static Platform getPlatform() {
+        return INSTANCE;
+    }
     
-    public static boolean deleteNativeLibraryAfterVMExit() {
-        return false; // TODO: implement for real
-    }
+    public abstract boolean deleteNativeLibraryAfterVMExit();
 
-    public static boolean hasRuntimeExec() {
-        return false; // TODO: implement for real
-    }
+    public abstract boolean hasRuntimeExec();
 
-    public static boolean isFreeBSD() {
-        return false; // TODO: implement for real
-    }
+    public abstract boolean isFreeBSD();
 
-    public static boolean isLinux() {
-        return false; // TODO: implement for real
-    }
+    public abstract boolean isLinux();
 
-    public static boolean isMac() {
-        return JNAPlatform.__APPLE__;
-    }
+    public abstract boolean isMac();
 
-    public static boolean isOpenBSD() {
-        return false; // TODO: implement for real
-    }
+    public abstract boolean isOpenBSD();
 
-    public static boolean isSolaris() {
-        return JNAPlatform.sun;
-    }
+    public abstract boolean isSolaris();
 
-    public static boolean isWindows() {
-        return JNAPlatform._MSC_VER;
-    }
+    public abstract boolean isWindows();
 
-    public static boolean isWindowsCE() {
-        return false; // TODO: implement for real
-    }
+    public abstract boolean isWindowsCE();
 
-    public static boolean isX11() {
-        return false; // TODO: implement for real
-    }
+    public abstract boolean isX11();
 
-    private static Hashtable commonMappings;
+    /**
+     * Get the name of the package that contains the platform classes (posix, windows, etc):
+     */
+    public abstract String getPlatformPackageName();
+
+    /**
+     * Get the name of the package that contains the native implementations for this platform (solaris, linux, windows, etc):
+     */
+    public abstract String getPlatformNativePackageName();
+
+    protected static Hashtable commonMappings;// = new Hashtable();
 
     /**
      * Some platforms have wildly different names for standard libraries. Try to catch them here.
@@ -82,21 +83,68 @@ public final class Platform {
     public static String commonLibraryMapping(String genericName) {
         return (String)commonMappings.get(genericName);
     }
-    
-    static {
-        commonMappings = new Hashtable();
-        if (JNAPlatform.__APPLE__) {
-            commonMappings.put("socket", "");
-            commonMappings.put("c", "");
-            commonMappings.put("resolv", "");
-            commonMappings.put("net", "");
-            commonMappings.put("nsl", "");
-        } else if (JNAPlatform._MSC_VER) {
-            commonMappings.put("c", "msvcrt");
+
+    private final String platformName;
+   /**
+     * Get the name of the package that contains the native implementation for this platform:
+     */
+    private static String getNativePlatformName() {
+        int result = VM.execSyncIO(ChannelConstants.INTERNAL_NATIVE_PLATFORM_NAME, 0, 0, 0, 0, 0, 0, null, null);
+        Address r = Address.fromPrimitive(result);
+        if (r.isZero()) {
+            return null;
+        } else {
+            return Pointer.NativeUnsafeGetString(r);
         }
     }
 
+    /**
+     * Get the name of the package that contains the native implementation for this platform:
+     */
+    public String platformName() {
+        return platformName;
+    }
 
+    public Platform() {
+        commonMappings = new Hashtable();
+        platformName = getNativePlatformName();
+    }
 
-    private Platform() { }
+    public String toString() {
+        return "Platform(" + platformName + ")";
+    }
+
+    public final static String PLATFORM_PACKAGE = "com.sun.cldc.jna";
+
+    private static Object getInstance(String name) {
+        String fullname = PLATFORM_PACKAGE + "." + name;
+        Klass klass = Klass.lookupKlass(fullname);
+        if (klass != null) {
+            return klass.newInstance();
+        }
+        return null;
+    }
+
+    private static Platform makePlatform() {
+        if (DEBUG) {
+            VM.println("Making Platform...");
+        }
+        String className = getNativePlatformName();
+        if (DEBUG) {
+            VM.println("    platform name: " + className);
+        }
+        Platform result = (Platform) getInstance(className);
+        if (result == null) {
+            result = (Platform) getInstance("Posix");
+        }
+        if (result != null) {
+            if (DEBUG) {
+                VM.println("    created platform: " + result);
+            }
+            return result;
+        }
+        VM.println("Error in makePlatform. Exiting...");
+        VM.haltVM(1);
+        return null;
+    }
 }

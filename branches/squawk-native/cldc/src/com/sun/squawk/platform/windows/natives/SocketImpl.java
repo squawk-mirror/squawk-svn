@@ -50,6 +50,11 @@ public class SocketImpl implements Socket {
     public final static int SO_BROADCAST = 32;
     public final static int SO_OOBINLINE = 256;
 
+        public int initConstInt(int index) {
+        final int[] dummy = {};
+        return dummy[index];
+    }
+
     /*----------------------------- methods -----------------------------*/
     private final Function getsockoptPtr;
     
@@ -185,10 +190,6 @@ public class SocketImpl implements Socket {
         
         public int[] getLayout() {
             return layout;
-        }
-
-        public int size() {
-            return 16;
         }
 
         public void read() {

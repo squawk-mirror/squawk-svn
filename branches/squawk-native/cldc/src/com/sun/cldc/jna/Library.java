@@ -30,4 +30,6 @@ package com.sun.cldc.jna;
  */
 public interface Library {
 
+    int initConstInt(int index);
+
 }

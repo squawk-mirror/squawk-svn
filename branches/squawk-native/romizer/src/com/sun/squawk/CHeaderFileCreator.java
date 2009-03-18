@@ -343,11 +343,14 @@ public final class CHeaderFileCreator {
             if (klass.isArray() || klass.getInternalName().charAt(0) == '-') {
                 continue;
             }
-            out.println("#define "+fix(klass.getName())+" "+cid);
+     
 
             if (klass.isSynthetic()) {
                 continue;
             }
+
+            out.println("#define "+fix(klass.getName())+" "+cid);
+
 
             // Write the instance field getters.
             int fieldCount = klass.getFieldCount(false);

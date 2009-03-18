@@ -33,7 +33,7 @@ package com.sun.squawk.platform.posix.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class TimeImpl implements Time {
+public abstract class TimeImpl implements Time {
 
     /*----------------------------- defines -----------------------------*/
 

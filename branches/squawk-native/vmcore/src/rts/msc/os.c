@@ -40,7 +40,7 @@
 #define FT2INT64(ft) ((jlong)(ft).dwHighDateTime << 32 | (jlong)(ft).dwLowDateTime)
 
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
- #define sysPlatformName() "com.sun.squawk.platform.windows"
+ #define sysPlatformName() "Windows"
 
 /* This standard C function is not provided on Windows */
 char* strsignal(int signum) {

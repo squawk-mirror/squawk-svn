@@ -41,7 +41,7 @@ char* strsignal(int signum) {
 }
 
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
- #define sysPlatformName() "com.sun.squawk.platform.posix"
+ #define sysPlatformName() "macosx"
 
 jlong sysTimeMicros() {
     struct timeval tv;

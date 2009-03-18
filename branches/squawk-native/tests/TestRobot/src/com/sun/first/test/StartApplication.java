@@ -26,8 +26,16 @@ public class StartApplication extends MIDlet {
 
     protected void startApp() throws MIDletStateChangeException {
         System.out.println("Hello, world");
+        try {
+            String[] args = {"10.0.0.6", "8001"};
+           // String[] args = {"www.sun.com"};
+            Test.main(args);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
       
         notifyDestroyed();                      // cause the MIDlet to exit
+
     }
 
     protected void pauseApp() {

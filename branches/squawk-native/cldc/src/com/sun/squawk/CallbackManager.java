@@ -397,7 +397,10 @@ final class CallbackGroup {
         for (int i = 0; i < len; i++) {
             Runnable hook = hks[i];
             try {
-//                System.out.println("Running a hook in runAllHooksInContext" + hook);
+//              System.out.println("Running a hook in runAllHooksInContext" + hook);
+                if (VM.isVerbose()) {
+                    System.out.println("Running hook: " + hook);
+                }
                 hook.run();
             } catch (RuntimeException e) {
                 System.err.print("Exception thrown executing callback. Exception printed and ignored:");

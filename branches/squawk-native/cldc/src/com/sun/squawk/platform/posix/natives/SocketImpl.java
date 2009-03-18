@@ -31,7 +31,7 @@ package com.sun.squawk.platform.posix.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class SocketImpl implements Socket {
+public abstract class SocketImpl implements Socket {
 
     /*----------------------------- defines -----------------------------*/
 
@@ -173,6 +173,7 @@ public class SocketImpl implements Socket {
         protected sockaddr_inImpl() {
             sockaddr_in o = (sockaddr_in)this;
 			o.sin_len = size(); // default....
+System.err.println("size of sockaddr_in: " + o.sin_len);
 		}
 
         private final static int[] layout = initLayout(sockaddr_inImpl.class, 4);
@@ -185,10 +186,6 @@ public class SocketImpl implements Socket {
         
         public int[] getLayout() {
             return layout;
-        }
-
-        public int size() {
-            return 16;
         }
 
         public void read() {

@@ -39,6 +39,11 @@ public class SelectImpl implements Select {
     // we're having some problems with class initialization being required for thread initialization!
     public final static int fd_set_SIZEOF = 128;//Native.getLibraryLoading().getGlobalVariableAddress("sysFD_SIZE", 4).getInt(0);
 
+        public int initConstInt(int index) {
+        final int[] dummy = {};
+        return dummy[index];
+    }
+
     /*----------------------------- methods -----------------------------*/
     private final Function selectPtr;
     
@@ -75,7 +80,7 @@ public class SelectImpl implements Select {
         FD_CLRPtr = jnaNativeLibrary.getFunction("sysFD_CLR");
         FD_SETPtr = jnaNativeLibrary.getFunction("sysFD_SET");
     }
-    
+
 }
 
 

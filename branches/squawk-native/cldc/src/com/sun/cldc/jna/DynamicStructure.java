@@ -108,7 +108,6 @@ System.out.println("    native Layout fields: " + len + ", requested: " + (numFi
         for (int i = 1; i < numFields + 2; i++) {
             result[i-1] = p.getInt(i * 4);
 System.out.println("    layoutdata: " +  result[i-1]);
-
         }
 
         return result;

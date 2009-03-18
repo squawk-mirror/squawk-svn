@@ -35,27 +35,27 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
     // Convert from VxWorks argument format to normal argument format
 
     char* argv[11];
-	int argc = 1;
+    int argc = 1;
 
-	argv[0] = "squawk.out";
+    argv[0] = "squawk.out";
 
-	VXLOADARG(arg1);
-	VXLOADARG(arg2);
-	VXLOADARG(arg3);
-	VXLOADARG(arg4);
-	VXLOADARG(arg5);
-	VXLOADARG(arg6);
-	VXLOADARG(arg7);
-	VXLOADARG(arg8);
-	VXLOADARG(arg9);
-	VXLOADARG(arg10);
+    VXLOADARG(arg1);
+    VXLOADARG(arg2);
+    VXLOADARG(arg3);
+    VXLOADARG(arg4);
+    VXLOADARG(arg5);
+    VXLOADARG(arg6);
+    VXLOADARG(arg7);
+    VXLOADARG(arg8);
+    VXLOADARG(arg9);
+    VXLOADARG(arg10);
 
-printf("argc: %d\n", argc);
-	
+    printf("argc: %d\n", argc);
+
     // Switch directories so squawk.suite will always be found
     //cd("/c/squawk");
 
-    return Squawk_main_wrapper(argc, argv); 
+    return Squawk_main_wrapper(argc, argv);
 }
 
 /**
@@ -64,6 +64,6 @@ printf("argc: %d\n", argc);
 int FRC_UserProgram_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
-    return os_main("-suite:robot", null, null, null, null, null, null, null, null, null);
+    return os_main("-suite:robot", "-verbose", null, null, null, null, null, null, null, null);
 }
 

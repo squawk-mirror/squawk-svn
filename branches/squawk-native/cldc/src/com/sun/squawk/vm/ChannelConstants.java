@@ -207,9 +207,10 @@ public final class ChannelConstants {
         INTERNAL_RECEIVE_MESSAGE_FROM_CLIENT    = 1027,
         INTERNAL_SEARCH_SERVER_HANDLERS         = 1028,
 /*end[OLD_IIC_MESSAGES]*/
+
+        INTERNAL_NATIVE_PLATFORM_NAME           = 1029,
         
         /* Native Platform Support */
-        NATIVE_PLATFORM_NAME                    = 1995,
         DLOPEN                                  = 1996,
         DLCLOSE                                 = 1997,
         DLERROR                                 = 1998,

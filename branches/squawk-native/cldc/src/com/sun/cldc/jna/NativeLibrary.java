@@ -44,7 +44,7 @@ import com.sun.squawk.vm.ChannelConstants;
  */
 public class NativeLibrary {
 
-    private final static boolean DEBUG = false;
+    private final static boolean DEBUG = true;
     
 
     private final static NativeLibrary RTLD_DEFAULT = new NativeLibrary("RTLD_DEFAULT", Address.zero());
@@ -64,14 +64,15 @@ public class NativeLibrary {
     }
     
     private static String nativeLibraryName(String baseName) {
-        if (Platform.isSolaris() || Platform.isLinux()) {
+        Platform platform = Platform.getPlatform();
+        if (platform.isSolaris() || platform.isLinux()) {
             return "lib" + baseName + ".so";
-        } else if (Platform.isMac()) {
+        } else if (platform.isMac()) {
             return "lib" + baseName + ".dylib";
-        } else if (Platform.isWindows()) {
+        } else if (platform.isWindows()) {
             return baseName + ".dll";
         } else {
-            throw new RuntimeException("Unsupported platform");
+            return baseName;
         }
     }
 
@@ -113,10 +114,12 @@ public class NativeLibrary {
             VM.println();
         }
         if (result.isZero()) {
-            if (true || Platform.isWindows()) {
+            if (Platform.getPlatform().isWindows()) {
                 if (funcName.charAt(funcName.length() - 1) != 'A') {
                     return getFunction(funcName + 'A');
                 }
+            } else if (funcName.charAt(0) != '_') {
+                return getFunction("_" + funcName);
             }
             throw new RuntimeException("Can't find native symbol " + funcName + ". OS Error: " + errorStr());
         }
@@ -220,22 +223,6 @@ public class NativeLibrary {
             VM.println("Calling DLERROR");
         }
         int result = VM.execSyncIO(ChannelConstants.DLERROR, 0, 0, 0, 0, 0, 0, null, null);
-        Address r = Address.fromPrimitive(result);
-        if (r.isZero()) {
-            return null;
-        } else {
-            return Pointer.NativeUnsafeGetString(r);
-        }
-    }
-
-   /**
-     * Get the name of the package that contains the native iomplementation for this platform:
-     */
-    public static String nativePlatformName() {
-        if (DEBUG) {
-            VM.println("Calling NATIVE_PLATFORM_NAME");
-        }
-        int result = VM.execSyncIO(ChannelConstants.NATIVE_PLATFORM_NAME, 0, 0, 0, 0, 0, 0, null, null);
         Address r = Address.fromPrimitive(result);
         if (r.isZero()) {
             return null;

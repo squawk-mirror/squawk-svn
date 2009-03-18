@@ -31,6 +31,7 @@
 package com.sun.squawk.platform.posix.natives;
 
 import com.sun.cldc.jna.*;
+import com.sun.cldc.jna.ptr.IntByReference;
 
 /**
  *
@@ -43,36 +44,14 @@ public interface Ioctl extends Library {
             Native.loadLibrary("RTLD",
                                Ioctl.class);
 
-    /*
-     * Ioctl's have the command encoded in the lower word, and the size of
-     * any in or out parameters in the upper word.  The high 3 bits of the
-     * upper word are used to encode the in/out status of the parameter.
-     */
-
-    public final static int IOCPARM_MASK = IoctlImpl.IOCPARM_MASK;		/* parameter length, at most 13 bits */
-
-   // public final static int IOCPARM_MAX = IMPORT;	/* max size of ioctl args */
-    /* no parameters */
-    public final static int IOC_VOID = IoctlImpl.IOC_VOID;
-    /* copy parameters out */
-    public final static int IOC_OUT = IoctlImpl.IOC_OUT;
-    /* copy parameters in */
-    public final static int IOC_IN = IoctlImpl.IOC_IN;
-    /* copy paramters in and out */
-    public final static int IOC_INOUT = IoctlImpl.IOC_INOUT;
-    /* mask for IN/OUT/VOID */
-    //public final static int IOC_DIRMASK = IMPORT;
-
-
-    public final static int FIOCLEX = IoctlImpl.FIOCLEX;		/* set close on exec on fd */
-    public final static int FIONCLEX = IoctlImpl.FIONCLEX;		/* remove close on exec */
-    public final static int FIONREAD = IoctlImpl.FIONREAD;	/* get # bytes to read */
-    public final static int FIONBIO = IoctlImpl.FIONBIO;	/* set/clear non-blocking i/o */
-    public final static int FIOASYNC = IoctlImpl.FIOASYNC;	/* set/clear async i/o */
-    public final static int FIOSETOWN = IoctlImpl.FIOSETOWN;	/* set owner */
-    public final static int FIOGETOWN = IoctlImpl.FIOGETOWN;	/* get owner */
+    public final static int FIOCLEX   = INSTANCE.initConstInt(0);	/* set close on exec on fd */
+    public final static int FIONCLEX  = INSTANCE.initConstInt(1);   /* remove close on exec */
+    public final static int FIONREAD  = INSTANCE.initConstInt(2);	/* get # bytes to read */
+    public final static int FIONBIO   = INSTANCE.initConstInt(3);	/* set/clear non-blocking i/o */
+    public final static int FIOASYNC  = INSTANCE.initConstInt(4);	/* set/clear async i/o */
+    public final static int FIOSETOWN = INSTANCE.initConstInt(5);	/* set owner */
+    public final static int FIOGETOWN = INSTANCE.initConstInt(6);	/* get owner */
     //public final static int FIODTYPE = IMPORT;	    /* get d_type */
-
 
     /**
      * Perform IO control operation <code>request</code> on device <code>fd</code>.
@@ -83,6 +62,17 @@ public interface Ioctl extends Library {
      * @return -1 on error
      */
     int ioctl(int fd, int request, int i1);
+    
+    /**
+     * Perform IO control operation <code>request</code> on device <code>fd</code>.
+     *
+     * @param fd an open file descriptor
+     * @param request am encded value containing the requested operation and the arguments
+     * @param p1 pointer to int
+     * @return -1 on error
+     */
+    int ioctl(int fd, int request, IntByReference p1);
+
 
     /**
      * Perorm IO control operation <code>request</code> on device <code>fd</code>.

@@ -37,7 +37,11 @@ public class TimeImpl implements Time {
 
     /*----------------------------- defines -----------------------------*/
 
-
+    public int initConstInt(int index) {
+        final int[] dummy = {};
+        return dummy[index];
+    }
+    
     public TimeImpl() {
 //        NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
     }

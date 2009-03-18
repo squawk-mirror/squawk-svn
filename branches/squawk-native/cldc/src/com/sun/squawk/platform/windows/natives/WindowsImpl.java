@@ -37,6 +37,10 @@ public class WindowsImpl implements Windows {
 
     /*----------------------------- defines -----------------------------*/
 
+    public int initConstInt(int index) {
+        final int[] dummy = {};
+        return dummy[index];
+    }
 
     /*----------------------------- variables -----------------------------*/
 

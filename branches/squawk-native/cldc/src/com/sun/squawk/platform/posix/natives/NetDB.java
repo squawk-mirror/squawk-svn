@@ -50,7 +50,6 @@ public interface NetDB extends Library {
     hostent gethostbyname(String name);
     
 
-   
     /** Authoritative Answer Host not found. 
      * @see #h_errno() */
     int HOST_NOT_FOUND = NetDBImpl.HOST_NOT_FOUND;
@@ -81,6 +80,7 @@ public interface NetDB extends Library {
              #define h_addr  h_addr_list[0]  address, for backward compatibility 
     */
     public static class hostent extends NetDBImpl.hostentImpl {
+        
         public String h_name;          /* official name of host */
 
         public int h_addrtype;         /* host address type */
@@ -90,19 +90,22 @@ public interface NetDB extends Library {
         public int[] h_addr_list;      /* list of addresses from name server */
         
         public void read() {
+System.err.println("In hostent.read()");
             final int MAX_ADDRS = 16;
             Pointer p = getPointer();
+            System.out.println("in read(). Buffer: " + p);
+
             h_name = p.getPointer(0, 1024).getString(0);
+            System.out.println("    name: " + h_name);
             h_addrtype = p.getInt(8);
+System.out.println("    h_addrtype: " + h_addrtype);
+
             h_length = p.getInt(12);
+System.out.println("    h_length: " + h_length);
             if (h_length != 4) {
                 System.err.println("WARNING: Unexpected h_length value");
             }
             Pointer adrlist = p.getPointer(16, MAX_ADDRS * 4);
-          
-            System.out.println("in read(). Buffer: " + p);
-            System.out.println("    name: " + h_name);
-            System.out.println("    h_addrtype: " + h_addrtype);
             System.out.println("    adrlist: " + adrlist);
             
             Pointer[] addrPtrs = new Pointer[MAX_ADDRS];

@@ -26,8 +26,6 @@ package com.sun.squawk.platform;
 
 import com.sun.squawk.Klass;
 import com.sun.squawk.VM;
-import com.sun.squawk.util.Assert;
-
 
 /**
  *
@@ -50,27 +48,21 @@ public class Platform {
     private static GCFSockets gcfSockets;
     private static GCFFile gcfFile;
 
-    public final static String NATIVE_PLATFORM_NAME = com.sun.cldc.jna.NativeLibrary.nativePlatformName();
+    public final static String NATIVE_PLATFORM_NAME = com.sun.cldc.jna.Platform.getPlatform().getPlatformPackageName();
     
     private Platform() { }
 
     private static Object getInstance(String name) {
         Exception e = null;
-        String fullname =  NATIVE_PLATFORM_NAME + "." + name;
-        try {
-            VM.println("looking for class " + fullname);
-            Klass klass = Klass.lookupKlass(fullname);
-            if (klass != null) {
-                VM.println("found  class ");
+        String fullname = NATIVE_PLATFORM_NAME + "." + name;
+        VM.println("looking for class " + fullname);
+        Klass klass = Klass.lookupKlass(fullname);
+        if (klass != null) {
+            VM.println("found  class ");
 
-                Object result = klass.newInstance();
-                VM.println(" got instance ");
-                return result;
-            }
-        } catch (InstantiationException ex) {
-            e = ex;
-        } catch (IllegalAccessException ex) {
-            e = ex;
+            Object result = klass.newInstance();
+            VM.println(" got instance ");
+            return result;
         }
         VM.println("Error loading platform " + fullname + "\n   " + e);
         VM.stopVM(1);

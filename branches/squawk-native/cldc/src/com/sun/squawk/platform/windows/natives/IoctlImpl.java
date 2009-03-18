@@ -92,7 +92,11 @@ public class IoctlImpl implements Ioctl {
     public final static int FIOGETOWN = _IOR('f', 123);	/* get owner */
     public final static int FIODTYPE = _IOR('f', 122);  /* get d_type */
     
-
+    public int initConstInt(int index) {
+        final int[] dummy = {};
+        return dummy[index];
+    }
+    
     /*----------------------------- methods -----------------------------*/
     private final Function ioctlPtr;
     
@@ -118,7 +122,7 @@ public class IoctlImpl implements Ioctl {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
         ioctlPtr = jnaNativeLibrary.getFunction("ioctl");
     }
-    
+
 }
 
 

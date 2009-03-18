@@ -1326,11 +1326,13 @@ Address processArgs(char *argv[], const int argc) {
     }
 #endif /* FLASH_MEMORY */
 
+printf("calling CIO_initialize");
     /*
      * Startup the embedded Hotspot VM if Squawk was not launched via a JNI call
      */
     CIO_initialize("squawk.jar", javaVMArgs, javaVMArgsCount);
 
+printf("calling setupMemory");
     /*
      * Set up the buffer that will be used for the ROM, NVM and RAM, remaining.
      */

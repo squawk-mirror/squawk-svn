@@ -26,7 +26,7 @@
 
 
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
- #define sysPlatformName() "com.sun.squawk.platform.posix"
+ #define sysPlatformName() "vxworks"
 
 #include <stdlib.h>
 #include <sys/times.h>
@@ -201,11 +201,11 @@ void startTicker(int interval) {
 
 // Map the default dlsym handle to null
 // VxWorks doesn't use the handle.
-#define sys_RTLD_DEFAULT() (void*)NULL
+#define sys_RTLD_DEFAULT() (void*)sysSymTbl
 #define RTLD_LAZY NULL
 
 void* sysdlopen(char* name) {
-    return NULL;
+    return sysSymTbl;
 }
 
 int sysdlclose(void* handle) {
@@ -213,7 +213,7 @@ int sysdlclose(void* handle) {
 }
 
 void* sysdlerror() {
-    return NULL;
+    return "symLib Error";
 }
 
 void* dlsym(void* handle, const char* symbol) {

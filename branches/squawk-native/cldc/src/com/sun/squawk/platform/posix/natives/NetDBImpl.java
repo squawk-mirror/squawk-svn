@@ -31,7 +31,7 @@ package com.sun.squawk.platform.posix.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class NetDBImpl implements NetDB {
+public abstract class NetDBImpl implements NetDB {
 
     /*----------------------------- defines -----------------------------*/
 
@@ -40,38 +40,41 @@ public class NetDBImpl implements NetDB {
     public final static int NO_RECOVERY = 3;
     public final static int NO_DATA = 4;
 
+   // protected final static int hostent_SIZE = NetDB.INSTANCE.initConstInt(0);
+    
     /*----------------------------- variables -----------------------------*/
 
-    private final Pointer h_errnoPtr;
-    
-    public int h_errno() {
-        return h_errnoPtr.getInt(0);
-    }
+//    private final Pointer h_errnoPtr;
+//
+//    public int h_errno() {
+//        return h_errnoPtr.getInt(0);
+//    }
 
 
     /*----------------------------- methods -----------------------------*/
-    private final Function gethostbynamePtr;
-    
-    public hostent gethostbyname(String arg0) {
-        Pointer var0 = Pointer.createStringBuffer(arg0);
-        int result0 = gethostbynamePtr.call1(var0);
-        hostent result = (hostent)Function.returnStruct(hostent.class, result0);
-        var0.free();
-        return result;
-    }
-    
-    public NetDBImpl() {
-        NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
-        h_errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("h_errno", 4);
-        gethostbynamePtr = jnaNativeLibrary.getFunction("gethostbyname");
-    }
-    
+//    private final Function gethostbynamePtr;
+//
+//    public hostent gethostbyname(String arg0) {
+//        Pointer var0 = Pointer.createStringBuffer(arg0);
+//        int result0 = gethostbynamePtr.call1(var0);
+//        hostent result = (hostent)Function.returnStruct(hostent.class, result0);
+//        var0.free();
+//        return result;
+//    }
+//
+//    public NetDBImpl() {
+//        NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
+//        h_errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("h_errno", 4);
+//        gethostbynamePtr = jnaNativeLibrary.getFunction("gethostbyname");
+//    }
+//
     public static abstract class hostentImpl extends Structure {
+
     
         protected hostentImpl() {}
 
         public int size() {
-            return 20;
+            return NetDB.INSTANCE.initConstInt(0);
         }
 
     }

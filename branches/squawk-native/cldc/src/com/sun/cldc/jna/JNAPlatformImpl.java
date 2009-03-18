@@ -35,15 +35,20 @@ import com.sun.cldc.jna.ptr.*;
 
 public class JNAPlatformImpl implements JNAPlatform {
 
-    /*----------------------------- defines -----------------------------*/
-
-    public final static boolean __APPLE__ = true;
-    public final static boolean sun = false;
-    public final static boolean VXWORKS = false;
-    public final static boolean _MSC_VER = false;
+//    /*----------------------------- defines -----------------------------*/
+//
+//    public final static boolean __APPLE__ = true;
+//    public final static boolean sun = false;
+//    public final static boolean VXWORKS = false;
+//    public final static boolean _MSC_VER = false;
 
     public JNAPlatformImpl() {
         //NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
+    }
+
+    public int initConstInt(int index) {
+        final int[] result = {};
+        return result[index];
     }
     
 }

@@ -42,26 +42,39 @@ public class GCFSocketsImpl implements GCFSockets {
         
     /** Read errno, try to clean up fd, and create exception. */
     private static IOException newError(int fd, String msg)  {
+VM.print(msg);
+VM.print(": errno: ");
         int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
-        VM.print(msg);
-        VM.print(": errno: ");
-        VM.print(err_code);
-        VM.println();
+VM.print(err_code);
+VM.println();
         Socket.INSTANCE.shutdown(fd, 2);
         LibC.INSTANCE.close(fd);
         return new IOException(" errno: " + err_code + " on fd: " + fd + " during " + msg);
     }
     
-    private void set_blocking_flags(int fd, boolean is_blocking) throws IOException{
-        int flags = LibC.INSTANCE.fcntl(fd, LibC.F_GETFL, 0);
+    private void set_blocking_flags(int fd, boolean is_blocking) throws IOException {
+        LibC libc = LibC.INSTANCE;
+System.out.println("set_blocking_flags: calling fcntl F_GETFL: " +  LibC.F_GETFL);
+        int flags = libc.fcntl(fd, LibC.F_GETFL, 0);
+System.out.println("fcntl returned: " +  flags);
+
         if (flags >= 0) {
             if (is_blocking == true) {
                 flags &= ~LibC.O_NONBLOCK;
             } else {
                 flags |= LibC.O_NONBLOCK;
             }
-            int res = LibC.INSTANCE.fcntl(fd, LibC.F_SETFL, flags);
+System.out.println("set_blocking_flags: calling fcntl F_SETFL: " +  LibC.F_SETFL + " flags: " + flags);
+            int res = libc.fcntl(fd, LibC.F_SETFL, flags);
             if (res != -1) {
+                return;
+            }
+        } else if (libc.errno() == LibC.EOPNOTSUPP) {
+System.out.println("fcntl not working: " + " trying ioctl");
+            IntByReference setting = new IntByReference(is_blocking ? 1 : 0);
+            int res = Ioctl.INSTANCE.ioctl(fd, Ioctl.INSTANCE.FIONBIO, setting);
+            setting.free();
+            if (res >= 0) {
                 return;
             }
         }
@@ -76,7 +89,7 @@ public class GCFSocketsImpl implements GCFSockets {
         int fd = -1;
 
         fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
-//System.err.println("Socket.socket fd: " + fd);
+System.err.println("Socket.socket fd: " + fd);
         if (fd < 0) {
             throw newError(fd, "socket create");
         }
@@ -95,8 +108,10 @@ public class GCFSocketsImpl implements GCFSockets {
         destination_sin.sin_port = Inet.htons((short) port);
         destination_sin.sin_addr = phostent.h_addr_list[0];
 
-//System.err.println("   addr  " + inet_ntop(destination_sin.sin_addr).toString());
-//System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
+System.err.println("Socket.sockaddr_in: " + destination_sin);
+System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
+System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
+
 
         if (Socket.INSTANCE.connect(fd, destination_sin, destination_sin.size()) < 0) {
             int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!

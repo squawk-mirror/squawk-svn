@@ -40,6 +40,11 @@ public class NetDBImpl implements NetDB {
     public final static int NO_RECOVERY = 3;
     public final static int NO_DATA = 4;
 
+        public int initConstInt(int index) {
+        final int[] dummy = {};
+        return dummy[index];
+    }
+
     /*----------------------------- variables -----------------------------*/
 
     private final Pointer h_errnoPtr;

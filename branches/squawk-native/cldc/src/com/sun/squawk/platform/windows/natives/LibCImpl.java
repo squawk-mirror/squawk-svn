@@ -156,6 +156,11 @@ public class LibCImpl implements LibC {
     public final static int SEEK_CUR = 1;
     public final static int SEEK_END = 2;
 
+        public int initConstInt(int index) {
+        final int[] dummy = {};
+        return dummy[index];
+    }
+
     /*----------------------------- variables -----------------------------*/
 
 
@@ -282,6 +287,7 @@ public class LibCImpl implements LibC {
         fsyncPtr = jnaNativeLibrary.getFunction("fsync");
         lseekPtr = jnaNativeLibrary.getFunction("lseek");
     }
+
     
     public static class statImpl extends Structure {
     
