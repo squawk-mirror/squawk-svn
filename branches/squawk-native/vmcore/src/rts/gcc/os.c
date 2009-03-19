@@ -69,7 +69,11 @@ void osMilliSleep(long long millis) {
 }
 
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
- #define sysPlatformName() "linux"
+#if defined(sun)
+#define sysPlatformName() "solaris"
+#else
+#define sysPlatformName() "linux"
+#endif
 
 /**
  * Gets the page size (in bytes) of the system.
