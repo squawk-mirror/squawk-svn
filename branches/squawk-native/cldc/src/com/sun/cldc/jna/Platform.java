@@ -118,6 +118,9 @@ public abstract class Platform {
 
     private static Object getInstance(String name) {
         String fullname = PLATFORM_PACKAGE + "." + name;
+        if (DEBUG) {
+            VM.println("    Trying platform name: " + fullname);
+        }
         Klass klass = Klass.lookupKlass(fullname);
         if (klass != null) {
             return klass.newInstance();
@@ -129,11 +132,7 @@ public abstract class Platform {
         if (DEBUG) {
             VM.println("Making Platform...");
         }
-        String className = getNativePlatformName();
-        if (DEBUG) {
-            VM.println("    platform name: " + className);
-        }
-        Platform result = (Platform) getInstance(className);
+        Platform result = (Platform) getInstance(getNativePlatformName());
         if (result == null) {
             result = (Platform) getInstance("Posix");
         }
