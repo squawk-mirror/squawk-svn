@@ -1794,11 +1794,12 @@ int Squawk_main_wrapper(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-#ifdef _XPG4_2
-printf("_XPG4_2 is defined");
+#ifdef H_ERRNO _IS_FUNCTION
+printf("H_ERRNO _IS_FUNCTION   is defined\n");
 #else
-printf("_XPG4_2 NOT defined");
-#endif 
+printf("H_ERRNO _IS_FUNCTION   NOT defined\n");
+#endif
+
 #ifdef __APPLE__
     os_main(argc, argv);
 #else
