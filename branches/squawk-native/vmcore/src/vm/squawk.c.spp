@@ -1794,10 +1794,10 @@ int Squawk_main_wrapper(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-#ifdef H_ERRNO _IS_FUNCTION
-printf("H_ERRNO _IS_FUNCTION   is defined\n");
+#ifdef H_ERRNO_IS_FUNCTION
+printf("H_ERRNO_IS_FUNCTION   is defined\n");
 #else
-printf("H_ERRNO _IS_FUNCTION   NOT defined\n");
+printf("H_ERRNO_IS_FUNCTION   NOT defined\n");
 #endif
 
 #ifdef __APPLE__
