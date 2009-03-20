@@ -1793,6 +1793,12 @@ int Squawk_main_wrapper(int argc, char *argv[]) {
 #endif
 
 int main(int argc, char *argv[]) {
+
+#ifdef _XPG4_2
+printf("_XPG4_2 is defined");
+#else
+printf("_XPG4_2 NOT defined");
+#endif 
 #ifdef __APPLE__
     os_main(argc, argv);
 #else
