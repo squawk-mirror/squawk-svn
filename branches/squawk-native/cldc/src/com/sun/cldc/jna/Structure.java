@@ -32,7 +32,7 @@ import com.sun.squawk.util.Assert;
  */
 public abstract class Structure {
     
-    private final static boolean DEBUG = true;
+    private final static boolean DEBUG = false;
 
     protected Pointer backingNativeMemory;
 
@@ -50,7 +50,7 @@ public abstract class Structure {
     public abstract void read();
 
     /**
-     *  Copy the java fields of the struct to native memory to the Java fields
+     *  Copy the java fields of the struct to native memory from the Java fields
      */
     public abstract void write();
 
@@ -61,7 +61,8 @@ public abstract class Structure {
     public abstract int size();
 
     /** 
-     * Get the backing native memory used by this structure. 
+     * Get the backing native memory used by this structure. May return null if allocateMemory()
+     * has not been called, or if the Structure is permantently attached to C memory.
      * @return the memory
      */
     public final Pointer getPointer() {
@@ -81,6 +82,21 @@ public abstract class Structure {
         backingNativeMemory = m;
     }
 
+    /** Debug utility */
+    private void VMprintStruct() {
+        VM.print("Structure(");
+        VM.print(Klass.asKlass(getClass()).getInternalName());
+        VM.print(" size: ");
+        VM.print(size());
+        if (backingNativeMemory == null) {
+            VM.println(" memory never allocated)");
+        } else {
+            VM.print(" Pointer(");
+            VM.printAddress(getPointer().address());
+            VM.println("))");
+        }
+    }
+
     /**
      * Attempt to allocate backing memory for the structure.
      * 
@@ -98,20 +114,6 @@ public abstract class Structure {
         if (DEBUG) {
             VM.print("Allocated memory for ");
             VMprintStruct();
-        }
-    }
-
-    private void VMprintStruct() {
-        VM.print("Structure(");
-        VM.print(Klass.asKlass(getClass()).getInternalName());
-        VM.print(" size: ");
-        VM.print(size());
-        if (backingNativeMemory == null) {
-            VM.println(" memory never allocated)");
-        } else {
-            VM.print(" Pointer(");
-            VM.printAddress(getPointer().address());
-            VM.println("))");
         }
     }
     

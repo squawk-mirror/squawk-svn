@@ -1062,6 +1062,7 @@ Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *boot
     // ROM starts at the begining of the VM's memory buffer
     com_sun_squawk_VM_romStart = com_sun_squawk_VM_bootstrapStart = memory;
     bootstrapSize = loadBootstrapSuite(bootstrapSuiteFile, memory, memorySize, &suite, &com_sun_squawk_VM_bootstrapHash);
+printf("Bootstrap suite loaded\n");
     com_sun_squawk_VM_romEnd = Address_add(com_sun_squawk_VM_romStart, bootstrapSize);
 #endif /* FLASH_MEMORY */
     com_sun_squawk_VM_bootstrapEnd = Address_add(com_sun_squawk_VM_bootstrapStart, bootstrapSize);
@@ -1326,13 +1327,18 @@ Address processArgs(char *argv[], const int argc) {
     }
 #endif /* FLASH_MEMORY */
 
-printf("calling CIO_initialize");
+#if PLATFORM_TYPE_DELEGATING
     /*
      * Startup the embedded Hotspot VM if Squawk was not launched via a JNI call
      */
     CIO_initialize("squawk.jar", javaVMArgs, javaVMArgsCount);
+#elif PLATFORM_TYPE_NATIVE
+    IO_initialize();
+#elif PLATFORM_TYPE_SOCKET
+    IO_initialize();
+#endif
 
-printf("calling setupMemory");
+printf("calling setupMemory\n");
     /*
      * Set up the buffer that will be used for the ROM, NVM and RAM, remaining.
      */
@@ -1414,7 +1420,6 @@ void verifyBuildFlags() {
 Address Squawk_setup(int argc, char *argv[]) {
 
     Address bootstrapSuite;
-    void CIO_initialize(char *classPath, char** jvmArgs, int jvmArgc);
 
     /*
      * Sanity check.
@@ -1793,9 +1798,6 @@ int Squawk_main_wrapper(int argc, char *argv[]) {
 #endif
 
 int main(int argc, char *argv[]) {
-
-printf("h_errno = %d\n", h_errno);
-
 
 #ifdef __APPLE__
     os_main(argc, argv);

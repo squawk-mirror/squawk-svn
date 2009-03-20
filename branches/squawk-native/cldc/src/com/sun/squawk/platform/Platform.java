@@ -32,6 +32,8 @@ import com.sun.squawk.VM;
  * This class provides access to the platform-specific implementations of various features.
  */
 public class Platform {
+    public final static boolean DEBUG = false;
+
     /**
      * Basic kinds of PLATFORM_TYPE, as defined in build.properties
      */
@@ -52,16 +54,21 @@ public class Platform {
     
     private Platform() { }
 
-    private static Object getInstance(String name) {
+    /**
+     * Create an instance of the class named NATIVE_PLATFORM_NAME . name.
+     * If the class can't be found, halt the VM.
+     * @param name the leaf name of the class.
+     * @return an instance of the class
+     */
+    private static Object getPlatformInstance(String name) {
         Exception e = null;
         String fullname = NATIVE_PLATFORM_NAME + "." + name;
-        VM.println("looking for class " + fullname);
+        if (DEBUG) { VM.println("looking for class " + fullname); }
         Klass klass = Klass.lookupKlass(fullname);
         if (klass != null) {
-            VM.println("found  class ");
-
+            if (DEBUG) { VM.println("    found class"); }
             Object result = klass.newInstance();
-            VM.println(" got instance ");
+            if (DEBUG) { VM.println("    got instance"); }
             return result;
         }
         VM.println("Error loading platform " + fullname + "\n   " + e);
@@ -72,7 +79,7 @@ public class Platform {
     public static synchronized GCFSockets getGCFSockets() {
         if (IS_NATIVE) {
             if (gcfSockets == null) {
-                gcfSockets = (GCFSockets) getInstance("GCFSocketsImpl");
+                gcfSockets = (GCFSockets) getPlatformInstance("GCFSocketsImpl");
             }
             return gcfSockets;
         } else {
@@ -87,7 +94,7 @@ public class Platform {
      */
     public static SystemEvents createSystemEvents() {
         if (IS_NATIVE) {
-            return (SystemEvents) getInstance("SystemEventsImpl");
+            return (SystemEvents) getPlatformInstance("SystemEventsImpl");
         } else {
             return null;
         }
@@ -96,7 +103,7 @@ public class Platform {
     public static GCFFile getFileHandler() {
         if (IS_NATIVE) {
             if (gcfFile == null) {
-                gcfFile = (GCFFile) getInstance("GCFFileImpl");
+                gcfFile = (GCFFile) getPlatformInstance("GCFFileImpl");
             }
             return gcfFile;
         } else {

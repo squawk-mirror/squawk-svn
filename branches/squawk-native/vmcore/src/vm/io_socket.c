@@ -376,12 +376,8 @@ static int ioport_execute(
 
 /**
  * Initializes the IO subsystem.
- *
- * @param  classPath   the class path with which to start the embedded JVM
- * @param  args        extra arguments to pass to the embedded JVM
- * @param  argc        the number of extra arguments in 'args'
  */
-void CIO_initialize(char *classPath, char** args, int argc) {
+void IO_initialize() {
 
     /*
      * If an I/O port was set in the globals then this is used for I/O and the

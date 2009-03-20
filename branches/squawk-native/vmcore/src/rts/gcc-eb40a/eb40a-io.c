@@ -442,13 +442,3 @@ int retValue = 0;  // holds the value to be returned on the next "get result" ca
     com_sun_squawk_ServiceOperation_result = res;
 }
 
-/**
- * Initializes the IO subsystem.
- *
- * @param  classPath   the class path with which to start the embedded JVM (ignored if 'jniEnv' != null)
- * @param  args        extra arguments to pass to the embedded JVM (ignored if 'jniEnv' != null)
- * @param  argc        the number of extra arguments in 'args' (ignored if 'jniEnv' != null)
- */
-
-void CIO_initialize(char *classPath, char** args, int argc) {
-}

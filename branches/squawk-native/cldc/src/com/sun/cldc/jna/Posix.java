@@ -88,9 +88,7 @@ public class Posix extends Platform {
     }
 
     public Posix() {
-        VM.println("in POSIX constructor");
         if (isMac()) {
-VM.println("in MAC constructor");
             commonMappings.put("socket", "");
             commonMappings.put("c", "");
             commonMappings.put("resolv", "");

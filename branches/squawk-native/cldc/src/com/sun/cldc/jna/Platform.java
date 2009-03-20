@@ -125,6 +125,9 @@ public abstract class Platform {
         if (klass != null) {
             return klass.newInstance();
         }
+        if (DEBUG) {
+            VM.println("    Platform class not found: " + fullname);
+        }
         return null;
     }
 

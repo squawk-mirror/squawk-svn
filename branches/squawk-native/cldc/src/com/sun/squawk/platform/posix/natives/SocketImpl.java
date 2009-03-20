@@ -63,11 +63,11 @@ public abstract class SocketImpl implements Socket {
     
     private final Function bindPtr;
     
-    public int bind(int arg0, sockaddr_in arg1) {
+    public int bind(int arg0, sockaddr_in arg1, int arg2) {
         arg1.allocateMemory();
         arg1.write();
         Pointer var1 = arg1.getPointer();
-        int result0 = bindPtr.call2(arg0, var1);
+        int result0 = bindPtr.call3(arg0, var1, arg2);
         int result = (int)result0;
         arg1.read();
         arg1.freeMemory();

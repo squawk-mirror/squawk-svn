@@ -137,11 +137,12 @@ public interface Socket extends Library {
      * bind a socket to a port
      * 
      * @param socket socket descriptor
-     * @param myaddress ptr to a SockAddr_In buffer
+     * @param myaddress ptr to a sockaddr_in buffer
+     * @param address_len size of sockaddr_in
      * @return  A -1 is returned if an error occurs, otherwise the return value is a
      *          descriptor referencing the socket.
      */
-    int bind(int socket, sockaddr_in myaddress);
+    int bind(int socket, sockaddr_in myaddress, int address_len);
     
     /**
      * accept a connection from a client
@@ -236,7 +237,7 @@ public interface Socket extends Library {
 //        }
         
         public String toString() {
-            return "Struct_SockAddr{len: " + sin_len + ", family: " + sin_family + ", port: " + sin_port + ", sin_addr: " + sin_addr + "}";
+            return "Struct_SockAddr{len: " + sin_len + ", family: " + sin_family + ", port: " + sin_port + ", addr: " + sin_addr + "}";
         }
                  
     } /* SockAddr */

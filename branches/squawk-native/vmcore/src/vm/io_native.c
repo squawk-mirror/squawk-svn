@@ -222,14 +222,14 @@ int getEvent(int removeEventFlag) {
 
 /**
  * Initializes the IO subsystem.
- *
- * @param  classPath   the class path with which to start the embedded JVM
- * @param  args        extra arguments to pass to the embedded JVM
- * @param  argc        the number of extra arguments in 'args'
+
  */
-void CIO_initialize(char *classPath, char** args, int argc) {
+void IO_initialize() {
     sysFD_SIZE = sizeof(fd_set);
     sysSIZEOFSTAT = sizeof(struct stat);
+printf("sysFD_SIZE: %d\n", sysFD_SIZE);
+printf("sysSIZEOFSTAT: %d\n", sysSIZEOFSTAT);
+
 }
 
 /******* per-context data ************/

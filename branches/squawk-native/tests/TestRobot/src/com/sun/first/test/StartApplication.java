@@ -35,7 +35,8 @@ public class StartApplication extends MIDlet {
 //        } catch (IOException ex) {
 //            ex.printStackTrace();
 //        }
-      
+
+        EchoServer.runEchoServer(8007);
         notifyDestroyed();                      // cause the MIDlet to exit
 
     }

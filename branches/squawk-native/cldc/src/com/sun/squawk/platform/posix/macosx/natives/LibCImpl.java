@@ -37,125 +37,6 @@ public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
 
     /*----------------------------- defines -----------------------------*/
 
-//    /* public final static int EPERM = 1;
-//    public final static int ENOENT = 2;
-//    public final static int ESRCH = 3;
-//    public final static int EINTR = 4;
-//    public final static int EIO = 5;
-//    public final static int ENXIO = 6;
-//    public final static int E2BIG = 7;
-//    public final static int ENOEXEC = 8;
-//    public final static int EBADF = 9;
-//    public final static int ECHILD = 10;
-//    public final static int EDEADLK = 11;
-//    public final static int ENOMEM = 12;
-//    public final static int EACCES = 13;
-//    public final static int EFAULT = 14;
-//    public final static int EBUSY = 16;
-//    public final static int EEXIST = 17;
-//    public final static int EXDEV = 18;
-//    public final static int ENODEV = 19;
-//    public final static int ENOTDIR = 20;
-//    public final static int EISDIR = 21;
-//    public final static int EINVAL = 22;
-//    public final static int ENFILE = 23;
-//    public final static int EMFILE = 24;
-//    public final static int ENOTTY = 25;
-//    public final static int ETXTBSY = 26;
-//    public final static int EFBIG = 27;
-//    public final static int ENOSPC = 28;
-//    public final static int ESPIPE = 29;
-//    public final static int EROFS = 30;
-//    public final static int EMLINK = 31;
-//    public final static int EPIPE = 32;
-//    public final static int EDOM = 33;
-//    public final static int ERANGE = 34;
-//    public final static int EAGAIN = 35;
-//    public final static int EWOULDBLOCK = 35;
-//    public final static int EINPROGRESS = 36;
-//    public final static int EALREADY = 37;
-//    public final static int ENOTSOCK = 38;
-//    public final static int EDESTADDRREQ = 39;
-//    public final static int EMSGSIZE = 40;
-//    public final static int EPROTOTYPE = 41;
-//    public final static int ENOPROTOOPT = 42;
-//    public final static int EPROTONOSUPPORT = 43;
-//    public final static int ENOTSUP = 45;
-//    public final static int EAFNOSUPPORT = 47;
-//    public final static int EADDRINUSE = 48;
-//    public final static int EADDRNOTAVAIL = 49;
-//    public final static int ENETDOWN = 50;
-//    public final static int ENETUNREACH = 51;
-//    public final static int ENETRESET = 52;
-//    public final static int ECONNABORTED = 53;
-//    public final static int ECONNRESET = 54;
-//    public final static int ENOBUFS = 55;
-//    public final static int EISCONN = 56;
-//    public final static int ENOTCONN = 57;
-//    public final static int ETIMEDOUT = 60;
-//    public final static int ECONNREFUSED = 61;
-//    public final static int ELOOP = 62;
-//    public final static int ENAMETOOLONG = 63;
-//    public final static int EHOSTUNREACH = 65;
-//    public final static int ENOTEMPTY = 66;
-//    public final static int EDQUOT = 69;
-//    public final static int ENOLCK = 77;
-//    public final static int ENOSYS = 78;
-//    public final static int EOVERFLOW = 84;
-//    public final static int ECANCELED = 89;
-//    public final static int EIDRM = 90;
-//    public final static int ENOMSG = 91;
-//    public final static int EILSEQ = 92;
-//    public final static int EBADMSG = 94;
-//    public final static int EMULTIHOP = 95;
-//    public final static int ENODATA = 96;
-//    public final static int ENOLINK = 97;
-//    public final static int ENOSR = 98;
-//    public final static int ENOSTR = 99;
-//    public final static int EPROTO = 100;
-//    public final static int ETIME = 101;
-//    public final static int F_DUPFD = 0;
-//    public final static int F_GETFD = 1;
-//    public final static int F_SETFD = 2;
-//    public final static int F_GETFL = 3;
-//    public final static int F_SETFL = 4;
-//    public final static int O_RDONLY = 0;
-//    public final static int O_WRONLY = 1;
-//    public final static int O_RDWR = 2;
-//    public final static int O_ACCMODE = 3;
-//    public final static int O_NONBLOCK = 4;
-//    public final static int O_APPEND = 8;
-//    public final static int O_SYNC = 128;
-//    public final static int O_CREAT = 512;
-//    public final static int O_TRUNC = 1024;
-//    public final static int O_EXCL = 2048;
-//    public final static int S_IFBLK = 24576;
-//    public final static int S_IFCHR = 8192;
-//    public final static int S_IFDIR = 16384;
-//    public final static int S_IFIFO = 4096;
-//    public final static int S_IFLNK = 40960;
-//    public final static int S_IFMT = 61440;
-//    public final static int S_IFREG = 32768;
-//    public final static int S_IFSOCK = 49152;
-//    public final static int S_IRGRP = 32;
-//    public final static int S_IROTH = 4;
-//    public final static int S_IRUSR = 256;
-//    public final static int S_IRWXG = 56;
-//    public final static int S_IRWXO = 7;
-//    public final static int S_IRWXU = 448;
-//    public final static int S_ISGID = 1024;
-//    public final static int S_ISUID = 2048;
-//    public final static int S_ISVTX = 512;
-//    public final static int S_IWGRP = 16;
-//    public final static int S_IWOTH = 2;
-//    public final static int S_IWUSR = 128;
-//    public final static int S_IXGRP = 8;
-//    public final static int S_IXOTH = 1;
-//    public final static int S_IXUSR = 64;
-//    public final static int SEEK_SET = 0;
-//    public final static int SEEK_CUR = 1;
-//     public final static int public final static int SEEK_END = 2;
-
     private final static int[] intConstants = {
    /* public final static int EPERM = */1,
     /* public final static int ENOENT = */2,
@@ -303,118 +184,118 @@ public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
 
 
     /*----------------------------- methods -----------------------------*/
-    private final Function openPtr;
-    
-    public int open(String arg0, int arg1, int arg2) {
-        Pointer var0 = Pointer.createStringBuffer(arg0);
-        int result0 = openPtr.call3(var0, arg1, arg2);
-        int result = (int)result0;
-        var0.free();
-        return result;
-    }
-    
-    private final Function statPtr;
-    
-    public int stat(String arg0, stat arg1) {
-        Pointer var0 = Pointer.createStringBuffer(arg0);
-        arg1.allocateMemory();
-        arg1.write();
-        Pointer var1 = arg1.getPointer();
-        int result0 = statPtr.call2(var0, var1);
-        int result = (int)result0;
-        var0.free();
-        arg1.read();
-        arg1.freeMemory();
-        return result;
-    }
-    
-    private final Function fcntlPtr;
-    
-    public int fcntl(int arg0, int arg1, int arg2) {
-        int result0 = fcntlPtr.call3(arg0, arg1, arg2);
-        int result = (int)result0;
-        return result;
-    }
-    
-    private final Function writePtr;
-    
-    public int write(int arg0, byte[] arg1, int arg2) {
-        boolean oldState = PrivatePointer.setUpArrayBufferState();
-        /*------------------- DISABLE GC: ---------------------------*/
-        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
-        int result0 = writePtr.call3(arg0, var1, arg2);
-        int result = (int)result0;
-        var1.release();
-            PrivatePointer.tearDownArrayBufferState(oldState);
-            /*------------------- ENABLE GC: ---------------------------*/
-        return result;
-    }
-    
-    private final Function closePtr;
-    
-    public int close(int arg0) {
-        int result0 = closePtr.call1(arg0);
-        int result = (int)result0;
-        return result;
-    }
-    
-    private final Function readPtr;
-    
-    public int read(int arg0, byte[] arg1, int arg2) {
-        boolean oldState = PrivatePointer.setUpArrayBufferState();
-        /*------------------- DISABLE GC: ---------------------------*/
-        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
-        int result0 = readPtr.call3(arg0, var1, arg2);
-        int result = (int)result0;
-        var1.release();
-            PrivatePointer.tearDownArrayBufferState(oldState);
-            /*------------------- ENABLE GC: ---------------------------*/
-        return result;
-    }
-    
-    private final Function fstatPtr;
-    
-    public int fstat(int arg0, stat arg1) {
-        arg1.allocateMemory();
-        arg1.write();
-        Pointer var1 = arg1.getPointer();
-        int result0 = fstatPtr.call2(arg0, var1);
-        int result = (int)result0;
-        arg1.read();
-        arg1.freeMemory();
-        return result;
-    }
-    
-    private final Function fsyncPtr;
-    
-    public int fsync(int arg0) {
-        int result0 = fsyncPtr.call1(arg0);
-        int result = (int)result0;
-        return result;
-    }
-    
-    private final Function lseekPtr;
-    
-    public int lseek(int arg0, long arg1, int arg2) {
-        int var1 = (int)(arg1 >>> 32);
-        int var2 = (int)(arg1);
-        int result0 = lseekPtr.call4(arg0, var1, var2, arg2);
-        int result = (int)result0;
-        return result;
-    }
+//    private final Function openPtr;
+//
+//    public int open(String arg0, int arg1, int arg2) {
+//        Pointer var0 = Pointer.createStringBuffer(arg0);
+//        int result0 = openPtr.call3(var0, arg1, arg2);
+//        int result = (int)result0;
+//        var0.free();
+//        return result;
+//    }
+//
+//    private final Function statPtr;
+//
+//    public int stat(String arg0, stat arg1) {
+//        Pointer var0 = Pointer.createStringBuffer(arg0);
+//        arg1.allocateMemory();
+//        arg1.write();
+//        Pointer var1 = arg1.getPointer();
+//        int result0 = statPtr.call2(var0, var1);
+//        int result = (int)result0;
+//        var0.free();
+//        arg1.read();
+//        arg1.freeMemory();
+//        return result;
+//    }
+//
+//    private final Function fcntlPtr;
+//
+//    public int fcntl(int arg0, int arg1, int arg2) {
+//        int result0 = fcntlPtr.call3(arg0, arg1, arg2);
+//        int result = (int)result0;
+//        return result;
+//    }
+//
+//    private final Function writePtr;
+//
+//    public int write(int arg0, byte[] arg1, int arg2) {
+//        boolean oldState = PrivatePointer.setUpArrayBufferState();
+//        /*------------------- DISABLE GC: ---------------------------*/
+//        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
+//        int result0 = writePtr.call3(arg0, var1, arg2);
+//        int result = (int)result0;
+//        var1.release();
+//            PrivatePointer.tearDownArrayBufferState(oldState);
+//            /*------------------- ENABLE GC: ---------------------------*/
+//        return result;
+//    }
+//
+//    private final Function closePtr;
+//
+//    public int close(int arg0) {
+//        int result0 = closePtr.call1(arg0);
+//        int result = (int)result0;
+//        return result;
+//    }
+//
+//    private final Function readPtr;
+//
+//    public int read(int arg0, byte[] arg1, int arg2) {
+//        boolean oldState = PrivatePointer.setUpArrayBufferState();
+//        /*------------------- DISABLE GC: ---------------------------*/
+//        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
+//        int result0 = readPtr.call3(arg0, var1, arg2);
+//        int result = (int)result0;
+//        var1.release();
+//            PrivatePointer.tearDownArrayBufferState(oldState);
+//            /*------------------- ENABLE GC: ---------------------------*/
+//        return result;
+//    }
+//
+//    private final Function fstatPtr;
+//
+//    public int fstat(int arg0, stat arg1) {
+//        arg1.allocateMemory();
+//        arg1.write();
+//        Pointer var1 = arg1.getPointer();
+//        int result0 = fstatPtr.call2(arg0, var1);
+//        int result = (int)result0;
+//        arg1.read();
+//        arg1.freeMemory();
+//        return result;
+//    }
+//
+//    private final Function fsyncPtr;
+//
+//    public int fsync(int arg0) {
+//        int result0 = fsyncPtr.call1(arg0);
+//        int result = (int)result0;
+//        return result;
+//    }
+//
+//    private final Function lseekPtr;
+//
+//    public int lseek(int arg0, long arg1, int arg2) {
+//        int var1 = (int)(arg1 >>> 32);
+//        int var2 = (int)(arg1);
+//        int result0 = lseekPtr.call4(arg0, var1, var2, arg2);
+//        int result = (int)result0;
+//        return result;
+//    }
     
     public LibCImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
         errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("errno", 4);
-        openPtr = jnaNativeLibrary.getFunction("open");
-        statPtr = jnaNativeLibrary.getFunction("stat");
-        fcntlPtr = jnaNativeLibrary.getFunction("fcntl");
-        writePtr = jnaNativeLibrary.getFunction("write");
-        closePtr = jnaNativeLibrary.getFunction("close");
-        readPtr = jnaNativeLibrary.getFunction("read");
-        fstatPtr = jnaNativeLibrary.getFunction("fstat");
-        fsyncPtr = jnaNativeLibrary.getFunction("fsync");
-        lseekPtr = jnaNativeLibrary.getFunction("lseek");
+//        openPtr = jnaNativeLibrary.getFunction("open");
+//        statPtr = jnaNativeLibrary.getFunction("stat");
+//        fcntlPtr = jnaNativeLibrary.getFunction("fcntl");
+//        writePtr = jnaNativeLibrary.getFunction("write");
+//        closePtr = jnaNativeLibrary.getFunction("close");
+//        readPtr = jnaNativeLibrary.getFunction("read");
+//        fstatPtr = jnaNativeLibrary.getFunction("fstat");
+//        fsyncPtr = jnaNativeLibrary.getFunction("fsync");
+//        lseekPtr = jnaNativeLibrary.getFunction("lseek");
     }
 
 }

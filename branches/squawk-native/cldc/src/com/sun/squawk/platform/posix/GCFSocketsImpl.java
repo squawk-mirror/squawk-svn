@@ -110,8 +110,6 @@ System.err.println("Socket.socket fd: " + fd);
 
 System.err.println("Socket.sockaddr_in: " + destination_sin);
 System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
-System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
-
 
         if (Socket.INSTANCE.connect(fd, destination_sin, destination_sin.size()) < 0) {
             int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
@@ -157,23 +155,22 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
         int fd = -1;
 
         fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
+System.err.println("openServer on port: " + port + " fd: " + fd);
         if (fd < 0) {
             throw newError(fd, "socket create");
         }
         
         set_blocking_flags(fd, /*is_blocking*/ false);
 
-        IntByReference option_val = new IntByReference(1);
-        if (Socket.INSTANCE.setsockopt(fd, Socket.SOL_SOCKET, Socket.SO_REUSEADDR, option_val, 4) < 0) {
-            throw newError(fd, "setSockOpt");
-        }
-        option_val.free();
-        
+        setSockOpt(fd, Socket.SO_REUSEADDR, 1);
+
         Socket.sockaddr_in local_sin = new Socket.sockaddr_in();
         local_sin.sin_family = Socket.AF_INET;
         local_sin.sin_port = Inet.htons((short) port);
         local_sin.sin_addr = Socket.INADDR_ANY;
-        if (Socket.INSTANCE.bind(fd, local_sin) < 0) {
+System.err.println("addr for bind " + local_sin);
+
+        if (Socket.INSTANCE.bind(fd, local_sin, local_sin.size()) < 0) {
             throw newError(fd, "bind");
         }
         
