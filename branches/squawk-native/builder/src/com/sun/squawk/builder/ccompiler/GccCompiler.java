@@ -148,7 +148,7 @@ public class GccCompiler extends CCompiler {
         String suffix = " " + get64BitOption();
         if (options.isPlatformType(Options.DELEGATING)) {
             suffix = suffix + " -L" + jvmLib.replaceAll(File.pathSeparator, " -L") + " -ljvm";
-        } else if (options.isPlatformType(Options.SOCKET)) {
+        } else if (options.isPlatformType(Options.SOCKET) || options.isPlatformType(Options.NATIVE)) {
             suffix = suffix + " -lsocket" + " -lnsl";
         }
 
