@@ -409,7 +409,7 @@ public class JavaCompiler {
             } else {
                 int result = ((Integer)javacMethod.invoke(null, new Object[] { new String[] {"@" + argsFile} })).intValue();
                 if (result != 0) {
-                    throw new BuildException("javamake compilation failed", result);
+                    throw new BuildException("compilation failed", result);
                 }
             }
         } catch (IllegalAccessException e) {

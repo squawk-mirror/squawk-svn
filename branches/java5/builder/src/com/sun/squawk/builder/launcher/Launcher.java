@@ -104,12 +104,12 @@ public class Launcher {
                                 while (tokenizer.hasMoreTokens()) {
                                     String token = tokenizer.nextToken();
                                     File file = new File(token);
-                                    urls.add(file.toURL());
+                                    urls.add(file.toURI().toURL());
                                 }
                             }
                         }
                     }
-                    urls.add(buildCommandsJarFile.toURL());
+                    urls.add(buildCommandsJarFile.toURI().toURL());
                     return;
                 } catch (IOException e) {
                 }
@@ -142,7 +142,7 @@ public class Launcher {
         File toolsJar = new File(javaHome + "/lib/tools.jar");
         if (toolsJar.exists()) {
             System.out.println("Launcher: Found tools.har in " + toolsJar.getPath() + ".");
-            return toolsJar.toURL();
+            return toolsJar.toURI().toURL();
         }
         String lookFor = File.separator + "jre";
         if (javaHome.toLowerCase(Locale.US).endsWith(lookFor)) {
@@ -152,7 +152,7 @@ public class Launcher {
         if (!toolsJar.exists()) {
         	throw new RuntimeException("Unable to locate tools.jar. Expected to find it in " + toolsJar.getPath());
         }
-        return toolsJar.toURL();
+        return toolsJar.toURI().toURL();
     }
     
 }

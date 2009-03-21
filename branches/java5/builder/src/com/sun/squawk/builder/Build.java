@@ -46,6 +46,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
@@ -301,7 +303,7 @@ public class Build {
             srcDirs = new File[st.countTokens() + 1];
             srcDirs[0] = primarySrcDir;
             for (int i = 1; i != srcDirs.length; ++i) {
-                srcDirs[i] = new File(st.nextToken());
+                srcDirs[i] = new File(baseDir, st.nextToken());
             }
         } else {
             srcDirs = new File[] { primarySrcDir };
@@ -600,9 +602,24 @@ public class Build {
      * @param sourceRootPath
      * @param destinationRootPath
      * @param siblingRootPath
+     * @param commentOutOverrideAnnotation
      * @param subPaths
      */
     public void copy(String sourceRootPath, String destinationRootPath, String siblingRootPath, String... subPaths) {
+        copy(sourceRootPath, destinationRootPath, siblingRootPath, false, subPaths);
+    }
+    
+    /**
+     * Copy files from sourceRootPath, contained in subPaths, to destinationRootPath.  If any of the files being copy already exist
+     * in siblingRootPath, then ignore it.
+     * 
+     * @param sourceRootPath
+     * @param destinationRootPath
+     * @param siblingRootPath
+     * @param commentOutOverrideAnnotation
+     * @param subPaths
+     */
+    public void copy(String sourceRootPath, String destinationRootPath, String siblingRootPath, boolean commentOutOverrideAnnotation, String... subPaths) {
         for (String subPath: subPaths) {
             boolean goDeep = subPath.equals("**");
             if (goDeep) {
@@ -618,7 +635,7 @@ public class Build {
                     if (sourceFile.isDirectory()) {
                         if (goDeep) {
                             String path = sourceFile.getName();
-                            copy(sourceRootPath + File.separator + path, destinationRootPath + File.separator + path, siblingRootPath + File.separator + path, "**");
+                            copy(sourceRootPath + File.separator + path, destinationRootPath + File.separator + path, siblingRootPath + File.separator + path, commentOutOverrideAnnotation, "**");
                         }
                         continue;
                     }
@@ -631,7 +648,7 @@ public class Build {
                         didNoCopy = false;
                     }
                     File destinationFile = new File(destinationDir, sourceFile.getName());
-                    cp(sourceFile, destinationFile, false);
+                    cp(sourceFile, destinationFile, false, commentOutOverrideAnnotation);
                 }
             }
             if (!goDeep && didNoCopy) {
@@ -729,9 +746,9 @@ public class Build {
                 delete(new File("../javacard3/sdk-src"));
                 delete(new File("../javacard3/sdk-lib"));
                 String phoneMeSourceRoot = "../bundles/sdk/src/";
-                copy(phoneMeSourceRoot + "api", "../javacard3/sdk-src", "../javacard3/src", "**");
-                
-                cp(new File("../bundles/sdk/src/crypto.jar"), new File("../javacard3/sdk-lib/crypto.jar"), false);
+                copy(phoneMeSourceRoot + "api", "../javacard3/sdk-src", "../javacard3/src", true, "**");
+                extractJar(new File("../bundles/sdk/src/crypto.jar"), new File("../javacard3/sdk-lib/crypto"));
+//                cp(new File("../bundles/sdk/src/crypto.jar"), new File("../javacard3/sdk-lib/crypto.jar"), false);
             }
         });
 
@@ -1379,17 +1396,48 @@ public class Build {
      * @throws BuildException if the copy failed
      */
     public static void cp(File from, File to, boolean append) {
+        cp(from, to, append, false);
+    }
+    
+    /**
+     * Copies a file. The parent directory of <code>to</code> is created if it doesn't exist.
+     *
+     * @param from    the source file
+     * @param to      the destination file
+     * @param append  if true, the content of <code>from</code> is appended to <code>to</code>
+     * @throws BuildException if the copy failed
+     */
+    public static void cp(File from, File to, boolean append, boolean commentOutOverrideAnnotation) {
         File toFileDir = to.getParentFile();
         mkdir(toFileDir);
         try {
-            DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(from)));
-            OutputStream os = new BufferedOutputStream(new FileOutputStream(to, append));
+            if (commentOutOverrideAnnotation) {
+                BufferedInputStream input = new BufferedInputStream(new FileInputStream(from));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(to, append));
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
 
-            byte[] content = new byte[(int)from.length()];
-            dis.readFully(content);
-            os.write(content);
-            dis.close();
-            os.close();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    int index = line.indexOf("@Override");
+                    if (index != -1) {
+                        line = line.substring(0, index -1) + "//" + line.substring(index);
+                    }
+                    writer.write(line);
+                    writer.newLine();
+                }
+                try {writer.close();} catch (IOException e) {}
+                try {reader.close();} catch (IOException e) {}
+            } else {
+                DataInputStream input = new DataInputStream(new BufferedInputStream(new FileInputStream(from)));
+                OutputStream output = new BufferedOutputStream(new FileOutputStream(to, append));
+
+                byte[] content = new byte[(int)from.length()];
+                input.readFully(content);
+                output.write(content);
+                try {input.close();} catch (IOException e) {}
+                try {output.close();} catch (IOException e) {}
+            }
         } catch (FileNotFoundException ex) {
             throw new BuildException("copying " + from + " to " + to + " failed", ex);
         } catch (IOException ex) {
@@ -2240,8 +2288,8 @@ public class Build {
     /**
      * Retroweave a given set of Java class files.
      *
-     * @param   baseDir    the directory under which the "preprocessed" directory exists
-     * @param   classesDirs    the set of directories that are searched recursively for the source files to be compiled
+     * @param   baseDir    the directory under which the "weaved" directory will be created
+     * @param   classesDirs    the set of directories that are searched recursively for the .class files that will be weaved
      * @return the retroweaved output directory
      */
     public File retroweave(File baseDir, File classesDir) {
@@ -2407,6 +2455,32 @@ public class Build {
             zos.close();
         } catch (IOException e) {
             throw new BuildException("IO error creating jar file", e);
+        }
+    }
+
+    public void extractJar(File source, File destination) {
+        try {
+            JarFile jarFile = new JarFile(source);
+            Enumeration<JarEntry> entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                File file = new File(destination, entry.getName());
+                file.getParentFile().mkdirs();
+                InputStream in = new BufferedInputStream(jarFile.getInputStream(entry));
+                OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+                byte[] buffer = new byte[2048];
+                for (;;) {
+                    int nBytes = in.read(buffer);
+                    if (nBytes <= 0)
+                        break;
+                    out.write(buffer, 0, nBytes);
+                }
+                out.flush();
+                out.close();
+                in.close();
+            }
+        } catch (IOException e) {
+            throw new BuildException("IO error extracting jar file", e);
         }
     }
 
