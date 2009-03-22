@@ -44,35 +44,35 @@ public class Launcher {
 
     public static void main(String[] args) {
         ClassLoader loader;
-		List<URL> urls = new ArrayList<URL>();
-    	try {
-            URL toolsJar = getToolsJar();
-	        if (toolsJar != null) {
-	        	urls.add(toolsJar);
-	        }
-	        addBuildCommandsJars(urls);
-    	} catch (MalformedURLException e) {
-    		throw new RuntimeException("Problems building class path to launch builder", e);
-    	}
-		loader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
-		Thread.currentThread().setContextClassLoader(loader);
+        List<URL> urls = new ArrayList<URL>();
         try {
-        	Class<?> buildClass = loader.loadClass("com.sun.squawk.builder.Build");
+            URL toolsJar = getToolsJar();
+            if (toolsJar != null) {
+                urls.add(toolsJar);
+            }
+            addBuildCommandsJars(urls);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Problems building class path to launch builder", e);
+        }
+        loader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
+        Thread.currentThread().setContextClassLoader(loader);
+        try {
+            Class<?> buildClass = loader.loadClass("com.sun.squawk.builder.Build");
             Method mainMethod = buildClass.getMethod("main", String[].class);
             mainMethod.invoke(null, (Object) args);
         } catch (ClassNotFoundException e) {
-        	throw new RuntimeException("Problems finding builder", e);
-		} catch (SecurityException e) {
-        	throw new RuntimeException("Problems finding builder", e);
-		} catch (NoSuchMethodException e) {
-        	throw new RuntimeException("Problems finding builder", e);
-		} catch (IllegalArgumentException e) {
-        	throw new RuntimeException("Problems finding builder", e);
-		} catch (IllegalAccessException e) {
-        	throw new RuntimeException("Problems finding builder", e);
-		} catch (InvocationTargetException e) {
-			throw new RuntimeException(e);
-		}
+            throw new RuntimeException("Problems finding builder", e);
+        } catch (SecurityException e) {
+            throw new RuntimeException("Problems finding builder", e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException("Problems finding builder", e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Problems finding builder", e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Problems finding builder", e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void addBuildCommandsJars(List<URL> urls) throws MalformedURLException {

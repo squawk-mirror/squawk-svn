@@ -453,16 +453,19 @@ public class Build {
     }
 
     protected void addSiblingBuilderDotPropertiesFiles(File rootDir, List<File> files) {
-    	File[] siblingDirs = rootDir.listFiles();
-    	for (File siblingDir: siblingDirs) {
-    		File dotPropertiesFile = new File(siblingDir, "builder.properties");
-    		if (dotPropertiesFile.canRead()) {
-    	        log(verbose, "Reading builder.properties: " + dotPropertiesFile.getPath());
-    			files.add(dotPropertiesFile);
-    		}
-    	}
+        File[] siblingDirs = rootDir.listFiles();
+        if (siblingDirs == null) {
+            return;
+        }
+        for (File siblingDir : siblingDirs) {
+            File dotPropertiesFile = new File(siblingDir, "builder.properties");
+            if (dotPropertiesFile.canRead()) {
+                log(verbose, "Reading builder.properties: " + dotPropertiesFile.getPath());
+                files.add(dotPropertiesFile);
+            }
+        }
     }
-    
+
     protected void processBuilderDotPropertiesFiles(List<File> dotPropertiesFiles) {
     	for (File dotProperties: dotPropertiesFiles) {
     		processBuilderDotPropertiesFile(dotProperties);
@@ -475,34 +478,37 @@ public class Build {
      * @param pluginsFile  the properties file to load from
      */
     protected void processBuilderDotPropertiesFile(File dotPropertiesFile) {
-    	log(verbose, "Reading commands from: " + dotPropertiesFile.getPath());
-    	Properties properties = new Properties();
-    	InputStream in = null;
-    	try {
-        	in = new FileInputStream(dotPropertiesFile);
-    		properties.load(in);
-    	} catch (IOException e) {
-    	}
-    	if (in != null) {
-    		try {in.close();} catch (IOException e) {}
-    		in = null;
-    	}
-    	int propertyIndex = 0;
-    	String currentType = "";
-    	String currentName = "";
-    	HashMap<String, String> attributes = new HashMap<String, String>();
+        log(verbose, "Reading commands from: " + dotPropertiesFile.getPath());
+        Properties properties = new Properties();
+        InputStream in = null;
+        try {
+            in = new FileInputStream(dotPropertiesFile);
+            properties.load(in);
+        } catch (IOException e) {
+        }
+        if (in != null) {
+            try {
+                in.close();
+            } catch (IOException e) {
+            }
+            in = null;
+        }
+        int propertyIndex = 0;
+        String currentType = "";
+        String currentName = "";
+        HashMap<String, String> attributes = new HashMap<String, String>();
         ClassLoader loader = Build.class.getClassLoader();
         final String classpathKey = "classpath";
         if (properties.containsKey(classpathKey)) {
-        	String value = properties.getProperty(classpathKey);
-        	properties.remove(classpathKey);
-        	// handle classpath=path1:path2
+            String value = properties.getProperty(classpathKey);
+            properties.remove(classpathKey);
+            // handle classpath=path1:path2
             URL[] urls = null;
             String[] classpath = Build.toPlatformPath(value, true).split(File.pathSeparator);
             try {
                 urls = new URL[classpath.length];
-                for(int i = 0; i < classpath.length; i++) {
-                    File f = new File (classpath[i]);
+                for (int i = 0; i < classpath.length; i++) {
+                    File f = new File(classpath[i]);
                     String url = f.getAbsolutePath();
 
                     // Make sure the url class loader recognises directories
@@ -530,19 +536,19 @@ public class Build {
         }
         // Sort the properties to process them in a decent order
         ArrayList<String> sortedPropertyNames = new ArrayList<String>(properties.size());
-        for (Enumeration<?> names = properties.propertyNames(); names.hasMoreElements(); ) {
-        	sortedPropertyNames.add((String) names.nextElement());
+        for (Enumeration<?> names = properties.propertyNames(); names.hasMoreElements();) {
+            sortedPropertyNames.add((String) names.nextElement());
         }
         Collections.sort(sortedPropertyNames);
-    	for (String propertyName: sortedPropertyNames) {
-    		propertyIndex++;
+        for (String propertyName : sortedPropertyNames) {
+            propertyIndex++;
             String value = properties.getProperty(propertyName);
             if (propertyName.indexOf('.') == -1) {
-            	// handle command name=command class
+                // handle command name=command class
                 try {
                     Class<?> pluginClass = loader.loadClass(value);
-                    Constructor<?> cons = pluginClass.getConstructor(new Class[] {Build.class});
-                    Command command = (Command)cons.newInstance(new Object[] {this});
+                    Constructor<?> cons = pluginClass.getConstructor(new Class[] { Build.class });
+                    Command command = (Command) cons.newInstance(new Object[] { this });
                     addCommand(command);
                 } catch (InvocationTargetException e) {
                     throw new BuildException("error creating " + value + " plugin: ", e);
@@ -557,30 +563,30 @@ public class Build {
                 } catch (ClassNotFoundException e) {
                     throw new BuildException("error creating " + value + " plugin: ", e);
                 }
-    		} else {
-    			// handle command type.name.attribute=value
-	    		StringTokenizer tokenizer = new StringTokenizer(propertyName, ".");
-	    		try {
-		    		String type = tokenizer.nextToken();
-		    		String name = tokenizer.nextToken();
-		    		String attribute = tokenizer.nextToken();
-		    		if (!type.equals(currentType) && !name.equals(currentName)) {
-		    			if (!attributes.isEmpty()) {
-		    				processBuilderDotPropertiesFile(currentType, currentName, dotPropertiesFile, propertyIndex, attributes);
-		    			}
-		    			attributes.clear();
-		    			currentType = type;
-		    			currentName = name;
-		    		}
-	    			attributes.put(attribute, value);
-	    		} catch (NoSuchElementException e) {
-	    			throw new BuildException("Bad format on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
-	    		}
-    		}
-    	}
-    	if (!attributes.isEmpty()) {
-			processBuilderDotPropertiesFile(currentType, currentName, dotPropertiesFile, propertyIndex, attributes);
-    	}
+            } else {
+                // handle command type.name.attribute=value
+                StringTokenizer tokenizer = new StringTokenizer(propertyName, ".");
+                try {
+                    String type = tokenizer.nextToken();
+                    String name = tokenizer.nextToken();
+                    String attribute = tokenizer.nextToken();
+                    if (!type.equals(currentType) && !name.equals(currentName)) {
+                        if (!attributes.isEmpty()) {
+                            processBuilderDotPropertiesFile(currentType, currentName, dotPropertiesFile, propertyIndex, attributes);
+                        }
+                        attributes.clear();
+                        currentType = type;
+                        currentName = name;
+                    }
+                    attributes.put(attribute, value);
+                } catch (NoSuchElementException e) {
+                    throw new BuildException("Bad format on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
+                }
+            }
+        }
+        if (!attributes.isEmpty()) {
+            processBuilderDotPropertiesFile(currentType, currentName, dotPropertiesFile, propertyIndex, attributes);
+        }
     }
     
     protected void processBuilderDotPropertiesFile(String type, String name, File dotPropertiesFile, int propertyIndex, HashMap<String, String> attributes) {
@@ -1837,8 +1843,19 @@ public class Build {
             } else if (arg.equals("-mac")) {
                 cOptions.macroize = true;
             } else if (arg.startsWith("-plugins:")) {
-                File pluginsFile = new File(arg.substring("-plugins:".length()));
-                processBuilderDotPropertiesFile(pluginsFile);
+                File pluginsSpecified = new File(arg.substring("-plugins:".length()));
+                List<File> dotPropertiesFiles = new ArrayList<File>();
+                if (pluginsSpecified.isFile()) {
+                    dotPropertiesFiles.add(pluginsSpecified);
+                } else {
+                    File pluginsFile = new File(pluginsSpecified, "builder.properties");
+                    if (pluginsFile.isFile() && pluginsFile.exists()) {
+                        dotPropertiesFiles.add(pluginsFile);
+                    } else {
+                        addSiblingBuilderDotPropertiesFiles(pluginsSpecified, dotPropertiesFiles);
+                    }
+                }
+                processBuilderDotPropertiesFiles(dotPropertiesFiles);
             } else if (arg.startsWith("-cflags:")) {
                 cOptions.cflags += " " + arg.substring("-cflags:".length());
             } else if (arg.startsWith("-jpda:")) {
