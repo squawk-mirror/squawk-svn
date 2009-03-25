@@ -36,9 +36,9 @@ public class SelectImpl extends com.sun.squawk.platform.posix.natives.SelectImpl
 
     /*----------------------------- defines -----------------------------*/
 
-    public final static int FD_SETSIZE = 1024;
+    public final static int FD_SETSIZE = 2048;
     // we're having some problems with class initialization being required for thread initialization!
-    public final static int fd_set_SIZEOF = 128;//Native.getLibraryLoading().getGlobalVariableAddress("sysFD_SIZE", 4).getInt(0);
+    public final static int fd_set_SIZEOF = 256;//Native.getLibraryLoading().getGlobalVariableAddress("sysFD_SIZE", 4).getInt(0);
 
     private final static int[] intConstants = {FD_SETSIZE, fd_set_SIZEOF};
     public int initConstInt(int index) {

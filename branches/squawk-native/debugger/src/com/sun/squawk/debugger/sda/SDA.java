@@ -1111,7 +1111,7 @@ public final class SDA extends Debugger {
     }
 
     private static final String DEFAULT_APPCLASSPATH = "file://.";
-    private static final String DEFAULT_URL = "serversocket://:2800;acceptTimeout=2000";
+    private static final String DEFAULT_URL = "serversocket://:2800"; //;acceptTimeout=2000";
 
     /**
      * Prepends "file://" to an arg if it does not contain a ':' character.

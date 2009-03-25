@@ -70,12 +70,10 @@ public class Native {
         String intfNameStem = interfaceName.substring(pos + 1);
         // look for platform-specific name first:
         try {
-            String platformImplName2 = packageName + '.' + Platform.getPlatform().getPlatformNativePackageName() + ".natives." + intfNameStem + "Impl";
-            String platformImplName = Platform.getPlatform().getPlatformNativePackageName() + '.' + intfNameStem + "Impl";
-            if (!platformImplName.equals(platformImplName2)) {
-                System.out.println("platformImplName2: " + platformImplName2);
-                System.out.println("platformImplName: " + platformImplName);
+            if (packageName.endsWith(".natives")) {
+                packageName = packageName.substring(0, packageName.length() - ".natives".length());
             }
+            String platformImplName = packageName + '.' + Platform.getPlatform().platformName() + ".natives." + intfNameStem + "Impl";
             if (DEBUG) {
                 System.out.println("Looking for implementation class " + platformImplName);
             }

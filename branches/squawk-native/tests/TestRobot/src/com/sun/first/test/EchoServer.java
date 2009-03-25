@@ -78,7 +78,7 @@ public class EchoServer implements Runnable {
     }
 
     public static void runEchoServer(int port) {
-        String url = "serversocket://:" + port; // + ";acceptTimeout=2000";
+        String url = "serversocket://:" + port;
         try {
             StreamConnectionNotifier serverConn = (StreamConnectionNotifier) Connector.open(url);
             while (true) {

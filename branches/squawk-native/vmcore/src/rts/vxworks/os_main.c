@@ -64,6 +64,12 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
 int FRC_UserProgram_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
-    return os_main("-suite:robot", "-verbose", null, null, null, null, null, null, null, null);
+    boolean doDebug = false;
+    if (dodebug) {
+        return os_main("-suite:robot", "-verbose", "com.sun.squawk.debugger.sda.SDA", "-log:debug", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
+    } else {
+    	return os_main("-suite:robot", "-verbose", null, null, null, null, null, null, null, null);
+    }
+
 }
 

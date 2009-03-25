@@ -44,7 +44,7 @@ import com.sun.squawk.VM;
  * </ul>
  */
 public final class Function {
-    private final static boolean DEBUG = false;
+    private final static boolean DEBUG = true;
 
     private final Address funcAddr;
     private final String name; // for debugging/tracing

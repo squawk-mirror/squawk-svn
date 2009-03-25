@@ -104,8 +104,8 @@ public abstract class LibCImpl implements LibC {
         int result0 = readPtr.call3(arg0, var1, arg2);
         int result = (int)result0;
         var1.release();
-            PrivatePointer.tearDownArrayBufferState(oldState);
-            /*------------------- ENABLE GC: ---------------------------*/
+        PrivatePointer.tearDownArrayBufferState(oldState);
+        /*------------------- ENABLE GC: ---------------------------*/
         return result;
     }
     

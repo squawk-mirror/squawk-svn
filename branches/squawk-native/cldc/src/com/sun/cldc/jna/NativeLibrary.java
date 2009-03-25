@@ -70,7 +70,7 @@ public class NativeLibrary {
         } else if (platform.isMac()) {
             return "lib" + baseName + ".dylib";
         } else if (platform.isWindows()) {
-            return baseName + ".dll";
+            return baseName;// + ".dll";
         } else {
             return baseName;
         }

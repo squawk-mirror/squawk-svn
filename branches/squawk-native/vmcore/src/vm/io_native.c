@@ -227,9 +227,9 @@ int getEvent(int removeEventFlag) {
 void IO_initialize() {
     sysFD_SIZE = sizeof(fd_set);
     sysSIZEOFSTAT = sizeof(struct stat);
-printf("sysFD_SIZE: %d\n", sysFD_SIZE);
-printf("sysSIZEOFSTAT: %d\n", sysSIZEOFSTAT);
-
+//printf("FD_SETSIZE: %d\n", FD_SETSIZE);
+//printf("sysFD_SIZE: %d\n", sysFD_SIZE);
+//printf("sysSIZEOFSTAT: %d\n", sysSIZEOFSTAT);
 }
 
 /******* per-context data ************/

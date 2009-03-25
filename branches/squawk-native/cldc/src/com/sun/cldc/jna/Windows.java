@@ -87,5 +87,6 @@ public class Windows extends Platform {
 
     public Windows() {
         commonMappings.put("c", "msvcrt");
+        commonMappings.put("socket", "winsock");
     }
 }

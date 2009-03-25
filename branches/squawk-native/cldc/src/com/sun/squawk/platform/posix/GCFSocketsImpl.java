@@ -240,9 +240,10 @@ System.err.println("addr for bind " + local_sin);
         int result = -1;
         byte[] b = new byte[1];
         int n = readBuf(fd, b, 0, 1);
+        //System.err.println("readByte(" + fd + ") = " + n + ", data = " + b[0]);
  
         if (n == 1) {
-            result = b[0]; // do not sign-extend
+            result = b[0] & 0xFF; // do not sign-extend
 
             Assert.that(0 <= result && result <= 255, "no sign extension");
         } else if (n == 0) {
@@ -262,7 +263,7 @@ System.err.println("addr for bind " + local_sin);
      */
     public int writeBuf(int fd, byte buffer[], int off, int len) throws IOException {
         int result = 0;
-                byte[] buf = buffer;
+        byte[] buf = buffer;
         if (off != 0) {
             buf = new byte[len];
             System.arraycopy(buffer, off, buf, 0, len);
@@ -275,7 +276,7 @@ System.err.println("addr for bind " + local_sin);
             if (err_code == LibC.EWOULDBLOCK) {
                 VMThread.getSystemEvents().waitForWriteEvent(fd);
                 result = LibC.INSTANCE.write(fd, buf, len); // We rely on open0() for setting the socket to non-blocking
-            } 
+            }
             LibCUtil.errCheckNeg(result);
         }
 
@@ -287,6 +288,7 @@ System.err.println("addr for bind " + local_sin);
      */
     public int writeByte(int fd, int b) throws IOException {
         byte[] buf = new byte[1];
+        buf[0] = (byte)b;
         int result = writeBuf(fd, buf, 0, 1);
         return result;
     }
