@@ -25,7 +25,7 @@ public class StartApplication extends MIDlet {
 
 
     protected void startApp() throws MIDletStateChangeException {
-        System.out.println("Hello, world");
+        System.out.println("Hello, Dan");
 
         // Socket client test code:
 //        try {

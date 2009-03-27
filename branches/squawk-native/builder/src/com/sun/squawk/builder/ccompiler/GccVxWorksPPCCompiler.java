@@ -172,14 +172,17 @@ IDE_LIBRARIES = $(WIND_BASE)/target/lib/WPILib.a
 
         String ccName = "ccppc";
         
-        File[] newObjects = new File[objects.length];
+        File[] newObjects = new File[objects.length + 1];
 
         for(int f = 0; f < objects.length; f++) {
             newObjects[f] = objects[f];
         }
+        newObjects[objects.length] = new File("vmcore/src/rts/vxworks/ChipObjectWrapper.out");
+        //newObjects[objects.length + 1] = new File("vmcore/src/rts/vxworks/ctdt.o");
 
         output = out + platform.getExecutableExtension();
-        exec = "--gc-sections -o " + output + " " + Build.join(newObjects);
+        //exec = "--gc-sections -o " + output + " " + Build.join(newObjects);
+        exec = "-o " + output + " " + Build.join(newObjects);
         
         // TODO: /WindRiver/... is hardcoded..  fix this?
         //  env.exec(ccName + " -r -Wl,-X -T /WindRiver/vxworks-6.3/target/h/tool/gnu/ldscripts/link.OUT " + exec);

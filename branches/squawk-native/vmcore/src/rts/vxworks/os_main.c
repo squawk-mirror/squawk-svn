@@ -26,6 +26,8 @@
  * Platform dependent startup code directly included by squawk.c.spp
  */
 
+#include <taskLib.h>
+
 #define VXLOADARG(arg) if(arg != NULL) { argv[argc] = arg; argc++; printf("arg: %s\n", arg);} else (void)0
 
 /**
@@ -58,18 +60,100 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
     return Squawk_main_wrapper(argc, argv);
 }
 
+/*
+extern WatchdogDummy();
+extern VictorDummy();
+extern JaguarDummy();
+void loadDummies() {
+    WatchdogDummy();
+    VictorDummy();
+    JaguarDummy();
+}
+*/
+
+void robotTask() {
+    fprintf(stderr, "In robotTask\n");
+
+/*
+    loadDummies();
+*/
+
+    boolean doDebug = false;
+    if (doDebug) {
+        os_main("-suite:robot", "-verbose", "com.sun.squawk.debugger.sda.SDA", "-log:debug", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
+    } else {
+    	os_main("-suite:robot", "-verbose", null, null, null, null, null, null, null, null);
+    }
+}
+
 /**
  * Entry point used by FRC.
  */
 int FRC_UserProgram_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
-    boolean doDebug = false;
-    if (doDebug) {
-        return os_main("-suite:robot", "-verbose", "com.sun.squawk.debugger.sda.SDA", "-log:debug", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
-    } else {
-    	return os_main("-suite:robot", "-verbose", null, null, null, null, null, null, null, null);
-    }
 
+    // Start robot task
+    // This is done to ensure that the C++ robot task is spawned with the floating point
+    // context save parameter.
+    int m_taskID = taskSpawn("SquawkRobotTask",
+                                            100,
+                                            VX_FP_TASK,							// options
+                                            64000,						// stack size
+                                            robotTask,							// function to start
+                                            arg1, arg2, arg3, arg4,	// parameter 1 - pointer to this class
+                                            arg5, arg6, arg7, arg8, arg9, arg10);// additional unused parameters
+/*
+    bool ok = HandleError(m_taskID);
+    if (!ok) m_taskID = kInvalidTaskID;
+*/
+    return 0;
 }
+
+
+/*
+
+void RobotBase::robotTask(FUNCPTR factory, Task *task)
+{
+	RobotBase::setInstance((RobotBase*)factory());
+	RobotBase::getInstance().m_task = task;
+	RobotBase::getInstance().StartCompetition();
+}
+
+void RobotBase::startRobotTask(FUNCPTR factory)
+{
+	if (strlen(SVN_REV))
+	{
+		printf("WPILib was compiled from SVN revision %s\n", SVN_REV);
+	}
+	else
+	{
+		printf("WPILib was compiled from a location that is not source controlled.\n");
+	}
+
+	// Check for startup code already running
+	INT32 oldId = taskNameToId("FRC_RobotTask");
+	if (oldId != ERROR)
+	{
+		// Find the startup code module.
+		MODULE_ID startupModId = moduleFindByName("FRC_UserProgram.out");
+		if (startupModId != NULL)
+		{
+			// Remove the startup code.
+			unldByModuleId(startupModId, 0);
+			printf("!!!   Error: Default code was still running... Please try again.\n");
+			return;
+		}
+		printf("!!!   Error: Other robot code is still running... Unload it and then try again.\n");
+		return;
+	}
+
+	// Start robot task
+	// This is done to ensure that the C++ robot task is spawned with the floating point
+	// context save parameter.
+	Task *task = new Task("RobotTask", (FUNCPTR)RobotBase::robotTask, Task::kDefaultPriority, 64000);
+	task->Start((INT32)factory, (INT32)task);
+}
+
+*/
 

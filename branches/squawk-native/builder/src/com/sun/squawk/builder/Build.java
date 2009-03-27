@@ -29,6 +29,7 @@ import com.sun.squawk.builder.ccompiler.CCompiler.Options;
 import com.sun.squawk.builder.commands.*;
 import com.sun.squawk.builder.gen.Generator;
 import com.sun.cldc.jna.JNAGen;
+import com.sun.cldc.jna.JNAGenDirect;
 import com.sun.cldc.jna.SourceProcessor;
 import com.sun.squawk.builder.launcher.Launcher;
 import com.sun.squawk.builder.platform.Platform;
@@ -475,6 +476,214 @@ public class Build {
         }
     } /* JNAGenCommand */
 
+    public static class JNAGenDirectCommand extends Command {
+        private String cp = "";
+        private File baseDir;
+        private File dstDir;
+        /**
+         * If command created from a module's builder.properties, then set true...
+         */
+        private boolean custom;
+
+        JNAGenDirectCommand(Build env) {
+            super(env, "JNAGenDirect");
+        }
+
+        JNAGenDirectCommand(Build env, File baseDir, File dstDir, String cp) {
+            super(env, baseDir.getName() + "-gen");
+            this.custom = true;
+            this.cp = cp;
+            this.baseDir = baseDir;
+            if (dstDir == null) {
+                this.dstDir = new File(baseDir, "native");
+            } else {
+                this.dstDir = dstDir;
+            }
+        }
+
+        public String getDescription() {
+            return "Imports C code into Java";
+        }
+
+        public void usage(String errMsg) {
+            PrintStream out = System.err;
+
+            if (errMsg != null) {
+                out.println(errMsg);
+            }
+            out.println("Usage: JNAGenDirect [options] module ");
+            out.println("where module is directory containing a \"src\" directory, and options include:");
+            out.println();
+            out.println("    -cp:<classpath>       classes to compile against");
+            out.println("    -dst:<srcpath>        directory to store generated sources");
+        }
+
+//        /**
+//         * genJNAPhase2
+//         * Create final JNA impl source by compiling and running C code.
+//         *
+//         * @param includeDirs include directorys to compile against
+//         * @param sourceDir   the directory containing the C source code to compile and run
+//         * @param baseDir     the directory under which the "build" directory exists
+//         * @param dstDir      the directory to create the generated Java files (typically "native").
+//         * @return the preprocessor output directory
+//         */
+//        public File genJNAPhase2(
+//                File[] includeDirs,
+//                File sourceDir,
+//                File baseDir,
+//                File dstDir) {
+//            final File buildDir = mkdir(baseDir, "build");
+//
+//            System.out.println("    Compiling and running JNA C files...");
+//            FileSet fs = new FileSet(buildDir, Build.C_SOURCE_SELECTOR);
+//            Iterator iterator = fs.list().iterator();
+//            while (iterator.hasNext()) {
+//                File inputFile = (File) iterator.next();
+//                if (inputFile.length() != 0 && inputFile.getName().indexOf('$') < 0) { // only look at outer classes. Inner classes will get sucked up by them
+//                    File oFile = env.ccompiler.compile(includeDirs, inputFile, inputFile.getParentFile(), true);
+//                    File exeFile = env.ccompiler.link(new File[]{oFile}, inputFile.getParentFile() + "/a.out", false);
+//                    String outFileName = env.stripSuffix(inputFile.getName()) + ".java";
+//                    File generatedFile = fs.replaceBaseDir(new File(inputFile.getParentFile(), outFileName), dstDir);
+//
+//                    String cmd = exeFile + " " + generatedFile;
+//                    env.exec(cmd);
+//                }
+//            }
+//            System.out.println("    Generated JNA files in " + dstDir);
+//            return dstDir;
+//        }
+
+        /**
+         * Preprocess a given set of Java import file source files.
+         *
+         * @param   dstDir     the directory containing the generated Java src files (typically "native")
+         * @param   srcDirs    the set of directories that are searched recursively for the source files to be imported
+         * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
+         * @return the preprocessor output directory
+         */
+        public File processImports(
+                File dstDir,
+                File[] srcDirs,
+                boolean j2me) {
+            // Get the preprocessor output directory
+            SourceProcessor sp = new SourceProcessor();
+
+            for (int i = 0; i != srcDirs.length; ++i) {
+
+                File sourceDir = srcDirs[i];
+
+                // A selector that matches a source file whose preprocessed copy does not exist,
+                // is younger than the source file or has a last modification date
+                // earlier than the last modification date of the properties
+                FileSet.Selector outOfDate = new FileSet.DependSelector(new FileSet.SourceDestDirMapper(sourceDir, dstDir)) {
+
+                    public boolean isSelected(
+                            File file) {
+                        if (super.isSelected(file)) {
+                            return true;
+                        }
+                        File preprocessedFile = getMapper().map(file);
+                        long fileLastModified = preprocessedFile.lastModified();
+                        return (fileLastModified < env.propertiesLastModified);
+                    }
+                };
+
+                FileSet.Selector selector = new FileSet.AndSelector(JAVA_SOURCE_SELECTOR, outOfDate);
+                FileSet fs = new FileSet(sourceDir, selector);
+                sp.execute(fs, dstDir);
+            }
+            return dstDir;
+        }
+
+        public void run(String[] args) {
+            if (baseDir == null && args.length == 0) {
+                throw new CommandException(this, "module not specified");
+            }
+            String baseDirPath;
+
+//            if (!env.getBooleanProperty("AUTOGEN_JNA_NATIVES")) {
+//                System.out.println("    Skipping generation JNA files in " + baseDir);
+//                return;
+//            }
+
+            if (custom) {
+                 baseDirPath = baseDir.getPath();
+            } else {
+                int argi = 0;
+                while (args[argi].startsWith("-")) {
+                    if (args[argi].startsWith("-cp:")) {
+                        cp = args[argi].substring("-cp:".length());
+                    } else if (args[argi].startsWith("-dst:")) {
+                        String dst = args[argi].substring("-dst:".length());
+                        dstDir = new File(dst);
+                     } else {
+                        throw new CommandException(this, "malformed option " + args[argi]);
+                    }
+                    argi++;
+                }
+                baseDirPath = args[argi];
+                baseDir = new File(baseDirPath);
+                if (dstDir == null) {
+                    dstDir = new File(baseDir, "native");
+                }
+
+                Command cmd = env.getCommand(baseDir.getName());
+                if (cmd == null) {
+                    throw new CommandException(this, "no target found to build " + baseDirPath);
+                }
+                cmd.run(NO_ARGS);
+
+            }
+
+            File srcDir = new File(baseDir, "src");
+
+            System.out.println("    Generating JNA implementations from JNA interfaces in " + srcDir + "...");
+
+            processImports(dstDir, new File[]{srcDir}, true);
+
+            JNAGen gen = new JNAGen(env, baseDir, dstDir, cp);
+            gen.run(NO_ARGS);
+
+//            File[] includePaths = new File[includes.size()];
+//            for (int i = 0; i < includePaths.length; i++) {
+//                includePaths[i] = new File(includes.get(i));
+//            }
+//
+//            genJNAPhase2(includePaths, srcDir, baseDir, dstDir);
+        }
+    } /* JNAGenDirectCommand */
+
+        /**
+     * Creates and installs a Target.
+     *
+     * @param baseDir        the parent directory for primary source directory and the output directory(s). This will also be the name of the target.
+     * @param dstDir
+     * @param dependencies   the space separated names of the Java compilation targets that this target depends upon
+     * @param classpath
+     * @return the created and installed command
+     */
+    public Command addJNAGenDirectCommand(String baseDir, String dstDir, String dependencies, String classpath) {
+        File baseDirFile = new File(baseDir);
+        File dstDirFile = null;
+        if (dstDir != null) {
+            dstDirFile = new File(dstDir);
+        }
+
+        Command command = new JNAGenDirectCommand(this, baseDirFile, dstDirFile, classpath);
+
+        if (dependencies == null) {
+            dependencies = baseDirFile.getName(); // always depends on compiling src
+        } else {
+            dependencies = baseDirFile.getName() + " " + dependencies;
+        }
+        command.dependsOn(dependencies);
+
+        addCommand(command);
+        return command;
+    }
+
+
     /**
      * Creates and installs a Target.
      *
@@ -905,6 +1114,8 @@ public class Build {
             cmd = addLinkTarget(baseDir, attributes.get("parent"), attributes.get("dependsOn"), attributes.get("suitePath"));
         } else if (type.equals("JNAGen")) {
             cmd = addJNAGenCommand(baseDir, attributes.get("dstDir"), attributes.get("dependsOn"), attributes.get("classpath"), attributes.get("includes"));
+        } else if (type.equals("JNAGenDirect")) {
+            cmd = addJNAGenDirectCommand(baseDir, attributes.get("dstDir"), attributes.get("dependsOn"), attributes.get("classpath"));
         } else {
             throw new BuildException("Unsupported type " + type + " on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
         }
