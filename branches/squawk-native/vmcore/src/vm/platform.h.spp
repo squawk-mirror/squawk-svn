@@ -125,9 +125,14 @@
 #ifdef __GNUC__
 #define NOINLINE __attribute__ ((noinline))
 #define NORETURN __attribute__ ((noreturn))
-#else 
+#else
+#ifdef _MSC_VER
+#define NOINLINE __declspec(noinline)
+#define NORETURN __declspec(noreturn)
+#else
 #define NOINLINE
 #define NORETURN
+#endif
 #endif /* */
 
 /* It actualy never seems to pay off to inline this FP code.
