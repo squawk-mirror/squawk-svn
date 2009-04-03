@@ -39,14 +39,20 @@ import java.io.IOException;
  * POSIX implementation of GCFSockets that calls the BSD socket API.
  */
 public class GCFSocketsImpl implements GCFSockets {
+
+    public final static boolean DEBUG = true;
         
     /** Read errno, try to clean up fd, and create exception. */
     private static IOException newError(int fd, String msg)  {
-VM.print(msg);
-VM.print(": errno: ");
+        if (DEBUG) {
+            VM.print(msg);
+            VM.print(": errno: ");
+        }
         int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
-VM.print(err_code);
-VM.println();
+        if (DEBUG) {
+            VM.print(err_code);
+            VM.println();
+        }
         Socket.INSTANCE.shutdown(fd, 2);
         LibC.INSTANCE.close(fd);
         return new IOException(" errno: " + err_code + " on fd: " + fd + " during " + msg);
@@ -54,9 +60,9 @@ VM.println();
     
     private void set_blocking_flags(int fd, boolean is_blocking) throws IOException {
         LibC libc = LibC.INSTANCE;
-System.out.println("set_blocking_flags: calling fcntl F_GETFL: " +  LibC.F_GETFL);
+        if (DEBUG) { System.out.println("set_blocking_flags: calling fcntl F_GETFL"); }
         int flags = libc.fcntl(fd, LibC.F_GETFL, 0);
-System.out.println("fcntl returned: " +  flags);
+        if (DEBUG) { System.out.println("fcntl returned: " +  flags); }
 
         if (flags >= 0) {
             if (is_blocking == true) {
@@ -64,13 +70,13 @@ System.out.println("fcntl returned: " +  flags);
             } else {
                 flags |= LibC.O_NONBLOCK;
             }
-System.out.println("set_blocking_flags: calling fcntl F_SETFL: " +  LibC.F_SETFL + " flags: " + flags);
+            if (DEBUG) {  System.out.println("set_blocking_flags: calling fcntl F_SETFL flags: " + flags); }
             int res = libc.fcntl(fd, LibC.F_SETFL, flags);
             if (res != -1) {
                 return;
             }
         } else if (libc.errno() == LibC.EOPNOTSUPP) {
-System.out.println("fcntl not working: " + " trying ioctl");
+            if (DEBUG) { System.out.println("fcntl not working: " + " trying ioctl"); }
             IntByReference setting = new IntByReference(is_blocking ? 1 : 0);
             int res = Ioctl.INSTANCE.ioctl(fd, Ioctl.INSTANCE.FIONBIO, setting);
             setting.free();
@@ -89,7 +95,7 @@ System.out.println("fcntl not working: " + " trying ioctl");
         int fd = -1;
 
         fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
-System.err.println("Socket.socket fd: " + fd);
+        if (DEBUG) { System.err.println("Socket.socket() = " + fd); }
         if (fd < 0) {
             throw newError(fd, "socket create");
         }
@@ -108,9 +114,10 @@ System.err.println("Socket.socket fd: " + fd);
         destination_sin.sin_port = Inet.htons((short) port);
         destination_sin.sin_addr = phostent.h_addr_list[0];
 
-System.err.println("Socket.sockaddr_in: " + destination_sin);
-System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
-
+        if (DEBUG) {
+            System.err.println("Socket.sockaddr_in: " + destination_sin);
+            System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
+        }
         if (Socket.INSTANCE.connect(fd, destination_sin, destination_sin.size()) < 0) {
             int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
             if (err_code == LibC.EINPROGRESS || err_code == LibC.EWOULDBLOCK) {
@@ -155,7 +162,7 @@ System.err.println("connect: hostname: " + hostname + " port: " + port + " mode:
         int fd = -1;
 
         fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
-System.err.println("openServer on port: " + port + " fd: " + fd);
+        if (DEBUG) { System.err.println("Socket.socket() = " + fd); }
         if (fd < 0) {
             throw newError(fd, "socket create");
         }
@@ -168,7 +175,7 @@ System.err.println("openServer on port: " + port + " fd: " + fd);
         local_sin.sin_family = Socket.AF_INET;
         local_sin.sin_port = Inet.htons((short) port);
         local_sin.sin_addr = Socket.INADDR_ANY;
-System.err.println("addr for bind " + local_sin);
+        if (DEBUG) { System.err.println("Socket.bind(" + fd + ", " + local_sin + ")"); }
 
         if (Socket.INSTANCE.bind(fd, local_sin, local_sin.size()) < 0) {
             throw newError(fd, "bind");
@@ -195,6 +202,8 @@ System.err.println("addr for bind " + local_sin);
 
         Socket.sockaddr_in remote_sin = new Socket.sockaddr_in();
         IntByReference address_len = new IntByReference(4);
+        if (DEBUG) { System.err.println("Socket.accept(" + fd + ", " + remote_sin + ")..."); }
+
         int newSocket = Socket.INSTANCE.accept(fd, remote_sin, address_len);
         if (newSocket < 0) {
             throw newError(fd, "accept");
@@ -203,6 +212,7 @@ System.err.println("addr for bind " + local_sin);
         set_blocking_flags(newSocket, /*is_blocking*/ false);
         // we could read info about client from remote_sin, but don't need to.
         
+        if (DEBUG) { System.err.println("    Socket.accept(...) = " + newSocket); }
         return newSocket;     
     }
     
@@ -293,14 +303,16 @@ System.err.println("addr for bind " + local_sin);
         return result;
     }
 
+    private Pointer availableBuf = new Pointer(4);
+    
     /**
      * @inheritDoc
      */
     public int available(int fd) throws IOException {
-        Pointer buf = new Pointer(4);
-        int err = Ioctl.INSTANCE.ioctl(fd, Ioctl.FIONREAD, buf.address().toUWord().toPrimitive());
-        int result = buf.getInt(0);
-        buf.free();
+        //Pointer buf = new Pointer(4);
+        int err = Ioctl.INSTANCE.ioctl(fd, Ioctl.FIONREAD, availableBuf.address().toUWord().toPrimitive());
+        int result = availableBuf.getInt(0);
+        //buf.free();
         LibCUtil.errCheckNeg(err);
 //        System.err.println("available0(" + fd + ") = " + result);
         return result; 
@@ -315,6 +327,7 @@ System.err.println("addr for bind " + local_sin);
         // make this a async native method.
         Socket.INSTANCE.shutdown(fd, 2);
         LibC.INSTANCE.close(fd);
+        if (DEBUG) { System.out.println("close(" + fd + ")"); }
     }
     
     /**
@@ -327,6 +340,7 @@ System.err.println("addr for bind " + local_sin);
      */
     public void setSockOpt(int socket, int option_name, int option_value) throws IOException {
         IntByReference value = new IntByReference(option_value);
+        if (DEBUG) { System.out.println("setSockOpt(" + socket + ", " + option_name + ", " + option_value + ")"); }
         int err = Socket.INSTANCE.setsockopt(socket, Socket.SOL_SOCKET, option_name, value, 4);
         value.free();
         LibCUtil.errCheckNeg(err);
@@ -342,6 +356,7 @@ System.err.println("addr for bind " + local_sin);
     public int getSockOpt(int socket, int option_name) throws IOException {
         IntByReference value = new IntByReference(0);
         IntByReference opt_len = new IntByReference(0);
+        if (DEBUG) { System.out.println("getsockopt(" + socket + ", " + option_name + ")"); }
 
         int err = Socket.INSTANCE.getsockopt(socket, Socket.SOL_SOCKET, option_name, value, opt_len);
         int result = value.getValue();

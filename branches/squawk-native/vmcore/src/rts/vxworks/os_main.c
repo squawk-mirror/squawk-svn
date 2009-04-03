@@ -60,26 +60,12 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
     return Squawk_main_wrapper(argc, argv);
 }
 
-/*
-extern WatchdogDummy();
-extern VictorDummy();
-extern JaguarDummy();
-void loadDummies() {
-    WatchdogDummy();
-    VictorDummy();
-    JaguarDummy();
-}
-*/
-
 void robotTask() {
     fprintf(stderr, "In robotTask\n");
 
-/*
-    loadDummies();
-*/
-
-    boolean doDebug = false;
+    boolean doDebug = true;
     if (doDebug) {
+        fprintf(stderr, "Starting Debug Agent\n");
         os_main("-suite:robot", "-verbose", "com.sun.squawk.debugger.sda.SDA", "-log:debug", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
     } else {
     	os_main("-suite:robot", "-verbose", null, null, null, null, null, null, null, null);

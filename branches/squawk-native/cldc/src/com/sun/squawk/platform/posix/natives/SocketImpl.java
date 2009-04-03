@@ -173,7 +173,6 @@ public abstract class SocketImpl implements Socket {
         protected sockaddr_inImpl() {
             sockaddr_in o = (sockaddr_in)this;
 			o.sin_len = size(); // default....
-System.err.println("size of sockaddr_in: " + o.sin_len);
 		}
 
         private final static int[] layout = initLayout(sockaddr_inImpl.class, 4);

@@ -32,6 +32,7 @@ package com.sun.squawk.platform.windows.natives;
 
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
+import com.sun.squawk.Address;
 
 public class LibCImpl implements LibC {
 
@@ -212,12 +213,11 @@ public class LibCImpl implements LibC {
     public int write(int arg0, byte[] arg1, int arg2) {
         boolean oldState = PrivatePointer.setUpArrayBufferState();
         /*------------------- DISABLE GC: ---------------------------*/
-        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
-        int result0 = writePtr.call3(arg0, var1, arg2);
+        Address var1 = PrivatePointer.createArrayBuffer(arg1);
+        int result0 = writePtr.call3(arg0, var1.toUWord().toPrimitive(), arg2);
         int result = (int)result0;
-        var1.release();
-            PrivatePointer.tearDownArrayBufferState(oldState);
-            /*------------------- ENABLE GC: ---------------------------*/
+        PrivatePointer.tearDownArrayBufferState(oldState);
+        /*------------------- ENABLE GC: ---------------------------*/
         return result;
     }
     
@@ -234,12 +234,11 @@ public class LibCImpl implements LibC {
     public int read(int arg0, byte[] arg1, int arg2) {
         boolean oldState = PrivatePointer.setUpArrayBufferState();
         /*------------------- DISABLE GC: ---------------------------*/
-        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
-        int result0 = readPtr.call3(arg0, var1, arg2);
+        Address var1 = PrivatePointer.createArrayBuffer(arg1);
+        int result0 = readPtr.call3(arg0, var1.toUWord().toPrimitive(), arg2);
         int result = (int)result0;
-        var1.release();
-            PrivatePointer.tearDownArrayBufferState(oldState);
-            /*------------------- ENABLE GC: ---------------------------*/
+        PrivatePointer.tearDownArrayBufferState(oldState);
+        /*------------------- ENABLE GC: ---------------------------*/
         return result;
     }
     

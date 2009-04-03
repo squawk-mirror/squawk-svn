@@ -1234,6 +1234,8 @@ VM.println();
         Assert.always(state == NEW);
         stack = newStack(stackSize, this, true);
         if (stack == null) {
+VM.println("creating stack:");
+
             throw VM.getOutOfMemoryError();
         }
 
@@ -1495,7 +1497,7 @@ VM.println();
                 apiThread.run();
             } catch (OutOfMemoryError e) {
                 uncaughtException = true;
-                VM.print("Uncaught out of memory error on thread  - aborting isolate");
+                VM.print("Uncaught out of memory error on thread  - aborting isolate ");
                 VM.printThread(this);
                 VM.println();
                 isolate.abort(999);
@@ -1774,6 +1776,12 @@ VM.println();
     private static void reschedule() throws NotInlinedPragma {
         fixupPendingMonitors();  // Convert any pending monitors to real ones
         threadSwitchCount++;
+/*if[DEBUG_CODE_ENABLED]*/
+        if (!GC.isGCEnabled()) {
+            throw new IllegalStateException("reschedule while GC disabled!");
+        }
+/*end[DEBUG_CODE_ENABLED]*/
+
         rescheduleNext();        // Select the next thread
         VM.threadSwitch();       // and switch
         
@@ -2090,6 +2098,9 @@ VM.println();
              * Thread already owns the monitor, increment depth.
              */
             if (monitor.depth == MAXDEPTH) {
+/*if[DEBUG_CODE_ENABLED]*/
+                VM.println("monitorEnter:");
+/*end[DEBUG_CODE_ENABLED]*/
                 throw VM.getOutOfMemoryError();
             }
             monitor.depth++;

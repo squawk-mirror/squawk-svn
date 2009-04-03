@@ -424,6 +424,7 @@ public class GC implements GlobalStaticFields {
         if (VM.isHosted()) {
         	nvmEnd = next;
         } else if (next.hi(nvmEnd)) {
+VM.println("allocateNvmBuffer");
             throw VM.getOutOfMemoryError();
         }
         nvmAllocationPointer = next;
@@ -860,8 +861,24 @@ public class GC implements GlobalStaticFields {
                     VM.collectGarbage(true);
                     oop = allocatePrim(size, klass, arrayLength);
                 }
+            } else {
+                VM.println("ALLOCATION WHILE GC is DISABLED!");
             }
             if (oop == null) {
+                if (GC.GC_TRACING_SUPPORTED) {
+                    VM.print("allocate size: ");
+                    VM.print(size);
+                    VM.print(", klass: ");
+                    VM.print(((Klass) klass).getInternalName());
+                    VM.print(", arrayLength: ");
+                    VM.print(arrayLength);
+                    VM.println();
+                    VM.print("bytes free: ");
+                    VM.printOffset(allocEnd.diff(allocTop));
+                    VM.print(" in alloc space, ");
+                    VM.printOffset(heapEnd.diff(allocTop));
+                    VM.println(" in total");
+                }
                 throw VM.getOutOfMemoryError();
             }
         }
@@ -1005,6 +1022,7 @@ public class GC implements GlobalStaticFields {
         // an out of memory error is the cleanest way to handle this situtation
         // in the rare case that there was enough memory to allocate the array
         if (length > 0x3FFFFFF) {
+VM.println("encodeLengthWord");
             throw VM.getOutOfMemoryError();
         }
         return UWord.fromPrimitive((length << HDR.headerTagBits) | HDR.arrayHeaderTag);
@@ -1143,6 +1161,7 @@ public class GC implements GlobalStaticFields {
         */
         int bodySize = length * dataSize;
         if (bodySize < 0) {
+            VM.println("newArray neg size");
             throw VM.getOutOfMemoryError();
         }
 

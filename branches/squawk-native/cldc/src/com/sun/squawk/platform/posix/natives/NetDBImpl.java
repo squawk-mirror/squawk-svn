@@ -39,8 +39,6 @@ public abstract class NetDBImpl implements NetDB {
     public final static int TRY_AGAIN = 2;
     public final static int NO_RECOVERY = 3;
     public final static int NO_DATA = 4;
-
-   // protected final static int hostent_SIZE = NetDB.INSTANCE.initConstInt(0);
     
     /*----------------------------- variables -----------------------------*/
 
@@ -69,12 +67,12 @@ public abstract class NetDBImpl implements NetDB {
 //    }
 //
     public static abstract class hostentImpl extends Structure {
-
+        protected final static int hostent_SIZE = NetDB.INSTANCE.initConstInt(0);
     
         protected hostentImpl() {}
 
         public int size() {
-            return NetDB.INSTANCE.initConstInt(0);
+            return hostent_SIZE;
         }
 
     }

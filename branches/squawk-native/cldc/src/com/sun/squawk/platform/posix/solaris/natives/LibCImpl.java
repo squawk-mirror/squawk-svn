@@ -159,9 +159,6 @@ public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
     /*public final static int EOPNOTSUPP =*/ 122
         };
 
-        /** @TODO: These defines are wrong for Solaris!!! */
-
-    
     private static boolean[] intConstantCheck;
 
     /**
@@ -187,118 +184,10 @@ public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
 
 
     /*----------------------------- methods -----------------------------*/
-//    private final Function openPtr;
-//
-//    public int open(String arg0, int arg1, int arg2) {
-//        Pointer var0 = Pointer.createStringBuffer(arg0);
-//        int result0 = openPtr.call3(var0, arg1, arg2);
-//        int result = (int)result0;
-//        var0.free();
-//        return result;
-//    }
-//
-//    private final Function statPtr;
-//
-//    public int stat(String arg0, stat arg1) {
-//        Pointer var0 = Pointer.createStringBuffer(arg0);
-//        arg1.allocateMemory();
-//        arg1.write();
-//        Pointer var1 = arg1.getPointer();
-//        int result0 = statPtr.call2(var0, var1);
-//        int result = (int)result0;
-//        var0.free();
-//        arg1.read();
-//        arg1.freeMemory();
-//        return result;
-//    }
-//
-//    private final Function fcntlPtr;
-//
-//    public int fcntl(int arg0, int arg1, int arg2) {
-//        int result0 = fcntlPtr.call3(arg0, arg1, arg2);
-//        int result = (int)result0;
-//        return result;
-//    }
-//
-//    private final Function writePtr;
-//
-//    public int write(int arg0, byte[] arg1, int arg2) {
-//        boolean oldState = PrivatePointer.setUpArrayBufferState();
-//        /*------------------- DISABLE GC: ---------------------------*/
-//        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
-//        int result0 = writePtr.call3(arg0, var1, arg2);
-//        int result = (int)result0;
-//        var1.release();
-//            PrivatePointer.tearDownArrayBufferState(oldState);
-//            /*------------------- ENABLE GC: ---------------------------*/
-//        return result;
-//    }
-//
-//    private final Function closePtr;
-//
-//    public int close(int arg0) {
-//        int result0 = closePtr.call1(arg0);
-//        int result = (int)result0;
-//        return result;
-//    }
-//
-//    private final Function readPtr;
-//
-//    public int read(int arg0, byte[] arg1, int arg2) {
-//        boolean oldState = PrivatePointer.setUpArrayBufferState();
-//        /*------------------- DISABLE GC: ---------------------------*/
-//        Pointer var1 = PrivatePointer.createArrayBuffer(arg1);
-//        int result0 = readPtr.call3(arg0, var1, arg2);
-//        int result = (int)result0;
-//        var1.release();
-//            PrivatePointer.tearDownArrayBufferState(oldState);
-//            /*------------------- ENABLE GC: ---------------------------*/
-//        return result;
-//    }
-//
-//    private final Function fstatPtr;
-//
-//    public int fstat(int arg0, stat arg1) {
-//        arg1.allocateMemory();
-//        arg1.write();
-//        Pointer var1 = arg1.getPointer();
-//        int result0 = fstatPtr.call2(arg0, var1);
-//        int result = (int)result0;
-//        arg1.read();
-//        arg1.freeMemory();
-//        return result;
-//    }
-//
-//    private final Function fsyncPtr;
-//
-//    public int fsync(int arg0) {
-//        int result0 = fsyncPtr.call1(arg0);
-//        int result = (int)result0;
-//        return result;
-//    }
-//
-//    private final Function lseekPtr;
-//
-//    public int lseek(int arg0, long arg1, int arg2) {
-//        int var1 = (int)(arg1 >>> 32);
-//        int var2 = (int)(arg1);
-//        int result0 = lseekPtr.call4(arg0, var1, var2, arg2);
-//        int result = (int)result0;
-//        return result;
-//    }
     
     public LibCImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
         errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("errno", 4);
-//        openPtr = jnaNativeLibrary.getFunction("open");
-//        statPtr = jnaNativeLibrary.getFunction("stat");
-//        fcntlPtr = jnaNativeLibrary.getFunction("fcntl");
-//        writePtr = jnaNativeLibrary.getFunction("write");
-//        closePtr = jnaNativeLibrary.getFunction("close");
-//        readPtr = jnaNativeLibrary.getFunction("read");
-//        fstatPtr = jnaNativeLibrary.getFunction("fstat");
-//        fsyncPtr = jnaNativeLibrary.getFunction("fsync");
-//        lseekPtr = jnaNativeLibrary.getFunction("lseek");
     }
 
 }
