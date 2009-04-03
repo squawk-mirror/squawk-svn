@@ -66,9 +66,9 @@ void robotTask() {
     boolean doDebug = true;
     if (doDebug) {
         fprintf(stderr, "Starting Debug Agent\n");
-        os_main("-suite:robot", "-verbose", "com.sun.squawk.debugger.sda.SDA", "-log:debug", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
+        os_main("-suite:robot", "-verbose", "-Xtgc:1", "com.sun.squawk.debugger.sda.SDA", "-log:debug", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null);
     } else {
-    	os_main("-suite:robot", "-verbose", null, null, null, null, null, null, null, null);
+    	os_main("-suite:robot", "-verbose", "-Xtgc:1", null, null, null, null, null, null, null);
     }
 }
 

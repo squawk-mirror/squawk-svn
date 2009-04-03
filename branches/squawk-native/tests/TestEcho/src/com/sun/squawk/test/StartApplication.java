@@ -33,7 +33,7 @@ public class StartApplication extends MIDlet {
         try {
         System.out.println("Hello, EchoTest");
 
-         new Thread(new EchoServer(8300)).start();
+        new Thread(new EchoServer(8300)).start();
         new Thread(new EchoServer(8301)).start();
         
         EchoServerTest.runEchoServerTest(8300);

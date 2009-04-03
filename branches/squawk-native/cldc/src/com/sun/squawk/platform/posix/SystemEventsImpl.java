@@ -146,7 +146,9 @@ public class SystemEventsImpl extends SystemEvents {
     private void printFDSet(Pointer fd_set) {
         for (int i = 0; i < maxFD + 1; i++) {
             if (Select.INSTANCE.FD_ISSET(i, fd_set)) {
-                VM.println("    fd: " + i);
+                VM.print("    fd: ");
+                VM.print(i);
+                VM.println();
             }
         }
     }
@@ -176,6 +178,15 @@ public class SystemEventsImpl extends SystemEvents {
             timeoutTime.write();
             theTimout = timeoutTime.getPointer();
         }
+//
+//        if (readSet.size() != 0) {
+//            VM.println("Read FDs set:");
+//            printFDSet(tempReadSet);
+//        }
+//        if (writeSet.size() != 0) {
+//            VM.println("Write FDs set:");
+//            printFDSet(tempWriteSet);
+//        }
 
         int num = Select.INSTANCE.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
         if (num < 0) {
@@ -183,30 +194,35 @@ public class SystemEventsImpl extends SystemEvents {
         }
 
         if (num > 0) {
-            if (readSet.size() != 0) {
+            int readSize = readSet.size();
+            if (readSize != 0) {
                 for (int i = 0; i < readSet.size(); i++) {
                     int fd = readSet.getElements()[i];
                     if (Select.INSTANCE.FD_ISSET(fd, tempReadSet)) {
                         readSet.remove(fd);
                         VMThread.signalOSEvent(fd);
                         num--;
+                        i--; // recheck location i
                     }
                 }
             }
-            if (writeSet.size() != 0) {
+
+            int writeSize = writeSet.size();
+            if (writeSize != 0) {
                 for (int i = 0; i < writeSet.size(); i++) {
                     int fd = writeSet.getElements()[i];
                     if (Select.INSTANCE.FD_ISSET(fd, tempWriteSet)) {
                         writeSet.remove(fd);
                         VMThread.signalOSEvent(fd);
                         num--;
+                        i--; // recheck location i
                     }
                 }
             }
             if (num != 0) {
-                System.err.println("Missed handling a select event?\n Read FDs set:");
+                System.err.println("Missed handling a select event?\n num: " + num + "\nreadSize: " + readSize+ ", Read FDs set:");
                 printFDSet(tempReadSet);
-                System.err.println("Write FDs set:");
+                System.err.println("writeSize: " + writeSize + ", Write FDs set:");
                 printFDSet(tempWriteSet);
             }
             updateSets();
