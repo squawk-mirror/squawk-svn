@@ -81,7 +81,7 @@ public class PrivatePointer  {
      * @throws OutOfMemoryError if the underlying memory cannot be allocated
      * @throws IllegalArgumentException if array is not really an array
      */
-    public static Pointer createArrayBuffer(Object array) throws OutOfMemoryError {
+    public static Address createArrayBuffer(Object array) throws OutOfMemoryError {
         Assert.always(GC.setGCEnabled(false) == false);
         Klass klass = GC.getKlass(array);
         if (!klass.isArray()) {
@@ -89,7 +89,7 @@ public class PrivatePointer  {
         }
         int length = GC.getArrayLength(array);
         int elemsize = klass.getComponentType().getDataSize();
-        return new Pointer(Address.fromObject(array), length * elemsize);
+        return Address.fromObject(array);
     }
 
     /**
@@ -105,7 +105,7 @@ public class PrivatePointer  {
      * @throws OutOfMemoryError if the underlying memory cannot be allocated
      * @throws IllegalArgumentException if array is not really an array
      */
-    public static Pointer createArrayBuffer(Object array, int offset, int number) throws OutOfMemoryError {
+    public static Address createArrayBuffer(Object array, int offset, int number) throws OutOfMemoryError {
         Assert.always(GC.setGCEnabled(false) == false);
         Klass klass = GC.getKlass(array);
         if (!klass.isArray()) {
@@ -115,7 +115,7 @@ public class PrivatePointer  {
         int length = GC.getArrayLength(array);
         int elemsize = klass.getComponentType().getDataSize();
         Pointer.checkMultiBounds1(length + elemsize, offset, number, elemsize);
-        return new Pointer(Address.fromObject(array).add(offset * elemsize), number * elemsize);
+        return Address.fromObject(array).add(offset * elemsize);
     }
 
 
