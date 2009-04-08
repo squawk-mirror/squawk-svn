@@ -63,7 +63,7 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
 void robotTask() {
     fprintf(stderr, "In robotTask\n");
 
-    boolean doDebug = true;
+    boolean doDebug = false;
     if (doDebug) {
         fprintf(stderr, "Starting Debug Agent\n");
         os_main("-suite:robot", "-verbose", "-Xtgc:1", "com.sun.squawk.debugger.sda.SDA", "-log:debug", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null);

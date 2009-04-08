@@ -710,6 +710,7 @@ static void printCacheStats() {
 #endif /* PROFILING */
     fprintf(stderr, "----------------------------------");
 
+#ifdef INTERPRETER_STATS
     if (count > 0) {
         fprintf(stderr, "\nTotals - ");
         printCacheStat(" Class",   cachedClassAccesses,           count);
@@ -725,9 +726,12 @@ static void printCacheStats() {
     printCacheStat(" Exit",    com_sun_squawk_GC_monitorReleaseCount, com_sun_squawk_GC_monitorExitCount);
     printCacheStat(" New",     newHits,                          newCount);
     fprintf(stderr, "\n");
-
     cachedClassHits = cachedClassAccesses = 0;
     pendingMonitorHits = pendingMonitorAccesses = 0;
+#else /* INTERPRETER_STATS */
+    fprintf(stderr, "\n");
+#endif /* INTERPRETER_STATS */
+
     com_sun_squawk_GC_monitorExitCount = com_sun_squawk_GC_monitorReleaseCount = 0;
     newCount = newHits = 0;
 

@@ -62,6 +62,14 @@
          *                      Class state cache managemant                     *
         \*-----------------------------------------------------------------------*/
 
+#ifdef INTERPRETER_STATS
+#define updateCachedClassAccesses() cachedClassAccesses++
+#define updateCachedClassHits() cachedClassHits++
+#else
+#define updateCachedClassAccesses()
+#define updateCachedClassHits()
+#endif /* INTERPRETER_STATS */
+
         /**
          * Add a cached class state association.
          *
@@ -88,10 +96,10 @@
          */
         Address getClassState(Address klass) {
             int i;
-            cachedClassAccesses++;
+            updateCachedClassAccesses();
             for (i = 0 ; i < CLASS_CACHE_SIZE ; i++) {
                 if (cachedClass[i] == klass) {
-                    cachedClassHits++;
+                    updateCachedClassHits();
                     return cachedClassState[i];
                 }
             }
@@ -5647,6 +5655,14 @@ if (l != 0 && r > (java_lang_Long_MAX_VALUE/l)) {
             }
         }
 
+#ifdef INTERPRETER_STATS
+#define updatePendingMonitorAccesses() pendingMonitorAccesses++
+#define updatePendingMonitorHits() pendingMonitorHits++
+#else
+#define updatePendingMonitorAccesses()
+#define updatePendingMonitorHits()
+#endif /* INTERPRETER_STATS */
+
         /**
          * Execute a monitor exit.
          *
@@ -5660,7 +5676,7 @@ if (l != 0 && r > (java_lang_Long_MAX_VALUE/l)) {
 
             nullCheck(obj);
             assn = getClassOrAssociation(obj);
-            pendingMonitorAccesses++;
+            updatePendingMonitorAccesses();
             if (unlikely(MONITOR_CACHE_SIZE == 0 || associationToKlass(assn) != assn || pendingMonitorStackPointer == 0 ||
 						 !(hi(obj, com_sun_squawk_GC_ramStart) && loeq(obj, com_sun_squawk_GC_ramEnd)))) {
                 pushAddress(obj);
@@ -5669,7 +5685,7 @@ if (l != 0 && r > (java_lang_Long_MAX_VALUE/l)) {
                 Address obj2 = pendingMonitors[--pendingMonitorStackPointer];
                 assume(obj == obj2);
                 pendingMonitors[pendingMonitorStackPointer] = null;
-                pendingMonitorHits++;
+                updatePendingMonitorHits();
             }
         }
 

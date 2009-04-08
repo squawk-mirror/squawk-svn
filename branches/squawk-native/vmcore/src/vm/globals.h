@@ -104,13 +104,17 @@ typedef struct globalsStruct {
 
     Address     _cachedClassState[CLASS_CACHE_SIZE > 0 ? CLASS_CACHE_SIZE : 1];
     Address     _cachedClass     [CLASS_CACHE_SIZE > 0 ? CLASS_CACHE_SIZE : 1];
+#ifdef INTERPRETER_STATS
     int         _cachedClassAccesses;
     int         _cachedClassHits;
+#endif /* INTERPRETER_STATS */
 
     Address    *_pendingMonitors;
     int         _pendingMonitorStackPointer;
+#ifdef INTERPRETER_STATS
     int         _pendingMonitorAccesses;
     int         _pendingMonitorHits;
+#endif /* INTERPRETER_STATS */
 
 } Globals;
 
@@ -211,13 +215,17 @@ boolean     notrap;
 
 #define cachedClassState                    defineGlobal(cachedClassState)
 #define cachedClass                         defineGlobal(cachedClass)
+#ifdef INTERPRETER_STATS
 #define cachedClassAccesses                 defineGlobal(cachedClassAccesses)
 #define cachedClassHits                     defineGlobal(cachedClassHits)
+#endif /* INTERPRETER_STATS */
 
 #define pendingMonitors                     defineGlobal(pendingMonitors)
 #define pendingMonitorStackPointer          defineGlobal(pendingMonitorStackPointer)
+#ifdef INTERPRETER_STATS
 #define pendingMonitorAccesses              defineGlobal(pendingMonitorAccesses)
 #define pendingMonitorHits                  defineGlobal(pendingMonitorHits)
+#endif /* INTERPRETER_STATS */
 
 #define streams                             defineGlobal(streams)
 #define currentStream                       defineGlobal(currentStream)
