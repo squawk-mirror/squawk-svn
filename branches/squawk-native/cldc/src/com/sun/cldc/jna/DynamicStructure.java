@@ -82,7 +82,8 @@ package com.sun.cldc.jna;
  * }
  */
 public abstract class DynamicStructure extends Structure {
-    
+    public final static boolean DEBUG = false;
+
     /** The first element of the layout structure in Java is the size of the C structure in bytes */
     public final static int STRUCTURE_SIZE_INDEX = 0;
     
@@ -101,13 +102,13 @@ public abstract class DynamicStructure extends Structure {
         if (len - 2 < numFields) {
             throw new IllegalStateException();
         }
-System.out.println("Loading Structure defn for " + name);
+        if (DEBUG) {    System.out.println("Loading Structure defn for " + name); }
         int[] result = new int[numFields + 1];
-System.out.println("    native Layout fields: " + len + ", requested: " + (numFields + 2));
+        if (DEBUG) {    System.out.println("    native Layout fields: " + len + ", requested: " + (numFields + 2)); }
 
         for (int i = 1; i < numFields + 2; i++) {
             result[i-1] = p.getInt(i * 4);
-System.out.println("    layoutdata: " +  result[i-1]);
+        if (DEBUG) {    System.out.println("    layoutdata: " +  result[i-1]); }
         }
 
         return result;

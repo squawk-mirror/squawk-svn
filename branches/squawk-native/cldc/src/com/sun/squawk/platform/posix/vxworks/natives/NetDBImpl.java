@@ -62,7 +62,7 @@ public class NetDBImpl extends com.sun.squawk.platform.posix.natives.NetDBImpl {
     public hostent gethostbyname(String arg0) {
         Pointer var0 = Pointer.createStringBuffer(arg0);
         int result0 = gethostbynamePtr.call1(var0);
-System.err.println("hostGetByName returned: " + result0);
+//System.err.println(gethostbynamePtr + " returned: " + result0);
         hostent result = (hostent)Function.returnStruct(hostent.class, result0);
         var0.free();
         return result;
@@ -71,7 +71,7 @@ System.err.println("hostGetByName returned: " + result0);
     public NetDBImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
 //        h_errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("h_errno", 4);
-        gethostbynamePtr = jnaNativeLibrary.getFunction("resolvGetHostByName");
+        gethostbynamePtr = jnaNativeLibrary.getFunction("gethostbyname");
     }
     
     

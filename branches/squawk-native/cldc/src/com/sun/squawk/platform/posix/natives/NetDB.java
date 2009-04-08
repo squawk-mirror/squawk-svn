@@ -90,23 +90,23 @@ public interface NetDB extends Library {
         public int[] h_addr_list;      /* list of addresses from name server */
         
         public void read() {
-System.err.println("In hostent.read()");
+//System.err.println("In hostent.read()");
             final int MAX_ADDRS = 16;
             Pointer p = getPointer();
-            System.out.println("in read(). Buffer: " + p);
+//System.out.println("in read(). Buffer: " + p);
 
             h_name = p.getPointer(0, 1024).getString(0);
-            System.out.println("    name: " + h_name);
+//System.out.println("    name: " + h_name);
             h_addrtype = p.getInt(8);
-System.out.println("    h_addrtype: " + h_addrtype);
+//System.out.println("    h_addrtype: " + h_addrtype);
 
             h_length = p.getInt(12);
-System.out.println("    h_length: " + h_length);
+//System.out.println("    h_length: " + h_length);
             if (h_length != 4) {
                 System.err.println("WARNING: Unexpected h_length value");
             }
             Pointer adrlist = p.getPointer(16, MAX_ADDRS * 4);
-            System.out.println("    adrlist: " + adrlist);
+//            System.out.println("    adrlist: " + adrlist);
             
             Pointer[] addrPtrs = new Pointer[MAX_ADDRS];
 
@@ -119,12 +119,12 @@ System.out.println("    h_length: " + h_length);
                 addrPtrs[i] = addrPtr;
                 count++;
             }
-            System.out.println("    adrlist count: " + count);
+//            System.out.println("    adrlist count: " + count);
 
             h_addr_list = new int[count];
             for (int i = 0; i < count; i++) {
                 int addr = addrPtrs[i].getInt(0);
-                System.err.println("    addr  " + addr);
+//                System.err.println("    addr  " + addr);
                 h_addr_list[i] = addr;
             }
         }

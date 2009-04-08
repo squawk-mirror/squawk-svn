@@ -87,8 +87,8 @@ public class PrivatePointer  {
         if (!klass.isArray()) {
             throw new IllegalArgumentException();
         }
-        int length = GC.getArrayLength(array);
-        int elemsize = klass.getComponentType().getDataSize();
+//        int length = GC.getArrayLength(array);
+//        int elemsize = klass.getComponentType().getDataSize();
         return Address.fromObject(array);
     }
 

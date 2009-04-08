@@ -40,46 +40,62 @@ import java.io.IOException;
  */
 public class GCFSocketsImpl implements GCFSockets {
 
-    public final static boolean DEBUG = true;
+    public final static boolean DEBUG = false;
+
+    public final static boolean NBIO_WORKS = false;
+
+    LibC libc = LibC.INSTANCE;
+    Socket sockets = Socket.INSTANCE;
+    Ioctl ioctl = Ioctl.INSTANCE;
+
+    private boolean tryFcntl = true;
         
     /** Read errno, try to clean up fd, and create exception. */
-    private static IOException newError(int fd, String msg)  {
+    private IOException newError(int fd, String msg)  {
         if (DEBUG) {
             VM.print(msg);
             VM.print(": errno: ");
         }
-        int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
+        int err_code = libc.errno(); // @TODO: NOT THREAD_SAFE!
         if (DEBUG) {
             VM.print(err_code);
             VM.println();
         }
-        Socket.INSTANCE.shutdown(fd, 2);
-        LibC.INSTANCE.close(fd);
+        sockets.shutdown(fd, 2);
+        libc.close(fd);
         return new IOException(" errno: " + err_code + " on fd: " + fd + " during " + msg);
     }
     
     private void set_blocking_flags(int fd, boolean is_blocking) throws IOException {
-        LibC libc = LibC.INSTANCE;
-        if (DEBUG) { System.out.println("set_blocking_flags: calling fcntl F_GETFL"); }
-        int flags = libc.fcntl(fd, LibC.F_GETFL, 0);
-        if (DEBUG) { System.out.println("fcntl returned: " +  flags); }
+        if (DEBUG) {    System.out.print("set_blocking_flags: ");    }
 
-        if (flags >= 0) {
-            if (is_blocking == true) {
-                flags &= ~LibC.O_NONBLOCK;
-            } else {
-                flags |= LibC.O_NONBLOCK;
+        if (tryFcntl) {
+            if (DEBUG) {    System.out.print("calling fcntl F_GETFL...");    }
+            int flags = libc.fcntl(fd, LibC.F_GETFL, 0);
+            if (DEBUG) {    System.out.println("fcntl returned: " + flags); }
+
+            if (flags >= 0) {
+                if (is_blocking == true) {
+                    flags &= ~LibC.O_NONBLOCK;
+                } else {
+                    flags |= LibC.O_NONBLOCK;
+                }
+                if (DEBUG) {    System.out.println("set_blocking_flags: calling fcntl F_SETFL flags: " + flags);    }
+                int res = libc.fcntl(fd, LibC.F_SETFL, flags);
+                if (res != -1) {
+                    return;
+                }
+            } else if (libc.errno() == LibC.EOPNOTSUPP) {
+                tryFcntl = false; // once this fails, don't try again
             }
-            if (DEBUG) {  System.out.println("set_blocking_flags: calling fcntl F_SETFL flags: " + flags); }
-            int res = libc.fcntl(fd, LibC.F_SETFL, flags);
-            if (res != -1) {
-                return;
-            }
-        } else if (libc.errno() == LibC.EOPNOTSUPP) {
-            if (DEBUG) { System.out.println("fcntl not working: " + " trying ioctl"); }
+        }
+
+        if (!tryFcntl) {
+            if (DEBUG) {    System.out.println("calling ioctl");    }
             IntByReference setting = new IntByReference(is_blocking ? 1 : 0);
-            int res = Ioctl.INSTANCE.ioctl(fd, Ioctl.INSTANCE.FIONBIO, setting);
+            int res = ioctl.ioctl(fd, Ioctl.INSTANCE.FIONBIO, setting);
             setting.free();
+            if (DEBUG) {    System.out.println("ioctl returned: " + res); }
             if (res >= 0) {
                 return;
             }
@@ -94,7 +110,7 @@ public class GCFSocketsImpl implements GCFSockets {
         // init_sockets(); win32 only
         int fd = -1;
 
-        fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
+        fd = sockets.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
         if (DEBUG) { System.err.println("Socket.socket() = " + fd); }
         if (fd < 0) {
             throw newError(fd, "socket create");
@@ -118,8 +134,8 @@ public class GCFSocketsImpl implements GCFSockets {
             System.err.println("Socket.sockaddr_in: " + destination_sin);
             System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
         }
-        if (Socket.INSTANCE.connect(fd, destination_sin, destination_sin.size()) < 0) {
-            int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
+        if (sockets.connect(fd, destination_sin, destination_sin.size()) < 0) {
+            int err_code = libc.errno(); // @TODO: NOT THREAD_SAFE!
             if (err_code == LibC.EINPROGRESS || err_code == LibC.EWOULDBLOCK) {
                 // When the socket is ready for connect, it becomes *writable*
                 // (according to BSD socket spec of select())
@@ -139,10 +155,10 @@ public class GCFSocketsImpl implements GCFSockets {
      * @param in the opaque bytes of an IPv4 "struct in_addr"
      * @return String
      */
-    public static String inet_ntop(int in) {
+    public String inet_ntop(int in) {
         Pointer charBuf = new Pointer(Socket.INET_ADDRSTRLEN);
         IntByReference addrBuf = new IntByReference(in); // the addr is passed by value (to handle IPv6)
-        String result = Socket.INSTANCE.inet_ntop(Socket.AF_INET, addrBuf, charBuf, Socket.INET_ADDRSTRLEN);
+        String result = sockets.inet_ntop(Socket.AF_INET, addrBuf, charBuf, Socket.INET_ADDRSTRLEN);
         addrBuf.free();
         charBuf.free();
         return result;
@@ -161,7 +177,7 @@ public class GCFSocketsImpl implements GCFSockets {
     public int openServer(int port, int backlog) throws IOException {
         int fd = -1;
 
-        fd = Socket.INSTANCE.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
+        fd = sockets.socket(Socket.AF_INET, Socket.SOCK_STREAM, 0);
         if (DEBUG) { System.err.println("Socket.socket() = " + fd); }
         if (fd < 0) {
             throw newError(fd, "socket create");
@@ -177,11 +193,11 @@ public class GCFSocketsImpl implements GCFSockets {
         local_sin.sin_addr = Socket.INADDR_ANY;
         if (DEBUG) { System.err.println("Socket.bind(" + fd + ", " + local_sin + ")"); }
 
-        if (Socket.INSTANCE.bind(fd, local_sin, local_sin.size()) < 0) {
+        if (sockets.bind(fd, local_sin, local_sin.size()) < 0) {
             throw newError(fd, "bind");
         }
         
-       if (Socket.INSTANCE.listen(fd, backlog) < 0) {
+       if (sockets.listen(fd, backlog) < 0) {
             throw newError(fd, "listen");
         }
                
@@ -204,7 +220,7 @@ public class GCFSocketsImpl implements GCFSockets {
         IntByReference address_len = new IntByReference(4);
         if (DEBUG) { System.err.println("Socket.accept(" + fd + ", " + remote_sin + ")..."); }
 
-        int newSocket = Socket.INSTANCE.accept(fd, remote_sin, address_len);
+        int newSocket = sockets.accept(fd, remote_sin, address_len);
         if (newSocket < 0) {
             throw newError(fd, "accept");
         }
@@ -225,23 +241,51 @@ public class GCFSocketsImpl implements GCFSockets {
             buf = new byte[length];
             System.arraycopy(b, offset, buf, 0, length);
         }
-        int result = LibC.INSTANCE.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
+        int result;
 
-        if (result == 0) {
-            // If remote side has shut down the connection gracefully, and all
-            // data has been received, recv() will complete immediately with
-            // zero bytes received.
-            //
-            // This is true for Win32/CE and Linux
-            result = -1;
-        } else if (result < 0) {
-            int err_code = LibC.INSTANCE.errno();
-            if (err_code == LibC.EWOULDBLOCK) {
-                VMThread.getSystemEvents().waitForReadEvent(fd);
-                result = LibC.INSTANCE.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
+        if (NBIO_WORKS) {
+            result = libc.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
+            if (result == 0) {
+                // If remote side has shut down the connection gracefully, and all
+                // data has been received, recv() will complete immediately with
+                // zero bytes received.
+                //
+                // This is true for Win32/CE and Linux
+                result = -1;
+            } else if (result < 0) {
+                int err_code = libc.errno();
+                if (err_code == LibC.EWOULDBLOCK) {
+//System.out.println("Wait for read in select...");
+                    VMThread.getSystemEvents().waitForReadEvent(fd);
+                    result = libc.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
+                }
+                LibCUtil.errCheckNeg(result);
             }
+        } else {
+            // If non-blocking IO doesn't seems to be working, try this hack...
+
+            int bAvail = 0;
+
+            while ((bAvail = available(fd)) == 0) { // may throw IOException
+                VMThread.getSystemEvents().waitForReadEvent(fd);
+            }
+
+            result = libc.read(fd, buf, bAvail); // only read what we know is there...
             LibCUtil.errCheckNeg(result);
+            if (result == 0) {
+                // If remote side has shut down the connection gracefully, and all
+                // data has been received, recv() will complete immediately with
+                // zero bytes received.
+                //
+                // This is true for Win32/CE and Linux
+                result = -1;
+            }
         }
+        
+        if (offset != 0 && result > 0) {
+            System.arraycopy(buf, 0, buf, offset, result);
+        }
+// System.out.println("readBuf() = " + result);
 
         return result;
     }
@@ -279,13 +323,13 @@ public class GCFSocketsImpl implements GCFSockets {
             System.arraycopy(buffer, off, buf, 0, len);
         }
 
-        result = LibC.INSTANCE.write(fd, buf, len);// We rely on open0() for setting the socket to non-blocking
+        result = libc.write(fd, buf, len);// We rely on open0() for setting the socket to non-blocking
 
         if (result < 0) {
-            int err_code = LibC.INSTANCE.errno();
+            int err_code = libc.errno();
             if (err_code == LibC.EWOULDBLOCK) {
                 VMThread.getSystemEvents().waitForWriteEvent(fd);
-                result = LibC.INSTANCE.write(fd, buf, len); // We rely on open0() for setting the socket to non-blocking
+                result = libc.write(fd, buf, len); // We rely on open0() for setting the socket to non-blocking
             }
             LibCUtil.errCheckNeg(result);
         }
@@ -310,7 +354,7 @@ public class GCFSocketsImpl implements GCFSockets {
      */
     public int available(int fd) throws IOException {
         //Pointer buf = new Pointer(4);
-        int err = Ioctl.INSTANCE.ioctl(fd, Ioctl.FIONREAD, availableBuf.address().toUWord().toPrimitive());
+        int err = ioctl.ioctl(fd, Ioctl.FIONREAD, availableBuf.address().toUWord().toPrimitive());
         int result = availableBuf.getInt(0);
         //buf.free();
         LibCUtil.errCheckNeg(err);
@@ -325,8 +369,8 @@ public class GCFSocketsImpl implements GCFSockets {
     public void close(int fd) throws IOException {
         // NOTE: this would block the VM. A real implementation should
         // make this a async native method.
-        Socket.INSTANCE.shutdown(fd, 2);
-        LibC.INSTANCE.close(fd);
+        sockets.shutdown(fd, 2);
+        libc.close(fd);
         if (DEBUG) { System.out.println("close(" + fd + ")"); }
     }
     
@@ -341,7 +385,7 @@ public class GCFSocketsImpl implements GCFSockets {
     public void setSockOpt(int socket, int option_name, int option_value) throws IOException {
         IntByReference value = new IntByReference(option_value);
         if (DEBUG) { System.out.println("setSockOpt(" + socket + ", " + option_name + ", " + option_value + ")"); }
-        int err = Socket.INSTANCE.setsockopt(socket, Socket.SOL_SOCKET, option_name, value, 4);
+        int err = sockets.setsockopt(socket, Socket.SOL_SOCKET, option_name, value, 4);
         value.free();
         LibCUtil.errCheckNeg(err);
     }
@@ -358,7 +402,7 @@ public class GCFSocketsImpl implements GCFSockets {
         IntByReference opt_len = new IntByReference(0);
         if (DEBUG) { System.out.println("getsockopt(" + socket + ", " + option_name + ")"); }
 
-        int err = Socket.INSTANCE.getsockopt(socket, Socket.SOL_SOCKET, option_name, value, opt_len);
+        int err = sockets.getsockopt(socket, Socket.SOL_SOCKET, option_name, value, opt_len);
         int result = value.getValue();
         value.free();
         Assert.that(opt_len.getValue() == 4);
