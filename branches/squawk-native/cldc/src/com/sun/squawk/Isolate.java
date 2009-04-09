@@ -687,23 +687,17 @@ public final class Isolate implements Runnable {
      */
     public static TranslatorInterface getDefaultTranslator() throws AllowInlinedPragma {
 /*if[ENABLE_DYNAMIC_CLASSLOADING]*/
-//        try {
-            String translatorSuiteUrl = System.getProperty("com.sun.squawk.Isolate.getDefaultTranslator");
-            if (translatorSuiteUrl == null) {
-                translatorSuiteUrl = "file://translator.suite";
+        String translatorSuiteUrl = System.getProperty("com.sun.squawk.Isolate.getDefaultTranslator");
+        if (translatorSuiteUrl == null) {
+            translatorSuiteUrl = "file://translator.suite";
+        }
+        Suite tsuite = Suite.getSuite(translatorSuiteUrl, false);
+        if (tsuite != null) {
+            Klass klass = tsuite.lookup("com.sun.squawk.translator.Translator");
+            if (klass != null) {
+                return (TranslatorInterface)klass.newInstance();
             }
-            Suite tsuite = Suite.getSuite(translatorSuiteUrl, false);
-            if (tsuite != null) {
-                Klass klass = tsuite.lookup("com.sun.squawk.translator.Translator");
-                if (klass != null) {
-                    return (TranslatorInterface)klass.newInstance();
-                }
-            }
-//        } catch (IllegalAccessException ex) {
-//            ex.printStackTrace();
-//        } catch (InstantiationException ex) {
-//            ex.printStackTrace();
-//        }
+        }
 /*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         return null;
     }
@@ -724,20 +718,14 @@ public final class Isolate implements Runnable {
          * Create the translator instance reflectively. This (compile and runtime) dynamic
          * binding to the translator means that it can be an optional component.
          */
-//        try {
-            Klass klass = translatorClass != null ? translatorClass : leafSuite.lookup("com.sun.squawk.translator.Translator");
-            if (klass == null) {
-                return getDefaultTranslator();
-            }
-            return (TranslatorInterface)klass.newInstance();
-//        } catch (IllegalAccessException ex) {
-//            ex.printStackTrace();
-//        } catch (InstantiationException ex) {
-//            ex.printStackTrace();
-//        }
-
+        Klass klass = translatorClass != null ? translatorClass : leafSuite.lookup("com.sun.squawk.translator.Translator");
+        if (klass == null) {
+            return getDefaultTranslator();
+        }
+        return (TranslatorInterface)klass.newInstance();
+/*else[ENABLE_DYNAMIC_CLASSLOADING]*/
+//      return null;
 /*end[ENABLE_DYNAMIC_CLASSLOADING]*/
-//        return null;
     }
 
     /**
@@ -892,7 +880,7 @@ public final class Isolate implements Runnable {
                 return resumeHooks;
             }
             default:
-                throw new IllegalArgumentException("Illereseumegal isolate event kind " + eventKind);
+                throw new IllegalArgumentException("Illegal isolate event kind " + eventKind);
         }
     }
 
