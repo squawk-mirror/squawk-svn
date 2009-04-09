@@ -189,11 +189,9 @@ public class SystemEventsImpl extends SystemEvents {
 //        }
 
         int num = Select.INSTANCE.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
-        if (num < 0) {
-            System.err.println("select error: " + LibC.INSTANCE.errno());
-        }
-
+        
         if (num > 0) {
+            //@TODO: Bail out of searches when num == 0:
             int readSize = readSet.size();
             if (readSize != 0) {
                 for (int i = 0; i < readSet.size(); i++) {
@@ -226,6 +224,8 @@ public class SystemEventsImpl extends SystemEvents {
                 printFDSet(tempWriteSet);
             }
             updateSets();
+        } else if (num < 0) {
+            System.err.println("select error: " + LibC.INSTANCE.errno());
         }
         return num;
     }

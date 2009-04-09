@@ -25,7 +25,7 @@ public class EchoServer implements Runnable {
 
     private int port;
 
-    EchoServer(int port) {
+    public EchoServer(int port) {
         this.port = port;
 
     }
@@ -60,9 +60,9 @@ public class EchoServer implements Runnable {
                 in = conn.openDataInputStream();
                 out = conn.openDataOutputStream();
                 while (true) {
-                    int n = in.available();
-                    n = Math.min(n, BUF_SIZE);
-                    in.readFully(buffer, 0, n);
+//                    int n = in.available();
+//                    n = Math.min(n, BUF_SIZE);
+                    int n = in.read(buffer, 0, BUF_SIZE);
                     out.write(buffer, 0, n);
                 }
             } catch (IOException ex) {
@@ -75,6 +75,7 @@ public class EchoServer implements Runnable {
                 synchronized (runnerCountLock) {
                     runnerCount--;
                 }
+                System.out.println("Closing echo server for " + conn);
                 try {
                     in.close();
                     out.close();

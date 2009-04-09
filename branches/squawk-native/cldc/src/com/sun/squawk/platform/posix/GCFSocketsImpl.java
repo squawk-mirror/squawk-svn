@@ -237,11 +237,12 @@ public class GCFSocketsImpl implements GCFSockets {
      */
     public int readBuf(int fd, byte b[], int offset, int length) throws IOException {
         byte[] buf = b;
-        if (offset != 0) {
-            buf = new byte[length];
-            System.arraycopy(b, offset, buf, 0, length);
-        }
         int result;
+
+        if (offset != 0) {
+            if (DEBUG) {    System.out.println("readBuf() into temp buf"); }
+            buf = new byte[length];
+        }
 
         if (NBIO_WORKS) {
             result = libc.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
@@ -255,7 +256,7 @@ public class GCFSocketsImpl implements GCFSockets {
             } else if (result < 0) {
                 int err_code = libc.errno();
                 if (err_code == LibC.EWOULDBLOCK) {
-//System.out.println("Wait for read in select...");
+                    if (DEBUG) {    System.out.println("Wait for read in select..."); }
                     VMThread.getSystemEvents().waitForReadEvent(fd);
                     result = libc.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
                 }
@@ -264,13 +265,19 @@ public class GCFSocketsImpl implements GCFSockets {
         } else {
             // If non-blocking IO doesn't seems to be working, try this hack...
 
-            int bAvail = 0;
+            int bAvail = available(fd);  // may throw IOException
 
-            while ((bAvail = available(fd)) == 0) { // may throw IOException
+            if (bAvail == 0) {
+                if (DEBUG) {    System.out.println("Wait for read in select..."); }
                 VMThread.getSystemEvents().waitForReadEvent(fd);
+                bAvail = available(fd);
+                if (bAvail == 0) { // woke up because connection is closed
+                    return -1; // signal EOF
+                }
             }
 
-            result = libc.read(fd, buf, bAvail); // only read what we know is there...
+            int n = Math.min(bAvail, length); // don't read more than is asked for...
+            result = libc.read(fd, buf, n); // only read what we know is there...
             LibCUtil.errCheckNeg(result);
             if (result == 0) {
                 // If remote side has shut down the connection gracefully, and all
@@ -283,7 +290,7 @@ public class GCFSocketsImpl implements GCFSockets {
         }
         
         if (offset != 0 && result > 0) {
-            System.arraycopy(buf, 0, buf, offset, result);
+            System.arraycopy(buf, 0, b, offset, result);
         }
 // System.out.println("readBuf() = " + result);
 
@@ -294,8 +301,8 @@ public class GCFSocketsImpl implements GCFSockets {
         int result = -1;
         byte[] b = new byte[1];
         int n = readBuf(fd, b, 0, 1);
-        //System.err.println("readByte(" + fd + ") = " + n + ", data = " + b[0]);
- 
+        if (DEBUG) {    System.err.println("readByte(" + fd + ") = " + n + ", data = " + b[0]); }
+
         if (n == 1) {
             result = b[0] & 0xFF; // do not sign-extend
 
@@ -307,6 +314,8 @@ public class GCFSocketsImpl implements GCFSockets {
             //
             // This is true for Win32/CE and Linux
             result = -1;
+        } else {
+            Assert.always(n == -1);
         }
 
         return result;
@@ -358,7 +367,7 @@ public class GCFSocketsImpl implements GCFSockets {
         int result = availableBuf.getInt(0);
         //buf.free();
         LibCUtil.errCheckNeg(err);
-//        System.err.println("available0(" + fd + ") = " + result);
+        if (DEBUG) { System.err.println("available(" + fd + ") = " + result); }
         return result; 
 
     }
