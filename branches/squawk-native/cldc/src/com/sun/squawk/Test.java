@@ -471,9 +471,10 @@ public class Test {
         result("x45", x45count == 200);
     }
 
+    static int threadcounter = 0;
     static VMThread x45Thread(int stackSize) {
         try {
-            Thread r = new Thread() {
+            Thread r = new Thread("x45Thread-" + (threadcounter++)) {
                 public void run() {
                     f();
                 }

@@ -103,7 +103,13 @@ public interface Socket extends Library {
 //#define SO_WANTMORE		0x4000		/* APPLE: Give hint when more data ready */
 //#define SO_WANTOOBFLAG	0x8000		/* APPLE: Want OOB in MSG_FLAG on receive */
 //#endif
-//#endif	/* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */ 
+//#endif	/* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
+
+
+    public final static int IPPROTO_TCP = SocketImpl.IPPROTO_TCP;		/*  Level number for (get/set)sockopt() to apply to TCP */
+
+    public final static int TCP_NODELAY = SocketImpl.TCP_NODELAY;		/* don't delay send to coalesce packets */
+
 
     /**
      * socket() creates an endpoint for communication and returns a descriptor.

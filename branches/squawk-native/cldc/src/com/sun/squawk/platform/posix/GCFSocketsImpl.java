@@ -145,6 +145,8 @@ public class GCFSocketsImpl implements GCFSockets {
             }
         }
 
+        setSockOpt(fd, Socket.IPPROTO_TCP, Socket.TCP_NODELAY, 1);
+
         return fd;
     }
 
@@ -186,6 +188,8 @@ public class GCFSocketsImpl implements GCFSockets {
         set_blocking_flags(fd, /*is_blocking*/ false);
 
         setSockOpt(fd, Socket.SO_REUSEADDR, 1);
+
+        setSockOpt(fd, Socket.IPPROTO_TCP, Socket.TCP_NODELAY, 1);
 
         Socket.sockaddr_in local_sin = new Socket.sockaddr_in();
         local_sin.sin_family = Socket.AF_INET;
@@ -387,37 +391,77 @@ public class GCFSocketsImpl implements GCFSockets {
      * set a socket option
      * 
      * @param socket socket descriptor
-     * @param option_name 
+     * @param level Socket.SOL_SOCKET, etc.
+     * @param option_name
      * @param option_value new value
      * @throws IOException on error
      */
-    public void setSockOpt(int socket, int option_name, int option_value) throws IOException {
+    public void setSockOpt(int socket, int level, int option_name, int option_value) throws IOException {
         IntByReference value = new IntByReference(option_value);
-        if (DEBUG) { System.out.println("setSockOpt(" + socket + ", " + option_name + ", " + option_value + ")"); }
-        int err = sockets.setsockopt(socket, Socket.SOL_SOCKET, option_name, value, 4);
+        Assert.always(option_value == value.getValue());
+        if (DEBUG) { System.out.println("setSockOpt(" + socket + ", " + level + ", " + option_name + ", " + option_value + ")"); }
+        int err = sockets.setsockopt(socket, level, option_name, value, 4);
+
+        Assert.always(option_value == value.getValue());
         value.free();
         LibCUtil.errCheckNeg(err);
+
+        if (DEBUG) {
+            int newValue = getSockOpt(socket, level, option_name);
+            if (option_value != newValue) {
+                System.out.println("FAILED: setSockOpt(" + socket + ", " + level + ", " + option_name + ", " + option_value + ")");
+                System.err.println("   Ended with: " + newValue);
+
+            }
+        }
     }
   
     /**
      * get a socket option
      * 
      * @param socket socket descriptor
+     * @param level Socket.SOL_SOCKET, etc.
      * @param option_name 
+     * @return socket option value
      * @throws IOException on error
      */
-    public int getSockOpt(int socket, int option_name) throws IOException {
+    public int getSockOpt(int socket, int level, int option_name) throws IOException {
         IntByReference value = new IntByReference(0);
-        IntByReference opt_len = new IntByReference(0);
-        if (DEBUG) { System.out.println("getsockopt(" + socket + ", " + option_name + ")"); }
+        IntByReference opt_len = new IntByReference(4);
+        if (DEBUG) { System.out.println("getsockopt(" + socket + ", " + level + ", " + option_name + ")"); }
 
-        int err = sockets.getsockopt(socket, Socket.SOL_SOCKET, option_name, value, opt_len);
+        int err = sockets.getsockopt(socket, level, option_name, value, opt_len);
+        if (DEBUG) { System.out.println("    returned value: " + value.getValue() + ", size: " + opt_len.getValue()); }
+
         int result = value.getValue();
         value.free();
         Assert.that(opt_len.getValue() == 4);
         opt_len.free();
         LibCUtil.errCheckNeg(err);
         return result;
+    }
+
+    /**
+     * set a socket option
+     *
+     * @param socket socket descriptor
+     * @param option_name
+     * @param option_value new value
+     * @throws IOException on error
+     */
+    public void setSockOpt(int socket, int option_name, int option_value) throws IOException {
+        setSockOpt(socket, Socket.SOL_SOCKET, option_name, option_value);
+    }
+
+    /**
+     * get a socket option
+     *
+     * @param socket socket descriptor
+     * @param option_name
+     * @throws IOException on error
+     */
+    public int getSockOpt(int socket, int option_name) throws IOException {
+        return getSockOpt(socket, Socket.SOL_SOCKET, option_name);
     }
 
 }

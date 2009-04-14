@@ -50,6 +50,10 @@ public abstract class SocketImpl implements Socket {
     public final static int SO_BROADCAST = 32;
     public final static int SO_OOBINLINE = 256;
 
+
+    public final static int IPPROTO_TCP = 6;
+    public final static int TCP_NODELAY = 1;
+
     /*----------------------------- methods -----------------------------*/
     private final Function getsockoptPtr;
     

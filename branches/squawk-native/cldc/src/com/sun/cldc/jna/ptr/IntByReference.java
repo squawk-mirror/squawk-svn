@@ -33,7 +33,6 @@ public class IntByReference extends ByReference {
     public IntByReference(int value) {
         super(4);
         setValue(value);
-        getPointer().setInt(0, value);
     }
     
     public int getValue() {
