@@ -118,8 +118,8 @@ public class RomCommand extends Command {
                     arch = arg.substring("-arch:".length());
                 } else if (arg.startsWith("-endian:")) {
                     endian = arg.substring("-endian:".length());
-                } if (arg.startsWith("-parent:")) {
-                	parentSuite = arg.substring("-parent:".length());
+                } else if (arg.startsWith("-parent:")) {
+                    parentSuite = arg.substring("-parent:".length());
                 } else if (arg.startsWith("-metadata")) {
                     createMetadatas = true;
                 } else {
@@ -159,6 +159,7 @@ public class RomCommand extends Command {
 
                 if (module.endsWith(".jar") || module.endsWith(".zip")) {
                     moduleClasses = module;
+                    module = new File(module).getName();
                     if (module.endsWith("_classes.jar")) {
                         // This is most likely the jar file build by a previous execution of the romizer
                         module = module.substring(0, module.length() - "_classes.jar".length());
@@ -167,10 +168,18 @@ public class RomCommand extends Command {
                         module = module.substring(0, module.length() - ".jar".length());
                     }
                 } else {
-                    File j2meclasses = new File(module, "j2meclasses");
-                    if (!j2meclasses.exists() || !j2meclasses.isDirectory()) {
+                    File j2meclasses = null;
+                    for (File possibleModuleDir: env.getPossibleModuleDirs()) {
+                        j2meclasses = new File(new File(possibleModuleDir, module), "j2meclasses");
+                        if (j2meclasses.exists() && j2meclasses.isDirectory()) {
+                            break;
+                        }
+                        j2meclasses = null;
+                    }
+                    if (j2meclasses == null) {
                         throw new BuildException("'" + module + "' module is not a jar/zip file and does not have a 'j2meclasses' subdirectory");
                     }
+                    module = new File(module).getName();
                     moduleClasses = j2meclasses.getPath();
                     // TODO: Remove the res one, here to keep backward compatibility with
                     // samples module, and not able to test it fully to make sure that

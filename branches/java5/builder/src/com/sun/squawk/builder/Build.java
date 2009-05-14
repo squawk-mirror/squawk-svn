@@ -230,7 +230,16 @@ public class Build {
         return specfifiedBuildDotOverrideFileName;
     }
 
+    protected List<File> possibleModuleDirs = new ArrayList<File>();
 
+    public void addPossibleModuleDir(File dir) {
+        possibleModuleDirs.add(dir);
+    }
+    
+    public List<File> getPossibleModuleDirs() {
+        return possibleModuleDirs;
+    }
+    
     /**
      * The interface to run a Java source compiler.
      */
@@ -296,7 +305,7 @@ public class Build {
      * @return the created and installed command
      */
     public Target addTarget(boolean j2me, String baseDir, String dependencies, String extraClassPath, String extraSourceDirs) {
-        File primarySrcDir = new File (baseDir, "src");
+        File primarySrcDir = new File(baseDir, "src");
         File[] srcDirs;
         if (extraSourceDirs != null) {
             StringTokenizer st = new StringTokenizer(extraSourceDirs);
@@ -316,21 +325,30 @@ public class Build {
                 String dependency = st.nextToken();
                 classPathBuffer.append(dependency).append(File.separatorChar).append("classes");
                 if (st.hasMoreTokens()) {
-                	classPathBuffer.append(File.pathSeparatorChar);
+                    classPathBuffer.append(File.pathSeparatorChar);
                 }
             }
         }
         if (extraClassPath != null && extraClassPath.length() != 0) {
-        	classPathBuffer.append(File.pathSeparatorChar).append(toPlatformPath(extraClassPath, true));
+            StringBuffer extraBuffer = new StringBuffer();
+            StringTokenizer tokenizer = new StringTokenizer(extraClassPath, ":");
+            while (tokenizer.hasMoreTokens()) {
+                String token = tokenizer.nextToken();
+                extraBuffer.append(new File(baseDir, token));
+                if (tokenizer.hasMoreTokens()) {
+                    extraBuffer.append(File.pathSeparatorChar);
+                }
+            }
+            classPathBuffer.append(File.pathSeparatorChar).append(toPlatformPath(extraBuffer.toString(), true));
         }
         String classPath;
         if (classPathBuffer.length() == 0) {
-        	classPath = null;
+            classPath = null;
         } else {
-        	classPath = classPathBuffer.toString();
+            classPath = classPathBuffer.toString();
         }
 
-        Target command = new Target(classPath, j2me, baseDir, srcDirs, true, this, baseDir);
+        Target command = new Target(classPath, j2me, baseDir, srcDirs, true, this, new File(baseDir).getName());
         if (dependencies != null) {
             command.dependsOn(dependencies);
         }
@@ -590,15 +608,20 @@ public class Build {
     }
     
     protected void processBuilderDotPropertiesFile(String type, String name, File dotPropertiesFile, int propertyIndex, HashMap<String, String> attributes) {
-		if (type.equals("Target")) {
-			Target target = addTarget(Boolean.valueOf(attributes.get("j2me")), dotPropertiesFile.getParentFile().getName(), attributes.get("dependsOn"), attributes.get("extraClassPath"), attributes.get("extraSourceDirs"));
-			String triggers = attributes.get("triggers");
-			if (triggers != null) {
-				target.triggers(triggers);
-			}
-		} else {
-			throw new BuildException("Unsupported type " + type + " on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
-		}
+        if (type.equals("Target")) {
+            Target target = addTarget(Boolean.valueOf(attributes.get("j2me")), dotPropertiesFile.getParentFile().getPath(), attributes.get("dependsOn"), attributes.get("extraClassPath"), attributes.get("extraSourceDirs"));
+            String triggers = attributes.get("triggers");
+            if (triggers != null) {
+                target.triggers(triggers);
+            }
+            String extraArgs = attributes.get("extraArgs");
+            if (extraArgs != null) {
+                target.addExtraArg(extraArgs);
+            }
+            target.addCopyJ2meDirs(attributes.get("copyJ2meDirs"));
+        } else {
+            throw new BuildException("Unsupported type " + type + " on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
+        }
     }
     
     /**
@@ -635,7 +658,10 @@ public class Build {
             File[] sourceFiles = sourceDir.listFiles();
             File destinationDir = new File(destinationRootPath, subPath);
             boolean didNoCopy = true;
-            File siblingDir = new File(siblingRootPath, subPath);
+            File siblingDir = null;
+            if (siblingRootPath != null) {
+                siblingDir = new File(siblingRootPath, subPath);
+            }
             if (sourceFiles != null) {
                 for (File sourceFile: sourceFiles) {
                     if (sourceFile.isDirectory()) {
@@ -645,9 +671,11 @@ public class Build {
                         }
                         continue;
                     }
-                    File siblingFile = new File(siblingDir, sourceFile.getName());
-                    if (siblingFile.exists()) {
-                        continue;
+                    if (siblingDir != null) {
+                        File siblingFile = new File(siblingDir, sourceFile.getName());
+                        if (siblingFile.exists()) {
+                            continue;
+                        }
                     }
                     if (didNoCopy) {
                         mkdir(destinationDir);
@@ -749,12 +777,22 @@ public class Build {
             }
             
             public void run(String[] args) {
-                delete(new File("../javacard3/sdk-src"));
-                delete(new File("../javacard3/sdk-lib"));
-                String phoneMeSourceRoot = "../bundles/sdk/src/";
-                copy(phoneMeSourceRoot + "api", "../javacard3/sdk-src", "../javacard3/src", true, "**");
-                extractJar(new File("../bundles/sdk/src/crypto.jar"), new File("../javacard3/sdk-lib/crypto"));
-//                cp(new File("../bundles/sdk/src/crypto.jar"), new File("../javacard3/sdk-lib/crypto.jar"), false);
+                File sdkSource = new File("../api/sdk-src");
+                delete(sdkSource);
+                sdkSource.mkdirs();
+                File sdkLib = new File("../api/sdk-lib");
+                delete(sdkLib);
+                sdkLib.mkdirs();
+                File cryptoLib = new File(sdkLib, "crypto");
+                cryptoLib.mkdirs();
+                String sourceRoot = "../bundles/sdk/src/";
+                copy(sourceRoot + "api", sdkSource.getPath(), "../api/src", true, "**");
+                extractJar(new File("../bundles/sdk/src/crypto.jar"), cryptoLib);
+                retroweave(sdkLib, cryptoLib);
+                boolean success = new File(sdkLib, "weaved").renameTo(new File(sdkLib, "crypto-weaved"));
+                if (!success) {
+                    throw new BuildException("Failed to rename dir");
+                }
             }
         });
 
@@ -1484,6 +1522,7 @@ public class Build {
     \*---------------------------------------------------------------------------*/
 
     public Build() {
+        possibleModuleDirs.add(new File("."));
     }
     
     /**
@@ -1852,6 +1891,7 @@ public class Build {
                     if (pluginsFile.isFile() && pluginsFile.exists()) {
                         dotPropertiesFiles.add(pluginsFile);
                     } else {
+                        addPossibleModuleDir(pluginsSpecified);
                         addSiblingBuilderDotPropertiesFiles(pluginsSpecified, dotPropertiesFiles);
                     }
                 }
@@ -2482,19 +2522,23 @@ public class Build {
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
                 File file = new File(destination, entry.getName());
-                file.getParentFile().mkdirs();
-                InputStream in = new BufferedInputStream(jarFile.getInputStream(entry));
-                OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-                byte[] buffer = new byte[2048];
-                for (;;) {
-                    int nBytes = in.read(buffer);
-                    if (nBytes <= 0)
-                        break;
-                    out.write(buffer, 0, nBytes);
+                if (entry.isDirectory()) {
+                    file.mkdirs();
+                } else {
+                    file.getParentFile().mkdirs();
+                    InputStream in = new BufferedInputStream(jarFile.getInputStream(entry));
+                    OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+                    byte[] buffer = new byte[2048];
+                    for (;;) {
+                        int nBytes = in.read(buffer);
+                        if (nBytes <= 0)
+                            break;
+                        out.write(buffer, 0, nBytes);
+                    }
+                    out.flush();
+                    out.close();
+                    in.close();
                 }
-                out.flush();
-                out.close();
-                in.close();
             }
         } catch (IOException e) {
             throw new BuildException("IO error extracting jar file", e);

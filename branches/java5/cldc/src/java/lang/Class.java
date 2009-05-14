@@ -53,7 +53,7 @@ import com.sun.squawk.util.*;
 @Java5Marker("Added <T>")
 public final class Class<T> {
 
-    private Klass klass;
+    private Klass<T> klass;
 
     private Class() {}
 
@@ -111,7 +111,7 @@ public final class Class<T> {
      *               instantiation fails for some other reason.
      * @since     JDK1.0
      */
-    public Object newInstance() throws InstantiationException, IllegalAccessException {
+    public T newInstance() throws InstantiationException, IllegalAccessException {
         /*
          * Check for a sensible object type.
          */
@@ -121,7 +121,7 @@ public final class Class<T> {
 
         ExecutionPoint[] trace = VM.reifyCurrentStack(2);
         Assert.always(trace.length == 2);
-        Klass callersClass = trace[1].getKlass();
+        Klass<?> callersClass = trace[1].getKlass();
 
         /*
          * Check that the calling method can access this klass and the constructor
@@ -133,7 +133,7 @@ public final class Class<T> {
             * can only be accessed from within the constructor of a direct
             * subclass of a class. They cannot be accessed via reflection.
             */
-            !klass.isAccessibleFrom(klass, klass.getDefaultConstructorModifiers() & ~Modifier.PROTECTED, callersClass)
+            !Klass.isAccessibleFrom(klass, klass.getDefaultConstructorModifiers() & ~Modifier.PROTECTED, callersClass)
         ) {
             throw new IllegalAccessException();
         }
@@ -201,7 +201,7 @@ public final class Class<T> {
      *            null.
      * @since JDK1.1
      */
-    public boolean isAssignableFrom(Class cls) {
+    public boolean isAssignableFrom(Class<?> cls) {
         if (cls == null) {
             throw new NullPointerException();
         }
@@ -299,7 +299,7 @@ public final class Class<T> {
      * @see     java.lang.reflect.Array
      * @since JDK1.1
      */
-    public Class getComponentType() {
+    public Class<?> getComponentType() {
         return Klass.asClass(klass.getComponentType());
     }
 
