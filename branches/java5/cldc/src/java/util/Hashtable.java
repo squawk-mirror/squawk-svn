@@ -24,6 +24,7 @@
 
 package java.util;
 
+import com.sun.squawk.Java5Marker;
 import com.sun.squawk.util.*;
 
 /**
@@ -71,12 +72,13 @@ import com.sun.squawk.util.*;
  * @see     java.util.Hashtable#rehash()
  * @since   JDK1.0, CLDC 1.0
  */
-public class Hashtable {
+@Java5Marker
+public class Hashtable<K, V> {
 
     /**
      * A non synchronized version of this type already exists in Squawk, delegate to it.
      */
-    final com.sun.squawk.util.SquawkHashtable delegate;
+    final com.sun.squawk.util.SquawkHashtable<K, V> delegate;
 
     /**
      * Constructs a new, empty hashtable with the specified initial
@@ -88,7 +90,7 @@ public class Hashtable {
      * @since      JDK1.0
      */
     public Hashtable(int initialCapacity) {
-        delegate = new com.sun.squawk.util.SquawkHashtable(initialCapacity);
+        delegate = new com.sun.squawk.util.SquawkHashtable<K, V>(initialCapacity);
         delegate.setRehasher(new com.sun.squawk.util.SquawkHashtable.Rehasher() {
             public void rehash() {
                 Hashtable.this.rehash();
@@ -114,7 +116,7 @@ public class Hashtable {
      * @see     java.util.Hashtable#elements()
      * @since   JDK1.0
      */
-    public synchronized Enumeration keys() {
+    public synchronized Enumeration<K> keys() {
         return delegate.keys();
     }
 
@@ -128,7 +130,7 @@ public class Hashtable {
      * @see     java.util.Hashtable#keys()
      * @since   JDK1.0
      */
-    public synchronized Enumeration elements() {
+    public synchronized Enumeration<V> elements() {
         return delegate.elements();
     }
 
@@ -172,8 +174,9 @@ public class Hashtable {
      * @see     java.util.Hashtable#put(java.lang.Object, java.lang.Object)
      * @since   JDK1.0
      */
-    public synchronized Object get(Object key) {
-        return delegate.get(key);
+    @SuppressWarnings("unchecked")
+    public synchronized V get(K key) {
+        return (V) delegate.get(key);
     }
 
     /**
@@ -194,8 +197,8 @@ public class Hashtable {
      * @see     java.util.Hashtable#get(java.lang.Object)
      * @since   JDK1.0
      */
-    public synchronized Object put(Object key, Object value) {
-        return delegate.put(key, value);
+    public synchronized V put(K key, V value) {
+        return (V) delegate.put(key, value);
     }
 
     /**
@@ -207,7 +210,7 @@ public class Hashtable {
      *          or <code>null</code> if the key did not have a mapping.
      * @since   JDK1.0
      */
-    public synchronized Object remove(Object key) {
+    public synchronized V remove(K key) {
         return delegate.remove(key);
     }
 
