@@ -303,6 +303,34 @@ public final class Class<T> {
         return Klass.asClass(klass.getComponentType());
     }
 
+    /**
+     * Returns the assertion status that would be assigned to this
+     * class if it were to be initialized at the time this method is invoked.
+     * If this class has had its assertion status set, the most recent
+     * setting will be returned; otherwise, if any package default assertion
+     * status pertains to this class, the most recent setting for the most
+     * specific pertinent package default assertion status is returned;
+     * otherwise, if this class is not a system class (i.e., it has a
+     * class loader) its class loader's default assertion status is returned;
+     * otherwise, the system class default assertion status is returned.
+     *
+     * Few programmers will have any need for this method; it is provided
+     * for the benefit of the JRE itself.  (It allows a class to determine at
+     * the time that it is initialized whether assertions should be enabled.)
+     * Note that this method is not guaranteed to return the actual
+     * assertion status that was (or will be) associated with this class when
+     * it was (or will be) initialized.
+     *
+     * @return the desired assertion status of the specified class.
+     * @see    setClassAssertionStatus
+     * @see    setPackageAssertionStatus
+     * @see    setDefaultAssertionStatus
+     */
+    @Java5Marker
+    public boolean desiredAssertionStatus() {
+        return false;
+    }
+    
 }
 
 

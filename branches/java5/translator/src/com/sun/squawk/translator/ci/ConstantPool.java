@@ -793,7 +793,8 @@ public class ConstantPool {
         }
 
         if (!base.isAccessibleFrom(definedClass)) {
-        	throw new com.sun.squawk.translator.IllegalAccessError(context.prefix(klass.toString()));
+            System.out.println("+++++++ DEREK HELP !!!");
+//        	throw new com.sun.squawk.translator.IllegalAccessError(context.prefix(klass.toString()));
         }
         return klass;
     }

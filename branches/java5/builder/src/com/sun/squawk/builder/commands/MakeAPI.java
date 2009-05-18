@@ -395,7 +395,7 @@ public class MakeAPI extends Command {
         File srcDir = makeSource(classes.values(), packages);
         File javadocDir = nodoc ? null : makeJavadoc(packages, srcDir);
         File classesDir = new File(baseDir, "classes");
-        env.javac(classpath, baseDir, new File[] {srcDir}, true, null, false);
+        env.javac(classpath, classpath, baseDir, new File[] {srcDir}, true, null, false);
 
         File classesJar = new File(baseDir, "classes.jar");
         File apiJar = new File(baseDir, suite.name + "_rt.jar");

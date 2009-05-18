@@ -69,13 +69,20 @@ public final class Target extends Command {
         extraArgs.add(extraArg);
     }
     
-    protected String getClassPathString() {
+    protected String getClassPathString(String childDir) {
         StringBuffer classPathBuffer = new StringBuffer();
         List<String> dependencies = getDependencyNames();
         for (String dependency: dependencies) {
             Command command = env.getCommand(dependency);
             if (command instanceof Target) {
-                classPathBuffer.append(dependency).append(File.separatorChar).append("classes");
+                Target dependentTarget = (Target) command;
+                String path;
+                try {
+                    path = new File(dependentTarget.baseDir, childDir).getCanonicalPath();
+                } catch (IOException e) {
+                    throw new BuildException("Failed to compute path", e);
+                }
+                classPathBuffer.append(path);
                 classPathBuffer.append(File.pathSeparatorChar);
             }
         }
@@ -98,7 +105,7 @@ public final class Target extends Command {
         for (File source: copyJ2meDirs) {
             env.copy(source.getPath(), new File(baseDir, "classes").getPath(), null, "**");
         }
-        env.javac(getClassPathString(), baseDir, srcDirs, j2me, extraArgs, preprocess);
+        env.javac(getClassPathString("classes"), getClassPathString((j2me ? "weaved":"classes")), baseDir, srcDirs, j2me, extraArgs, preprocess);
     }
 
     /**

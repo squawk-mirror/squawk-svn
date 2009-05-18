@@ -318,19 +318,8 @@ public class Build {
             srcDirs = new File[] { primarySrcDir };
         }
 
-        StringBuffer classPathBuffer = new StringBuffer();
-        if (dependencies != null) {
-            StringTokenizer st = new StringTokenizer(dependencies);
-            while (st.hasMoreTokens()) {
-                String dependency = st.nextToken();
-                classPathBuffer.append(dependency).append(File.separatorChar).append("classes");
-                if (st.hasMoreTokens()) {
-                    classPathBuffer.append(File.pathSeparatorChar);
-                }
-            }
-        }
+        StringBuffer extraBuffer = new StringBuffer();
         if (extraClassPath != null && extraClassPath.length() != 0) {
-            StringBuffer extraBuffer = new StringBuffer();
             StringTokenizer tokenizer = new StringTokenizer(extraClassPath, ":");
             while (tokenizer.hasMoreTokens()) {
                 String token = tokenizer.nextToken();
@@ -339,16 +328,9 @@ public class Build {
                     extraBuffer.append(File.pathSeparatorChar);
                 }
             }
-            classPathBuffer.append(File.pathSeparatorChar).append(toPlatformPath(extraBuffer.toString(), true));
-        }
-        String classPath;
-        if (classPathBuffer.length() == 0) {
-            classPath = null;
-        } else {
-            classPath = classPathBuffer.toString();
         }
 
-        Target command = new Target(classPath, j2me, baseDir, srcDirs, true, this, new File(baseDir).getName());
+        Target command = new Target(extraBuffer.toString(), j2me, baseDir, srcDirs, true, this, new File(baseDir).getName());
         if (dependencies != null) {
             command.dependsOn(dependencies);
         }
@@ -2241,7 +2223,7 @@ public class Build {
      * @param   extraArgs  extra javac arguments
      * @param   preprocess runs the {@link Preprocessor} over the sources if true
      */
-    public void javac(String classPath, File baseDir, File[] srcDirs, boolean j2me, List<String> extraArgs, boolean preprocess) {
+    public void javac(String compileClassPath, String preverifyClassPath, File baseDir, File[] srcDirs, boolean j2me, List<String> extraArgs, boolean preprocess) {
 
         // Preprocess the sources if required
         if (preprocess) {
@@ -2260,7 +2242,7 @@ public class Build {
         }
 
         javaCompiler.arg("-g").args(javacOptions);
-        javaCompiler.compile(classPath, classesDir, srcDirs, j2me);
+        javaCompiler.compile(compileClassPath, classesDir, srcDirs, j2me);
         
         if (j2me) {
             classesDir = retroweave(baseDir, classesDir);
@@ -2268,12 +2250,12 @@ public class Build {
 
         // Run the doccheck and javadoc utils
         if (runDocCheck || runJavadoc) {
-            runDocTools(classPath, baseDir, srcDirs);
+            runDocTools(compileClassPath, baseDir, srcDirs);
         }
 
         // Run the preverifier for a J2ME compilation
         if (j2me) {
-            preverify(classPath, baseDir);
+            preverify(preverifyClassPath, baseDir);
         }
     }
     
