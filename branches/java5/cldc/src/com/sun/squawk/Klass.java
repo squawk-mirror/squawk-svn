@@ -1354,7 +1354,7 @@ public class Klass<T> {
      *
      * @param iklass the interface class
      * @param islot  the virtual slot of the interface
-     * @return the virtual slot of this class
+     * @return the virtual slot of this class, or -1 if not found
      */
     final int findSlot(Klass iklass, int islot) {
         int icount = interfaces.length;
@@ -1363,7 +1363,11 @@ public class Klass<T> {
                 return interfaceVTableMaps[i][islot];
             }
         }
-        Assert.that(superType != null);
+        if (superType == null) {
+            // protect against malicious code that got past "interface type erasure" in the preverifier
+            // it's possible that *this* klass does not implement iklass
+           return -1;
+        }
         return superType.findSlot(iklass, islot);
     }
     
@@ -1989,6 +1993,8 @@ public class Klass<T> {
                 case CID.OFFSET:
                 case CID.UWORD:
                     Assert.shouldNotReachHere();
+                    table = null;
+                    break;
                     
                 case CID.BYTE:    // fall through ...
                 case CID.BOOLEAN: // fall through ...
@@ -2365,12 +2371,12 @@ public class Klass<T> {
                                                             false);
                 if (superMethod != null && !superMethod.getDefiningClass().isInterface()) {
                     if (superMethod.isFinal()) {
-                        throw new NoClassDefFoundError("cannot override final method: " + superMethod.getName());
+                        throw new NoClassDefFoundError("cannot override final method");
                     }
 
                     // This is a restriction imposed by the way Squawk treats native methods
                     if (superMethod.isNative()) {
-                        throw new NoClassDefFoundError("cannot override native method: " + superMethod.getName());
+                        throw new NoClassDefFoundError("cannot override native method ");
                     }
 
                     /*

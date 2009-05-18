@@ -450,10 +450,15 @@ public class VM implements GlobalStaticFields {
      */
     static int findSlot(Object obj, Klass iklass, int islot) throws InterpreterInvokedPragma {
 /*if[FAST_INVOKEINTERFACE]*/
-        throw Assert.shouldNotReachHere();
+        // in this case only called to throw the exception
+       throw new Error("AbstractMethodError");
 /*else[FAST_INVOKEINTERFACE]*/
 //        Klass klass = GC.getKlass(obj);
-//        return klass.findSlot(iklass, islot);
+//        int result = klass.findSlot(iklass, islot);
+//        if (result < 0) {
+//            throw new Error("AbstractMethodError");
+//        }
+//        return result;
 /*end[FAST_INVOKEINTERFACE]*/
     }
 
@@ -2334,8 +2339,13 @@ hbp.dumpState();
         }
         
         executingHooks = true;
-        
+        if (VM.isVerbose()) {
+            System.out.println("Running top-level shutdown hooks:");
+        }
         shutdownHooks.runHooks();
+        if (VM.isVerbose()) {
+            System.out.println("Done running top-level shutdown hooks.");
+        }
         haltVM(code);
     }
     
@@ -2928,15 +2938,8 @@ hbp.dumpState();
      */
     public static Object shallowCopy(Object original) {
         Klass klass = GC.getKlass(original);
-        Object copy;
-        if (klass.isArray()) {
-            int length = GC.getArrayLength(original);
-            copy = GC.newArray(klass, length);
-            System.arraycopy(original, 0, copy, 0, length);
-        } else {
-            copy = GC.newInstance(klass); // dst is new object
-            VM.copyBytes(Address.fromObject(original), 0, Address.fromObject(copy), 0, klass.getInstanceSize() * HDR.BYTES_PER_WORD, false);
-        }
+        Object copy = GC.newInstance(klass); // dst is new object
+        VM.copyBytes(Address.fromObject(original), 0, Address.fromObject(copy), 0, klass.getInstanceSize() * HDR.BYTES_PER_WORD, false);
         return copy;
     }
 
