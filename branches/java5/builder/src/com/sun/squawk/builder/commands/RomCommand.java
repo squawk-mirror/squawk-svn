@@ -169,30 +169,24 @@ public class RomCommand extends Command {
                     }
                 } else {
                     File j2meclasses = null;
+                    File resources = null;
                     for (File possibleModuleDir: env.getPossibleModuleDirs()) {
-                        j2meclasses = new File(new File(possibleModuleDir, module), "j2meclasses");
-                        if (j2meclasses.exists() && j2meclasses.isDirectory()) {
-                            break;
+                        File root = new File(possibleModuleDir, module);
+                        File file = new File(root, "j2meclasses");
+                        if (j2meclasses== null && file.exists() && file.isDirectory()) {
+                            j2meclasses = file;
                         }
-                        j2meclasses = null;
+                        file = new File(root, "resources");
+                        if (resources == null && file.exists() && file.isDirectory()) {
+                            resources = file;
+                        }
                     }
                     if (j2meclasses == null) {
                         throw new BuildException("'" + module + "' module is not a jar/zip file and does not have a 'j2meclasses' subdirectory");
                     }
                     module = new File(module).getName();
                     moduleClasses = j2meclasses.getPath();
-                    // TODO: Remove the res one, here to keep backward compatibility with
-                    // samples module, and not able to test it fully to make sure that
-                    // rename of res->resources will succeed
-                    // Add the res folder to add the necessary resources
-                    File resources = new File(module, "res");
-                    if (resources.exists() && resources.isDirectory()) {
-                        classesLocations.add(resources.getPath());
-                    }
-
-                    // Add the resources folder to add the necessary resources
-                    resources = new File(module, "resources");
-                    if (resources.exists() && resources.isDirectory()) {
+                    if (resources != null) {
                         classesLocations.add(resources.getPath());
                     }
                 }

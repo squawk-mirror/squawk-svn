@@ -3408,26 +3408,7 @@ hbp.dumpState();
      */
     private static void raiseChannelException(int context) throws IOException {
         String name = getExceptionMessage(context);
-        Object exception = null;
-        try {
-            Class exceptionClass = Class.forName(name);
-            try {
-                exception = exceptionClass.newInstance();
-            } catch (IllegalAccessException ex1) {
-            } catch (InstantiationException ex1) {
-            }
-        } catch (ClassNotFoundException ex) {
-        }
-        if (exception != null) {
-            if (exception instanceof IOException) {
-                throw (IOException)exception;
-            } else if (exception instanceof RuntimeException) {
-                throw (RuntimeException)exception;
-            } else if (exception instanceof Error) {
-                throw (Error)exception;
-            }
-        }
-        throw new IOException(name);
+        throw new IOException("Channel Exception: " + name);
     }
 
     /**
