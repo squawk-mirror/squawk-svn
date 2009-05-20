@@ -341,11 +341,11 @@ public class Romizer {
 	        } catch (NoClassDefFoundError e) {
 	        	if (romizer != null && romizer.getLastClassName() != null) {
 	            	classNames.add(romizer.getLastClassName());
-	            	System.out.println("   " + e.getClass().getSimpleName() + ": " + romizer.getLastClassName());
-	            	if (VM.isVerbose()) {
-	            		System.out.println("    " + e .getMessage());
-	            	}
-	                continue;
+                    System.out.println("   " + e.getClass().getSimpleName() + ": " + romizer.getLastClassName());
+                    System.out.println("   message: " + e.getLocalizedMessage());
+                    System.out.println("   possibly in class: " + romizer.getLastClassName());
+                    // TODO Deal with fact that for TCK this must continue
+//	                continue;
 	        	}
 	        	throw e;
 	        }
@@ -384,9 +384,9 @@ public class Romizer {
             // Install resources found
             for (int i=0, maxI=resources.size(); i < maxI; i++) {
                 ResourceFile resourceFile = (ResourceFile) resources.elementAt(i);
-                if (VM.isVerbose()) {
+//                if (VM.isVerbose()) {
                     System.out.println("[Including resource: " + resourceFile.name + "]");
-                }
+//                }
                 suite.installResource(resourceFile);
             }
             // Install the jad properties passed on the command line

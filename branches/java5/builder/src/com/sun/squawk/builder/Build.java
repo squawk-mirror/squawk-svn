@@ -330,7 +330,7 @@ public class Build {
             }
         }
 
-        Target command = new Target(extraBuffer.toString(), j2me, baseDir, srcDirs, true, this, new File(baseDir).getName());
+        Target command = new Target(extraBuffer.toString(), j2me, baseDir, srcDirs, true, this, new File(baseDir).getName().toLowerCase());
         if (dependencies != null) {
             command.dependsOn(dependencies);
         }

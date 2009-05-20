@@ -26,6 +26,7 @@ package com.sun.squawk.builder.commands;
 
 import java.io.*;
 import java.util.*;
+
 import com.sun.squawk.builder.*;
 import com.sun.squawk.builder.ccompiler.*;
 import com.sun.squawk.builder.util.*;
@@ -137,28 +138,30 @@ public class RomCommand extends Command {
 
         // The remaining args are the modules making up one or more suites
         boolean isBootstrapSuite = parentSuite == null;
+        List<File> allClassesLocations = new ArrayList<File>(); 
         while (argc != args.length) {
 
-            List<String> classesLocations = new ArrayList<String>();
+            List<File> classesLocations = new ArrayList<File>();
             String suiteName = null;
-            String cp = "";
             boolean createJars = true;
 
             while (argc != args.length) {
 
                 String module = args[argc++];
-                String moduleClasses;
 
                 if (module.equals("--")) {
                     break;
                 }
 
-                if (module.charAt(0) == '-') {
+                if (module.startsWith("-o:")) {
+                    suiteName = module.substring("-o:".length());
+                    continue;
+                } else if (module.charAt(0) == '-') {
                     throw new BuildException("cannot specify romizer options for any suite except the first: " + module);
                 }
 
                 if (module.endsWith(".jar") || module.endsWith(".zip")) {
-                    moduleClasses = module;
+                    classesLocations.add(new File(module));
                     module = new File(module).getName();
                     if (module.endsWith("_classes.jar")) {
                         // This is most likely the jar file build by a previous execution of the romizer
@@ -168,26 +171,23 @@ public class RomCommand extends Command {
                         module = module.substring(0, module.length() - ".jar".length());
                     }
                 } else {
-                    File j2meclasses = null;
-                    File resources = null;
-                    for (File possibleModuleDir: env.getPossibleModuleDirs()) {
-                        File root = new File(possibleModuleDir, module);
-                        File file = new File(root, "j2meclasses");
-                        if (j2meclasses== null && file.exists() && file.isDirectory()) {
-                            j2meclasses = file;
+                    Command moduleCommand = env.getCommand(module);
+                    if (moduleCommand instanceof Target) {
+                        Target target = (Target) moduleCommand;
+                        List<File> dirs = new ArrayList<File>();
+                        target.addDependencyDirectories(target.getPreverifiedDirectoryName(), dirs);
+                        target.addDependencyDirectories(target.getResourcesDirectoryName(), dirs);
+                        for (File file: dirs) {
+                            int index = allClassesLocations.indexOf(file);
+                            if (index == -1) {
+                                if (file.exists()) {
+                                    classesLocations.add(file);
+                                    allClassesLocations.add(file);
+                                }
+                            }
                         }
-                        file = new File(root, "resources");
-                        if (resources == null && file.exists() && file.isDirectory()) {
-                            resources = file;
-                        }
-                    }
-                    if (j2meclasses == null) {
-                        throw new BuildException("'" + module + "' module is not a jar/zip file and does not have a 'j2meclasses' subdirectory");
-                    }
-                    module = new File(module).getName();
-                    moduleClasses = j2meclasses.getPath();
-                    if (resources != null) {
-                        classesLocations.add(resources.getPath());
+                    } else {
+                        throw new BuildException("'" + module + "' module is not a jar/zip file and does not have a target defined for it");
                     }
                 }
 
@@ -195,28 +195,23 @@ public class RomCommand extends Command {
                 if (suiteName == null) {
                     suiteName = module;
                 }
-
-                // Update the class path for the current suite
-                if (cp == "") {
-                    cp = moduleClasses;
-                } else {
-                    cp += File.pathSeparator + moduleClasses;
-                }
-
-                // Add the directory/jar to the set of locations scanned for classes
-                classesLocations.add(moduleClasses);
             }
 
             if (isBootstrapSuite) {
     	        romizerArgs.add("-o:" + bootstrapSuiteName);
                 if (extraCP != "") {
-                    cp += File.pathSeparator + extraCP;
+                    classesLocations.add(new File(extraCP));
                 }
                 romizerArgs.add("-arch:" + arch);
                 romizerArgs.add("-endian:" + endian);
             } else {
                 romizerArgs.add("--");
                 romizerArgs.add("-o:" + suiteName);
+            }
+            StringBuilder cp = new StringBuilder();
+            for (File file: classesLocations) {
+                cp.append(file.getPath());
+                cp.append(File.pathSeparatorChar);
             }
             romizerArgs.add("-cp:" + cp);
             if (createMetadatas) {
@@ -226,7 +221,9 @@ public class RomCommand extends Command {
                 romizerArgs.add("-jars");
             }
 
-            romizerArgs.addAll(classesLocations);
+            for (File file: classesLocations) {
+                romizerArgs.add(file.getPath());
+            }
 
             isBootstrapSuite = false;
         }

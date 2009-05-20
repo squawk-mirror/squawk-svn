@@ -71,20 +71,10 @@ public final class Target extends Command {
     
     protected String getClassPathString(String childDir) {
         StringBuffer classPathBuffer = new StringBuffer();
-        List<String> dependencies = getDependencyNames();
-        for (String dependency: dependencies) {
-            Command command = env.getCommand(dependency);
-            if (command instanceof Target) {
-                Target dependentTarget = (Target) command;
-                String path;
-                try {
-                    path = new File(dependentTarget.baseDir, childDir).getCanonicalPath();
-                } catch (IOException e) {
-                    throw new BuildException("Failed to compute path", e);
-                }
-                classPathBuffer.append(path);
-                classPathBuffer.append(File.pathSeparatorChar);
-            }
+        List<File> dependencies = getDependencyDirectories(childDir);
+        for (File dependency: dependencies) {
+            classPathBuffer.append(dependency.getPath());
+            classPathBuffer.append(File.pathSeparatorChar);
         }
         if (extraClassPath != null && extraClassPath.length() != 0) {
             classPathBuffer.append(File.pathSeparatorChar).append(Build.toPlatformPath(extraClassPath, true));
@@ -95,6 +85,33 @@ public final class Target extends Command {
         return classPathBuffer.toString();
     }
 
+    public List<File> getDependencyDirectories(String subPath) {
+        List<File> result = new ArrayList<File>();
+        addDependencyDirectories(subPath, result);
+        return result;
+    }
+
+    public void addDependencyDirectories(String subPath, List<File> files) {
+        List<String> dependencies = getDependencyNames();
+        for (String dependency: dependencies) {
+            Command command = env.getCommand(dependency);
+            if (command instanceof Target) {
+                Target dependentTarget = (Target) command;
+                dependentTarget.addDependencyDirectories(subPath, files);
+                try {
+                    File file = dependentTarget.baseDir;
+                    if (subPath != null) {
+                        file = new File(file, subPath);
+                    }
+                    file = file.getCanonicalFile();
+                    files.add(file);
+                } catch (IOException e) {
+                    throw new BuildException("Failed to compute path", e);
+                }
+            }
+        }
+    }
+
     /**
      * Performs the compilation.
      *
@@ -103,11 +120,31 @@ public final class Target extends Command {
     public void run(String[] args) {
         // TODO: This is not a good thing, but doing it for now :( EA
         for (File source: copyJ2meDirs) {
-            env.copy(source.getPath(), new File(baseDir, "classes").getPath(), null, "**");
+            env.copy(source.getPath(), new File(baseDir, getCompiledDirectoryName()).getPath(), null, "**");
         }
-        env.javac(getClassPathString("classes"), getClassPathString((j2me ? "weaved":"classes")), baseDir, srcDirs, j2me, extraArgs, preprocess);
+        env.javac(getCompileClassPath(), getPreverifiedClassPath(), baseDir, srcDirs, j2me, extraArgs, preprocess);
     }
 
+    public String getCompileClassPath() {
+        return getClassPathString(getCompiledDirectoryName());
+    }
+    
+    public String getCompiledDirectoryName() {
+        return "classes";
+    }
+    
+    public String getPreverifiedClassPath() {
+        return getClassPathString(getPreverifiedDirectoryName());
+    }
+    
+    public String getPreverifiedDirectoryName() {
+        return "j2meclasses";
+    }
+    
+    public String getResourcesDirectoryName() {
+        return "resources";
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -129,14 +166,14 @@ public final class Target extends Command {
     public void clean() {
         // TODO Should really parameterize the "phoneme" entry
         Build.clearFilesMarkedAsSvnIgnore(baseDir, "phoneme");
-        Build.clear(new File(baseDir, "classes"), true);
+        Build.clear(new File(baseDir, getCompiledDirectoryName()), true);
         Build.delete(new File(baseDir, "classes.jar"));
         if (preprocess) {
             Build.clear(new File(baseDir, "preprocessed"), true);
         }
         if (j2me) {
             Build.clear(new File(baseDir, "weaved"), true);
-            Build.clear(new File(baseDir, "j2meclasses"), true);
+            Build.clear(new File(baseDir, getPreverifiedDirectoryName()), true);
         }
         Build.clear(new File(baseDir, "javadoc"), true);
         Build.clear(new File(baseDir, "doccheck"), true);
