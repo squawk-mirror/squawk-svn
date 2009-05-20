@@ -92,6 +92,15 @@ public final class Target extends Command {
     }
 
     public void addDependencyDirectories(String subPath, List<File> files) {
+        File file = baseDir;
+        if (subPath != null) {
+            file = new File(baseDir, subPath);
+        }
+        try {
+            file = file.getCanonicalFile();
+            files.add(file);
+        } catch (IOException e1) {
+        }
         List<String> dependencies = getDependencyNames();
         for (String dependency: dependencies) {
             Command command = env.getCommand(dependency);
@@ -99,14 +108,13 @@ public final class Target extends Command {
                 Target dependentTarget = (Target) command;
                 dependentTarget.addDependencyDirectories(subPath, files);
                 try {
-                    File file = dependentTarget.baseDir;
+                    file = dependentTarget.baseDir;
                     if (subPath != null) {
                         file = new File(file, subPath);
                     }
                     file = file.getCanonicalFile();
                     files.add(file);
                 } catch (IOException e) {
-                    throw new BuildException("Failed to compute path", e);
                 }
             }
         }
