@@ -69,9 +69,9 @@ public final class Target extends Command {
         extraArgs.add(extraArg);
     }
     
-    protected String getClassPathString(String childDir) {
+    protected String getClassPathString(String childDir, List<String> targetExceptions) {
         StringBuffer classPathBuffer = new StringBuffer();
-        List<File> dependencies = getDependencyDirectories(childDir);
+        List<File> dependencies = getDependencyDirectories(childDir, targetExceptions);
         for (File dependency: dependencies) {
             classPathBuffer.append(dependency.getPath());
             classPathBuffer.append(File.pathSeparatorChar);
@@ -85,13 +85,13 @@ public final class Target extends Command {
         return classPathBuffer.toString();
     }
 
-    public List<File> getDependencyDirectories(String subPath) {
+    public List<File> getDependencyDirectories(String subPath, List<String> targetExceptions) {
         List<File> result = new ArrayList<File>();
-        addDependencyDirectories(subPath, result);
+        addDependencyDirectories(subPath, result, null);
         return result;
     }
 
-    public void addDependencyDirectories(String subPath, List<File> files) {
+    public void addDependencyDirectories(String subPath, List<File> files, List<String> targetExceptions) {
         File file = baseDir;
         if (subPath != null) {
             file = new File(baseDir, subPath);
@@ -105,8 +105,11 @@ public final class Target extends Command {
         for (String dependency: dependencies) {
             Command command = env.getCommand(dependency);
             if (command instanceof Target) {
+                if (targetExceptions != null && targetExceptions.contains(dependency)) {
+                    continue;
+                }
                 Target dependentTarget = (Target) command;
-                dependentTarget.addDependencyDirectories(subPath, files);
+                dependentTarget.addDependencyDirectories(subPath, files, targetExceptions);
                 try {
                     file = dependentTarget.baseDir;
                     if (subPath != null) {
@@ -130,19 +133,19 @@ public final class Target extends Command {
         for (File source: copyJ2meDirs) {
             env.copy(source.getPath(), new File(baseDir, getCompiledDirectoryName()).getPath(), null, "**");
         }
-        env.javac(getCompileClassPath(), getPreverifiedClassPath(), baseDir, srcDirs, j2me, extraArgs, preprocess);
+        env.javac(getCompileClassPath(null), getPreverifiedClassPath(null), baseDir, srcDirs, j2me, extraArgs, preprocess);
     }
 
-    public String getCompileClassPath() {
-        return getClassPathString(getCompiledDirectoryName());
+    public String getCompileClassPath(List<String> targetExceptions) {
+        return getClassPathString(getCompiledDirectoryName(), targetExceptions);
     }
     
     public String getCompiledDirectoryName() {
         return "classes";
     }
     
-    public String getPreverifiedClassPath() {
-        return getClassPathString(getPreverifiedDirectoryName());
+    public String getPreverifiedClassPath(List<String> targetExceptions) {
+        return getClassPathString(getPreverifiedDirectoryName(), targetExceptions);
     }
     
     public String getPreverifiedDirectoryName() {

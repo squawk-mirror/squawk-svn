@@ -551,7 +551,7 @@ public class Romizer {
                 }
             } else if (arg.startsWith("-suitepath:")) {
                 String path = arg.substring("-suitepath:".length());
-                ObjectMemoryLoader.setFilePath(path);
+                ObjectMemoryLoader.addFilePath(path);
                 
             } else if (arg.startsWith("-nobuildproperties")) {
                 if (buildDotOverrideFileName != null) {

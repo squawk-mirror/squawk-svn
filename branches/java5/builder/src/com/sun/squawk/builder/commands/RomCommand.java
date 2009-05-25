@@ -55,6 +55,11 @@ public class RomCommand extends Command {
      * Determines if the C compilation step should be executed or not.
      */
     private boolean compilationEnabled = true;
+    
+    /**
+     * Used to indicate that run does not need to compile, since the rom command was used with a -parent: argument.
+     */
+    protected boolean noNeedToCompile;
 
     public RomCommand(Build env) {
         super(env, "rom");
@@ -102,6 +107,8 @@ public class RomCommand extends Command {
         String endian = env.getPlatform().isBigEndian() ? "big" : "little";
         String parentSuite = null;
         boolean createMetadatas = false;
+        SuiteMetadata parentSuiteMetadata = new SuiteMetadata();
+        SuiteMetadata suiteMetadata = new SuiteMetadata();
 
         int argc = 0;
         while (argc != args.length) {
@@ -121,6 +128,14 @@ public class RomCommand extends Command {
                     endian = arg.substring("-endian:".length());
                 } else if (arg.startsWith("-parent:")) {
                     parentSuite = arg.substring("-parent:".length());
+                    noNeedToCompile = true;
+                    try {
+                        FileInputStream fileIn = new FileInputStream(parentSuite + ".suite.suitemetadata");
+                        ObjectInputStream in = new ObjectInputStream(fileIn);
+                        parentSuiteMetadata = (SuiteMetadata) in.readObject();
+                    } catch (IOException e) {
+                    } catch (ClassNotFoundException e) {
+                    }
                 } else if (arg.startsWith("-metadata")) {
                     createMetadatas = true;
                 } else {
@@ -173,16 +188,22 @@ public class RomCommand extends Command {
                 } else {
                     Command moduleCommand = env.getCommand(module);
                     if (moduleCommand instanceof Target) {
-                        Target target = (Target) moduleCommand;
-                        List<File> dirs = new ArrayList<File>();
-                        target.addDependencyDirectories(target.getPreverifiedDirectoryName(), dirs);
-                        target.addDependencyDirectories(target.getResourcesDirectoryName(), dirs);
-                        for (File file: dirs) {
-                            int index = allClassesLocations.indexOf(file);
-                            if (index == -1) {
-                                if (file.exists()) {
-                                    classesLocations.add(file);
-                                    allClassesLocations.add(file);
+                        suiteMetadata.addTargetIncluded(module);
+                        if (!parentSuiteMetadata.includesTarget(module)) {
+                            
+                            suiteMetadata.addTargetIncluded(module);
+                            Target target = (Target) moduleCommand;
+                            suiteMetadata.addTargetsIncluded(target.getDependencyNames());
+                            List<File> dirs = new ArrayList<File>();
+                            target.addDependencyDirectories(target.getPreverifiedDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
+                            target.addDependencyDirectories(target.getResourcesDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
+                            for (File file: dirs) {
+                                int index = allClassesLocations.indexOf(file);
+                                if (index == -1) {
+                                    if (file.exists()) {
+                                        classesLocations.add(file);
+                                        allClassesLocations.add(file);
+                                    }
                                 }
                             }
                         }
@@ -198,7 +219,8 @@ public class RomCommand extends Command {
             }
 
             if (isBootstrapSuite) {
-    	        romizerArgs.add("-o:" + bootstrapSuiteName);
+                suiteName = bootstrapSuiteName;
+                romizerArgs.add("-o:" + suiteName);
                 if (extraCP != "") {
                     classesLocations.add(new File(extraCP));
                 }
@@ -225,18 +247,34 @@ public class RomCommand extends Command {
                 romizerArgs.add(file.getPath());
             }
 
+            if (createMetadatas) {
+                FileOutputStream fileOut;
+                ObjectOutputStream out = null;
+                try {
+                    File file = new File(suiteName + ".suite.suitemetadata");
+                    System.out.println("SUITEMETADATA:" + file.getPath());
+                    fileOut = new FileOutputStream(file);
+                    out = new ObjectOutputStream(fileOut);
+                    out.writeObject(suiteMetadata);
+                } catch (FileNotFoundException e1) {
+                } catch (IOException e) {
+                } finally {
+                    if (out != null) try {out.close();} catch (IOException e) {}
+                }
+            }
+            
             isBootstrapSuite = false;
         }
 
-    	if (parentSuite != null) {
-    		String arg = "-parent:" + parentSuite;
-    		if (romizerArgs.get(0).equals("--")) {
-    			romizerArgs.set(0, arg);
-    		} else {
-    			romizerArgs.add(0, arg);
-    		}
-    	}
-    	
+        if (parentSuite != null) {
+            String arg = "-parent:" + parentSuite;
+            if (romizerArgs.get(0).equals("--")) {
+                romizerArgs.set(0, arg);
+            } else {
+                romizerArgs.add(0, arg);
+            }
+        }
+
         args = new String[romizerArgs.size()];
         romizerArgs.toArray(args);
         return args;
@@ -322,7 +360,10 @@ public class RomCommand extends Command {
         CCompiler ccompiler = env.getCCompiler();
 
         args = runRomizer(args);
-
+        if (noNeedToCompile) {
+            return;
+        }
+        
         JDK jdk = env.getJDK();
         String options;
         if (compilationEnabled) {
