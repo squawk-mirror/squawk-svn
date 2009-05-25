@@ -220,6 +220,8 @@ public class Build {
     
     private String specfifiedBuildDotOverrideFileName;
     
+    protected boolean isInitialized;
+    
     /**
      * Gets the name of the build.override file specified by the -override: arg. Or null if no
      * -override: arg was specified.
@@ -1510,7 +1512,7 @@ public class Build {
     /**
      * Creates an instance of the builder.
      */
-    public void initialize(String buildDotOverrideFileName) {
+    protected void initialize(String buildDotOverrideFileName) {
         File defaultProperties = new File("build.properties");
         if (defaultProperties.exists()) {
             properties = loadProperties(defaultProperties, null);
@@ -1597,16 +1599,19 @@ public class Build {
      * @param args  the equivalent to the command line arguments
      */
     public void mainProgrammatic(String... args) {
-        String buildDotOverrideFileName = null;
         int startArgsIndex = 0;
-        if (args != null && args.length > 0) {
-            String arg = args[0];
-            if (arg.startsWith("-override:")) {
-                buildDotOverrideFileName = arg.substring("-override:".length());
-                startArgsIndex++;
-            }
-        }
-        initialize(buildDotOverrideFileName);
+    	if (!isInitialized) {
+	        String buildDotOverrideFileName = null;
+	        if (args != null && args.length > 0) {
+	            String arg = args[0];
+	            if (arg.startsWith("-override:")) {
+	                buildDotOverrideFileName = arg.substring("-override:".length());
+	                startArgsIndex++;
+	            }
+	        }
+	        initialize(buildDotOverrideFileName);
+	        isInitialized = true;
+    	}
         args = extractBuilderArgs(args, startArgsIndex);
         printConfiguration();
 

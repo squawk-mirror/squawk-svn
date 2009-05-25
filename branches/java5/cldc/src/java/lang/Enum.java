@@ -22,8 +22,8 @@ public class Enum<E extends Enum<E>> {
 		this.ordinal_ = ordinal;
 	}
 
+	// Call weaved in by retroweaver
     protected static final void setEnumValues(final Object[] values, final Class<?> c) {
-System.out.println("setEnumValues: " + c.getName() + ":" + (values==null?"null":values.length));
 		synchronized(enumValues) {
 			enumValues.put(c, values);
 		}
