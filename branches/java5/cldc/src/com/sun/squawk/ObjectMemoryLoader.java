@@ -500,8 +500,10 @@ System.out.println("filePathelements=" + filePathelements);
         if (path == null) {
             return;
         }
-        StringBuffer buffer = new StringBuffer(filePathelements.length() + path.length());
-        buffer.append(filePathelements);
+        StringBuffer buffer = new StringBuffer();
+        if (filePathelements != null) {
+            buffer.append(filePathelements);
+        }
         StringTokenizer tokenizer = new StringTokenizer(path, "" + VM.getPathSeparatorChar());
         while (tokenizer.hasMoreTokens()) {
             buffer.append(';');
