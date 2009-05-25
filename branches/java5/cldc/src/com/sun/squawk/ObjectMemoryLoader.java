@@ -506,7 +506,9 @@ System.out.println("filePathelements=" + filePathelements);
         }
         StringTokenizer tokenizer = new StringTokenizer(path, "" + VM.getPathSeparatorChar());
         while (tokenizer.hasMoreTokens()) {
-            buffer.append(';');
+            if (buffer.length() > 0) {
+                buffer.append(';');
+            }
             buffer.append("pathelement=");
             buffer.append(tokenizer.nextToken());
         }
@@ -525,11 +527,12 @@ System.out.println("filePathelements=" + filePathelements);
         StringBuffer buffer = new StringBuffer(path.length());
         StringTokenizer tokenizer = new StringTokenizer(path, "" + VM.getPathSeparatorChar());
         while (tokenizer.hasMoreTokens()) {
+            if (buffer.length() > 0) {
+                buffer.append(';');
+            }
             buffer.append("pathelement=");
             buffer.append(tokenizer.nextToken());
-            buffer.append(';');
         }
-        buffer.deleteCharAt(buffer.length() - 1);
         filePathelements = buffer.toString();
     }
     
