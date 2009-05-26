@@ -24,6 +24,7 @@
 
 package com.sun.squawk.builder;
 
+import com.sun.squawk.SquawkRetroWeaver;
 import com.sun.squawk.builder.ccompiler.*;
 import com.sun.squawk.builder.commands.*;
 import com.sun.squawk.builder.gen.Generator;
@@ -37,7 +38,6 @@ import com.sun.squawk.builder.util.SubstitutionProperties;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -53,10 +53,7 @@ import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import net.sourceforge.retroweaver.RetroWeaver;
-import net.sourceforge.retroweaver.Weaver;
 import net.sourceforge.retroweaver.event.WeaveListener;
-import net.sourceforge.retroweaver.translator.NameTranslator;
 
 /**
  * This is the launcher for building parts (or all) of the Squawk VM as well as launching commands.
@@ -2264,71 +2261,6 @@ public class Build {
         }
     }
     
-    protected void retroweaverClearMirrors(String fieldName) {
-        Throwable t;
-        try {
-            // Clear out the mirrors defined for the stringBuilderTranslator
-            Field stringBuilderTranslatorField = NameTranslator.class.getDeclaredField(fieldName);
-            stringBuilderTranslatorField.setAccessible(true);
-            NameTranslator stringBuilderTranslator = (NameTranslator) stringBuilderTranslatorField.get(null);
-            Field field = NameTranslator.class.getDeclaredField("mirrors");
-            field.setAccessible(true);
-            Map<?, ?> mirrors = (Map<?, ?>) field.get(stringBuilderTranslator);
-            mirrors.clear();
-            field = NameTranslator.class.getDeclaredField("namespaces");
-            field.setAccessible(true);
-            List<?> namespaces = (List<?>) field.get(stringBuilderTranslator);
-            namespaces.clear();
-            t = null;
-        } catch (SecurityException e) {
-            t = e;
-        } catch (NoSuchFieldException e) {
-            t = e;
-        } catch (IllegalArgumentException e) {
-            t = e;
-        } catch (IllegalAccessException e) {
-            t = e;
-        }
-        if (t != null) {
-            throw new BuildException("Problems clearing mirrors for retroweaver", t);
-        }
-    }
-    
-    public void buildFileNameSets(ArrayList<String[]> fileNameSets, File path, String trimPart) throws IOException {
-        FileFilter classFilter = new FileFilter() {
-            public boolean accept(File f) {
-                return f.getName().endsWith(".class");
-            }
-        };
-        
-        File[] files = path.listFiles(classFilter);
-        if (files != null) {
-            String[] fileNames = new String[files.length];
-            int i=0;
-            for (File file: files) {
-                String fileName = file.getCanonicalPath();
-                if (fileName.startsWith(trimPart)) {
-                    fileName = fileName.substring(trimPart.length());
-                }
-                fileNames[i] = fileName;
-                i++;
-            }
-            fileNameSets.add(fileNames);
-        }
-
-        FileFilter subdirFilter = new FileFilter() {
-            public boolean accept(File f) {
-                return f.isDirectory();
-            }
-        };
-        File[] subdirs = path.listFiles(subdirFilter);
-        if (subdirs != null) {
-            for (File subdir : subdirs) {
-                buildFileNameSets(fileNameSets, subdir, trimPart);
-            }
-        }
-    }
-
     /**
      * Retroweave a given set of Java class files.
      *
@@ -2339,11 +2271,8 @@ public class Build {
     public File retroweave(File baseDir, File classesDir) {
         final File retroweavedDir = mkdir(baseDir, "weaved");
         log(info, "[running 'retroweave " + classesDir + " into " + retroweavedDir + "...]");
-        retroweaverClearMirrors("generalTranslator");
-        retroweaverClearMirrors("harmonyTranslator");
-        retroweaverClearMirrors("stringBuilderTranslator");
-        RetroWeaver weaver = new RetroWeaver(Weaver.VERSION_1_2);
-        weaver.setListener(new WeaveListener() {
+        SquawkRetroWeaver weaver = new SquawkRetroWeaver();
+        weaver.retroweave(classesDir, retroweavedDir, new WeaveListener() {
             public void weavingStarted(String msg) {
                 log(verbose, "  " + msg);
             }
@@ -2357,19 +2286,6 @@ public class Build {
                 log(verbose, sourcePath);
             }
         });
-        weaver.setLazy(true);
-        weaver.setStripSignatures(true);
-        weaver.setStripAttributes(true);
-        try {
-            ArrayList<String[]> fileNameSets = new ArrayList<String[]>();
-            buildFileNameSets(fileNameSets, classesDir, classesDir.getCanonicalPath() + File.separator);
-            String[][] fileNameSetsArray = fileNameSets.toArray(new String[fileNameSets.size()][]);
-            File[] baseDirs = new File[fileNameSetsArray.length];
-            Arrays.fill(baseDirs, classesDir);
-            weaver.weave(baseDirs, fileNameSetsArray, retroweavedDir);
-        } catch (IOException e) {
-            throw new BuildException("retroweave", e);
-        }
         return retroweavedDir;
     }
     
