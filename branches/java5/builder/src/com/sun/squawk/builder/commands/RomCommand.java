@@ -153,10 +153,12 @@ public class RomCommand extends Command {
 
         // The remaining args are the modules making up one or more suites
         boolean isBootstrapSuite = parentSuite == null;
-        List<File> allClassesLocations = new ArrayList<File>(); 
+        List<File> allClassesLocations = new ArrayList<File>();
+        List<File> allJava5ClassesLocations = new ArrayList<File>();
         while (argc != args.length) {
 
             List<File> classesLocations = new ArrayList<File>();
+            List<File> java5ClassesLocations = new ArrayList<File>();
             String suiteName = null;
             boolean createJars = true;
 
@@ -190,7 +192,6 @@ public class RomCommand extends Command {
                     if (moduleCommand instanceof Target) {
                         suiteMetadata.addTargetIncluded(module);
                         if (!parentSuiteMetadata.includesTarget(module)) {
-                            
                             suiteMetadata.addTargetIncluded(module);
                             Target target = (Target) moduleCommand;
                             suiteMetadata.addTargetsIncluded(target.getDependencyNames());
@@ -198,12 +199,19 @@ public class RomCommand extends Command {
                             target.addDependencyDirectories(target.getPreverifiedDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
                             target.addDependencyDirectories(target.getResourcesDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
                             for (File file: dirs) {
-                                int index = allClassesLocations.indexOf(file);
-                                if (index == -1) {
-                                    if (file.exists()) {
-                                        classesLocations.add(file);
-                                        allClassesLocations.add(file);
-                                    }
+                                if (!allClassesLocations.contains(file) && file.exists()) {
+                                    classesLocations.add(file);
+                                    allClassesLocations.add(file);
+                                }
+                            }
+                            if (target.j2me) {
+                            	dirs = new ArrayList<File>();
+                            	target.addDependencyDirectories(target.getCompiledDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
+                                for (File file: dirs) {
+                                	if (!allJava5ClassesLocations.contains(file) && file.exists()) {
+                                		java5ClassesLocations.add(file);
+                                		allJava5ClassesLocations.add(file);
+                                	}
                                 }
                             }
                         }
@@ -231,11 +239,21 @@ public class RomCommand extends Command {
                 romizerArgs.add("-o:" + suiteName);
             }
             StringBuilder cp = new StringBuilder();
+            cp.append("-cp:");
             for (File file: classesLocations) {
                 cp.append(file.getPath());
                 cp.append(File.pathSeparatorChar);
             }
-            romizerArgs.add("-cp:" + cp);
+            romizerArgs.add(cp.toString());
+            if (!java5ClassesLocations.isEmpty()) {
+            	StringBuilder java5Cp = new StringBuilder();
+            	java5Cp.append("-java5cp:");
+                for (File file: java5ClassesLocations) {
+                	java5Cp.append(file.getPath());
+                	java5Cp.append(File.pathSeparatorChar);
+                }
+                romizerArgs.add(java5Cp.toString());
+            }
             if (createMetadatas) {
                 romizerArgs.add("-metadata");
             }
