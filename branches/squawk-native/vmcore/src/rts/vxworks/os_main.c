@@ -62,33 +62,44 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
 
 void robotTask() {
     fprintf(stderr, "In robotTask\n");
+    os_main("-suite:robot", "-verbose", "-Xtgc:1", null, null, null, null, null, null, null);
+}
 
-    boolean doDebug = false;
-    if (doDebug) {
-        fprintf(stderr, "Starting Debug Agent\n");
-        os_main("-suite:robot", "-verbose", "-Xtgc:1", "com.sun.squawk.debugger.sda.SDA", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
-    } else {
-    	os_main("-suite:robot", "-verbose", "-Xtgc:1", null, null, null, null, null, null, null);
-    }
+void robotTask_DEBUG() {
+    fprintf(stderr, "In robotTask\n");
+    fprintf(stderr, "Starting Debug Agent\n");
+    os_main("-suite:robot", "-verbose", "-Xtgc:1", "com.sun.squawk.debugger.sda.SDA", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
 }
 
 /**
  * Entry point used by FRC.
  */
 int FRC_UserProgram_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
+    int fd;
+    FUNCPTR entryPt = robotTask;
+
     fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
+
+    fd = open("SQUAWK_DEBUG_ENABLED", O_RDONLY);
+    if (fd >= 0) {
+        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED found, starting squawk in debug mode...");
+        entryPt = robotTask_DEBUG;
+        close(fd);
+    } else {
+        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED not found, starting squawk in normal mode...");
+    }
 
     // Start robot task
     // This is done to ensure that the C++ robot task is spawned with the floating point
     // context save parameter.
     int m_taskID = taskSpawn("SquawkRobotTask",
                                             100,
-                                            VX_FP_TASK,							// options
+                                            VX_FP_TASK,						// options
                                             64000,						// stack size
-                                            robotTask,							// function to start
-                                            arg1, arg2, arg3, arg4,	// parameter 1 - pointer to this class
-                                            arg5, arg6, arg7, arg8, arg9, arg10);// additional unused parameters
+                                            entryPt,						// function to start
+                                            arg1, arg2, arg3, arg4,                             // parameter 1 - pointer to this class
+                                            arg5, arg6, arg7, arg8, arg9, arg10);               // additional unused parameters
 /*
     bool ok = HandleError(m_taskID);
     if (!ok) m_taskID = kInvalidTaskID;
