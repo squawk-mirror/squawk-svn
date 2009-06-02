@@ -319,7 +319,9 @@ public class Build {
 
         StringBuffer extraBuffer = new StringBuffer();
         if (extraClassPath != null && extraClassPath.length() != 0) {
-            StringTokenizer tokenizer = new StringTokenizer(extraClassPath, ":");
+        	String string = toPlatformPath(extraClassPath, true);
+//        	extraBuffer.append(extraClassPath);
+            StringTokenizer tokenizer = new StringTokenizer(string, ":");
             while (tokenizer.hasMoreTokens()) {
                 String token = tokenizer.nextToken();
                 extraBuffer.append(new File(baseDir, token));
