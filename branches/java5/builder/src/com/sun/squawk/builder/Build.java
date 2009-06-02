@@ -323,7 +323,7 @@ System.out.println("ORIG:" + extraClassPath);
         	String string = toPlatformPath(extraClassPath, true);
 System.out.println("  STRING:" + extraClassPath);
 //        	extraBuffer.append(extraClassPath);
-            StringTokenizer tokenizer = new StringTokenizer(string, ":");
+            StringTokenizer tokenizer = new StringTokenizer(string, File.pathSeparator);
             while (tokenizer.hasMoreTokens()) {
                 String token = tokenizer.nextToken();
                 extraBuffer.append(new File(baseDir, token));
