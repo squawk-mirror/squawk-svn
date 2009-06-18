@@ -1,23 +1,21 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <matrix-project>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <actions/>
   <description>Build squawk in several configurations, with FLASH_MEMORY=FALSE:&#xd;
 &lt;ul&gt;&#xd;
 &lt;li&gt;ASSERTIONS_ENABLED&#xd;
 &lt;li&gt;DEBUG_CODE_ENABLED&#xd;
 &lt;li&gt;ENABLE_DYNAMIC_CLASSLOADING&#xd;
 &lt;li&gt;TRACING_ENABLED&#xd;
-&lt;/ul&gt;&#xd;
-&#xd;
-&lt;b&gt;No floats&lt;/b&gt; builds disabled (we know they don&apos;t work now anyway).</description>
+&lt;li&gt;FLOATS&#xd;
+&lt;/ul&gt;</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
-    <numToKeep>3</numToKeep>
+    <numToKeep>2</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.plugins.javanet.StatsProperty/>
-    <hudson.security.AuthorizationMatrixProperty/>
   </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
@@ -27,6 +25,7 @@
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>true</useUpdate>
+    <excludedRegions></excludedRegions>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
@@ -54,6 +53,13 @@
       </values>
     </axis>
     <axis>
+      <name>FLOATS</name>
+      <values>
+        <string>true</string>
+        <string>false</string>
+      </values>
+    </axis>
+    <axis>
       <name>TRACING_ENABLED</name>
       <values>
         <string>true</string>
@@ -69,22 +75,19 @@ java -jar build.jar clean
 java -jar build.jar copyphoneme
 java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING &amp;&amp; java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
 $HUDSON_HOME/bin/runsmoketest.sh DELEGATING
-java -jar build.jar map squawk.suite</command>
+
+java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+rm squawk.suite.map
+
+ls -l &gt; sizereport.txt
+java -jar build.jar clean </command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
     <hudson.tasks.ArtifactArchiver>
-      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
+      <artifacts>trunk/sizereport.txt</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
-    <hudson.tasks.BuildTrigger>
-      <childProjects>build-flash-memory-matrix</childProjects>
-      <threshold>
-        <name>SUCCESS</name>
-        <ordinal>0</ordinal>
-        <color>BLUE</color>
-      </threshold>
-    </hudson.tasks.BuildTrigger>
     <hudson.tasks.Mailer>
       <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>

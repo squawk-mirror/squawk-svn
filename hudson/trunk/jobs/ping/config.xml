@@ -9,18 +9,12 @@
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.plugins.javanet.StatsProperty/>
-    <hudson.security.AuthorizationMatrixProperty/>
   </properties>
   <scm class="hudson.scm.NullSCM"/>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
   <jdk>(Default)</jdk>
-  <triggers class="vector">
-    <hudson.triggers.TimerTrigger>
-      <spec>35 * * * *
-</spec>
-    </hudson.triggers.TimerTrigger>
-  </triggers>
+  <triggers class="vector"/>
   <builders>
     <hudson.tasks.Shell>
       <command>echo &quot;ALIVE!&quot;</command>

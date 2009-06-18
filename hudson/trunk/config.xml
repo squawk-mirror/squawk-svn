@@ -1,27 +1,42 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson>
-  <numExecutors>3</numExecutors>
+  <version>1.0</version>
+  <numExecutors>4</numExecutors>
   <mode>NORMAL</mode>
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
   <securityRealm class="hudson.security.SecurityRealm$None"/>
   <systemMessage>&lt;h1&gt;Test/Integration Server for Squawk Project&lt;/h1&gt;&#xd;
-&lt;b&gt;&lt;i&gt;New!&lt;/i&gt;&lt;/b&gt; Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@sun.com&lt;p&gt;&#xd;
+Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@sun.com&lt;p&gt;&#xd;
 &#xd;
 &lt;table cellspacing=&quot;20&quot;&gt;&#xd;
 &lt;tr&gt;&lt;th&gt;Automatic&lt;th&gt;Manual - TCK&lt;th&gt;Manual - Other&#xd;
 &lt;tr&gt;&#xd;
 &lt;td&gt;&#xd;
 &lt;ul&gt;&lt;i&gt;Jobs will start a few minutes after SVN checkin&lt;/i&gt;&#xd;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/&quot;&gt;normal-build&lt;/a&gt; &#xd;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/&quot;&gt;full-debug-build&lt;/a&gt; &#xd;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/&quot;&gt;small-build&lt;/a&gt; &#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/&quot;&gt;normal-build&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/lastSuccessfulBuild/artifact/trunk/sizereport.txt&quot;&gt;Size report&lt;/a&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/javadoc&quot;&gt;Javadoc&lt;/a&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/findbugs/&quot;&gt;FindBugs Warnings&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/&quot;&gt;full-debug-build&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/lastSuccessfulBuild/artifact/trunk/sizereport.txt&quot;&gt;Size report&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/&quot;&gt;small-build&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/lastSuccessfulBuild/artifact/trunk/sizereport.txt&quot;&gt;Size report&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#xd;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-flash-memory-matrix/&quot;&gt;build-flash-memory-matrix&lt;/a&gt;&#xd;
 &lt;/ul&gt;&#xd;
 &#xd;
 &lt;td&gt;&#xd;
 &lt;ul&gt;&lt;i&gt;TCK run starts at 2am, EST&lt;/i&gt;&#xd;
-&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; &#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa.east.sun.com:8080/view/Automatic%20Jobs/job/start-tck-cmdline/lastSuccessfulBuild/artifact/batch-report/html/report.html&quot;&gt;Latest TCK results&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-local&lt;/a&gt; &#xd;
 &lt;/ul&gt;&#xd;
 &lt;i&gt;When the TCK is running, you can check console of the &lt;br&gt;&#xd;
@@ -35,16 +50,86 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
   <jdks>
     <jdk>
       <name>1.6</name>
-      <javaHome>/usr/jdk/instances/jdk1.6.0</javaHome>
+      <home>/usr/jdk/instances/jdk1.6.0</home>
+      <properties/>
     </jdk>
     <jdk>
       <name></name>
-      <javaHome></javaHome>
+      <home></home>
+      <properties/>
     </jdk>
   </jdks>
+  <clouds/>
   <slaves/>
   <quietPeriod>5</quietPeriod>
-  <views/>
+  <views>
+    <hudson.model.AllView>
+      <owner class="hudson" reference="../../.."/>
+      <name>All</name>
+    </hudson.model.AllView>
+    <listView>
+      <owner class="hudson" reference="../../.."/>
+      <name>Automatic Jobs</name>
+      <description>&lt;h1&gt;Test/Integration Server for Squawk Project&lt;/h1&gt;&#xd;
+Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@sun.com&lt;p&gt;&#xd;
+&#xd;
+&lt;ul&gt;&lt;i&gt;Jobs will start a few minutes after SVN checkin&lt;/i&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/&quot;&gt;normal-build&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/lastSuccessfulBuild/artifact/trunk/sizereport.txt&quot;&gt;Size report&lt;/a&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/javadoc&quot;&gt;Javadoc&lt;/a&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/findbugs/&quot;&gt;FindBugs Warnings&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/&quot;&gt;full-debug-build&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/full-debug-build/lastSuccessfulBuild/artifact/trunk/sizereport.txt&quot;&gt;Size report&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/&quot;&gt;small-build&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/small-build/lastSuccessfulBuild/artifact/trunk/sizereport.txt&quot;&gt;Size report&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-flash-memory-matrix/&quot;&gt;build-flash-memory-matrix&lt;/a&gt;&#xd;
+&lt;/ul&gt;&#xd;
+&#xd;
+&#xd;
+&lt;ul&gt;&lt;i&gt;TCK run starts at 2am, EST&lt;/i&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt;&#xd;
+    &lt;ul&gt;&#xd;
+        &lt;li&gt;&lt;a href=&quot;http://squawk-sqa.east.sun.com:8080/view/Automatic%20Jobs/job/start-tck-cmdline/lastSuccessfulBuild/artifact/batch-report/html/report.html&quot;&gt;Latest TCK results&lt;/a&gt;&#xd;
+    &lt;/ul&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;start-jam-local&lt;/a&gt; &#xd;
+&lt;/ul&gt;&#xd;
+&lt;i&gt;When the TCK is running, you can check console of the &lt;br&gt;&#xd;
+currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; job to see progress.&lt;/i&gt;&#xd;
+</description>
+      <jobNames class="tree-set">
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+        <string>build-flash-memory-matrix</string>
+        <string>build-matrix</string>
+        <string>full-debug-build</string>
+        <string>normal-build</string>
+        <string>platform-type-builds</string>
+        <string>platform-type-matrix</string>
+        <string>small-build</string>
+        <string>start-jam-from-svn</string>
+        <string>start-tck-cmdline</string>
+      </jobNames>
+      <columns>
+        <hudson.views.StatusColumn/>
+        <hudson.views.WeatherColumn/>
+        <hudson.views.JobColumn/>
+        <hudson.views.LastSuccessColumn/>
+        <hudson.views.LastFailureColumn/>
+        <hudson.views.LastDurationColumn/>
+        <hudson.views.BuildButtonColumn/>
+      </columns>
+    </listView>
+  </views>
+  <primaryView>All</primaryView>
   <slaveAgentPort>0</slaveAgentPort>
-  <secretKey>f17b8038f02afc000dfa9f1265c0cd9fecb10d23b5cbfeac15282560fe4c4dd1</secretKey>
+  <label></label>
+  <nodeProperties/>
+  <globalNodeProperties/>
+  <disabledAdministrativeMonitors/>
 </hudson>

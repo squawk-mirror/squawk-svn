@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <actions/>
   <description>Do a &quot;platform&quot; build from SVN. Do more testing than the matrix builds.</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
@@ -22,6 +22,7 @@
       <url>http://fisheye4.atlassian.com/browse/squawk/</url>
       <rootModule></rootModule>
     </browser>
+    <excludedRegions></excludedRegions>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
@@ -42,9 +43,10 @@ $HUDSON_HOME/bin/verifyBuildJars2
 java -jar build.jar clean
 java -jar build.jar copyphoneme
 java -jar build.jar
-java -jar build.jar -prod -mac -o2 rom -metadata -lnt -strip:d cldc imp debugger
+java -jar build.jar -prod -mac -o2 rom -metadata -lnt  cldc imp debugger
 
 java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+rm squawk.suite.map
 java -jar build.jar genspec
 java -jar build.jar jvmenv
 java -jar build.jar systemproperties
@@ -54,22 +56,32 @@ java -jar build.jar OperandStackEffect
 java -jar build.jar Verifier
 ./squawk -h
 ./squawk -version
-$HUDSON_HOME/bin/runsmoketest.sh NATIVE
+$HUDSON_HOME/bin/runsmoketest.sh DELEGATING
 $HUDSON_HOME/bin/runiotests.sh
 
 /usr/bin/rm -rf tempdoc
-java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc</command>
+java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc
+
+ls -l &gt; sizereport.txt
+
+mkdir tmp
+cp squawk squawk.suite squawk.suite.metadata tmp
+java -jar build.jar clean 
+mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
+rmdir tmp
+
+java -jar build.jar clean </command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>squawk-native/squawk,squawk-native/squawk.suite,squawk-native/squawk.suite.metadata</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.JavadocArchiver>
       <javadocDir>squawk-native/tempdoc/javadoc</javadocDir>
       <keepAll>false</keepAll>
     </hudson.tasks.JavadocArchiver>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>squawk-native/squawk,squawk-native/squawk.suite,squawk-native/squawk.suite.metadata,squawk-native/sizereport.txt</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.BuildTrigger>
       <childProjects>platform-type-matrix</childProjects>
       <threshold>

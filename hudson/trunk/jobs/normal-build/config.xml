@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <actions/>
   <description>Do a &quot;normal&quot; build from SVN. Do more testing than the matrix builds.</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
@@ -9,7 +9,6 @@
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.plugins.javanet.StatsProperty/>
-    <hudson.security.AuthorizationMatrixProperty/>
   </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
@@ -23,6 +22,7 @@
       <url>http://fisheye4.atlassian.com/browse/squawk/</url>
       <rootModule></rootModule>
     </browser>
+    <excludedRegions></excludedRegions>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
@@ -58,18 +58,29 @@ java -jar build.jar Verifier
 $HUDSON_HOME/bin/runsmoketest.sh DELEGATING
 
 /usr/bin/rm -rf tempdoc
-java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc</command>
+java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc
+
+java -jar $HUDSON_HOME/findbugs/lib/findbugs.jar -textui -project $HUDSON_HOME/bin/findbugs-bootstrap.fbp -exclude $HUDSON_HOME/bin/findbugs-filter.xml -output findbugs.xml
+
+ls -l &gt; sizereport.txt
+
+mkdir tmp
+cp squawk squawk.suite squawk.suite.metadata tmp
+java -jar build.jar clean 
+mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
+rmdir tmp
+</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.JavadocArchiver>
       <javadocDir>trunk/tempdoc/javadoc</javadocDir>
       <keepAll>false</keepAll>
     </hudson.tasks.JavadocArchiver>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.BuildTrigger>
       <childProjects>full-debug-build, small-build, build-matrix</childProjects>
       <threshold>
@@ -78,6 +89,50 @@ java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed
         <color>BLUE</color>
       </threshold>
     </hudson.tasks.BuildTrigger>
+    <hudson.plugins.findbugs.FindBugsPublisher>
+      <threshold></threshold>
+      <newThreshold></newThreshold>
+      <failureThreshold></failureThreshold>
+      <newFailureThreshold></newFailureThreshold>
+      <healthy></healthy>
+      <unHealthy></unHealthy>
+      <height></height>
+      <pluginName>[FINDBUGS] </pluginName>
+      <thresholdLimit>low</thresholdLimit>
+      <defaultEncoding></defaultEncoding>
+      <pattern></pattern>
+    </hudson.plugins.findbugs.FindBugsPublisher>
+    <hudson.plugins.tasks.TasksPublisher>
+      <threshold></threshold>
+      <newThreshold></newThreshold>
+      <failureThreshold></failureThreshold>
+      <newFailureThreshold></newFailureThreshold>
+      <healthy></healthy>
+      <unHealthy></unHealthy>
+      <height></height>
+      <pluginName>[TASKS] </pluginName>
+      <thresholdLimit>low</thresholdLimit>
+      <defaultEncoding></defaultEncoding>
+      <high></high>
+      <normal></normal>
+      <low></low>
+      <ignoreCase>false</ignoreCase>
+      <pattern></pattern>
+      <excludePattern></excludePattern>
+    </hudson.plugins.tasks.TasksPublisher>
+    <hudson.plugins.pmd.PmdPublisher>
+      <threshold></threshold>
+      <newThreshold></newThreshold>
+      <failureThreshold></failureThreshold>
+      <newFailureThreshold></newFailureThreshold>
+      <healthy></healthy>
+      <unHealthy></unHealthy>
+      <height></height>
+      <pluginName>[PMD] </pluginName>
+      <thresholdLimit>low</thresholdLimit>
+      <defaultEncoding></defaultEncoding>
+      <pattern></pattern>
+    </hudson.plugins.pmd.PmdPublisher>
     <hudson.tasks.Mailer>
       <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>

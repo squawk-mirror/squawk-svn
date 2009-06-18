@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <actions/>
   <description>Build a full debug build from SVN. Build with assertions, debude code, assume, tracing, and interpreted gc.</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
@@ -9,7 +9,6 @@
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.plugins.javanet.StatsProperty/>
-    <hudson.security.AuthorizationMatrixProperty/>
   </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
@@ -19,6 +18,7 @@
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>true</useUpdate>
+    <excludedRegions></excludedRegions>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
@@ -33,7 +33,7 @@ java -jar build.jar copyphoneme
 java -jar build.jar -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
 java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt -metadata cldc imp debugger
 
-java -jar build.jar map squawk.suite
+java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
 java -jar build.jar genspec
 java -jar build.jar jvmenv
 java -jar build.jar systemproperties
@@ -45,12 +45,20 @@ java -jar build.jar Verifier
 ./squawk -version
 $HUDSON_HOME/bin/runsmoketest.sh DELEGATING
 $HUDSON_HOME/bin/rundsmoketest.sh DELEGATING
+
+ls -l &gt; sizereport.txt
+
+mkdir tmp
+cp squawk squawk.suite squawk.suite.metadata tmp
+java -jar build.jar clean 
+mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
+rmdir tmp
 </command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
     <hudson.tasks.ArtifactArchiver>
-      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata</artifacts>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.Mailer>
