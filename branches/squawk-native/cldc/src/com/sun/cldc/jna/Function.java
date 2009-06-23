@@ -168,12 +168,89 @@ public final class Function {
         return result;
     }
 
-    /* Call a function pointer with one arguments */
+        /**
+     * Call a function pointer with five arguments
+     */
+    public int call6(int i1, int i2, int i3, int i4, int i5, int i6) {
+        if (DEBUG) {
+            VM.print(name);
+            VM.println(".call6");
+        }
+//        VM.setBlocked(true);
+        int result = NativeUnsafe.call6(funcAddr, i1, i2, i3, i4, i5, i6);
+//        VM.setBlocked(false);
+        return result;
+    }
+
+        /**
+     * Call a function pointer with five arguments
+     */
+    public int call7(int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
+        if (DEBUG) {
+            VM.print(name);
+            VM.println(".call7");
+        }
+//        VM.setBlocked(true);
+        int result = NativeUnsafe.call7(funcAddr, i1, i2, i3, i4, i5, i6, i7);
+//        VM.setBlocked(false);
+        return result;
+    }
+
+        /**
+     * Call a function pointer with five arguments
+     */
+    public int call8(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8) {
+        if (DEBUG) {
+            VM.print(name);
+            VM.println(".call8");
+        }
+//        VM.setBlocked(true);
+        int result = NativeUnsafe.call8(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8);
+//        VM.setBlocked(false);
+        return result;
+    }
+
+        /**
+     * Call a function pointer with five arguments
+     */
+    public int call9(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9) {
+        if (DEBUG) {
+            VM.print(name);
+            VM.println(".call9");
+        }
+//        VM.setBlocked(true);
+        int result = NativeUnsafe.call9(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9);
+//        VM.setBlocked(false);
+        return result;
+    }
+
+        /**
+     * Call a function pointer with five arguments
+     */
+    public int call10(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10) {
+        if (DEBUG) {
+            VM.print(name);
+            VM.println(".call10");
+        }
+//        VM.setBlocked(true);
+        int result = NativeUnsafe.call10(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+//        VM.setBlocked(false);
+        return result;
+    }
+
+
+    /*** THE FOLLOWING METHODS THAT TAKE POINTER ARGUMENTS ARE CONVIENIENCE FUNCTIONS FOR HAND-WRITTEN WRAPPERS.
+     *   They may disapear in future versions of this API.
+     ***/
+
+    /* ---- Call a function pointer with one arguments ---- */
+
     public int call1(Pointer p1) {
         return call1(p1.address().toUWord().toPrimitive());
     }
 
-    /* Call a function pointer with two arguments */
+    /* ---- Call a function pointer with two arguments ---- */
+
     public int call2(int i1, Pointer p2) {
         return call2(i1, p2.address().toUWord().toPrimitive());
     }
@@ -186,7 +263,8 @@ public final class Function {
         return call2(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive());
     }
 
-    /* Call a function pointer with three arguments */
+    /* ---- Call a function pointer with three arguments ---- */
+
     public int call3(int i1, int i2, Pointer p3) {
         return call3(i1, i2, p3.address().toUWord().toPrimitive());
     }
@@ -274,7 +352,7 @@ public final class Function {
         return call4(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive());
     }
     
-    /* Call a function pointer with five arguments */
+    /* ---- Call a function pointer with five arguments ---- 7*/
     public int call5(int i1, int i2, int i3, Pointer p4, int i5) {
         return call5(i1, i2, i3, p4.address().toUWord().toPrimitive(), i5);
     }

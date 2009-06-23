@@ -388,5 +388,10 @@ typedef int (*funcPtr2)(int, int);
 typedef int (*funcPtr3)(int, int, int); 
 typedef int (*funcPtr4)(int, int, int, int);
 typedef int (*funcPtr5)(int, int, int, int, int); 
+typedef int (*funcPtr6)(int, int, int, int, int, int);
+typedef int (*funcPtr7)(int, int, int, int, int, int, int);
+typedef int (*funcPtr8)(int, int, int, int, int, int, int, int);
+typedef int (*funcPtr9)(int, int, int, int, int, int, int, int, int);
+typedef int (*funcPtr10)(int, int, int, int, int, int, int, int, int, int);
 
 

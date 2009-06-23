@@ -4048,6 +4048,86 @@ foundSlot:
                     break;
                 }
 
+                case Native_com_sun_squawk_NativeUnsafe_call6: {
+                    int i6 = popInt();
+                    int i5 = popInt();
+                    int i4 = popInt();
+                    int i3 = popInt();
+                    int i2 = popInt();
+                    int i1 = popInt();
+                    Address address = popAddress();
+                    funcPtr6 f6 = (funcPtr6)address;
+                    int result = (*f6)(i1, i2, i3, i4, i5, i6);
+                    pushInt(result);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_call7: {
+                    int i7 = popInt();
+                    int i6 = popInt();
+                    int i5 = popInt();
+                    int i4 = popInt();
+                    int i3 = popInt();
+                    int i2 = popInt();
+                    int i1 = popInt();
+                    Address address = popAddress();
+                    funcPtr7 f7 = (funcPtr7)address;
+                    int result = (*f7)(i1, i2, i3, i4, i5, i6, i7);
+                    pushInt(result);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_call8: {
+                    int i8 = popInt();
+                    int i7 = popInt();
+                    int i6 = popInt();
+                    int i5 = popInt();
+                    int i4 = popInt();
+                    int i3 = popInt();
+                    int i2 = popInt();
+                    int i1 = popInt();
+                    Address address = popAddress();
+                    funcPtr8 f8 = (funcPtr8)address;
+                    int result = (*f8)(i1, i2, i3, i4, i5, i6, i7, i8);
+                    pushInt(result);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_call9: {
+                    int i9 = popInt();
+                    int i8 = popInt();
+                    int i7 = popInt();
+                    int i6 = popInt();
+                    int i5 = popInt();
+                    int i4 = popInt();
+                    int i3 = popInt();
+                    int i2 = popInt();
+                    int i1 = popInt();
+                    Address address = popAddress();
+                    funcPtr9 f9 = (funcPtr9)address;
+                    int result = (*f9)(i1, i2, i3, i4, i5, i6, i7, i8, i9);
+                    pushInt(result);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_call10: {
+                    int i10 = popInt();
+                    int i9 = popInt();
+                    int i8 = popInt();
+                    int i7 = popInt();
+                    int i6 = popInt();
+                    int i5 = popInt();
+                    int i4 = popInt();
+                    int i3 = popInt();
+                    int i2 = popInt();
+                    int i1 = popInt();
+                    Address address = popAddress();
+                    funcPtr10 f10 = (funcPtr10)address;
+                    int result = (*f10)(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+                    pushInt(result);
+                    break;
+                }
+
                 case Native_com_sun_squawk_Address_add: {
                     int offset = popInt();
                     Address addr = popAddress();
