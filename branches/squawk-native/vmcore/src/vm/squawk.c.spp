@@ -1600,7 +1600,7 @@ extern void printStrSafely(Address value, char* valueName, Address low, Address 
 /**
  * Exits the VM with an error message including various interpreter state.
  */
-extern  void fatalInterpreterError0(char *msg, int opcode, int iparm, ByteAddress _ip, UWordAddress _fp, UWordAddress _sp, char* file, int line) {
+extern  void fatalInterpreterError0(char *msg, int opcode, int _iparm, ByteAddress _ip, UWordAddress _fp, UWordAddress _sp, char* file, int line) {
     Address stackHigh = com_sun_squawk_GC_ramEnd;
     boolean userStack = FALSE;
 
@@ -1609,7 +1609,7 @@ extern  void fatalInterpreterError0(char *msg, int opcode, int iparm, ByteAddres
     if (opcode != (opcode & 0xFF)) {
            fprintf(stderr, "    opcode overflowed!\n");
     }
-    fprintf(stderr, "    iparm: 0x%x\n", iparm);
+    fprintf(stderr, "    iparm: 0x%x\n", _iparm);
 
 #ifdef FLASH_MEMORY
     printValueInRange(_ip, "ip", com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, "code");
