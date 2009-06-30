@@ -455,13 +455,7 @@ public class JavaApplicationManager {
                 "    -traceswapper         trace endianess swapping\n"
                 );
         }
-        TranslatorInterface t = VM.getCurrentIsolate().getTranslator();
-        if (t == null) {
-            t = Isolate.getDefaultTranslator();
-        }
-        if (t != null) {
-            t.printTraceFlags(out);
-        }
+        
         GC.getCollector().usage(out);
         out.print(
                 "    -egc                  enable excessive garbage collection\n" +

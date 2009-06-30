@@ -1254,7 +1254,7 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          */
 /*MAC*/ Address allocateFast(int $size, Address $klass, int $arrayLength) {
             if (
-                com_sun_squawk_GC_excessiveGC == true        ||
+                com_sun_squawk_GC_excessiveGC != false       ||
                 com_sun_squawk_GC_allocationEnabled == false ||
                 (com_sun_squawk_GC_GC_TRACING_SUPPORTED && com_sun_squawk_GC_traceFlags != 0)
                ) {

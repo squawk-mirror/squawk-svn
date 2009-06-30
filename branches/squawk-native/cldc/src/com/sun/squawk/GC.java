@@ -164,7 +164,7 @@ public class GC implements GlobalStaticFields {
     /**
      * GC tracing flag specifying basic tracing.
      * 
-     * This trace level should always be enabled (not depnedent on GC_TRACING_SUPPORTED)
+     * This trace level should always be enabled (not dependent on GC_TRACING_SUPPORTED)
      */
     static final int TRACE_BASIC = 1;
 
@@ -220,8 +220,7 @@ public class GC implements GlobalStaticFields {
         if ((traceFlags & option & TRACE_BASIC) != 0) {
             return true;
         } else if ((GarbageCollector.HEAP_TRACE || GC.GC_TRACING_SUPPORTED) && (traceFlags & option) != 0) {
-            final int basicOptions = (TRACE_BASIC | TRACE_ALLOCATION);
-            if ((option & basicOptions) != 0) {
+            if ((traceFlags & option & TRACE_ALLOCATION) != 0) {
                 return true;
             } else {
                 return (collector == null || getTotalCount() >= traceThreshold);

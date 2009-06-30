@@ -1108,6 +1108,9 @@ fprintf(stderr, "&&&& Special int val2 = %lx\n", val2);
     com_sun_squawk_VMThread_serviceStack = Address_add(roundUp((UWord)com_sun_squawk_GC_ramEnd, pageSize), TWOWORDS);
     setUWord(com_sun_squawk_VMThread_serviceStack, HDR_length, SERVICE_CHUNK_SIZE_MINUS2WORDS / HDR_BYTES_PER_WORD);
     setUWord(com_sun_squawk_VMThread_serviceStack, SC_guard, 0);
+    setObject(com_sun_squawk_VMThread_serviceStack, SC_owner, 0);
+    setObject(com_sun_squawk_VMThread_serviceStack, SC_lastFP, 0);
+    setUWord(com_sun_squawk_VMThread_serviceStack, SC_lastBCI, 0);
 
     // The command line arguments for the JAM start on the next page after the end of the stack for the service thread.
     com_sun_squawk_VM_argc = argc;
