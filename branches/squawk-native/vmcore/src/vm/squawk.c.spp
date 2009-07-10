@@ -810,6 +810,7 @@ fprintf(stderr, "VM is in a blocking system call!!! WILL CRASH????");
 #endif
 
     osfinish();
+	inStop = false;
     exit(exitCode);
 }
 
