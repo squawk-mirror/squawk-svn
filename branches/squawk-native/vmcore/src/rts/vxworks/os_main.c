@@ -76,7 +76,7 @@ void robotTask_DEBUG() {
  */
 int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     int fd;
-    FUNCPTR entryPt = robotTask;
+    FUNCPTR entryPt = (FUNCPTR)robotTask;
 
     fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
@@ -84,7 +84,7 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
     fd = open("SQUAWK_DEBUG_ENABLED", O_RDONLY);
     if (fd >= 0) {
         fprintf(stderr, "File SQUAWK_DEBUG_ENABLED found, starting squawk in debug mode...");
-        entryPt = robotTask_DEBUG;
+        entryPt = (FUNCPTR)robotTask_DEBUG;
         close(fd);
     } else {
         fprintf(stderr, "File SQUAWK_DEBUG_ENABLED not found, starting squawk in normal mode...");
@@ -98,8 +98,8 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
                                             VX_FP_TASK,						// options
                                             64000,						// stack size
                                             entryPt,						// function to start
-                                            arg1, arg2, arg3, arg4,                             // parameter 1 - pointer to this class
-                                            arg5, arg6, arg7, arg8, arg9, arg10);               // additional unused parameters
+                                            (int)arg1, (int)arg2, (int)arg3, (int)arg4, (int)arg5,     // parameter 1 - pointer to this class
+                                            (int)arg6, (int)arg7, (int)arg8, (int)arg9, (int)arg10);   // additional unused parameters
 /*
     bool ok = HandleError(m_taskID);
     if (!ok) m_taskID = kInvalidTaskID;
