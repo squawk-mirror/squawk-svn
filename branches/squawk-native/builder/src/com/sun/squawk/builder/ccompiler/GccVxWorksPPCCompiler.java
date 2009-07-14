@@ -172,13 +172,11 @@ IDE_LIBRARIES = $(WIND_BASE)/target/lib/WPILib.a
 
         String ccName = "ccppc";
         
-        File[] newObjects = new File[objects.length + 1];
+        File[] newObjects = new File[objects.length];
 
         for(int f = 0; f < objects.length; f++) {
             newObjects[f] = objects[f];
         }
-        newObjects[objects.length] = new File("vmcore/src/rts/vxworks/ChipObjectWrapper.out");
-        //newObjects[objects.length + 1] = new File("vmcore/src/rts/vxworks/ctdt.o");
 
         output = out + platform.getExecutableExtension();
         //exec = "--gc-sections -o " + output + " " + Build.join(newObjects);
@@ -186,7 +184,9 @@ IDE_LIBRARIES = $(WIND_BASE)/target/lib/WPILib.a
         
         // TODO: /WindRiver/... is hardcoded..  fix this?
         //  env.exec(ccName + " -r -Wl,-X -T /WindRiver/vxworks-6.3/target/h/tool/gnu/ldscripts/link.OUT " + exec);
-        env.exec(ccName + " -r -Wl,-X " + exec);
+        // TODO: Generate the ctdt.o from the object and link it into the .out file.
+        //       Without this, static variables will not be initialized.
+        env.exec(ccName + " -nostdlib -r -Wl,-X " + exec);
 
         return new File(output);
     }
