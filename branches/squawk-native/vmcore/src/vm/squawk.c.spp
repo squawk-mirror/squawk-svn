@@ -1805,14 +1805,13 @@ int Squawk_main_wrapper(int argc, char *argv[]) {
 #include "os_main.c"
 #endif
 
+#ifndef VXWORKS
 int main(int argc, char *argv[]) {
 
 #ifdef __APPLE__
     os_main(argc, argv);
 #else
-#ifdef VXWORKS
-    fatalVMError("main() should not be called on VxWorks - use \"os_main\" as the entry point instead");
-#endif /* VXWORKS */
     return Squawk_main_wrapper(argc, argv);
 #endif /* !__APPLE__ */
 }
+#endif /* VXWORKS */
