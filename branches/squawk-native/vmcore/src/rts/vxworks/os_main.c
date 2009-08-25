@@ -81,13 +81,11 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
     fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
 
-    fd = open("SQUAWK_DEBUG_ENABLED", O_RDONLY);
-    if (fd >= 0) {
-        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED found, starting squawk in debug mode...");
+    if (strncmp("DEBUG",arg1,5) == 0) {
+        fprintf(stderr, "Starting squawk in debug mode...");
         entryPt = (FUNCPTR)robotTask_DEBUG;
-        close(fd);
     } else {
-        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED not found, starting squawk in normal mode...");
+        fprintf(stderr, "Starting squawk in normal mode...");
     }
 
     // Start robot task
