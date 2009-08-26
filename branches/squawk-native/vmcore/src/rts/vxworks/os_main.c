@@ -30,6 +30,8 @@
 
 #define VXLOADARG(arg) if(arg != NULL) { argv[argc] = arg; argc++; printf("arg: %s\n", arg);} else (void)0
 
+void Priv_SetWriteFileAllowed(int);
+
 /**
  * Entry point for the VxWorks operating system.
  */
@@ -81,13 +83,28 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
     fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
 
+    Priv_SetWriteFileAllowed(1);
+
+    fd = open("SQUAWK_DEBUG_ENABLED", O_RDONLY);
+    if (fd >= 0) {
+        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED found, starting squawk in debug mode...");
+        entryPt = (FUNCPTR)robotTask_DEBUG;
+        close(fd);
+        remove("SQUAWK_DEBUG_ENABLED");
+    } else {
+        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED not found, starting squawk in normal mode...");
+    }
+
+    /*
     if (strncmp("DEBUG",arg1,5) == 0) {
         fprintf(stderr, "Starting squawk in debug mode...");
         entryPt = (FUNCPTR)robotTask_DEBUG;
     } else {
         fprintf(stderr, "Starting squawk in normal mode...");
     }
+    */
 
+    
     // Start robot task
     // This is done to ensure that the C++ robot task is spawned with the floating point
     // context save parameter.

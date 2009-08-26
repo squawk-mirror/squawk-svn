@@ -28,10 +28,10 @@
 
 package com.sun.squawk.platform.posix.vxworks.natives;
 
-import com.sun.squawk.platform.posix.natives.*;
+//import com.sun.squawk.platform.posix.natives.*;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.NativeLibrary;
-import com.sun.cldc.jna.ptr.*;
+//import com.sun.cldc.jna.ptr.*;
 
 public class SocketImpl extends com.sun.squawk.platform.posix.natives.SocketImpl {
 
@@ -112,12 +112,12 @@ public class SocketImpl extends com.sun.squawk.platform.posix.natives.SocketImpl
 //    private final Function shutdownPtr;
 //
 
-    private final Function clearSocketFn;
+//    private final Function clearSocketFn;
 
-    public int shutdown(int arg0, int arg1) {
-        clearSocketFn.call1(arg0);
-        return super.shutdown(arg0, arg1);
-    }
+//    public int shutdown(int arg0, int arg1) {
+//        clearSocketFn.call1(arg0);
+//        return super.shutdown(arg0, arg1);
+//    }
 //
 //    private final Function inet_ntopPtr;
 //
@@ -131,21 +131,21 @@ public class SocketImpl extends com.sun.squawk.platform.posix.natives.SocketImpl
 //    private final Function socketPtr;
 //
 
-    private final Function registerSocketFn;
+//    private final Function registerSocketFn;
 
-    public int socket(int arg0, int arg1, int arg2) {
-        int socketHandle = super.socket(arg0, arg1, arg2);
-        registerSocketFn.call1(socketHandle);
-        return socketHandle;
-    }
+//    public int socket(int arg0, int arg1, int arg2) {
+//        int socketHandle = super.socket(arg0, arg1, arg2);
+//        registerSocketFn.call1(socketHandle);
+//        return socketHandle;
+//    }
 //
 //    private final Function acceptPtr;
 //
-    public int accept(int arg0, sockaddr_in arg1, IntByReference arg2) {
-        int socketHandle = super.accept(arg0, arg1, arg2);
-        registerSocketFn.call1(socketHandle);
-        return socketHandle;
-    }
+//    public int accept(int arg0, sockaddr_in arg1, IntByReference arg2) {
+//        int socketHandle = super.accept(arg0, arg1, arg2);
+//        registerSocketFn.call1(socketHandle);
+//        return socketHandle;
+//    }
 //
 //    private final Function connectPtr;
 //
@@ -183,8 +183,8 @@ public class SocketImpl extends com.sun.squawk.platform.posix.natives.SocketImpl
     public SocketImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
 
-        clearSocketFn = jnaNativeLibrary.getFunction("clearSocket");
-        registerSocketFn = jnaNativeLibrary.getFunction("registerSocket");
+//        clearSocketFn = jnaNativeLibrary.getFunction("clearSocket");
+//        registerSocketFn = jnaNativeLibrary.getFunction("registerSocket");
 //        getsockoptPtr = jnaNativeLibrary.getFunction("getsockopt");
 //        bindPtr = jnaNativeLibrary.getFunction("bind");
 //        listenPtr = jnaNativeLibrary.getFunction("listen");
