@@ -89,6 +89,7 @@ fprintf(stderr, "cmdLine: %s\n", cmdLine);
 }
 
 // DEBUG
+/*
 void testCmdStr2argv(mainParameters* launchOptions) {
      cmdStr2argv(launchOptions, "");
      cmdStr2argv(launchOptions, "    ");
@@ -102,6 +103,7 @@ void testCmdStr2argv(mainParameters* launchOptions) {
      cmdStr2argv(launchOptions, "-verbose  foo ");
      cmdStr2argv(launchOptions, "  -verbose     foo   ");
 }
+*/
 
 /**
   * Convert the Mac's CFStringRef to a nice, POSIXy string, or die trying.

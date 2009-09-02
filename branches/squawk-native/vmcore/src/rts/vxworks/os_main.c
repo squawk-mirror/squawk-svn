@@ -54,23 +54,15 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* ar
     VXLOADARG(arg9);
     VXLOADARG(arg10);
 
-    printf("argc: %d\n", argc);
-
-    // Switch directories so squawk.suite will always be found
-    //cd("/c/squawk");
-
     return Squawk_main_wrapper(argc, argv);
 }
 
 void robotTask() {
-    fprintf(stderr, "In robotTask\n");
-    os_main("-suite:robot", "-verbose", "-Xtgc:1", null, null, null, null, null, null, null);
+    os_main("-suite:robot", "-verbose", "-Xtgc:1", "-Xmxnvm:1M", null, null, null, null, null, null);
 }
 
 void robotTask_DEBUG() {
-    fprintf(stderr, "In robotTask\n");
-    fprintf(stderr, "Starting Debug Agent\n");
-    os_main("-suite:robot", "-verbose", "-Xtgc:1", "com.sun.squawk.debugger.sda.SDA", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null, null);
+    os_main("-suite:robot", "-verbose", "-Xtgc:1",  "-Xmxnvm:1M", "com.sun.squawk.debugger.sda.SDA", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null, null);
 }
 
 /**
@@ -80,7 +72,6 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
     int fd;
     FUNCPTR entryPt = (FUNCPTR)robotTask;
 
-    fprintf(stderr, "In FRC_UserProgram_StartupLibraryInit\n");
     cd("/c/ni-rt/system");
 
     Priv_SetWriteFileAllowed(1);
