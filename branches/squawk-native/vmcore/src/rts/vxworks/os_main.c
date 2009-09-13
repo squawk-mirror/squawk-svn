@@ -33,16 +33,20 @@
 
 #define CMD_LINE_FILENAME "SQUAWK_CMD_LINE"
 
+#ifndef SQUAWK_VERSION
+#define SQUAWK_VERSION "2010 FRC"
+#endif
+
 void Priv_SetWriteFileAllowed(int);
 
 int VXLOADARG(char* arg, char** argv, int argc) {
     if (arg != NULL) {              
         if (argc >= MAXARGS) {       
-            fprintf(stderr, "too many args, skipping: %s\n", arg); 
+            fprintf(stderr, "[Squawk VM] too many args, skipping: %s\n", arg);
         } else {                     
             argv[argc] = arg;        
             argc++;                  
-            printf("arg: %s\n", arg);
+            printf("[Squawk VM]    arg: %s\n", arg);
         }
     }
     return argc;
@@ -82,7 +86,7 @@ char* getnextArg(FILE* cmdFile) {
         } else {
             if (index >= LARGESTARG - 1) {
                 argbuf[LARGESTARG - 1] = '\0';
-                fprintf(stderr, "Argument too long: %s\n", argbuf);
+                fprintf(stderr, "[Squawk VM] Argument too long: %s\n", argbuf);
                 return NULL;
             }
             // buffer up argument until we see EOF or space:
@@ -107,14 +111,14 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5) {
     // load cmd line args from file
     cmdFile = fopen(CMD_LINE_FILENAME, "r");
     if (cmdFile != NULL) {
-        fprintf(stderr, "Reading Squawk command line file " CMD_LINE_FILENAME "...\n");
+        fprintf(stderr, "[Squawk VM] Reading Squawk command line file " CMD_LINE_FILENAME "...\n");
         char* copyarg;
         while ((copyarg = getnextArg(cmdFile)) != NULL) {
             argc = VXLOADARG(copyarg, argv, argc);
         }
         fclose(cmdFile);
     } else {
-        fprintf(stderr, "Squawk command line file " CMD_LINE_FILENAME " not found, using default args...\n");
+        fprintf(stderr, "[Squawk VM] Squawk command line file " CMD_LINE_FILENAME " not found, using default args...\n");
         argc = VXLOADARG("-suite:robot", argv, argc);
         argc = VXLOADARG("-Xmxnvm:1M",   argv, argc);
     }
@@ -137,6 +141,11 @@ void robotTask_DEBUG() {
     os_main("com.sun.squawk.debugger.sda.SDA", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null);
 }
 
+void squawk_printVersion() {
+	printf("\r\n[Squawk VM] Version: %s, %s\r\n", SQUAWK_VERSION, __DATE__);
+	fflush(stdout);
+}
+
 /**
  * Entry point used by FRC.
  */
@@ -148,14 +157,16 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
 
     Priv_SetWriteFileAllowed(1);
 
+    squawk_printVersion();
+
     fd = open("SQUAWK_DEBUG_ENABLED", O_RDONLY);
     if (fd >= 0) {
-        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED found, starting squawk in debug mode...\n");
+        fprintf(stderr, "[Squawk VM] File SQUAWK_DEBUG_ENABLED found, starting squawk in debug mode...\n");
         entryPt = (FUNCPTR)robotTask_DEBUG;
         close(fd);
         remove("SQUAWK_DEBUG_ENABLED");
     } else {
-        fprintf(stderr, "File SQUAWK_DEBUG_ENABLED not found, starting squawk in normal mode...\n");
+        fprintf(stderr, "[Squawk VM] File SQUAWK_DEBUG_ENABLED not found, starting squawk in normal mode...\n");
     }
 
     /*

@@ -738,7 +738,7 @@ static void printCacheStats() {
 #if TRACE
     if (total_extends > 0) {
         fprintf(stderr, format("Extends: %d (slots as %% of extends = %d.%02d%%)\n"), total_extends, AS_PERCENT(total_slots, total_extends));
-	}
+    }
 #endif /* TRACE */
     fprintf(stderr, format("GCs: %d full, %d partial\n"), com_sun_squawk_GC_fullCollectionCount, com_sun_squawk_GC_partialCollectionCount);
 }
@@ -1206,6 +1206,103 @@ void preprocessArgs(char *argv[], int *argc,
 }
 #endif /* KERNEL_SQUAWK */
 
+#ifndef FLASH_MEMORY
+/********* SIGNAL HANDLING *********
+ * Use OS provided signal handling to catch interrupts, bus errors, and segmentation violations.
+ **********************************/
+#include <signal.h>
+
+#if _MSC_VER // the old way
+
+void signalHandler(int signum) {
+    char* strsignal(int signum);
+    /* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
+    fprintf(stderr, "\ncaught signal %d\n", signum);
+    fatalVMError(strsignal(signum));
+}
+
+void setupSignals() {
+    signal(SIGSEGV, signalHandler);
+#ifndef _MSC_VER
+    signal(SIGBUS,  signalHandler);
+#endif
+    signal(SIGINT,  signalHandler);
+}
+
+
+#else   // the new way
+
+#include <dlfcn.h>
+
+
+void termHandler(int signum, siginfo_t * pInfo, void * pContext) {
+/* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
+    fprintf(stderr, "\nSquawk VM caught signal %d\nTERMINATING\n", signum);
+  
+    fatalVMError(strsignal(signum));
+
+}
+
+void crashHandler(int signum, siginfo_t * pInfo, void * pContext) {
+    /* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
+    fprintf(stderr, "\nSquawk VM caught signal %d\nCRASH\n", signum);
+
+    fprintf(stderr, "    si_code: 0x%x\n", pInfo->si_code);
+#ifdef VXWORKS
+    fprintf(stderr, "    si_value.sival_int: 0x%x\n", pInfo->si_value.sival_int);
+#else
+    fprintf(stderr, "    si_errno: %d\n", pInfo->si_errno);
+    fprintf(stderr, "    si_addr: %x\n", pInfo->si_addr);
+#endif
+
+    if (nativeFuncPtr == NULL) {
+        fprintf(stderr, "    Not in callout to native function.\n");
+    } else {
+        fprintf(stderr, "    In callout to native function: %x\n", nativeFuncPtr);
+         Dl_info dlinfo;
+         if (dladdr(nativeFuncPtr, &dlinfo)) {
+            fprintf(stderr, "   named: %s\n", dlinfo.dli_sname);
+         } else {
+            fprintf(stderr, "   named: unknown\n");
+         }
+    }
+    fprintf(stderr, "Resuming system signal handler...\n");
+}
+
+void setupSignals() {
+    struct sigaction sa;
+    
+    nativeFuncPtr = NULL;
+
+    sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
+    sa.sa_sigaction = crashHandler;
+
+    if(sigaction(SIGSEGV, &sa, NULL)) {
+      perror("sigaction");
+      exit(0);
+   }
+
+#ifndef _MSC_VER
+    if(sigaction(SIGBUS, &sa, NULL)) {
+      perror("sigaction");
+      exit(0);
+   }
+#endif
+    
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = termHandler;
+    if(sigaction(SIGINT, &sa, NULL)) {
+      perror("sigaction");
+      exit(0);
+   }
+
+}
+
+
+
+#endif  // the new way
+#endif // FLASH_MEMORY
+
 
 /**
  * Process the command line arguments.
@@ -1325,11 +1422,7 @@ Address processArgs(char *argv[], const int argc) {
 
 #ifndef FLASH_MEMORY
     if (!notrap) {
-        signal(SIGSEGV, signalHandler);
-#ifndef _MSC_VER
-        signal(SIGBUS,  signalHandler);
-#endif
-        signal(SIGINT,  signalHandler);
+        setupSignals();
     } else {
         printf("Trap handling disabled\n");
     }
@@ -1346,7 +1439,6 @@ Address processArgs(char *argv[], const int argc) {
     IO_initialize();
 #endif
 
-printf("calling setupMemory\n");
     /*
      * Set up the buffer that will be used for the ROM, NVM and RAM, remaining.
      */

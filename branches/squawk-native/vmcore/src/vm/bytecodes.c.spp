@@ -369,9 +369,9 @@
 #else
 /*MAC*/ jlong popLong() {
 /*if[REVERSE_PARAMETERS]*/
-            return getLongAtWordSpecial_pp(sp++, sp++);
+            return getLongAtWord(sp = sp + 2, -2);
 /*else[REVERSE_PARAMETERS]*/
-//          return getLongAtWordSpecial_mm(--sp, --sp);
+//          return getLongAtWord(sp = sp - 2, 0);
 /*end[REVERSE_PARAMETERS]*/
         }
 #endif
@@ -782,6 +782,7 @@
 static int             MethodBody_minfoValue1_L(Address);
 static int             MethodBody_minfoValue2_L(Address);
 static int             MethodBody_minfoValue3_L(Address);
+static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int p, int b0);
 /*else[VM2C]*/
 //static int NativeUnsafe_getByte_LI(Address base, int offset) {
 //    return getByte(base, offset);
@@ -3987,8 +3988,11 @@ foundSlot:
 
                 case Native_com_sun_squawk_NativeUnsafe_call0: {
                     Address address = popAddress();
-                    funcPtr0 f0 = (funcPtr0)address;
-                    int result = (*f0)();
+                    funcPtr0 fptr = (funcPtr0)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)();
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -3996,8 +4000,11 @@ foundSlot:
                 case Native_com_sun_squawk_NativeUnsafe_call1: {
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr1 f1 = (funcPtr1)address;
-                    int result = (*f1)(i1);
+                    funcPtr1 fptr = (funcPtr1)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4006,8 +4013,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr2 f2 = (funcPtr2)address;
-                    int result = (*f2)(i1, i2);
+                    funcPtr2 fptr = (funcPtr2)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4017,8 +4027,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr3 f3 = (funcPtr3)address;
-                    int result = (*f3)(i1, i2, i3);
+                    funcPtr3 fptr = (funcPtr3)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4029,8 +4042,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr4 f4 = (funcPtr4)address;
-                    int result = (*f4)(i1, i2, i3, i4);
+                    funcPtr4 fptr = (funcPtr4)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3, i4);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4042,8 +4058,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr5 f5 = (funcPtr5)address;
-                    int result = (*f5)(i1, i2, i3, i4, i5);
+                    funcPtr5 fptr = (funcPtr5)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3, i4, i5);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4056,8 +4075,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr6 f6 = (funcPtr6)address;
-                    int result = (*f6)(i1, i2, i3, i4, i5, i6);
+                    funcPtr6 fptr = (funcPtr6)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3, i4, i5, i6);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4071,8 +4093,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr7 f7 = (funcPtr7)address;
-                    int result = (*f7)(i1, i2, i3, i4, i5, i6, i7);
+                    funcPtr7 fptr = (funcPtr7)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3, i4, i5, i6, i7);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4087,8 +4112,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr8 f8 = (funcPtr8)address;
-                    int result = (*f8)(i1, i2, i3, i4, i5, i6, i7, i8);
+                    funcPtr8 fptr = (funcPtr8)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3, i4, i5, i6, i7, i8);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4104,8 +4132,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr9 f9 = (funcPtr9)address;
-                    int result = (*f9)(i1, i2, i3, i4, i5, i6, i7, i8, i9);
+                    funcPtr9 fptr = (funcPtr9)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3, i4, i5, i6, i7, i8, i9);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }
@@ -4122,8 +4153,11 @@ foundSlot:
                     int i2 = popInt();
                     int i1 = popInt();
                     Address address = popAddress();
-                    funcPtr10 f10 = (funcPtr10)address;
-                    int result = (*f10)(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+                    funcPtr10 fptr = (funcPtr10)address;
+                    int result;
+                    nativeFuncPtr = fptr;
+                    result = (*fptr)(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+                    nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
                 }

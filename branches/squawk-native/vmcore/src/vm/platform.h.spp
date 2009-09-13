@@ -78,7 +78,6 @@
 #    undef  ujlong
 #    define ujlong unsigned __int64
 #    define JLONG_CONSTANT(c) c ## i64
-#    define C_PARMS_RIGHT_TO_LEFT true
 #    define WIN32_LEAN_AND_MEAN
 #    ifdef MAXINLINE
 #        define INLINE __forceinline

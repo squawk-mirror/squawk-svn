@@ -81,6 +81,10 @@ typedef struct globalsStruct {
     int         _io_ops_count;
 #endif /* PLATFORM_TYPE_SOCKET */
 
+#if PLATFORM_TYPE_NATIVE
+    void*       _nativeFuncPtr;               /* Ptr to the function that is being called via NativeUnsafe.call, or null */
+#endif /* PLATFORM_TYPE_NATIVE */
+
 #ifdef PROFILING
     int         _sampleFrequency;            /* The profile sample frequency */
     jlong       _instructionCount;
@@ -234,6 +238,10 @@ boolean     notrap;
 #define channelIO_clazz                     defineGlobal(channelIO_clazz)
 #define channelIO_execute                   defineGlobal(channelIO_execute)
 #endif /* PLATFORM_TYPE_DELEGATING */
+
+#if PLATFORM_TYPE_NATIVE
+#define nativeFuncPtr                       defineGlobal(nativeFuncPtr)
+#endif /* PLATFORM_TYPE_NATIVE */
 
 #define STREAM_COUNT                        (sizeof(Streams) / sizeof(FILE*))
 

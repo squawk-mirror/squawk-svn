@@ -134,16 +134,6 @@ NORETURN void fatalInterpreterError0(char *msg, int opcode, int _iparm, ByteAddr
 //  fatalInterpreterError0(_msg,      0, iparm, ip, fp, sp, __FILE__, __LINE__)
 /*end[MACROIZE]*/
 
-#ifndef FLASH_MEMORY
-#include <signal.h>
-void signalHandler(int signum) {
-    char* strsignal(int signum);
-    /* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
-    fprintf(stderr, "\ncaught signal %d\n", signum);
-    fatalVMError(strsignal(signum));
-}
-#endif // FLASH_MEMORY
-
 /*---------------------------------------------------------------------------*\
  *                               alignment                                   *
 \*---------------------------------------------------------------------------*/

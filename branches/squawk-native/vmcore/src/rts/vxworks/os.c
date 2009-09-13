@@ -229,6 +229,21 @@ void* dlsym(void* handle, const char* symbol) {
     return status == OK ? fn : NULL;
 }
 
+/* fake up dladdr struct */
+typedef struct dl_info {
+        const char      *dli_sname;     /* Name of nearest symbol */
+        void            *dli_saddr;     /* Address of nearest symbol */
+} Dl_info;
+
+int dladdr(void* addr, Dl_info* info) {
+    SYM_TYPE ptype;
+
+    STATUS status = symByValueFind(sysSymTbl, (UINT)addr, &info->dli_sname, &info->dli_saddr, &ptype);
+
+    return status == OK ? 1 : NULL;
+}
+
+
 
 char* strsignal(int signal) {
     switch(signal) {
