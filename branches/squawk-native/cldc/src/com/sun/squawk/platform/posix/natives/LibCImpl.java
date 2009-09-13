@@ -138,6 +138,16 @@ public abstract class LibCImpl implements LibC {
         int result = (int)result0;
         return result;
     }
+
+    private final Function unlinkPtr;
+
+    public int unlink(String arg0) {
+        Pointer var0 = Pointer.createStringBuffer(arg0);
+        int result0 = unlinkPtr.call1(var0);
+        int result = (int)result0;
+        var0.free();
+        return result;
+    }
     
     public LibCImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
@@ -150,6 +160,7 @@ public abstract class LibCImpl implements LibC {
         fstatPtr = jnaNativeLibrary.getFunction("fstat");
         fsyncPtr = jnaNativeLibrary.getFunction("fsync");
         lseekPtr = jnaNativeLibrary.getFunction("lseek");
+        unlinkPtr = jnaNativeLibrary.getFunction("unlink");
     }
     
     public static class statImpl extends Structure {

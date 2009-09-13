@@ -24,9 +24,8 @@
 
 package com.sun.squawk.platform.posix;
 
-import com.sun.squawk.VM;
+import com.sun.squawk.platform.BaseGCFFile;
 import java.io.IOException;
-import com.sun.squawk.platform.GCFFile;
 import com.sun.squawk.platform.posix.natives.LibC;
 import com.sun.squawk.platform.posix.natives.LibC.stat;
 
@@ -35,32 +34,18 @@ import com.sun.squawk.platform.posix.natives.LibC.stat;
  *
  * @TODO: Implement way to track open files, to close files on Isolate shutdown?
  */
-public class GCFFileImpl implements GCFFile {
-
-    public final static int INVALID_HANDLE = -1;
+public class GCFFileImpl extends BaseGCFFile  {
 
     private LibC libc = LibC.INSTANCE;
 
-    /*
-     * Placeholder for the file handle from the native layer.
-     * Value of <code>INVALID_HANDLE</code> indicates that file is either closed or
-     * does not exists
-     */
-    /** Read handle. */
-    private int readHandle  = INVALID_HANDLE;
-    /** Write handle. */
-    private int writeHandle = INVALID_HANDLE;
-
-    /** File name. */
-    private String nativeFileName;
     
 //    private Pointer fileName;
 //    // The dir name is required when checking the fileSystem sizes
 //    /** Root directory. */
 //    private long rootDir    = 0;
-
-//    /** Illegal file name characters. */
-//    private final static String illegalChars = ":\\";
+    
+    /** Illegal file name characters. */
+    private final static String illegalChars = ":\\";  // colon is actually only a problem on Mac OS...
 
 //    /**
 //     * The flag is used for performance optimization.
@@ -68,24 +53,6 @@ public class GCFFileImpl implements GCFFile {
 //     * what private directory exists.
 //     */
 //    private static boolean privateDirExists = false;
-    
-    /**
-     * Connect file handler to the abstract file target. This operation should
-     * not trigger any access to the native filesystem.
-     *
-     * @param rootName The name of the root directory.
-     *
-     * @param fileName Full path to the file to be handled by this handler.
-     *
-     * @throws IllegalArgumentException if filename contains characters
-     *         not allowed by the file system. This check should not involve
-     *         any actual access to the filesystem.
-     */
-    public void connect(String rootName, String fileName) {
-        StringBuffer name = new StringBuffer(fileName);
-        pathToNativeSeparator(name, 0, name.length());
-        nativeFileName = name.toString();
-    }
 
 //    /**
 //     * Creates dedicated private working directory for the MIDlet suite.
@@ -224,19 +191,25 @@ public class GCFFileImpl implements GCFFile {
         }
     }
 
-//    /**
-//     * Deletes the file or directory associated with this handler.
-//     * The file or directory is deleted immediately on
-//     * the actual file system upon invocation of this method. Previously open
-//     * native file should be closed.The
-//     * handler instance object remains connected and available for use.
-//     *
-//     * @throws  IOException If the target is a directory and it is not empty,
-//     *      the connection target does not exist or is unaccessible, or
-//     *      an unspecified error occurs preventing deletion of the target.
-//     */
-//    public native void delete() throws IOException;
-//
+    /**
+     * Deletes the file or directory associated with this handler.
+     * The file or directory is deleted immediately on
+     * the actual file system upon invocation of this method. Previously open
+     * native file should be closed.The
+     * handler instance object remains connected and available for use.
+     *
+     * @throws  IOException If the target is a directory and it is not empty,
+     *      the connection target does not exist or is unaccessible, or
+     *      an unspecified error occurs preventing deletion of the target.
+     */
+    public void delete() throws IOException {
+        if (isDirectory()) {
+            throw new IOException("isDirectory");
+        }
+        int res = libc.unlink(nativeFileName);
+        LibCUtil.errCheckNeg(res);
+    }
+    
 //    /**
 //     * Renames the selected file or directory to a new name in the same
 //     * directory.  The file or directory is renamed immediately on the actual
@@ -307,19 +280,29 @@ public class GCFFileImpl implements GCFFile {
 //     *          exist or is not accessible.
 //     */
 //    public native void truncate(long byteOffset) throws IOException;
-//
-//    /**
-//     * Determines the size of a file on the file system. The size of a file
-//     * always represents the number of bytes contained in the file; there is
-//     * no pre-allocated but empty space in a file. Users should perform an
-//     * explicit <code>flush()</code> on any open output streams to the file
-//     * prior to invoking this method to ensure accurate results.
-//     *
-//     * @return  The size in bytes of the selected file, or -1 if the
-//     *          file does not exist or is not accessible.
-//     * @throws  IOException if the method is invoked on a directory.
-//     */
-//    public native long fileSize() throws IOException;
+
+    /**
+     * Determines the size of a file on the file system. The size of a file
+     * always represents the number of bytes contained in the file; there is
+     * no pre-allocated but empty space in a file. Users should perform an
+     * explicit <code>flush()</code> on any open output streams to the file
+     * prior to invoking this method to ensure accurate results.
+     *
+     * @return  The size in bytes of the selected file, or -1 if the
+     *          file does not exist or is not accessible.
+     * @throws  IOException if the method is invoked on a directory.
+     */
+    public long fileSize() throws IOException {
+        if (isDirectory()) {
+            throw new IOException("isDirectory");
+        }
+        stat stats = new stat();
+        if (libc.stat(nativeFileName, stats) != -1) {
+            return stats.st_size;
+        } else {
+            return -1;
+        }
+    }
 
 //    /**
 //     * Determines the size in bytes on a file system of all of the files
@@ -480,15 +463,15 @@ public class GCFFileImpl implements GCFFile {
 //        return totalSize() - availableSize();
 //    }
 
-//    /**
-//     * Returns a string that contains all characters forbidden for the use on
-//     * the given platform except "/" (forward slash) which is always considered
-//     * illegal. If there are no such characters an empty string is returned.
-//     * @return string of illegal file name characters
-//     */
-//    public String illegalFileNameChars() {
-//        return illegalChars;
-//    }
+    /**
+     * Returns a string that contains all characters forbidden for the use on
+     * the given platform except "/" (forward slash) which is always considered
+     * illegal. If there are no such characters an empty string is returned.
+     * @return string of illegal file name characters
+     */
+    public String illegalFileNameChars() {
+        return illegalChars;
+    }
 
 //    /**
 //     * Returns the time that the file denoted by this file handler
@@ -537,15 +520,6 @@ public class GCFFileImpl implements GCFFile {
             LibCUtil.errCheckNeg(libc.close(writeHandle));
             writeHandle = -1;
         }
-    }
-
-    /**
-     * Closes the file for both reading and writing.
-     * @throws IOException if any error occurs during input/output operations.
-     */
-    public void closeForReadWrite() throws IOException {
-        closeForRead();
-        closeForWrite();
     }
 
     /**
@@ -601,6 +575,11 @@ public class GCFFileImpl implements GCFFile {
      */
     public void positionForWrite(long offset) throws IOException {
         if (writeHandle > 0) {
+            long fsize = fileSize();
+            if (fsize < 0) {
+                throw new IOException("fileSize errno: " + LibC.INSTANCE.errno());
+            }
+            offset = Math.min(offset, fsize);
             int result = libc.lseek(writeHandle, offset, libc.SEEK_SET);
             LibCUtil.errCheckNeg(result);
         }
@@ -614,17 +593,6 @@ public class GCFFileImpl implements GCFFile {
         if (writeHandle > 0) {
             LibCUtil.errCheckNeg(libc.fsync(writeHandle));
         }
-    }
-
-    /**
-     * Close file associated with this handler. Open file and all system
-     * resources should be released by this call. Handler object can be
-     * reused by subsequent call to connect().
-     *
-     * @throws IOException if I/O error occurs
-     */
-    public void close() throws IOException {
-        closeForReadWrite();
     }
 
 //    /**
@@ -643,42 +611,6 @@ public class GCFFileImpl implements GCFFile {
 //        }
 //        return id.reverse().toString();
 //    }
-
-    /**
-     * Replace all entries of the "//" with "/" (multiple separators
-     * with single separator) and all "/" with the native separator.
-     *
-     * @param name StringBuffer to process
-     * @param off offset from where to start the conversion
-     * @param len length to convert
-     *
-     * @return the same StringBuffer after the process
-     */
-    private StringBuffer pathToNativeSeparator(StringBuffer name,
-                            int off, int len) {
-
-        int  length = off + len;
-        int  curr   = off;
-        char sep    = getFileSeparator();
-
-        while ((curr + 1) < length) {
-            if (name.charAt(curr) == '/' && name.charAt(curr+1) == '/') {
-                name.deleteCharAt(curr);
-                length--;
-                continue;
-            } else if (name.charAt(curr) == '/') {
-                name.setCharAt(curr, sep);
-            }
-            curr++;
-        }
-
-        // trim trailing slash if it exists
-        if (length != 1 && name.charAt(length - 1) == '/') {
-            name.deleteCharAt(length - 1);
-        }
-
-        return name;
-    }
 
 //    /**
 //     * Check that given string matches the given filter. Filter is defined by
@@ -824,13 +756,6 @@ public class GCFFileImpl implements GCFFile {
 //        return Pointer.createStringBuffer(name);
 //    }
 
-    /**
-     * Gets the system-dependent file separator character.
-     * @return The file separator character.
-     */
-    public static char getFileSeparator() {
-        return VM.getFileSeparatorChar();
-    }
 
 //    /**
 //     * Opens the directory.
@@ -881,13 +806,6 @@ public class GCFFileImpl implements GCFFile {
         libc.close(tHandle);
     }
 
-//    /**
-//     * Gets the list of illegal characters in file names.
-//     * @return A string containing the characters
-//     *         that are not allowed inside file names.
-//     */
-//    private static native String illegalFileNameChars0();
-//
 //    /**
 //     * Initializes native part of file handler.
 //     */

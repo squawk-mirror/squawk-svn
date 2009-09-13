@@ -37,13 +37,13 @@ public interface GCFFile {
      *
      * @param rootName The name of the root directory.
      *
-     * @param absFile Full path to the file to be handled by this handler.
+     * @param fileName Full path to the file to be handled by this handler.
      *
      * @throws IllegalArgumentException if filename contains characters
-     *         not allowed by the file system. This check should not involve
-     *         any actual access to the filesystem.
+     * not allowed by the file system. This check should not involve
+     * any actual access to the filesystem.
      */
-    public void connect(String rootName, String absFile);
+    public void connect(String rootName, String fileName);
 
 //    /**
 //     * Creates dedicated private working directory for the MIDlet suite.
@@ -166,19 +166,19 @@ public interface GCFFile {
      */
     public boolean isDirectory();
 
-//    /**
-//     * Deletes the file or directory associated with this handler.
-//     * The file or directory is deleted immediately on
-//     * the actual file system upon invocation of this method. Previously open
-//     * native file should be closed.The
-//     * handler instance object remains connected and available for use.
-//     *
-//     * @throws  IOException If the target is a directory and it is not empty,
-//     *      the connection target does not exist or is unaccessible, or
-//     *      an unspecified error occurs preventing deletion of the target.
-//     */
-//    public void delete() throws IOException;
-//
+    /**
+     * Deletes the file or directory associated with this handler.
+     * The file or directory is deleted immediately on
+     * the actual file system upon invocation of this method. Previously open
+     * native file should be closed.The
+     * handler instance object remains connected and available for use.
+     *
+     * @throws  IOException If the target is a directory and it is not empty,
+     *      the connection target does not exist or is unaccessible, or
+     *      an unspecified error occurs preventing deletion of the target.
+     */
+    public void delete() throws IOException;
+
 //    /**
 //     * Renames the selected file or directory to a new name in the same
 //     * directory.  The file or directory is renamed immediately on the actual
@@ -212,19 +212,19 @@ public interface GCFFile {
 //     */
 //    public void truncate(long byteOffset) throws IOException;
 
-//    /**
-//     * Determines the size of a file on the file system. The size of a file
-//     * always represents the number of bytes contained in the file; there is
-//     * no pre-allocated but empty space in a file. Users should perform an
-//     * explicit <code>flush()</code> on any open output streams to the file
-//     * prior to invoking this method to ensure accurate results.
-//     *
-//     * @return  The size in bytes of the selected file, or -1 if the
-//     *          file does not exist or is not accessible.
-//     * @throws  IOException if the method is invoked on a directory.
-//     */
-//    public long fileSize() throws IOException;
-//
+    /**
+     * Determines the size of a file on the file system. The size of a file
+     * always represents the number of bytes contained in the file; there is
+     * no pre-allocated but empty space in a file. Users should perform an
+     * explicit <code>flush()</code> on any open output streams to the file
+     * prior to invoking this method to ensure accurate results.
+     *
+     * @return  The size in bytes of the selected file, or -1 if the
+     *          file does not exist or is not accessible.
+     * @throws  IOException if the method is invoked on a directory.
+     */
+    public long fileSize() throws IOException;
+
 //    /**
 //     * Determines the size in bytes on a file system of all of the files
 //     * that are contained in a directory.
@@ -415,13 +415,13 @@ public interface GCFFile {
 //     */
 //    public long totalSize();
 
-//    /**
-//     * Returns a string that contains all characters forbidden for the use on
-//     * the given platform except "/" (forward slash) which is always considered
-//     * illegal. If there are no such characters an empty string is returned.
-//     * @return string of characters not allowed in file names
-//     */
-//    public String illegalFileNameChars();
+    /**
+     * Returns a string that contains all characters forbidden for the use on
+     * the given platform except "/" (forward slash) which is always considered
+     * illegal. If there are no such characters an empty string is returned.
+     * @return string of characters not allowed in file names
+     */
+    public String illegalFileNameChars();
 
 //    /**
 //     * Determines the used memory of a file system the connection's target

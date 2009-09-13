@@ -66,18 +66,14 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
     private String fileURL;
     /** A peer to the native file */
     private GCFFile fileHandler;
-
-//    /** Indicates if there is a need to try to load alternative file handler */
-//    private static boolean hasOtherFileHandler = true;
     /** Input stream associated with this connection */
     InputStream fis;
     /** Output stream associated with this connection */
     OutputStream fos;
     /** Separator for file path components */
     private static String sep;
-    /** Static initialization of file separator */
     
-
+    /** Static initialization of file separator */
     static {
         sep = System.getProperty("file.separator");
         if (sep == null) {
@@ -117,8 +113,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * @return new connection
      * @throws IOException 
      */
-    public Connection open(String protocol, String name, int mode, boolean timeouts)
-            throws IOException {
+    public Connection open(String protocol, String name, int mode, boolean timeouts) throws IOException {
         return openPrim(name, mode, timeouts);
     }
 
@@ -130,8 +125,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * @return an opened Connection
      * @throws IOException if some other kind of I/O error occurs.
      */
-    public Connection openPrim(String name, int mode, boolean timeouts)
-            throws IOException {
+    public Connection openPrim(String name, int mode, boolean timeouts) throws IOException {
 
         class Parameters extends ParameterParser {
             boolean append;
@@ -147,7 +141,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
                 return true;
             }
         }
-        
+
         if (!name.startsWith("//")) {
             throw new IllegalArgumentException("Missing protocol separator");
         }
@@ -196,8 +190,8 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
                         throw new IOException();
                     }
                 }
-            } else {
-                throw new IllegalArgumentException("Bad mode");
+//            } else {
+//                throw new IllegalArgumentException("Bad mode");
             }
         } catch (IOException ex) {
             throw new ConnectionNotFoundException(name);
@@ -423,26 +417,26 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //        return size;
 //    }
 //
-//    // JAVADOC COMMENT ELIDED
-//    public long fileSize() throws IOException {
-//        long size = -1;
-//
-//        checkReadPermission();
-//
-//        if (isDirectory()) {
-//            throw new IOException("fileSize invoked on a directory");
-//        }
-//
-//        try {
-//            ensureOpenAndConnected();
-//
-//            size = fileHandler.fileSize();
-//        } catch (IOException e) {
-//            size = -1;
-//        }
-//
-//        return size;
-//    }
+    // JAVADOC COMMENT ELIDED
+    public long fileSize() throws IOException {
+        long size = -1;
+
+        checkReadPermission();
+
+        if (isDirectory()) {
+            throw new IOException("fileSize invoked on a directory");
+        }
+
+        try {
+            ensureOpenAndConnected();
+
+            size = fileHandler.fileSize();
+        } catch (IOException e) {
+            size = -1;
+        }
+
+        return size;
+    }
 //
 //    // JAVADOC COMMENT ELIDED
 //    public boolean canRead() {
@@ -539,19 +533,20 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //            includeHidden);
 //    }
 //
-//    // JAVADOC COMMENT ELIDED
-//    public void create() throws IOException {
-//        checkWritePermission();
-//
-//        ensureOpenAndConnected();
-//
-//        if (fileName.charAt(fileName.length() - 1) == '/') {
-//            throw new IOException("Can not create directory");
-//        }
-//
-//        fileHandler.create();
-//    }
-//
+
+    // JAVADOC COMMENT ELIDED
+    public void create() throws IOException {
+        checkWritePermission();
+
+        ensureOpenAndConnected();
+
+        if (fileName.charAt(fileName.length() - 1) == '/') {
+            throw new IOException("Can not create directory");
+        }
+
+        fileHandler.create();
+    }
+
 //    // JAVADOC COMMENT ELIDED
 //    public void mkdir() throws IOException {
 //        checkWritePermission();
@@ -595,40 +590,39 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
         return res;
     }
 
-//    // JAVADOC COMMENT ELIDED
-//    public void delete() throws java.io.IOException {
-//        checkWritePermission();
-//
-//        ensureOpenAndConnected();
-//
-//        try {
-//            if (fis != null) {
-//                fis.close();
-//                fis = null;
-//            }
-//        } catch (IOException e) {
-//            // Ignore silently
-//        }
-//
-//        try {
-//            if (fos != null) {
-//                fos.close();
-//                fos = null;
-//            }
-//        } catch (IOException e) {
-//            // Ignore silently
-//        }
-//
-//        try {
-//            fileHandler.closeForReadWrite();
-//        } catch (IOException e) {
-//            // Ignore silently
-//        }
-//
-//        fileHandler.delete();
-//    }
-//
-//
+    // JAVADOC COMMENT ELIDED
+    public void delete() throws java.io.IOException {
+        checkWritePermission();
+
+        ensureOpenAndConnected();
+
+        try {
+            if (fis != null) {
+                fis.close();
+                fis = null;
+            }
+        } catch (IOException e) {
+            // Ignore silently
+        }
+
+        try {
+            if (fos != null) {
+                fos.close();
+                fos = null;
+            }
+        } catch (IOException e) {
+            // Ignore silently
+        }
+
+        try {
+            fileHandler.closeForReadWrite();
+        } catch (IOException e) {
+            // Ignore silently
+        }
+
+        fileHandler.delete();
+    }
+
 //    // JAVADOC COMMENT ELIDED
 //    public void rename(String newName) throws IOException {
 //        checkWritePermission();
@@ -1004,8 +998,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * @param timeouts flag to indicate that timeouts allowed
      * @throws IOException if an error occurs
      */
-    protected void connect(String name, int mode, boolean timeouts)
-            throws IOException {
+    protected void connect(String name, int mode, boolean timeouts) throws IOException {
     }
 
     /**
@@ -1057,8 +1050,7 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
      * @return an opened Connection
      * @throws IOException if some other kind of I/O error occurs.
      */
-    private Connection openPrimImpl(String name, int mode, boolean timeouts, boolean unescape)
-            throws IOException {
+    private Connection openPrimImpl(String name, int mode, boolean timeouts, boolean unescape) throws IOException {
 
 //System.err.println("openPrimImple(name: " + name +")");
         if (unescape) {
@@ -1164,8 +1156,6 @@ public class Protocol extends ConnectionBaseAdapter implements FileConnection {
 //                Permissions.FILE_CONNECTION_READ);
 //        }
         
-        
-
         if (mode == Connector.WRITE) {
             throw new IllegalStateException("Connection is write only");
         }

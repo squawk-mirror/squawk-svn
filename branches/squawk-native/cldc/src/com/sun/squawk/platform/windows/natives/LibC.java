@@ -417,4 +417,14 @@ public interface LibC extends Library {
      */
     int stat(String name, stat stat);
 
+
+    /**
+     * Remove the directory entry for name (may delete the file)
+     *
+     * @param name String
+     * @return If successful, returns a non-negative integer, termed a file descriptor.  Returns
+     *         -1 on failure, and sets errno to indicate the error.
+     */
+    int unlink(String name);
+
 }

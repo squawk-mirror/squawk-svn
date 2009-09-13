@@ -399,7 +399,7 @@ public interface LibC extends Library {
 
     }
     
-        /**
+   /**
      * Get information on the open file with file descriptor "fd".
      *
      * @param fd file descriptor
@@ -416,5 +416,14 @@ public interface LibC extends Library {
      * @return -1 is returned if an error occurs, otherwise zero is returned
      */
     int stat(String name, stat stat);
+
+    /**
+     * Remove the directory entry for name (may delete the file)
+     *
+     * @param name String
+     * @return If successful, returns a non-negative integer, termed a file descriptor.  Returns
+     *         -1 on failure, and sets errno to indicate the error.
+     */
+    int unlink(String name);
 
 }

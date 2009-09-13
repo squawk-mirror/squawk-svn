@@ -53,8 +53,8 @@ public interface FileConnection extends javax.microedition.io.StreamConnection {
     // JAVADOC COMMENT ELIDED
     public DataOutputStream openDataOutputStream() throws IOException;
     
-//    // JAVADOC COMMENT ELIDED
-//    public OutputStream openOutputStream(long byteOffset) throws IOException;
+    // JAVADOC COMMENT ELIDED
+    public OutputStream openOutputStream(long byteOffset) throws IOException;
 //
 //    // JAVADOC COMMENT ELIDED
 //    public long totalSize();
@@ -63,14 +63,14 @@ public interface FileConnection extends javax.microedition.io.StreamConnection {
 //    public long availableSize();
 //
 //    // JAVADOC COMMENT ELIDED
-//    public long usedSize();
+//   public long usedSize();
 //
 //    // JAVADOC COMMENT ELIDED
 //    public long directorySize(boolean includeSubDirs) throws IOException;
 //
-//    // JAVADOC COMMENT ELIDED
-//    public long fileSize() throws IOException;
-//
+    // JAVADOC COMMENT ELIDED
+    public long fileSize() throws IOException;
+
 //    // JAVADOC COMMENT ELIDED
 //    public boolean canRead();
 //
@@ -100,7 +100,7 @@ public interface FileConnection extends javax.microedition.io.StreamConnection {
 //    public void mkdir() throws IOException;
 //
 //    // JAVADOC COMMENT ELIDED
-//    public void create() throws IOException;
+    public void create() throws IOException;
 
     // JAVADOC COMMENT ELIDED
     public abstract boolean exists();
@@ -109,7 +109,7 @@ public interface FileConnection extends javax.microedition.io.StreamConnection {
     public boolean isDirectory();
 
 //    // JAVADOC COMMENT ELIDED
-//    public void delete() throws java.io.IOException;
+    public void delete() throws java.io.IOException;
 //
 //    // JAVADOC COMMENT ELIDED
 //    public abstract void rename(String newName) throws IOException;
