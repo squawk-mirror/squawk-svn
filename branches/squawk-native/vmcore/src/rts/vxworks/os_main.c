@@ -142,7 +142,7 @@ void robotTask_DEBUG() {
 }
 
 void squawk_printVersion() {
-	printf("\r\n[Squawk VM] Version: %s, %s\r\n", SQUAWK_VERSION, __DATE__);
+	printf("\r\n[Squawk VM] Version: %s, %s, %s\r\n", SQUAWK_VERSION, __DATE__, __TIME__);
 	fflush(stdout);
 }
 
