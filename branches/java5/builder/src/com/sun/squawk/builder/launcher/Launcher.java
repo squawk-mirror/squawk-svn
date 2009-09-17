@@ -45,8 +45,14 @@ public class Launcher {
     public static void main(String[] args) {
         ClassLoader loader;
         List<URL> urls = new ArrayList<URL>();
+        boolean verbose = false;
+        for (String arg: args) {
+            if (arg.equalsIgnoreCase("-v") || arg.equalsIgnoreCase("-verbose")) {
+                verbose = true;
+            }
+        }
         try {
-            URL toolsJar = getToolsJar();
+            URL toolsJar = getToolsJar(verbose);
             if (toolsJar != null) {
                 urls.add(toolsJar);
             }
@@ -120,39 +126,100 @@ public class Launcher {
         }
     }
     
-    public static URL getToolsJar() throws MalformedURLException {
+    public static URL getToolsJar(boolean verbose) throws MalformedURLException {
         // firstly check if the tools jar is already in the classpath
         boolean toolsJarAvailable = false;
+        if (verbose) {
+            System.out.print("java.version=");
+            System.out.print(System.getProperty("java.version"));
+            System.out.println();
+            System.out.print("java.home=");
+            System.out.print(System.getProperty("java.home"));
+            System.out.println();
+        }
+        String javacClassName = "com.sun.tools.javac.Main";
         try {
+            if (verbose) {
+                System.out.print("Looking for ");
+                System.out.print(javacClassName);
+                System.out.print(" in classpath");
+                System.out.println();
+            }
             // just check whether this throws an exception
-            Class.forName("com.sun.tools.javac.Main");
+            Class.forName(javacClassName);
+            if (verbose) {
+                System.out.print("  Found it");
+                System.out.println();
+            }
             toolsJarAvailable = true;
         } catch (Exception e1) {
             try {
-                Class.forName("sun.tools.javac.Main");
+                javacClassName = "sun.tools.javac.Main";
+                if (verbose) {
+                    System.out.print("  Failed");
+                    System.out.println();
+                    System.out.print("Now looking for ");
+                    System.out.print(javacClassName);
+                    System.out.print(" in classpath");
+                    System.out.println();
+                }
+                Class.forName(javacClassName);
                 toolsJarAvailable = true;
             } catch (Exception e2) {
                 // ignore
             }
         }
         if (toolsJarAvailable) {
+            if (verbose) {
+                System.out.print("Found compiler, no need to extend classpath");
+                System.out.print(javacClassName);
+                System.out.print(" in classpath");
+                System.out.println();
+            }
             return null;
         }
         String javaHome = System.getProperty("java.home");
-        File toolsJar = new File(javaHome + "/lib/tools.jar");
-        if (toolsJar.exists()) {
-            System.out.println("Launcher: Found tools.har in " + toolsJar.getPath() + ".");
-            return toolsJar.toURI().toURL();
+        Throwable cause = null;
+        try {
+            File toolsJar = new File(javaHome + "/lib/tools.jar").getCanonicalFile();
+            if (verbose) {
+                System.out.print("Looking for tools.jar in ");
+                System.out.print(toolsJar);
+                System.out.println();
+            }
+            if (toolsJar.exists()) {
+                if (verbose) {
+                    System.out.print("  Found it, adding to classpath");
+                    System.out.println();
+                }
+                return toolsJar.toURI().toURL();
+            }
+            if (verbose) {
+                System.out.print("  Failed");
+                System.out.println();
+            }
+            String lookFor = File.separator + "jre";
+            if (javaHome.toLowerCase(Locale.US).endsWith(lookFor)) {
+                javaHome = javaHome.substring(0, javaHome.length() - lookFor.length());
+                toolsJar = new File(javaHome + "/lib/tools.jar").getCanonicalFile();
+                if (verbose) {
+                    System.out.print("Now looking for tools.jar in ");
+                    System.out.print(toolsJar);
+                    System.out.println();
+                }
+                if (toolsJar.exists()) {
+                    if (verbose) {
+                        System.out.print("Looking for tools.jar in ");
+                        System.out.print(toolsJar);
+                        System.out.println();
+                    }
+                    return toolsJar.toURI().toURL();
+                }
+            }
+        } catch (IOException e) {
+            cause = e;
         }
-        String lookFor = File.separator + "jre";
-        if (javaHome.toLowerCase(Locale.US).endsWith(lookFor)) {
-            javaHome = javaHome.substring(0, javaHome.length() - lookFor.length());
-            toolsJar = new File(javaHome + "/lib/tools.jar");
-        }
-        if (!toolsJar.exists()) {
-        	throw new RuntimeException("Unable to locate tools.jar. Expected to find it in " + toolsJar.getPath());
-        }
-        return toolsJar.toURI().toURL();
+        throw new RuntimeException("Unable to locate tools.jar.  Try -v or -verbose and relaunch to see where attempts to locate were made", cause);
     }
     
 }

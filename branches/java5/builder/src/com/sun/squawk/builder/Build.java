@@ -895,9 +895,9 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
         // Add "vm2c" target
         URL toolsJarURL;
         try {
-        	toolsJarURL = Launcher.getToolsJar();
+            toolsJarURL = Launcher.getToolsJar(verbose);
         } catch (MalformedURLException e) {
-        	throw new BuildException("Problems finding tools.jar", e);
+            throw new BuildException("Problems finding tools.jar", e);
         }
         String toolsJarPathEntry;
         String toolsJarPath;
