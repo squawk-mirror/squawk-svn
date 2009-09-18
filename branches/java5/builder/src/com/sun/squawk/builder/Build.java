@@ -303,8 +303,6 @@ public class Build {
      * @return the created and installed command
      */
     public Target addTarget(boolean j2me, String baseDir, String dependencies, String extraClassPath, String extraSourceDirs) {
-System.out.println(baseDir);
-new Throwable().printStackTrace();
         File primarySrcDir = new File(baseDir, "src");
         File[] srcDirs;
         if (extraSourceDirs != null) {
@@ -320,9 +318,7 @@ new Throwable().printStackTrace();
 
         StringBuffer extraBuffer = new StringBuffer();
         if (extraClassPath != null && extraClassPath.length() != 0) {
-System.out.println("ORIG:" + extraClassPath);
         	String string = toPlatformPath(extraClassPath, true);
-System.out.println("  STRING:" + extraClassPath);
 //        	extraBuffer.append(extraClassPath);
             StringTokenizer tokenizer = new StringTokenizer(string, File.pathSeparator);
             while (tokenizer.hasMoreTokens()) {
@@ -332,7 +328,6 @@ System.out.println("  STRING:" + extraClassPath);
                     extraBuffer.append(File.pathSeparatorChar);
                 }
             }
-System.out.println("  BUFFER:" + extraBuffer.toString());
         }
 
         Target command = new Target(extraBuffer.toString(), j2me, baseDir, srcDirs, true, this, new File(baseDir).getName().toLowerCase());
