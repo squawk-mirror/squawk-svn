@@ -2603,4 +2603,13 @@ public class Build {
         }
     }
 
+    /**
+     * Return true if Java5 syntax should be supported.
+     * 
+     * @return
+     */
+    public boolean isJava5Supported() {
+        return true;
+    }
+    
 }
