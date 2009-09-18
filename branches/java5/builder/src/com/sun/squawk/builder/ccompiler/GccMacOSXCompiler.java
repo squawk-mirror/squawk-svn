@@ -44,6 +44,7 @@ public class GccMacOSXCompiler extends GccCompiler {
         return " " + get64BitOption() + " -framework CoreFoundation -framework JavaVM -dead-strip ";
     }
 
+
     /**
      * {@inheritDoc}
      */

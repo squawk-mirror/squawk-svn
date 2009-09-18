@@ -1,5 +1,4 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This code is free software; you can redistribute it and/or modify
@@ -220,7 +219,7 @@ public class Build {
     protected boolean isInitialized;
     
     /**
-     * Gets the name of the build.override file specified by the -override: arg. Or null if no
+     * Gets the name of the build.override file specified by the -override: or -override arg. Or null if no
      * -override: arg was specified.
      *
      * @return String or null
@@ -304,6 +303,8 @@ public class Build {
      * @return the created and installed command
      */
     public Target addTarget(boolean j2me, String baseDir, String dependencies, String extraClassPath, String extraSourceDirs) {
+System.out.println(baseDir);
+new Throwable().printStackTrace();
         File primarySrcDir = new File(baseDir, "src");
         File[] srcDirs;
         if (extraSourceDirs != null) {
@@ -1201,6 +1202,7 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
      *    normal. To me it looks like a bug, but, anyway, I am taking measure here.
      *
      * @param path the path to fix
+     * @return fixed URL
      */
     public String fixURL(String path) {
         if (getPlatform() instanceof Windows_X86) {
@@ -1508,19 +1510,15 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
      *                           Command line interface                          *
     \*---------------------------------------------------------------------------*/
 
-    public Build() {
-        possibleModuleDirs.add(new File("."));
-    }
-    
     /**
      * Creates an instance of the builder.
      */
-    protected void initialize(String buildDotOverrideFileName) {
+    public Build(String buildDotOverrideFileName) {
         File defaultProperties = new File("build.properties");
         if (defaultProperties.exists()) {
             properties = loadProperties(defaultProperties, null);
             if (buildDotOverrideFileName == null) {
-            	buildDotOverrideFileName = "build.override";
+                buildDotOverrideFileName = "build.override";
             } else {
                 specfifiedBuildDotOverrideFileName = buildDotOverrideFileName;
             }
@@ -1545,8 +1543,7 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
         installBuiltinCommands();
         javaCompiler = new JavaCompiler(this);
     }
-
-
+    
     /**
      * Prints some information describing the builder's configuration.
      */
@@ -1576,7 +1573,25 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
      */
     public static void main(String[] args) {
         long start = System.currentTimeMillis();
-        Build builder = new Build();
+        String buildDotOverrideFileName = null;
+        if (args != null && args.length > 0) {
+        	String arg = args[0];
+	        if (arg.startsWith("-override:")) {
+	        	buildDotOverrideFileName = arg.substring("-override:".length());
+		        String[] newArgs = new String[args.length - 1];
+		        System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+		        args = newArgs;
+	        } else if (arg.startsWith("-override")) {
+                if (args.length == 1) {
+                    throw new BuildException("Did not specify override file name for -override");
+                }
+                buildDotOverrideFileName = args[1];
+                String[] newArgs = new String[args.length - 2];
+                System.arraycopy(args, 2, newArgs, 0, newArgs.length);
+                args = newArgs;
+            }
+        }
+        Build builder = new Build(buildDotOverrideFileName);
         try {
             builder.mainProgrammatic(args);
             System.out.println("Total time: " + ((System.currentTimeMillis() - start) / 1000) + "s");
@@ -1603,18 +1618,12 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
      */
     public void mainProgrammatic(String... args) {
         int startArgsIndex = 0;
-    	if (!isInitialized) {
-	        String buildDotOverrideFileName = null;
-	        if (args != null && args.length > 0) {
-	            String arg = args[0];
-	            if (arg.startsWith("-override:")) {
-	                buildDotOverrideFileName = arg.substring("-override:".length());
-	                startArgsIndex++;
-	            }
-	        }
-	        initialize(buildDotOverrideFileName);
-	        isInitialized = true;
-    	}
+        if (args != null && args.length > 0) {
+            String arg = args[0];
+            if (arg.startsWith("-override:")) {
+                startArgsIndex++;
+            }
+        }
         args = extractBuilderArgs(args, startArgsIndex);
         printConfiguration();
 
@@ -1672,6 +1681,7 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
         out.println("    -nodeps             do not check dependencies (default for commands)");
         out.println("    -deps               check dependencies (default for targets)");
         out.println("    -plugins:<file>     load commands from properties in 'file'");
+        out.println("    -override <file>");
         out.println("    -override:<file>    file to use to override the build.properties file found locally, defaults to build.override");
         out.println("                        MUST BE SPECIFIED AS FIRST BUILD-OPTION");
         out.println("    -D<name>=<value>    sets a builder property");
@@ -2011,8 +2021,24 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
             properties.setProperty("LISP2_BITMAP", "false");
         }
 
+        String optimize;
+        optimize = properties.getProperty("O1");
+        if (optimize !=null && optimize.equals("true")) {
+            cOptions.o1 = true;
+        }
+        optimize = properties.getProperty("O2");
+        if (optimize !=null && optimize.equals("true")) {
+            cOptions.o2 = true;
+        }
+        optimize = properties.getProperty("O3");
+        if (optimize !=null && optimize.equals("true")) {
+            cOptions.o2 = true;
+            cOptions.o3 = true;
+        }
+
         // The -tracing, and -assume options are turned on by default if -production was not specified
-        if (!production) {
+        String productionProperty = properties.getProperty("PRODUCTION");
+        if (!production && (productionProperty == null || !productionProperty.equals("true"))) {
             cOptions.tracing = true;
             cOptions.assume = true;
         }
@@ -2311,7 +2337,7 @@ System.out.println("  BUFFER:" + extraBuffer.toString());
         preprocessor.processAssertions = j2me;
         preprocessor.verbose = verbose;
         // @TODO: Should be true for desktop builds. host == target?
-        preprocessor.showLineNumbers = false;
+        preprocessor.showLineNumbers = true;
 
         for (int i = 0; i != srcDirs.length; ++i) {
 

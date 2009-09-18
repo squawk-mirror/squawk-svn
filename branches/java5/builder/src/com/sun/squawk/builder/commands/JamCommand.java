@@ -224,7 +224,7 @@ public class JamCommand extends Command {
         	args[i++] = (String) arg;
 		}
         System.arraycopy(parameters, 0, args, i, parameters.length);
-        new Build().mainProgrammatic(args);
+        new Build(null).mainProgrammatic(args);
     }
 
     /**
