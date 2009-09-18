@@ -724,13 +724,18 @@ public class Build {
 
         // Add the "copyphoneme" command
         addCommand(new Command(this, "copyphoneme") {
+
+            @Override
+            public void clean() {
+                delete(new File("cldc/phoneme"));
+                delete(new File("imp/phoneme"));
+            }
+
             public String getDescription() {
                 return "copies the source code from the phoneME source tree into ours in order to be able to compile cldc and imp";
             }
             
             public void run(String[] args) {
-            	delete(new File("cldc/phoneme"));
-            	delete(new File("imp/phoneme"));
 //			When I remove the phoneme source from our source tree
 //            	String phoneMeSourceRoot = "../phoneme/";
             	String phoneMeSourceRoot = "phoneme/";
