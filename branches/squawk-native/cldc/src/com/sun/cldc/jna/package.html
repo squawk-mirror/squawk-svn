@@ -19,22 +19,21 @@
 
 </head>
 <body>
+The CLDC/JNA package contains classes that help import native data structures and functions from Java code without writing
+C code.
 
 <h3>Overview</h3>
-The CLDC/JNA package contains classes that help import native data structures and functions from Java code without writing
-C code.<p>
-
 The classes names were chosen to resemble the <a href="http://jna.dev.java.net/">Java Native Access</a> (JNA) APIs, to the extent that 
 this made sense on CLDC, and time allowed.<p>
 
 Unlike JNA, there is currently no automatic support for generating wrapper methods or structures serialization code, so 
 there is more boiler-plate code to write in order to <i>import</i> C functions and structures. But <i>using</i> C functions and structures
-is about as easy in CLDC/JNA aas in JNA. Or easier.<p>
+is about as easy in CLDC/JNA as in JNA. Or easier.<p>
 
 
 <h3>Memory</h3>
-The CLDC/JNA package provides low-level access to native (non-Java heap) memory using the {@link Pointer} class. In many cases you
-will use higher level abstractions such as {@link Structure}s, but to refer to raw memory you can use the Pointer class.<p>
+The CLDC/JNA package provides low-level access to native (non-Java heap) memory using the {@link com.sun.cldc.jna.Pointer} class. In many cases you
+will use higher level abstractions such as {@link com.sun.cldc.jna.Structure}s, but to refer to raw memory you can use the Pointer class.<p>
 
 A Pointer is a pointer to a region of native memory, based on RTSJ-like RawMemoryAccesss semantics. Otherwise it is similar to the Memory class in JNA.
 All Pointers have a size, so memory access through a Pointer is range-checked.
@@ -51,7 +50,7 @@ to structures are more complicated, and will be described after the Structures s
 The main steps to making a C function callable from Java are to:
 <ol>
     <li> Create a class (or add methods to an existing class) to contain the method calling code
-    <li> Get a {@Link Function} pointer object that refers to the C function
+    <li> Get a {@link com.sun.cldc.jna.Function} pointer object that refers to the C function
     <li> Create a Java method with the same name and parameters as the C function, which calls the C function using the function pointer.<br>
         Note that sometimes it make more sense to alter the API slightly for the convieince of the Java code that will call this method.
 </ol>
@@ -141,7 +140,7 @@ There are specific differences listed for each class, but here are the major dif
     <li> No reflection in CLDC means that operations such as function invocation and the reading and writing of Structure fields to native buffers
          has to be done explicitly, not handled automatically. A future version may be able to generate this code automatically though.
     <li> No NIO buffers
-    <li> The Pointer type is modelled after the RawMemoryFloatAccess class from RTSJ (JSRT 1).
+    <li> The Pointer type is modeled after the RawMemoryFloatAccess class from RTSJ (JSRT 1).
 
     <li> Throws RuntimeExceptions instead of UnsatisfiedLinkErrors. Are link errors really "unrecoverable"? Platform independant code might want to work around missing functions.
     <li> Calling conventions unimplemented

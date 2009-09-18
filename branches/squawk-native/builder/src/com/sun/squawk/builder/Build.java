@@ -2903,6 +2903,14 @@ public class Build {
             FileSet.Selector selector = new FileSet.AndSelector(JAVA_SOURCE_SELECTOR, outOfDate);
             FileSet fs = new FileSet(sourceDir, selector);
             preprocessor.execute(fs, preprocessedDir);
+
+            FileSet htmlFiles = new FileSet(sourceDir, HTML_SELECTOR);
+            for (Iterator iterator = htmlFiles.list().iterator(); iterator.hasNext();) {
+                File htmlFile = (File) iterator.next();
+                File toHtmlFile = htmlFiles.replaceBaseDir(htmlFile, preprocessedDir);
+                cp(htmlFile, toHtmlFile, false);
+            }
+
         }
         return preprocessedDir;
     }

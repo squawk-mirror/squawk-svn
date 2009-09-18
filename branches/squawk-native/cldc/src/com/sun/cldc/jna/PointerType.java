@@ -45,7 +45,7 @@ public abstract class PointerType {
 
     /**
      * Return the underlying untyped pointer
-     * @return
+     * @return raw pointer
      */
     public Pointer getPointer() {
         return rawPointer;
