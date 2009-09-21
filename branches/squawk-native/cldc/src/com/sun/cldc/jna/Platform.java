@@ -76,7 +76,7 @@ public abstract class Platform {
 
     /**
      * Some platforms have wildly different names for standard libraries. Try to catch them here.
-     * @TODO: MAke extensible so other platforms don't have to modify shared class.
+     * @TODO Make extensible so other platforms don't have to modify shared class.
      * @param genericName
      * @return the base name of the library for the current platform
      */

@@ -32,13 +32,15 @@ package com.sun.cldc.jna;
 /*end[SQUAWK]*/
 
 /**
+ * <b>NOT YET IMPLEMENTED</b>
+ *
  * The Includes annotation can be applied to the top-level interface declarations in a JNA
  * Library declaration to indicate the C include files that contain the relevent #defines and structure definitions
  * for that library
  * 
  * Example:
  * 
- *    @Includes( "<errno.h>", 
+ *    &#64;Includes( "<errno.h>",
  *               "<fcntl.h>",
  *                "<sys/stat.h>")
  *    public interface LibC extends LibraryImport { ... }

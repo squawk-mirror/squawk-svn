@@ -21,14 +21,6 @@ import com.sun.squawk.VM;
  *  By default, the byte addressed by <code>offset</code> is the byte at the
  *  lowest address of the
  *  floating point processor's floating point representation.
- *  If the type of memory used for this
- *  <code>RawMemoryFloatAccess</code> region implements a non-standard floating
- *  point format, accessor methods in this class continue to select bytes
- *  starting at <code>offset</code> from the base address and continuing toward
- *  greater addresses.  The memory type may control the mapping of these bytes into
- *  the primitive data type.  The memory type could even select bytes that are not
- *  contiguous.  In each case the documentation for the {@link PhysicalMemoryTypeFilter}
- *  must document any mapping other than the "normal" one specified above.
  * <p>
  *  <p>
  *  All offset values used in this class are measured in bytes.

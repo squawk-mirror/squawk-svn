@@ -1267,7 +1267,7 @@ public class RawMemoryAccess {
 
     /**
      * Return true if this specific RawMemoryAccess allocated native memory.
-     * @return
+     * @return true if the memory referred to by this RawMemoryAccess was allocated by this RawMemoryAccess
      */
     protected boolean wasMalloced() {
         return state == MALLOCED;
