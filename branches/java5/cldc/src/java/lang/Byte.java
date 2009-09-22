@@ -26,7 +26,9 @@
 
 package java.lang;
 
+/*if[JAVA5SYNTAX]*/
 import com.sun.squawk.Java5Marker;
+/*end[JAVA5SYNTAX]*/
 
 /**
  *
@@ -35,7 +37,6 @@ import com.sun.squawk.Java5Marker;
  * @version 12/17/01 (CLDC 1.1)
  * @since   JDK1.1, CLDC 1.0
  */
-@Java5Marker
 public final class Byte {
 
     /**
@@ -131,7 +132,9 @@ public final class Byte {
         return false;
     }
 
+/*if[JAVA5SYNTAX]*/
     @Java5Marker
+/*end[JAVA5SYNTAX]*/
     public static Byte valueOf(final byte val) {
         return new Byte(val);
     }

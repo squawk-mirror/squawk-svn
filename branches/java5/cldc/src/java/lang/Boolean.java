@@ -26,7 +26,9 @@
 
 package java.lang;
 
+/*if[JAVA5SYNTAX]*/
 import com.sun.squawk.Java5Marker;
+/*end[JAVA5SYNTAX]*/
 
 /**
  * The Boolean class wraps a value of the primitive type
@@ -37,7 +39,6 @@ import com.sun.squawk.Java5Marker;
  * @version 12/17/01 (CLDC 1.1)
  * @since   JDK1.0, CLDC 1.0
  */
-@Java5Marker
 public final
 class Boolean {
 
@@ -117,7 +118,9 @@ class Boolean {
         return false;
     }
 
+/*if[JAVA5SYNTAX]*/
     @Java5Marker
+/*end[JAVA5SYNTAX]*/
     public static Boolean valueOf(final boolean b) {
         return b ? Boolean.TRUE : Boolean.FALSE;
     }

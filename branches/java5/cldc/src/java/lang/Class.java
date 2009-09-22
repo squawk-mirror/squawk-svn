@@ -50,10 +50,18 @@ import com.sun.squawk.util.*;
  * @version 1.106, 12/04/99 (CLDC 1.0, Spring 2000)
  * @since   JDK1.0, CLDC 1.0
  */
+/*if[JAVA5SYNTAX]*/
 @Java5Marker("Added <T>")
 public final class Class<T> {
+/*else[JAVA5SYNTAX]*/
+//public final class Class {
+/*end[JAVA5SYNTAX]*/
 
+/*if[JAVA5SYNTAX]*/
     private Klass<T> klass;
+/*else[JAVA5SYNTAX]*/
+//    private Klass klass;
+/*end[JAVA5SYNTAX]*/
 
     private Class() {}
 
@@ -111,7 +119,13 @@ public final class Class<T> {
      *               instantiation fails for some other reason.
      * @since     JDK1.0
      */
-    public T newInstance() throws InstantiationException, IllegalAccessException {
+    public 
+/*if[JAVA5SYNTAX]*/
+    T
+/*else[JAVA5SYNTAX]*/
+//    Object
+/*end[JAVA5SYNTAX]*/
+    newInstance() throws InstantiationException, IllegalAccessException {
         /*
          * Check for a sensible object type.
          */
@@ -121,7 +135,12 @@ public final class Class<T> {
 
         ExecutionPoint[] trace = VM.reifyCurrentStack(2);
         Assert.always(trace.length == 2);
-        Klass<?> callersClass = trace[1].getKlass();
+/*if[JAVA5SYNTAX]*/
+        Klass<?> callersClass;
+/*else[JAVA5SYNTAX]*/
+//      Klass callersClass;
+/*end[JAVA5SYNTAX]*/
+        callersClass= trace[1].getKlass();
 
         /*
          * Check that the calling method can access this klass and the constructor
@@ -201,7 +220,11 @@ public final class Class<T> {
      *            null.
      * @since JDK1.1
      */
+/*if[JAVA5SYNTAX]*/
     public boolean isAssignableFrom(Class<?> cls) {
+/*else[JAVA5SYNTAX]*/
+//    public boolean isAssignableFrom(Class cls) {
+/*end[JAVA5SYNTAX]*/
         if (cls == null) {
             throw new NullPointerException();
         }
@@ -299,7 +322,11 @@ public final class Class<T> {
      * @see     java.lang.reflect.Array
      * @since JDK1.1
      */
+/*if[JAVA5SYNTAX]*/
     public Class<?> getComponentType() {
+/*else[JAVA5SYNTAX]*/
+//        public Class getComponentType() {
+/*end[JAVA5SYNTAX]*/
         return Klass.asClass(klass.getComponentType());
     }
 
@@ -326,7 +353,9 @@ public final class Class<T> {
      * @see    setPackageAssertionStatus
      * @see    setDefaultAssertionStatus
      */
+/*if[JAVA5SYNTAX]*/
     @Java5Marker
+/*end[JAVA5SYNTAX]*/
     public boolean desiredAssertionStatus() {
         return false;
     }

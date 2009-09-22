@@ -1,3 +1,4 @@
+//if[JAVA5SYNTAX]*/
 package java.lang.annotation;
 
 import com.sun.squawk.Java5Marker;
@@ -6,4 +7,3 @@ import com.sun.squawk.Java5Marker;
 public @Documented @Retention( RetentionPolicy.RUNTIME ) @Target( ElementType.ANNOTATION_TYPE ) @interface Target {
   public ElementType[] value();
 }
-

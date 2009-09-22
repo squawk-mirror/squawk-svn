@@ -1,3 +1,4 @@
+//if[JAVA5SYNTAX]*/
 package net.sourceforge.retroweaver.runtime.java.lang;
 
 import java.util.Iterator;

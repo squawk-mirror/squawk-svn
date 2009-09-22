@@ -27,7 +27,9 @@
 package java.util;
 
 import com.sun.cldchi.jvm.JVM;
+/*if[JAVA5SYNTAX]*/
 import com.sun.squawk.Java5Marker;
+/*end[JAVA5SYNTAX]*/
 
 /**
  * The <code>Vector</code> class implements a growable array of
@@ -48,9 +50,12 @@ import com.sun.squawk.Java5Marker;
  * @version 12/17/01 (CLDC 1.1)
  * @since   JDK1.0, CLDC 1.0
  */
+/*if[JAVA5SYNTAX]*/
 @Java5Marker
-public
-class Vector<E> implements Iterable<E> {
+public class Vector<E> implements Iterable<E> {
+/*else[JAVA5SYNTAX]*/
+//public class Vector {
+/*end[JAVA5SYNTAX]*/
 
     /**
      * The array buffer into which the components of the vector are
@@ -237,10 +242,11 @@ class Vector<E> implements Iterable<E> {
         return elementCount == 0;
     }
 
-    @Java5Marker
+/*if[JAVA5SYNTAX]*/
     public Iterator<E> iterator() {
         return new VectorEnumerator<E>(this);
     }
+/*end[JAVA5SYNTAX]*/
     
     /**
      * Returns an enumeration of the components of this vector.
@@ -249,9 +255,15 @@ class Vector<E> implements Iterable<E> {
      * @see     java.util.Enumeration
      * @since   JDK1.0
      */
+/*if[JAVA5SYNTAX]*/
     public synchronized Enumeration<E> elements() {
         return new VectorEnumerator<E>(this);
     }
+/*else[JAVA5SYNTAX]*/
+//    public synchronized Enumeration elements() {
+//        return new VectorEnumerator(this);
+//    }
+/*end[JAVA5SYNTAX]*/
 
     /**
      * Tests if the specified object is a component in this vector.
@@ -361,6 +373,7 @@ class Vector<E> implements Iterable<E> {
      *             given.
      * @since      JDK1.0
      */
+/*if[JAVA5SYNTAX]*/
     @SuppressWarnings("unchecked")
     public synchronized E elementAt(int index) {
         if (index >= elementCount) {
@@ -372,6 +385,18 @@ class Vector<E> implements Iterable<E> {
         }
         return (E) elementData[index];
     }
+/*else[JAVA5SYNTAX]*/
+//    public synchronized Object elementAt(int index) {
+//        if (index >= elementCount) {
+//            throw new ArrayIndexOutOfBoundsException(
+///* #ifdef VERBOSE_EXCEPTIONS */
+///// skipped                       index + " >= " + elementCount
+///* #endif */
+//            );
+//        }
+//        return elementData[index];
+//    }
+/*end[JAVA5SYNTAX]*/
 
     /**
      * Returns the first component of this vector.
@@ -380,6 +405,7 @@ class Vector<E> implements Iterable<E> {
      * @exception  NoSuchElementException  if this vector has no components.
      * @since      JDK1.0
      */
+/*if[JAVA5SYNTAX]*/
     @SuppressWarnings("unchecked")
     public synchronized E firstElement() {
         if (elementCount == 0) {
@@ -387,6 +413,14 @@ class Vector<E> implements Iterable<E> {
         }
         return (E) elementData[0];
     }
+/*else[JAVA5SYNTAX]*/
+//    public synchronized Object firstElement() {
+//        if (elementCount == 0) {
+//            throw new NoSuchElementException();
+//        }
+//        return elementData[0];
+//    }
+/*end[JAVA5SYNTAX]*/
 
     /**
      * Returns the last component of the vector.
@@ -396,6 +430,7 @@ class Vector<E> implements Iterable<E> {
      * @exception  NoSuchElementException  if this vector is empty.
      * @since   JDK1.0
      */
+/*if[JAVA5SYNTAX]*/
     @SuppressWarnings("unchecked")
     public synchronized E lastElement() {
         if (elementCount == 0) {
@@ -403,6 +438,14 @@ class Vector<E> implements Iterable<E> {
         }
         return (E) elementData[elementCount - 1];
     }
+/*else[JAVA5SYNTAX]*/
+//    public synchronized Object lastElement() {
+//        if (elementCount == 0) {
+//            throw new NoSuchElementException();
+//        }
+//        return elementData[elementCount - 1];
+//    }
+/*end[JAVA5SYNTAX]*/
 
     /**
      * Sets the component at the specified <code>index</code> of this
@@ -418,7 +461,11 @@ class Vector<E> implements Iterable<E> {
      * @see        java.util.Vector#size()
      * @since      JDK1.0
      */
+/*if[JAVA5SYNTAX]*/
     public synchronized void setElementAt(E obj, int index) {
+/*else[JAVA5SYNTAX]*/
+//    public synchronized void setElementAt(Object obj, int index) {
+/*end[JAVA5SYNTAX]*/
         if (index >= elementCount) {
             throw new ArrayIndexOutOfBoundsException(
 /* #ifdef VERBOSE_EXCEPTIONS */
@@ -576,11 +623,20 @@ class Vector<E> implements Iterable<E> {
 }
 
 final
+/*if[JAVA5SYNTAX]*/
 class VectorEnumerator<E> implements Enumeration<E>, Iterator<E> {
     Vector<E> vector;
+/*else[JAVA5SYNTAX]*/
+//class VectorEnumerator implements Enumeration {
+//    Vector vector;
+/*end[JAVA5SYNTAX]*/
     int count;
 
+/*if[JAVA5SYNTAX]*/
     VectorEnumerator(Vector<E> v) {
+/*else[JAVA5SYNTAX]*/
+//    VectorEnumerator(Vector v) {
+/*end[JAVA5SYNTAX]*/
         vector = v;
         count = 0;
     }
@@ -589,11 +645,19 @@ class VectorEnumerator<E> implements Enumeration<E>, Iterator<E> {
         return count < vector.elementCount;
     }
 
+/*if[JAVA5SYNTAX]*/
     @SuppressWarnings("unchecked")
     public E nextElement() {
+/*else[JAVA5SYNTAX]*/
+//    public Object nextElement() {
+/*end[JAVA5SYNTAX]*/
         synchronized (vector) {
             if (count < vector.elementCount) {
+/*if[JAVA5SYNTAX]*/
                 return (E) vector.elementData[count++];
+/*else[JAVA5SYNTAX]*/
+//                return vector.elementData[count++];
+/*end[JAVA5SYNTAX]*/
             }
         }
         throw new NoSuchElementException(
@@ -607,11 +671,19 @@ class VectorEnumerator<E> implements Enumeration<E>, Iterator<E> {
         return count < vector.elementCount;
     }
 
+/*if[JAVA5SYNTAX]*/
     @SuppressWarnings("unchecked")
     public E next() {
+/*else[JAVA5SYNTAX]*/
+//        public Object next() {
+/*end[JAVA5SYNTAX]*/
         synchronized (vector) {
             if (count < vector.elementCount) {
+/*if[JAVA5SYNTAX]*/
                 return (E) vector.elementData[count++];
+/*else[JAVA5SYNTAX]*/
+//                return vector.elementData[count++];
+/*end[JAVA5SYNTAX]*/
             }
         }
         throw new NoSuchElementException(

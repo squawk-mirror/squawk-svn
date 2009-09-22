@@ -26,7 +26,9 @@
 
 package java.lang;
 
+/*if[JAVA5SYNTAX]*/
 import com.sun.squawk.Java5Marker;
+/*end[JAVA5SYNTAX]*/
 
 /**
  * The Integer class wraps a value of the primitive type <code>int</code>
@@ -42,7 +44,9 @@ import com.sun.squawk.Java5Marker;
  * @version 12/17/01 (CLDC 1.1)
  * @since   JDK1.0, CLDC 1.0
  */
+/*if[JAVA5SYNTAX]*/
 @Java5Marker
+/*end[JAVA5SYNTAX]*/
 public final class Integer {
 
     /**
@@ -587,7 +591,9 @@ public final class Integer {
         return false;
     }
 
+/*if[JAVA5SYNTAX]*/
     @Java5Marker
+/*end[JAVA5SYNTAX]*/
     public static Integer valueOf(int i) {
         return new Integer(i);
     }

@@ -7,7 +7,9 @@ package javax.microedition.io;
 
 import java.io.IOException;
 
+/*if[JAVA5SYNTAX]*/
 import com.sun.squawk.Java5Marker;
+/*end[JAVA5SYNTAX]*/
 
 /**
  * This interface defines the socket stream connection.
@@ -83,7 +85,9 @@ import com.sun.squawk.Java5Marker;
  *
  * @since MIDP 2.0, CDC 1.1, Java Card 3.0
  */
+/*if[JAVA5SYNTAX]*/
 @Java5Marker
+/*end[JAVA5SYNTAX]*/
 public interface SocketConnection extends StreamConnection {
 
     /**

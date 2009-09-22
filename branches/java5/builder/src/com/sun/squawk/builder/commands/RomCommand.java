@@ -330,7 +330,13 @@ public class RomCommand extends Command {
         }));
 
         File srcDir = new File("cldc", "src");
-        File preDir = new File("cldc", "preprocessed");
+        File preDir;
+        if (env.isJava5SyntaxSupported()) {
+            preDir = new File("cldc", "preprocessed");
+        } else {
+            Target cldcTarger = (Target) env.getCommandForced("cldc");
+            preDir = env.preprocess(new File("cldc"), cldcTarger.srcDirs, true, true);
+        }
 
         // Rebuilds the generated file if any of the *.java files in cldc/src or cldc/preprocessed have
         // a later modification date than the generated file.
@@ -339,7 +345,7 @@ public class RomCommand extends Command {
             // This is to handle case where vm2c did not install itself, but we still wanted to run the rom command to do just compilation
             Command command = env.getCommand("runvm2c");
             if (command == null) {
-            	throw new BuildException("The module vm2c and runvm2c we're not installed, this is very likely due to these modules requiring the use of JDK 1.5 or higher");
+                throw new BuildException("The module vm2c and runvm2c we're not installed, this is very likely due to these modules requiring the use of JDK 1.5 or higher");
             }
             // Ensure that the *existing* preprocessed files in cldc are in sync with the original sources
             FileSet.Selector selector = new FileSet.AndSelector(Build.JAVA_SOURCE_SELECTOR, new FileSet.DependSelector(new FileSet.SourceDestDirMapper(srcDir, preDir)) {

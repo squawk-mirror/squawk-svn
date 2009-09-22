@@ -1,3 +1,4 @@
+//if[JAVA5SYNTAX]
 package com.sun.squawk;
 
 @Java5Marker

@@ -60,6 +60,7 @@ import net.sourceforge.retroweaver.event.WeaveListener;
  *
  */
 public class Build {
+// TODO Go through and clean up the references to directories so that they are consistent 
 
     /*---------------------------------------------------------------------------*\
      *                               Runtime options                             *
@@ -217,6 +218,8 @@ public class Build {
     private String specfifiedBuildDotOverrideFileName;
     
     protected boolean isInitialized;
+    
+    protected boolean isJava5SyntaxSupported;
     
     /**
      * Gets the name of the build.override file specified by the -override: or -override arg. Or null if no
@@ -1542,6 +1545,10 @@ public class Build {
         macroizer = new Macroizer();
         installBuiltinCommands();
         javaCompiler = new JavaCompiler(this);
+        isJava5SyntaxSupported = false;
+        if (getProperty("JAVA5SYNTAX") != null) {
+            isJava5SyntaxSupported = getBooleanProperty("JAVA5SYNTAX");
+        }
     }
     
     /**
@@ -2261,7 +2268,7 @@ public class Build {
 
         // Preprocess the sources if required
         if (preprocess) {
-            srcDirs = new File[] { preprocess(baseDir, srcDirs, j2me) };
+            srcDirs = new File[] { preprocess(baseDir, srcDirs, j2me, false) };
         }
 
         // Get the javac output directory
@@ -2269,6 +2276,11 @@ public class Build {
 
         // Prepare and run the Java compiler
         javaCompiler.reset();
+        if (!isJava5SyntaxSupported() && j2me) {
+            // This is required to make the preverifier happy
+            javaCompiler.arg("-target", "1.2");
+            javaCompiler.arg("-source", "1.3");
+        }
         if (extraArgs != null) {
             for (String arg: extraArgs) {
                 javaCompiler.arg(arg);
@@ -2278,7 +2290,7 @@ public class Build {
         javaCompiler.arg("-g").args(javacOptions);
         javaCompiler.compile(compileClassPath, classesDir, srcDirs, j2me);
         
-        if (j2me) {
+        if (isJava5SyntaxSupported() && j2me) {
             classesDir = retroweave(baseDir, classesDir);
         }
 
@@ -2329,9 +2341,19 @@ public class Build {
      * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
      * @return the preprocessor output directory
      */
-    public File preprocess(File baseDir, File[] srcDirs, boolean j2me) {
+    public File preprocess(File baseDir, File[] srcDirs, boolean j2me, boolean vm2c) {
         // Get the preprocessor output directory
-        final File preprocessedDir = mkdir(baseDir, "preprocessed");
+        final File preprocessedDir;
+        boolean resetJava5Syntax = false;
+        if (vm2c && !isJava5SyntaxSupported()) {
+            log(brief, "[preprocessing with forced JAVA5SYNTAX for vm2c]");
+            preprocessedDir = mkdir(baseDir, "preprocessed-vm2c");
+            updateProperty("JAVA5SYNTAX", "true", true);
+            isJava5SyntaxSupported = true;
+            resetJava5Syntax = true;
+        } else {
+            preprocessedDir = mkdir(baseDir, "preprocessed");
+        }
 
         // Preprocess the sources
         preprocessor.processAssertions = j2me;
@@ -2361,6 +2383,12 @@ public class Build {
             FileSet fs = new FileSet(sourceDir, selector);
             preprocessor.execute(fs, preprocessedDir);
         }
+
+        if (resetJava5Syntax) {
+            updateProperty("JAVA5SYNTAX", "false", true);
+            isJava5SyntaxSupported = false;
+        }
+
         return preprocessedDir;
     }
 
@@ -2375,7 +2403,7 @@ public class Build {
 
 
         // Get the preverifier input and output directories
-        File classesDir = new File(baseDir, "weaved");
+        File classesDir = isJava5SyntaxSupported()?new File(baseDir, "weaved"):new File(baseDir, "classes");
         File j2meclassesDir = mkdir(baseDir, "j2meclasses");
 
         // See if any of the classes actually need re-preverifying
@@ -2608,8 +2636,8 @@ public class Build {
      * 
      * @return
      */
-    public boolean isJava5Supported() {
-        return true;
+    public boolean isJava5SyntaxSupported() {
+        return isJava5SyntaxSupported;
     }
     
 }

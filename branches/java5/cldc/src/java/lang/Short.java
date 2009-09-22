@@ -26,7 +26,9 @@
 
 package java.lang;
 
+/*if[JAVA5SYNTAX]*/
 import com.sun.squawk.Java5Marker;
+/*end[JAVA5SYNTAX]*/
 
 /**
  * The Short class is the standard wrapper for short values.
@@ -34,7 +36,9 @@ import com.sun.squawk.Java5Marker;
  * @version 12/17/01 (CLDC 1.1)
  * @since   JDK1.1, CLDC 1.0
  */
+/*if[JAVA5SYNTAX]*/
 @Java5Marker
+/*end[JAVA5SYNTAX]*/
 public final
 class Short {
 
@@ -133,7 +137,9 @@ class Short {
         return false;
     }
 
+/*if[JAVA5SYNTAX]*/
     @Java5Marker
+/*end[JAVA5SYNTAX]*/
     public static Short valueOf(final short val) {
         return new Short(val);
     }

@@ -1,3 +1,4 @@
+//if[JAVA5SYNTAX]*/
 package java.lang.annotation;
 
 import com.sun.squawk.Java5Marker;

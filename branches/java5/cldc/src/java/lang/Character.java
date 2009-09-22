@@ -26,7 +26,9 @@
 
 package java.lang;
 import com.sun.cldc.i18n.uclc.*;
+/*if[JAVA5SYNTAX]*/
 import com.sun.squawk.Java5Marker;
+/*end[JAVA5SYNTAX]*/
 
 /**
  * The Character class wraps a value of the primitive type <code>char</code>
@@ -57,8 +59,6 @@ import com.sun.squawk.Java5Marker;
  * DefaultCaseConverter.  Refer to the end of this file
  * for details.
  */
-
-@Java5Marker
 public final class Character extends Object {
 
     /**
@@ -273,7 +273,9 @@ public final class Character extends Object {
         return DefaultCaseConverter.digit(ch, radix);
     }
 
+/*if[JAVA5SYNTAX]*/
     @Java5Marker
+/*end[JAVA5SYNTAX]*/
     public static Character valueOf(final char val) {
         return new Character(val);
     }

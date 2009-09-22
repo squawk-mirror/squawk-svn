@@ -48,7 +48,11 @@ import com.sun.squawk.vm.*;
  * @version 1.0
  * @see     com.sun.squawk.KlassMetadata
  */
+/*if[JAVA5SYNTAX]*/
 public class Klass<T> {
+/*else[JAVA5SYNTAX]*/
+//public class Klass {
+/*end[JAVA5SYNTAX]*/
 
     /*---------------------------------------------------------------------------*\
      *      Fields of Klass, some of which may be accessed directly by the VM    *
@@ -417,9 +421,19 @@ public class Klass<T> {
      * @throws java.lang.InstantiationException
      * @throws java.lang.IllegalAccessException 
      */
-    public final T newInstance() throws InstantiationException, IllegalAccessException {
+    public final
+/*if[JAVA5SYNTAX]*/
+T
+/*else[JAVA5SYNTAX]*/
+//Object
+/*end[JAVA5SYNTAX]*/
+	newInstance() throws InstantiationException, IllegalAccessException {
         Assert.always(!(isSquawkArray() || isInterface() || isAbstract()) && hasDefaultConstructor());
+/*if[JAVA5SYNTAX]*/
         T res = (T) GC.newInstance(this);
+/*else[JAVA5SYNTAX]*/
+//        Object res = GC.newInstance(this);
+/*end[JAVA5SYNTAX]*/
         try {
             VM.callStaticOneParm(this, indexForInit & 0xFF, res);
         } catch (NoClassDefFoundError e) {

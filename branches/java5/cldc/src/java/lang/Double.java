@@ -485,7 +485,9 @@ public final class Double {
         return VM.longBitsToDouble(bits);
     }
 
+/*if[JAVA5SYNTAX]*/
     @Java5Marker
+/*end[JAVA5SYNTAX]*/
     public static Double valueOf(final double val) {
         return new Double(val);
     }
