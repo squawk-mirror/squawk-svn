@@ -41,8 +41,9 @@ public class GccMacOSXCompiler extends GccCompiler {
      * {@inheritDoc}
      */
     public String getLinkSuffix() {
-        return " -framework CoreFoundation -framework JavaVM";
+        return " " + get64BitOption() + " -framework CoreFoundation -framework JavaVM -dead-strip ";
     }
+
 
     /**
      * {@inheritDoc}
@@ -56,6 +57,28 @@ public class GccMacOSXCompiler extends GccCompiler {
      */
     public String getArchitecture() {
         return "PPC";
+    }
+
+    public String getCompilerArchOption() {
+        return "ppc";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String linkOptions(boolean disableOpts) {
+        String result = super.linkOptions(disableOpts);
+        result += " -arch " + getCompilerArchOption() + " ";
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String options(boolean disableOpts) {
+        String result = super.options(disableOpts);
+        result += " -arch " + getCompilerArchOption() +" ";
+        return result;
     }
 
 }
