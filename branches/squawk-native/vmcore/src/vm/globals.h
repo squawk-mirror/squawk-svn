@@ -81,9 +81,7 @@ typedef struct globalsStruct {
     int         _io_ops_count;
 #endif /* PLATFORM_TYPE_SOCKET */
 
-#if PLATFORM_TYPE_NATIVE
     void*       _nativeFuncPtr;               /* Ptr to the function that is being called via NativeUnsafe.call, or null */
-#endif /* PLATFORM_TYPE_NATIVE */
 
 #ifdef PROFILING
     int         _sampleFrequency;            /* The profile sample frequency */
