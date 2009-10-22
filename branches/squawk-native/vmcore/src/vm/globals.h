@@ -237,9 +237,7 @@ boolean     notrap;
 #define channelIO_execute                   defineGlobal(channelIO_execute)
 #endif /* PLATFORM_TYPE_DELEGATING */
 
-#if PLATFORM_TYPE_NATIVE
 #define nativeFuncPtr                       defineGlobal(nativeFuncPtr)
-#endif /* PLATFORM_TYPE_NATIVE */
 
 #define STREAM_COUNT                        (sizeof(Streams) / sizeof(FILE*))
 
