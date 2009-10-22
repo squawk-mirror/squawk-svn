@@ -152,6 +152,7 @@ void squawk_printVersion() {
 int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     int fd;
     FUNCPTR entryPt = (FUNCPTR)robotTask;
+    fprintf(stderr, "[Squawk VM] Starting up...\n");
 
     cd("/c/ni-rt/system");
 

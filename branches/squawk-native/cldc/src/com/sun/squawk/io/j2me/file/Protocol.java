@@ -24,6 +24,7 @@
 package com.sun.squawk.io.j2me.file;
 //package com.sun.midp.io.j2me.file;
 
+import com.sun.squawk.microedition.io.FileConnection;
 import com.sun.squawk.VM;
 import com.sun.squawk.platform.GCFFile;
 import com.sun.squawk.io.ConnectionBaseAdapter;

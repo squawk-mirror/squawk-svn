@@ -22,7 +22,7 @@
  * information or have any questions.
  */
 
-package com.sun.squawk.io.j2me.file;
+package com.sun.squawk.microedition.io;
 
 import java.io.IOException;
 import java.io.OutputStream;
