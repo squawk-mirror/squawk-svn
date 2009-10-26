@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson>
-  <version>1.0</version>
+  <version>1.324</version>
   <numExecutors>4</numExecutors>
   <mode>NORMAL</mode>
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
@@ -29,6 +29,7 @@ Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&
     &lt;/ul&gt;&#xd;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-matrix/&quot;&gt;build-matrix&lt;/a&gt;&#xd;
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/build-flash-memory-matrix/&quot;&gt;build-flash-memory-matrix&lt;/a&gt;&#xd;
+&lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/platform-type-builds/&quot;&gt;platform-type-builds&lt;/a&gt;&#xd;
 &lt;/ul&gt;&#xd;
 &#xd;
 &lt;td&gt;&#xd;
@@ -54,14 +55,15 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
       <properties/>
     </jdk>
     <jdk>
-      <name></name>
-      <home></home>
+      <name>1.5</name>
+      <home>/usr/jdk/instances/jdk1.5.0</home>
       <properties/>
     </jdk>
   </jdks>
   <clouds/>
   <slaves/>
   <quietPeriod>5</quietPeriod>
+  <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
   <views>
     <hudson.model.AllView>
       <owner class="hudson" reference="../../.."/>
@@ -110,7 +112,7 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
         <string>full-debug-build</string>
         <string>normal-build</string>
         <string>platform-type-builds</string>
-        <string>platform-type-matrix</string>
+        <string>platform-type-matrix0</string>
         <string>small-build</string>
         <string>start-jam-from-svn</string>
         <string>start-tck-cmdline</string>
