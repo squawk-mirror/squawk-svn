@@ -28,9 +28,6 @@
 
 package com.sun.squawk.platform.posix.linux.natives;
 
-import com.sun.cldc.jna.*;
-import com.sun.cldc.jna.ptr.*;
-
 public class SelectImpl extends com.sun.squawk.platform.posix.natives.SelectImpl {
 
     /*----------------------------- defines -----------------------------*/
@@ -43,45 +40,5 @@ public class SelectImpl extends com.sun.squawk.platform.posix.natives.SelectImpl
     public int initConstInt(int index) {
         return intConstants[index];
     }
-
-
-    /*----------------------------- methods -----------------------------*/
-    private final Function selectPtr;
-    
-    public int select(int arg0, Pointer arg1, Pointer arg2, Pointer arg3, Pointer arg4) {
-        int result0 = selectPtr.call5(arg0, arg1, arg2, arg3, arg4);
-        int result = (int)result0;
-        return result;
-    }
-    
-    private final Function FD_ISSETPtr;
-    
-    public boolean FD_ISSET(int arg0, Pointer arg1) {
-        int result0 = FD_ISSETPtr.call2(arg0, arg1);
-        boolean result = (result0 == 0) ? false : true;
-        return result;
-    }
-    
-    private final Function FD_CLRPtr;
-    
-    public void FD_CLR(int arg0, Pointer arg1) {
-        FD_CLRPtr.call2(arg0, arg1);
-    }
-    
-    private final Function FD_SETPtr;
-    
-    public void FD_SET(int arg0, Pointer arg1) {
-        FD_SETPtr.call2(arg0, arg1);
-    }
-    
-    public SelectImpl() {
-        NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
-        selectPtr = jnaNativeLibrary.getFunction("select");
-        FD_ISSETPtr = jnaNativeLibrary.getFunction("sysFD_ISSET");
-        FD_CLRPtr = jnaNativeLibrary.getFunction("sysFD_CLR");
-        FD_SETPtr = jnaNativeLibrary.getFunction("sysFD_SET");
-    }
     
 }
-
-

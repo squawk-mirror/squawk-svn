@@ -22,11 +22,11 @@
  * information or have any questions.
  */
 
-#define open(filename, flags) open(filename, flags, 0644);
+#define open(filename, flags) open(filename, flags, 0644)
 
 
-/* The package that conmtains the native code to use for a "NATIVE" platform type*/
- #define sysPlatformName() "vxworks"
+/* The package that contains the native code to use for a "NATIVE" platform type*/
+#define sysPlatformName() "vxworks"
 
 #include <stdlib.h>
 #include <sys/times.h>
@@ -34,20 +34,21 @@
 #include <sysSymTbl.h>
 #include <sys/mman.h>
 #include "jni.h"
+#include <semLib.h>
+#include <taskLib.h>
+
 
 #define jlong  int64_t
 
-/**
- * VxWorks can't be helpful and define usleep()
- */
-int usleep(long microseconds) {
-    struct timespec ns;
+#define hasMemProtection FALSE
 
-    ns.tv_sec = 0;
-    ns.tv_nsec = 1000 * microseconds;
+#if defined(ASSUME) && ASSUME != 0
+#define sysAssume(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__);  }
+#else
+#define sysAssume(x) /**/
+#endif /* ASSUME */
 
-    return nanosleep(&ns, NULL);
-}
+#define sysAssumeAlways(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__); }
 
 /**
  * Support for util.h
@@ -58,7 +59,9 @@ int usleep(long microseconds) {
  *
  * @return the page size (in bytes) of the system
  */
-#define sysGetPageSize() 0x1000
+int sysGetPageSize() {
+    return vmPageSizeGet(); /*     0x1000 */
+}
 
 /**
  * Sets a region of memory read-only or reverts it to read & write.
@@ -73,123 +76,362 @@ void sysToggleMemoryProtection(char* start, char* end, boolean readonly) {
 
 /**
  * Allocate a page-aligned chunk of memory of the given size.
- * 
+ *
  * @param size size in bytes to allocate
  * @return pointer to allocated memory or null.
  */
 INLINE void* sysValloc(size_t size) {
-    return valloc(size);
+    if (hasMemProtection) {
+        return valloc(size);
+    } else {
+        return malloc(size);
+    }
 }
 
 /**
  * Free chunk of memory allocated by sysValloc
- * 
+ *
  * @param ptr to to chunk allocated by sysValloc
  */
 INLINE void sysVallocFree(void* ptr) {
     free(ptr);
 }
 
-/** 
+/**
  * Return another path to find the bootstrap suite with the given name.
  * On some platforms the suite might be stored in an odd location
- * 
+ *
  * @param bootstrapSuiteName the name of the boostrap suite
  * @return full or partial path to alternate location, or null
  */
-INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { 
+INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) {
     /* TODO: May want to do something more to find squawk.suite reliably*/
     return NULL;
 }
 
-// TODO: Fix timezone support?
-#if 0
-static void getTimeZone(time_t t, int *min, int *dst)
-{
-    struct tm dstTm;
-    char *tz = getenv(TZ_ENV);
-    *dst = (localtime_r(&t, &dstTm)==OK) ? dstTm.tm_isdst : 0;
 
-    if (tz)
-    {
-        /* see VxWorks timeLib develop guide */
-        /*
-         * name_of_zone:<(unused)>:time_in_minutes_from_UTC:daylight_start:daylight_end
-         */
-        /* mmddhh */
-        const char *p = tz;
-        int i = 0;
-        while ( (i < 2) && (p = strchr(p, ':')) )
-        {
-           ++p;
-           ++i;
-        }
-        if (p && (sscanf(p, "%d", min)!=1))
-            *min = 0;
-    }
-}
-#endif
-
-int gettimeofday(struct timeval *tv, struct timezone *tz)
-{
-    int ret;
-    struct timespec tp;
-
-    if  ( (ret=clock_gettime(CLOCK_REALTIME, &tp))==0)
-    {
-        tv->tv_sec  = tp.tv_sec;
-        tv->tv_usec = (tp.tv_nsec + 500) / 1000;
-
-/*
-        if (tz != NULL)
-        {
-            getTimeZone(tp.tv_sec, &tz->tz_minuteswest, &tz->tz_dsttime);
-        }
-*/
-    }
-     return ret;
-}
-
+/* ----------------------- Time Support ------------------------*/
 
 jlong sysTimeMicros() {
-    struct timeval tv;
-    jlong result;
-    gettimeofday(&tv, NULL);
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
     /* We adjust to 1000 ticks per second */
-    result = (jlong)tv.tv_sec * 1000000 + tv.tv_usec;
-    return result;
+    return ((jlong)ts.tv_sec * 1000000) + ((ts.tv_nsec + 500) / 1000);
 }
 
 jlong sysTimeMillis(void) {
-    return sysTimeMicros() / 1000;
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return timeSpec2ms(&ts);
 }
 
+/* ----------------------- Monitor Support ------------------------*/
 
-#define MAX_MICRO_SLEEP 999999
+/*
+ * SimpleMonitors supports the single-reader, multiple-writer scenario used by thread
+ * scheduling:
+ *  - The Squawk task may do a timed condvar wait if there's nothing else to do.
+ *  - Other native tasks may signal the Squawk task to indicate that some event
+ *    has occured (IO, blocking native call finished, etc.)
+ */
+
+#if 0
+/* mimic POSIX condvar in VxWorks */
+typedef struct SimpleMonitor_struct {
+    SEM_ID mu;
+    SEM_ID cv;
+    int lockCount;
+} SimpleMonitor;
+
+int MAX_SIMPLE_CONDVAR_WAIT_MS;
+
+/* why can't I find MAXINT? */
+#define SQUAWK_MAXINT 0x7FFFFFFF
+
+SimpleMonitor* SimpleMonitorCreate() {
+    int ticksPerMs = CLOCKS_PER_SEC / 1000;
+    MAX_SIMPLE_CONDVAR_WAIT_MS = SQUAWK_MAXINT / ticksPerMs;
+    SimpleMonitor* mon = (SimpleMonitor*)malloc(sizeof(SimpleMonitor));
+    mon->mu = semBCreate(SEM_Q_PRIORITY, SEM_FULL);
+    mon->cv = semBCreate(SEM_Q_PRIORITY, SEM_EMPTY);
+    mon->lockCount = 0;
+    return mon;
+}
+
+/** return zero on success. */
+int SimpleMonitorDestroy(SimpleMonitor* mon) {
+    sysAssumeAlways(!mon->lockCount);
+    semDelete(mon->mu);
+    semDelete(mon->cv);
+    free(mon);
+    return 0;
+}
+
+/* Wait for signal or timeout in millis milliseconds.
+ * A neg. timout indicates WAIT_FOREVER.
+ * Returns true if received signal, false if timed out.
+ */
+int SimpleMonitorWait(SimpleMonitor* mon, jlong millis) {
+    int res;
+
+    SimpleMonitorUnlock(mon);
+    if (millis < 0) {
+        res = semTake(mon->cv, WAIT_FOREVER);
+    } else {
+        int ticksPerMs = CLOCKS_PER_SEC / 1000;
+        jlong remaining = millis;
+        jlong start = sysTimeMillis();
+
+ fprintf(stderr, "waiting in SimpleMonitorWait: %llx\n", millis);
+        while (true) {
+            int ticks = SQUAWK_MAXINT;
+            if (remaining < MAX_SIMPLE_CONDVAR_WAIT_MS) {
+                ticks = ((int)remaining * ticksPerMs);
+            }
+
+            res = semTake(mon->cv, ticks);
+            if (res == ERROR) {
+                if (errno == S_objLib_OBJ_TIMEOUT) {
+                    remaining = millis - (sysTimeMillis() - start);
+                    if (remaining > 0) {
+                        fprintf(stderr, "keeping waiting in SimpleMonitorWait: %llx\n", remaining);
+                    }
+                    continue; /* keep waiting */
+                } else {
+                    fprintf(stderr, "unexpected errno in semTake: %d\n", errno);
+                }
+            }
+            break;
+        }
+    }
+    SimpleMonitorLock(mon);
+    
+    return res == OK;
+}
+
+/* Signal the condvar.
+ * return zero on success.
+ */
+int SimpleMonitorSignal(SimpleMonitor* mon) {
+    sysAssumeAlways(mon->lockCount);
+    return semGive(mon->cv);
+}
+
+int SimpleMonitorLock(SimpleMonitor* mon) {
+    int res = semTake(mon->mu, WAIT_FOREVER);
+    mon->lockCount++;
+    return res;
+}
+
+int SimpleMonitorUnlock(SimpleMonitor* mon) {
+    sysAssumeAlways(mon->lockCount);
+    mon->lockCount--;
+    return semGive(mon->mu);
+}
+#endif
+
+#include <pthread.h>
+
+/*
+ * SimpleMonitors supports the single-reader, multiple-writer scenario used by thread
+ * scheduling:
+ *  - The Squawk task may do a timed condvar wait if there's nothing else to do.
+ *  - Other native tasks may signal the Squawk task to indicate that some event
+ *    has occured (IO, blocking native call finished, etc.)
+ */
+
+typedef struct SimpleMonitor_struct {
+    pthread_mutex_t mu;
+    pthread_cond_t cv;
+    volatile int lockCount;
+} SimpleMonitor;
+
+SimpleMonitor* threadEventMonitor = NULL;
+
+static char* monitorName(SimpleMonitor* mon) {
+    sysAssumeAlways(mon);
+    if (mon == threadEventMonitor) {
+        return "threadEventMonitor";
+    } else if (threadEventMonitor == NULL) {
+        return "too early to tell monitor name";
+    } else {
+        return "a TaskExecutor monitor";
+    }
+}
+
+static void monitorErrCheck(SimpleMonitor* mon, char* msg, int res, int expectedValue) {
+    if (res != 0 && res != expectedValue) {
+        fprintf(stderr, "unexpected result in %s on %s: %d. errno: %d \n", msg, monitorName(mon), res, errno);
+    }
+}
+
+/**
+ * Return true if the moutex is locked, false otherwise.
+ * Non-blocking.
+ */
+int SimpleMonitorIsLocked(SimpleMonitor* mon) {
+    if (pthread_mutex_trylock(&mon->mu) == EBUSY) {
+        return TRUE;
+    } else {
+        pthread_mutex_unlock(&mon->mu);
+        return FALSE;
+    }
+}
+
+SimpleMonitor* SimpleMonitorCreate() {
+    SimpleMonitor* mon = (SimpleMonitor*)malloc(sizeof(SimpleMonitor));
+    int res;
+    if (mon == NULL) {
+        fprintf(stderr, "out of memory in SimpleMonitorCreate\n");
+        return NULL;
+    }
+    res = pthread_mutex_init(&(mon->mu), NULL);
+    monitorErrCheck(mon, "SimpleMonitorCreate mutex", res, 0);
+    res = pthread_cond_init(&(mon->cv), NULL);
+    monitorErrCheck(mon, "SimpleMonitorCreate condvar", res, 0);
+    mon->lockCount = 0;
+    sysAssume(!SimpleMonitorIsLocked(mon));
+    if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorCreate on %s\n", monitorName(mon)); }
+    return mon;
+}
+
+/** Deletes the SimpleMonitor and the underlaying OS structures.
+ *  return zero on success.
+ */
+int SimpleMonitorDestroy(SimpleMonitor* mon) {
+    int res;
+    sysAssumeAlways(!mon->lockCount);
+    sysAssume(!SimpleMonitorIsLocked(mon));
+    res = pthread_mutex_destroy(&(mon->mu));
+    monitorErrCheck(mon, "SimpleMonitorDestroy mutex", res, 0);
+    res = pthread_cond_destroy(&(mon->cv));
+    monitorErrCheck(mon, "SimpleMonitorDestroy condvar", res, 0);
+    mon->lockCount = -1;
+    if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorDestroy on %s\n", monitorName(mon)); }
+    free(mon);
+    return 0;
+}
+
+/* Wait for signal or timeout in millis milliseconds.
+ * A neg. timout indicates WAIT_FOREVER.
+ * Returns true if received signal, false if timed out.
+ */
+int SimpleMonitorWait(SimpleMonitor* mon, jlong millis) {
+    int res;
+    sysAssumeAlways(mon->lockCount == 1);
+    sysAssume(SimpleMonitorIsLocked(mon));
+
+    if (millis < 0 || millis == 0x7FFFFFFFFFFFFFFFLL) {
+        if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorWait on %s - untimed\n", monitorName(mon)); }
+        mon->lockCount--;
+        res = pthread_cond_wait(&mon->cv, &mon->mu);
+        mon->lockCount++;
+        monitorErrCheck(mon, "SimpleMonitorWait", res, 0);
+    } else {
+        struct timespec abstime;
+        struct timespec duration;
+        if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorWait on %s - timed\n", monitorName(mon)); }
+
+        ms2TimeSpec(millis, &duration);
+        clock_gettime(CLOCK_REALTIME, &abstime);
+        addTimeSpec(&abstime, &duration);
+        mon->lockCount--;
+        res = pthread_cond_timedwait(&mon->cv, &mon->mu, &abstime);
+        mon->lockCount++;
+        monitorErrCheck(mon, "SimpleMonitorWait", res, ETIMEDOUT);
+    }
+
+    sysAssume(SimpleMonitorIsLocked(mon));
+    return res == 0;
+}
+
+/* Signal the condvar.
+ * return zero on success.
+ */
+int SimpleMonitorSignal(SimpleMonitor* mon) {
+    int res;
+    if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorSignal on %s\n", monitorName(mon)); }
+    sysAssumeAlways(mon->lockCount);
+    sysAssume(SimpleMonitorIsLocked(mon));
+    res = pthread_cond_signal(&mon->cv);
+    monitorErrCheck(mon, "SimpleMonitorSignal", res, 0);
+    sysAssume(SimpleMonitorIsLocked(mon));
+    return res;
+}
+
+int SimpleMonitorLock(SimpleMonitor* mon) {
+    if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorLock on %s  - before\n", monitorName(mon)); }
+    int res = pthread_mutex_lock(&mon->mu);
+    monitorErrCheck(mon, "SimpleMonitorLock", res, 0);
+    if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorLock on %s  - after\n", monitorName(mon)); }
+    sysAssume(SimpleMonitorIsLocked(mon));
+    if (mon->lockCount) {
+        fprintf(stderr, "SimpleMonitorLock on %s already locked? count = %d\n", monitorName(mon), mon->lockCount );
+    }
+    sysAssumeAlways(mon->lockCount == 0);
+    mon->lockCount++;
+    return res;
+}
+
+int SimpleMonitorUnlock(SimpleMonitor* mon) {
+    sysAssumeAlways(mon->lockCount == 1);
+    sysAssume(SimpleMonitorIsLocked(mon));
+    mon->lockCount--;
+    sysAssumeAlways(mon->lockCount == 0);
+    if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorUnlock on %s \n", monitorName(mon)); }
+
+    int res = pthread_mutex_unlock(&mon->mu);
+    monitorErrCheck(mon, "SimpleMonitorUnlock", res, 0);
+    return res;
+}
+
+/* ----------------------- Sleep Support ------------------------*/
+
+/**
+ * addedEvent is set TRUE by multiple writers (native threads) when adding evt, and read by the Squawk thread in osMilliSleep and cleared by the Squawk thread in getEvent().
+ */
+volatile int addedEvent;
+
+/**
+ * VxWorks can't be helpful and define usleep()
+ */
+int usleep(long microseconds) {
+    struct timespec ns;
+
+    ns.tv_sec = 0;
+    ns.tv_nsec = 1000 * microseconds;
+
+    return nanosleep(&ns, NULL);
+}
 
 /**
  * Sleep Squawk for specified milliseconds
  */
 void osMilliSleep(long long millis) {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "osMilliSleep %llx\n", millis); }
+
     if (millis <= 0) {
         return;
     }
-    long long elapsed = sysTimeMillis();
-    long long seconds = millis / 1000;
-    if (seconds > 0) {
-        // too long for usleep, so get close
-        sleep(seconds);
+
+    /* TRICKY: safe because "addedEvent" is only cleared by this thread. */
+    if (addedEvent) {
+       if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "osMilliSleep woke up before lock!\n"); }
+       return;
     }
-    elapsed = sysTimeMillis() - elapsed;
-    if (elapsed < millis) {
-        millis = millis - elapsed;
-        long long micro = millis * 1000;
-        if (micro > MAX_MICRO_SLEEP) {
-            micro = MAX_MICRO_SLEEP;
-        }
-        usleep(micro);
+
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "osMilliSleep sleeping..\n"); }
+
+    SimpleMonitorLock(threadEventMonitor);
+    if (addedEvent || SimpleMonitorWait(threadEventMonitor, millis)) {
+        if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "osMilliSleep woken up early\n"); }
     }
+
+    SimpleMonitorUnlock(threadEventMonitor);
 }
+
+/* ----------------------- Misc Support ------------------------*/
 
 void startTicker(int interval) {
     fprintf(stderr, "Profiling not implemented");
@@ -293,3 +535,140 @@ char* strsignal(int signal) {
 #define osloop()        /**/
 #define osbackbranch()  /**/
 #define osfinish()      /**/
+
+
+/* ----------------------- Native Task Support ------------------------*/
+#define MIN_STACK_SIZE (8 * 1024)
+#define DEFAULT_STACK_SIZE (16 * 1024)
+
+static int taskPriorityMap(int genericPriority) {
+    switch (genericPriority) {
+        case TASK_PRIORITY_LOW:
+            return 200;
+        case TASK_PRIORITY_MED:
+            return 100;
+        case TASK_PRIORITY_HI:
+            return 50;
+        default: {
+            fprintf(stderr, "WARNING: non-std priority passed to createTaskExecutor: %d\n", genericPriority);
+            return 100;
+        }
+    }
+}
+
+int setTaskID(TaskExecutor* te) {
+    te->id = (void*)taskIdSelf();
+}
+
+/**
+ * Create a new TaskExecutor and native thread.
+ */
+TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int oneShot, NativeTask* initialTask) {
+    int taskID;
+    TaskExecutor* te = (TaskExecutor*)malloc(sizeof(TaskExecutor));
+    void* wrapper = oneShot ? &teOneShotHandler : &teLoopingHandler;
+
+    if (te == NULL) {
+        return NULL;
+    }
+
+    if (stacksize == 0) {
+        stacksize = DEFAULT_STACK_SIZE;
+    }
+    if (stacksize < MIN_STACK_SIZE) {
+        stacksize = MIN_STACK_SIZE;
+    }
+    
+    te->runQ = initialTask;
+    te->monitor = SimpleMonitorCreate();
+    if (te->monitor == NULL) {
+        te->status = EVENT_REQUEST_STATUS_ERROR;
+        te->te_errno = errno;
+        if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In createTaskExecutor, error in SimpleMonitorCreate: %d%s\n", errno); }
+        return te;
+    }
+
+    te->status = TASK_EXECUTOR_STATUS_STARTING;
+
+    taskID = taskCreate(name,
+                        taskPriorityMap(priority),
+                            VX_FP_TASK,				// options
+                            stacksize,					// stack size
+                            wrapper,           // function to start
+                            (int)te, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    if (taskID == ERROR) {
+        te->status = EVENT_REQUEST_STATUS_ERROR;
+        te->te_errno = errno;
+        if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In createTaskExecutor, error in taskCreate: %d%s\n", errno); }
+    } else {
+        if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In createTaskExecutor, about to start new thread %s\n", name); }
+        if (taskActivate(taskID) == ERROR) {
+            te->status = EVENT_REQUEST_STATUS_ERROR;
+            te->te_errno = errno;
+            if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In createTaskExecutor, error in taskActivate: %d%s\n", errno); }
+        }
+    }
+    /* TODO: Record TaskExecutor on global list of all TaskExecutors */
+    return te;
+}
+
+/**
+ * Delete the TaskExecutor. Returns zero on success.
+ * Returns -1 if TaskExecutor is not done.
+ */
+static int deleteTaskExecutor(TaskExecutor* te) {
+    if (te->status != TASK_EXECUTOR_STATUS_DONE) {
+        return -1;
+    }
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "deleteTaskExecutor()\n"); }
+    sysAssumeAlways(te->runQ == NULL);
+    SimpleMonitorDestroy(te->monitor);
+    free(te);
+    return 0;
+    /* TODO: Record TaskExecutor on global list of all TaskExecutors */
+}
+
+/*---------------------------------------------------------------------------*\
+ *                               Select Pipe                                 *
+\*---------------------------------------------------------------------------*/
+
+#define SELECT_PIPE_NAME "/pipe/squawk-select-pipe"
+
+static selectPipeFD = 0;
+
+int initSelectPipe() {
+    int rc = pipeDevCreate (SELECT_PIPE_NAME, 100, 10);
+    sysAssume(rc == OK);
+    selectPipeFD = open(SELECT_PIPE_NAME, O_RDWR | O_NONBLOCK);
+    return (selectPipeFD == -1) ? -1 : 0;
+}
+
+int cleanupSelectPipe() {
+    int rc;
+    if (selectPipeFD >= 0) {
+        rc = close(selectPipeFD);
+        sysAssume(rc == OK);
+    }
+    rc = pipeDevDelete(SELECT_PIPE_NAME, FALSE);
+    sysAssume(rc == OK);
+    return rc;
+}
+
+int readSelectPipeMsg() {
+    int dummy = 5;
+    int rc;
+    while ((rc == read(selectPipeFD, &dummy, 1)) == 1) {
+
+    }
+    return rc;
+}
+
+int writeSelectPipeMsg()  {
+    int dummy = 5;
+    return write(selectPipeFD, &dummy, 1);
+}
+
+int getSelectReadPipeFd() {
+    return selectPipeFD;
+}

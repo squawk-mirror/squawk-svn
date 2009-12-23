@@ -3992,6 +3992,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)();
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4004,6 +4005,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4017,6 +4019,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4031,6 +4034,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4046,6 +4050,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3, i4);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4062,6 +4067,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3, i4, i5);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4079,6 +4085,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3, i4, i5, i6);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4097,6 +4104,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3, i4, i5, i6, i7);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4116,6 +4124,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3, i4, i5, i6, i7, i8);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4136,6 +4145,7 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3, i4, i5, i6, i7, i8, i9);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
                     pushInt(result);
                     break;
@@ -4157,7 +4167,78 @@ foundSlot:
                     int result;
                     nativeFuncPtr = fptr;
                     result = (*fptr)(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+                    set_com_sun_squawk_VMThread_errno(com_sun_squawk_VMThread_currentThread, errno);
                     nativeFuncPtr = NULL;
+                    pushInt(result);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_createTaskExecutor: {
+                    int stacksize = popInt();
+                    int priority = popInt();
+                    Address nameAddr = popAddress();
+                    char* name = (char*)nameAddr;
+                    int result;
+                    result = (int)createTaskExecutor(name, priority, stacksize, FALSE, NULL);
+                    pushInt(result);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_cancelTaskExecutor: {
+                    TaskExecutor* te = (TaskExecutor*)popAddress();
+                    cancelTaskExecutor(te);
+                    pushInt(0);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_deleteTaskExecutor: {
+                    TaskExecutor* te = (TaskExecutor*)popAddress();
+                    pushInt(deleteTaskExecutor(te));
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_deleteNativeTask: {
+                    NativeTask* ntask = (NativeTask*)popAddress();
+                    deleteNativeTask(ntask);
+                    pushInt(0);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_runBlockingFunction: {
+                    int i10 = popInt();
+                    int i9 = popInt();
+                    int i8 = popInt();
+                    int i7 = popInt();
+                    int i6 = popInt();
+                    int i5 = popInt();
+                    int i4 = popInt();
+                    int i3 = popInt();
+                    int i2 = popInt();
+                    int i1 = popInt();
+                    Address address = popAddress();
+                    funcPtr10 fptr = (funcPtr10)address;
+                    int result;
+                    result = (int)runBlockingFunction(fptr, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+                    pushInt(result);
+                    break;
+                }
+
+                case Native_com_sun_squawk_NativeUnsafe_runBlockingFunctionOn: {
+                    int i10 = popInt();
+                    int i9 = popInt();
+                    int i8 = popInt();
+                    int i7 = popInt();
+                    int i6 = popInt();
+                    int i5 = popInt();
+                    int i4 = popInt();
+                    int i3 = popInt();
+                    int i2 = popInt();
+                    int i1 = popInt();
+                    Address address = popAddress();
+                    funcPtr10 fptr = (funcPtr10)address;
+                    Address te = popAddress();
+                    int result;
+                    result = (int)runBlockingFunctionOn(te, fptr, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
                     pushInt(result);
                     break;
                 }
@@ -5718,8 +5799,16 @@ if (l != 0 && r > (java_lang_Long_MAX_VALUE/l)) {
          * <p>
          */
 /*MAC*/ void do_throw() {
-            if(usingServiceStack()) {
-                fatalInterpreterError("do_throw on service stack");
+            if (usingServiceStack()) {
+                Address exception = popAddress();
+                fprintf(stderr, "do_throw on service stack:\n");
+                if (exception != NULL && getClass(exception) != NULL) {
+                    printJavaStrSafely(com_sun_squawk_Klass_name(getClass(exception)), "class");
+                    printJavaStrSafely(java_lang_Throwable_detailMessage(exception), "detail message");
+                } else {
+                    fprintf(stderr, "garbled exception object!\n");
+                }
+                fatalInterpreterError("interpreter state");
             } else {
                 UWord oldip = (UWord)ip;
                 Address exception = popAddress();

@@ -75,38 +75,32 @@ public interface Socket extends Library {
     /*
      * Level number for (get/set)sockopt() to apply to socket itself.
      */
-    public final static int SOL_SOCKET = SocketImpl.SOL_SOCKET;		/* options for socket level */
+    public final static int SOL_SOCKET = SocketImpl.SOL_SOCKET;         /* options for socket level */
     /*
      * Option flags per-socket.
      */
-    public final static int SO_DEBUG = SocketImpl.SO_DEBUG;		/* turn on debugging info recording */
-    public final static int SO_ACCEPTCONN = SocketImpl.SO_ACCEPTCONN;		/* socket has had listen() */
+    public final static int SO_DEBUG = SocketImpl.SO_DEBUG;             /* turn on debugging info recording */
+    public final static int SO_ACCEPTCONN = SocketImpl.SO_ACCEPTCONN;   /* socket has had listen() */
     public final static int SO_REUSEADDR = SocketImpl.SO_REUSEADDR;		/* allow local address reuse */
     public final static int SO_KEEPALIVE = SocketImpl.SO_KEEPALIVE;		/* keep connections alive */
     public final static int SO_DONTROUTE = SocketImpl.SO_DONTROUTE;		/* just use interface addresses */
     public final static int SO_BROADCAST = SocketImpl.SO_BROADCAST;		/* permit sending of broadcast msgs */
-//#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-//#define	SO_USELOOPBACK	0x0040		/* bypass hardware when possible */
-//#define SO_LINGER	0x0080          /* linger on close if data present (in ticks) */
-//#else
-//#define SO_LINGER	0x1080          /* linger on close if data present (in seconds) */
-//#endif	/* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
     public final static int SO_OOBINLINE = SocketImpl.SO_OOBINLINE;		/* leave received OOB data in line */
-//#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-//#define	SO_REUSEPORT	0x0200		/* allow local address & port reuse */
-//#define	SO_TIMESTAMP	0x0400		/* timestamp received dgram traffic */
-//#ifndef __APPLE__
-//#define	SO_ACCEPTFILTER	0x1000		/* there is an accept filter */
-//#else
-//#define SO_DONTTRUNC	0x2000		/* APPLE: Retain unread data */
-//					/*  (ATOMIC proto) */
-//#define SO_WANTMORE		0x4000		/* APPLE: Give hint when more data ready */
-//#define SO_WANTOOBFLAG	0x8000		/* APPLE: Want OOB in MSG_FLAG on receive */
-//#endif
-//#endif	/* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
+
+    /*
+     * Additional options, not kept in so_options.
+     */
+    public final static int SO_SNDBUF   = 0x1001;       /* send buffer size */
+    public final static int SO_RCVBUF   = 0x1002;       /* receive buffer size */
+    public final static int SO_SNDLOWAT = 0x1003;       /* send low-water mark */
+    public final static int SO_RCVLOWAT = 0x1004;       /* receive low-water mark */
+    public final static int SO_SNDTIMEO = 0x1005;       /* send timeout */
+    public final static int SO_RCVTIMEO = 0x1006;       /* receive timeout */
+    public final static int SO_ERROR    = 0x1007;       /* get error status and clear */
+    public final static int SO_TYPE     = 0x1008;       /* get socket type */
 
 
-    public final static int IPPROTO_TCP = SocketImpl.IPPROTO_TCP;		/*  Level number for (get/set)sockopt() to apply to TCP */
+    public final static int IPPROTO_TCP = SocketImpl.IPPROTO_TCP;		/* Level number for (get/set)sockopt() to apply to TCP */
 
     public final static int TCP_NODELAY = SocketImpl.TCP_NODELAY;		/* don't delay send to coalesce packets */
 

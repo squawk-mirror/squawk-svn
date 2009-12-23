@@ -24,8 +24,8 @@
 
 package com.sun.squawk.platform.posix;
 
+import com.sun.squawk.VMThread;
 import java.io.IOException;
-import com.sun.squawk.platform.posix.natives.LibC;
 
 /**
  * Helper statics for LibC.
@@ -45,7 +45,7 @@ public class LibCUtil {
             if (DEBUG) {
                 System.err.println("err = " + result);
             }
-            throw new IOException("errno: " + LibC.INSTANCE.errno());
+            throw new IOException("errno: " + LibCUtil.errno());
         } else {
             return result;
         }
@@ -59,9 +59,17 @@ public class LibCUtil {
      */
     public static int errWarnNeg(int result) {
         if (result == -1) {
-            System.err.println("WARNING: errno: " + LibC.INSTANCE.errno());
+            System.err.println("WARNING: errno: " + LibCUtil.errno());
         }
         return result;
+    }
+
+    /**
+     * Return the system errno value from the last native function call made by this Java thread.
+     * @return
+     */
+    public static int errno() {
+        return VMThread.currentThread().getErrno();
     }
 
     private LibCUtil() { }

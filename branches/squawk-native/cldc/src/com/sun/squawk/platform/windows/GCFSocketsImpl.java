@@ -42,7 +42,7 @@ public class GCFSocketsImpl implements GCFSockets {
 
     /** Read errno, try to clean up fd, and create exception. */
     private static IOException newError(int fd, String msg)  {
-        int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
+        int err_code = LibCUtil.errno();
         VM.print(msg);
         VM.print(": errno: ");
         VM.print(err_code);
@@ -99,7 +99,7 @@ public class GCFSocketsImpl implements GCFSockets {
 //System.err.println("connect: hostname: " + hostname + " port: " + port + " mode: " + mode);
 
         if (Socket.INSTANCE.connect(fd, destination_sin, destination_sin.size()) < 0) {
-            int err_code = LibC.INSTANCE.errno(); // @TODO: NOT THREAD_SAFE!
+            int err_code = LibCUtil.errno();
             if (err_code == LibC.EINPROGRESS || err_code == LibC.EWOULDBLOCK) {
                 // When the socket is ready for connect, it becomes *writable*
                 // (according to BSD socket spec of select())
@@ -213,7 +213,7 @@ public class GCFSocketsImpl implements GCFSockets {
             // This is true for Win32/CE and Linux
             result = -1;
         } else if (result < 0) {
-            int err_code = LibC.INSTANCE.errno();
+            int err_code = LibCUtil.errno();
             if (err_code == LibC.EWOULDBLOCK) {
                 VMThread.getSystemEvents().waitForReadEvent(fd);
                 result = LibC.INSTANCE.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
@@ -259,7 +259,7 @@ public class GCFSocketsImpl implements GCFSockets {
         result = LibC.INSTANCE.write(fd, buf, len);// We rely on open0() for setting the socket to non-blocking
 
         if (result < 0) {
-            int err_code = LibC.INSTANCE.errno();
+            int err_code = LibCUtil.errno();
             if (err_code == LibC.EWOULDBLOCK) {
                 VMThread.getSystemEvents().waitForWriteEvent(fd);
                 result = LibC.INSTANCE.write(fd, buf, len); // We rely on open0() for setting the socket to non-blocking

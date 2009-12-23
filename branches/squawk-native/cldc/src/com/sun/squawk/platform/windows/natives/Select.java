@@ -64,10 +64,10 @@ public interface Select extends Library {
      * @param timeout if timout is nill, wait forever, if a pointer to a zero'd timeval, then does NOT wait.
      * @return the total number of ready descriptors in all the sets
      */
-    int select(int nfds, Pointer readfds,
-            Pointer writefds,
-            Pointer errorfds,
-            Pointer timeout);
+//    int select(int nfds, Pointer readfds,
+//            Pointer writefds,
+//            Pointer errorfds,
+//            Pointer timeout);
 
     /**
      * removes fd from fdset

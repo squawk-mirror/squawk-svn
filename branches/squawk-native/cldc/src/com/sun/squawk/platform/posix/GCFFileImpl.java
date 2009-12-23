@@ -577,7 +577,7 @@ public class GCFFileImpl extends BaseGCFFile  {
         if (writeHandle > 0) {
             long fsize = fileSize();
             if (fsize < 0) {
-                throw new IOException("fileSize errno: " + LibC.INSTANCE.errno());
+                throw new IOException("fileSize errno: " + LibCUtil.errno());
             }
             offset = Math.min(offset, fsize);
             int result = libc.lseek(writeHandle, offset, libc.SEEK_SET);

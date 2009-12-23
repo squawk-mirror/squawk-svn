@@ -393,22 +393,24 @@ class PrivateInputStream extends InputStream {
         // Check for array index out of bounds, and NullPointerException,
         // so that the native code doesn't need to do it
         int test = b[off] + b[off + len - 1];
+        
+        int n = Protocol.gcfSockets.readBuf(parent.handle, b, off, len);
 
-        int n = 0;
-        while (n < len) {
-            int count = Protocol.gcfSockets.readBuf(parent.handle, b, off + n, len - n);
-            if (count == -1) {
-                eof = true;
-                if (n == 0) {
-                    n = -1;
-                }
-                break;
-            }
-            n += count;
-            if (n == len) {
-                break;
-            }
-        }
+        // This is implementing "readFully()" not read()
+//        while (n < len) {
+//            int count = Protocol.gcfSockets.readBuf(parent.handle, b, off + n, len - n);
+//            if (count == -1) {
+//                eof = true;
+//                if (n == 0) {
+//                    n = -1;
+//                }
+//                break;
+//            }
+//            n += count;
+//            if (n == len) {
+//                break;
+//            }
+//        }
         if (parent == null) {
             throw new InterruptedIOException();
         }

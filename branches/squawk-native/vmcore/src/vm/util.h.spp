@@ -134,6 +134,8 @@ NORETURN void fatalInterpreterError0(char *msg, int opcode, int _iparm, ByteAddr
 //  fatalInterpreterError0(_msg,      0, iparm, ip, fp, sp, __FILE__, __LINE__)
 /*end[MACROIZE]*/
 
+void printJavaStrSafely(Address value, char* valueName);
+
 /*---------------------------------------------------------------------------*\
  *                               alignment                                   *
 \*---------------------------------------------------------------------------*/

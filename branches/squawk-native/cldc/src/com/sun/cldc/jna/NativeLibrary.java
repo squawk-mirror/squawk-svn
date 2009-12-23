@@ -26,6 +26,7 @@ package com.sun.cldc.jna;
 
 import com.sun.squawk.Address;
 import com.sun.squawk.VM;
+import com.sun.squawk.VMThread;
 import com.sun.squawk.vm.ChannelConstants;
 
 /**
@@ -97,14 +98,44 @@ public class NativeLibrary {
     
     /**
      * Dynamically look up a native function by name.
+     *
+     * WARNING: Do NOT use for calling C functions that may block (or take a "long" time).
+     * Use the "blocking" version instead.
      * 
      * Look up the symbol in the specified library
      * 
      * @param funcName
-     * @return an objecta that can be used to call the named function
+     * @return an object that can be used to call the named function
      * @throws RuntimeException if there is no function by that name.
      */
     public Function getFunction(String funcName) {
+        Address result = getFunction0(funcName);
+        return new Function(funcName, result);
+    }
+
+    /**
+     * Dynamically look up a blocking native function by name.
+     *
+     * Look up the symbol in the specified library
+     *
+     * @param funcName
+     * @return an object that can be used to call the named function
+     * @throws RuntimeException if there is no function by that name.
+     */
+    public BlockingFunction getBlockingFunction(String funcName) {
+        Address result = getFunction0(funcName);
+        return new BlockingFunction(funcName, result);
+    }
+
+    /**
+     * Dynamically look up a native function address by name.
+     * Look up the symbol in the specified library
+     *
+     * @param funcName
+     * @return address of the function
+     * @throws RuntimeException if there is no function by that name.
+     */
+    private Address getFunction0(String funcName) {
         Address result = getSymbolAddress(funcName);
         if (DEBUG) {
             VM.print("Function Lookup for ");
@@ -116,14 +147,14 @@ public class NativeLibrary {
         if (result.isZero()) {
             if (Platform.getPlatform().isWindows()) {
                 if (funcName.charAt(funcName.length() - 1) != 'A') {
-                    return getFunction(funcName + 'A');
+                    return getFunction0(funcName + 'A');
                 }
             } else if (funcName.charAt(0) != '_') {
-                return getFunction("_" + funcName);
+                return getFunction0("_" + funcName);
             }
             throw new RuntimeException("Can't find native symbol " + funcName + ". OS Error: " + errorStr());
         }
-        return new Function(funcName, result);
+        return result;
     }
     
     /**

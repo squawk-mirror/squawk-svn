@@ -43,11 +43,11 @@ public interface Select extends Library {
     /**
      * The maximum number of file descriptors that a fd_set object can hold information about.
      */
-    public static final int FD_SETSIZE = SelectImpl.FD_SETSIZE;
+    public static final int FD_SETSIZE = INSTANCE.initConstInt(0);
     /**
      * The maximum number of file descriptors that a fd_set object can hold information about.
      */
-    public static final int fd_set_SIZEOF = SelectImpl.fd_set_SIZEOF;
+    public static final int fd_set_SIZEOF = INSTANCE.initConstInt(0);
 
     /**
      * Select() examines the I/O descriptor sets whose addresses are passed in readfds, writefds,
@@ -64,10 +64,10 @@ public interface Select extends Library {
      * @param timeout if timout is nill, wait forever, if a pointer to a zero'd timeval, then does NOT wait.
      * @return the total number of ready descriptors in all the sets
      */
-    int select(int nfds, Pointer readfds,
-            Pointer writefds,
-            Pointer errorfds,
-            Pointer timeout);
+//    int select(int nfds, Pointer readfds,
+//            Pointer writefds,
+//            Pointer errorfds,
+//            Pointer timeout);
 
     /**
      * removes fd from fdset

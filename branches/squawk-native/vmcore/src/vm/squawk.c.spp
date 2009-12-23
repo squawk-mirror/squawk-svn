@@ -40,6 +40,8 @@
  */
 const char *format(const char* fmt);
 
+/* used by io.c...*/
+#include "io_native.h"
 
 #include "os.c"
 
@@ -807,6 +809,10 @@ fprintf(stderr, "VM is in a blocking system call!!! WILL CRASH????");
     if (notrap) {
         _asm{ int 3 };
     }
+#endif
+
+#if PLATFORM_TYPE_NATIVE
+    IO_shutdown();
 #endif
 
     osfinish();
@@ -1766,6 +1772,10 @@ void printStrSafely(Address value, char* valueName, Address low, Address high, c
     } else {
         fprintf(stderr, "%x is NOT in %s range %x .. %x\n", value, rangeName, low, high);
     }
+}
+
+void printJavaStrSafely(Address value, char* valueName) {
+    printStrSafely(value, valueName, com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "RAM or ROM");
 }
 
 /**

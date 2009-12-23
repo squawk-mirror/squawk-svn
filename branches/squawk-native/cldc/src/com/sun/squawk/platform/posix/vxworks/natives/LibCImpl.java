@@ -30,13 +30,9 @@
 
 package com.sun.squawk.platform.posix.vxworks.natives;
 
-import com.sun.squawk.platform.posix.natives.*;
 import com.sun.cldc.jna.*;
-import com.sun.cldc.jna.ptr.*;
-import com.sun.squawk.Address;
 
 public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
-    private final static boolean DEBUG = true;
 
     /*----------------------------- defines -----------------------------*/
 
@@ -180,36 +176,7 @@ public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
         return intConstants[index];
     }
 
- 
-
     /*----------------------------- methods -----------------------------*/
-
-    /**
-     * @TODO: This is a little messy - errno really IS a symbol in vxworks, but the headers say call __errno() and deref that!
-     */
-//    private final Function errnoPtr;
-//
-//    public int errno() {
-//        int result0 = errnoPtr.call0();
-//        Pointer p = new Pointer(result0);
-//        int result = p.getInt(0);
-//        return result;
-//    }
-
-     private final Pointer errnoPtr;
-
-    public int errno() {
-        return errnoPtr.getInt(0);
-    }
     
-    public LibCImpl() {
-        NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
-       // errnoPtr = jnaNativeLibrary.getFunction("__errno");
-                errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("errno", 4);
-
-    }
     
-
 }
-
-

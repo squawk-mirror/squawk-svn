@@ -37,12 +37,13 @@ import com.sun.squawk.util.IntSet;
  *
  * @author dw29446
  */
-public class SystemEventsImpl extends SystemEvents {
+public class SystemEventsImpl extends SystemEvents implements Runnable {
+    private final static boolean DEBUG = false;
 
     /* We need 3 copies of file descriptor sets:
-    - An array of ints (as an IntSet)
-    - the master FD_SET (as a native bitmap), 
-    - a tmp FD_SET, because select bashes the set passed in.
+          - An array of ints (as an IntSet)
+          - the master FD_SET (as a native bitmap),
+          - a tmp FD_SET, because select bashes the set passed in.
      */
     Pointer masterReadSet;
     Pointer masterWriteSet;
@@ -56,9 +57,13 @@ public class SystemEventsImpl extends SystemEvents {
 
     private int maxFD = 0; // system-wide highwater mark....
 
+    private BlockingFunction selectPtr;
+    private Function cancelSelectPtr;
+    protected Select select;
 
+    /*----------------- FD SETS ----------------- */
     
-    private static int copyIntoFDSet(IntSet src, Pointer fd_set) {
+    private int copyIntoFDSet(IntSet src, Pointer fd_set) {
 //System.err.println("Copying from " + src + " to " + fd_set);
         int num = src.size();
         int[] data = src.getElements();
@@ -67,14 +72,13 @@ public class SystemEventsImpl extends SystemEvents {
         for (int i = 0; i < num; i++) {
             int fd = data[i];
             Assert.that(fd > 0);
-            Select.INSTANCE.FD_SET(fd, fd_set);
+            select.FD_SET(fd, fd_set);
             if (fd > localMax) {
                 localMax = fd;
             }
         }
         return localMax;
     }
-
 
     /**
      * initializes a descriptor set fdset to the null set
@@ -103,8 +107,44 @@ public class SystemEventsImpl extends SystemEvents {
         return new Pointer(Select.fd_set_SIZEOF);
     }
 
+    /**
+     * Set up the temp fd_set based on the master set and the IntSet.
+     *
+     * @param set the IntSet
+     * @param master the master fd_set
+     * @param temp the temp fd_set
+     */
+    private void setupTempSet(IntSet set, Pointer master, Pointer temp) {
+         if (set.size() != 0) {
+            FD_COPY(master, temp);
+        } else {
+            FD_ZERO(temp);
+        }
+    }
+
+    /**
+     * Print the FDs taht are set in fd_set
+     *
+     * @param fd_set the set of file descriptors in native format.
+     */
+    private void printFDSet(Pointer fd_set) {
+        for (int i = 0; i < maxFD + 1; i++) {
+            if (select.FD_ISSET(i, fd_set)) {
+                VM.print("    fd: ");
+                VM.print(i);
+                VM.println();
+            }
+        }
+    }
 
     public SystemEventsImpl() {
+        select = Select.INSTANCE;
+        NativeLibrary jnaNativeLibrary = NativeLibrary.getDefaultInstance();
+        selectPtr = jnaNativeLibrary.getBlockingFunction("squawk_select");
+        selectPtr.setTaskExecutor(selectRunner);
+
+        cancelSelectPtr = jnaNativeLibrary.getFunction("cancel_squawk_select");
+
         masterReadSet = FD_ALLOCATE();
         masterWriteSet = FD_ALLOCATE();
 
@@ -122,135 +162,127 @@ public class SystemEventsImpl extends SystemEvents {
         timeoutTime = new Time.timeval();
         timeoutTime.allocateMemory();
     }
-    
+
     /**
-     * Set up the temp fd_set based on the maset set and the IntSet.
-     * 
-     * @param set the IntSet
-     * @param master the master fd_set
-     * @param temp the temp fd_set
+     * Blocking call to select until IO occurs, the timeout occurs, or the read/write sets need to be updated
+     * (see updateSets() ??)
+     * @param theTimout
+     * @return number of file descriptors that have events
      */
-    private void setupTempSet(IntSet set, Pointer master, Pointer temp) {
-         if (set.size() != 0) {
-            FD_COPY(master, temp);
-        } else {
-            FD_ZERO(temp);
-        }
+    private int select(int nfds, Pointer readSet, Pointer writeSet, Pointer excSet, Pointer theTimout) {
+        return selectPtr.call5(nfds, readSet, writeSet, excSet, theTimout);
     }
-    
+
     /**
-     * Print the FDs taht are set in fd_set
-     * 
-     * @param fd_set the set of file descriptors in native format.
+     * Non-blocking call to cancel the blocking select call.
+     * Call when the read/write sets have been updated
      */
-    private void printFDSet(Pointer fd_set) {
-        for (int i = 0; i < maxFD + 1; i++) {
-            if (Select.INSTANCE.FD_ISSET(i, fd_set)) {
-                VM.print("    fd: ");
-                VM.print(i);
-                VM.println();
+    private int cancelSelectCall() {
+        return cancelSelectPtr.call0();
+    }
+
+    /**
+     * If any any events have occurred in the waiting set, tell the
+     * thread scheduler to make the waiting java thread runnable.
+     *
+     * @param num number of events to be processed
+     * @param waitingSet waiting set as an IntSet
+     * @param eventFDSet waiting set as a FD_SET
+     * @return remaining number of events to be processed
+     */
+    private int handleEvents(int num, IntSet waitingSet, Pointer eventFDSet) {
+        if (num > 0) {
+            for (int i = 0; i < waitingSet.size(); i++) {
+                int fd = waitingSet.getElements()[i];
+                if (select.FD_ISSET(fd, eventFDSet)) {
+                    waitingSet.remove(fd);        // shrink waitingSet
+                    VMThread.signalOSEvent(fd);
+                    num--;
+                    if (num == 0) {
+                        break; // no more events
+                    }
+                    i--; // recheck location i
+                }
             }
         }
+        return num;
     }
-    
+
     /**
      * Poll the OS to see if there have been any events on the requested fds.
      * 
      * Try not to allocate if there are no events...
-     * @return number of events
+     * @param timeout  md to wait, or 0 for no wait, or Long.MAX_VALUE for inifinite wait
      */
-    private int pollEvents(long timeout) {
-        if (maxFD <= 0) {
-            return -1;
+    public void waitForEvents(long timeout) {
+        long elapsedTime = System.currentTimeMillis();
+        if (timeout != 0) {
+            synchronized (this) {
+                try {
+                    while (maxFD <= 0) {
+                        wait((timeout == Long.MAX_VALUE) ? 0 : timeout);
+                    }
+                } catch (InterruptedException ex) {
+                }
+            }
+            elapsedTime = System.currentTimeMillis() - elapsedTime;
+            if (timeout != Long.MAX_VALUE) {
+                timeout -= elapsedTime;
+            }
         }
+
+        if (maxFD <= 0) {
+            return;
+        }
+        // TODO: reset the cancelSelectCall()  - ie drain the pipe.
         
         setupTempSet(readSet, masterReadSet, tempReadSet);
         setupTempSet(writeSet, masterWriteSet, tempWriteSet);
 
         Pointer theTimout;
         if (timeout == 0) {
+            if (DEBUG) { VM.println("WARNING: Why are we polling select??? -----------------------------------------"); }
             theTimout = zeroTime.getPointer();
         } else if (timeout == Long.MAX_VALUE) {
             theTimout = Pointer.NULL();
         } else {
+            if (DEBUG) { VM.println("WARNING: Why are we slow polling select??? -----------------------------------------"); }
+
             timeoutTime.tv_sec = timeout / 1000;
             timeoutTime.tv_usec = (timeout % 1000) * 1000;
             timeoutTime.write();
             theTimout = timeoutTime.getPointer();
         }
-//
-//        if (readSet.size() != 0) {
-//            VM.println("Read FDs set:");
-//            printFDSet(tempReadSet);
-//        }
-//        if (writeSet.size() != 0) {
-//            VM.println("Write FDs set:");
-//            printFDSet(tempWriteSet);
-//        }
 
-        int num = Select.INSTANCE.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
+//      if (readSet.size() != 0) {
+//          VM.println("Read FDs set:");
+//          printFDSet(tempReadSet);
+//      }
+//      if (writeSet.size() != 0) {
+//          VM.println("Write FDs set:");
+//          printFDSet(tempWriteSet);
+//      }
+
+        int num = select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout); /* block waiting for event or timeout */
+        // TODO : do non-blocking call if timeout == 0
         
         if (num > 0) {
-            //@TODO: Bail out of searches when num == 0:
-            int readSize = readSet.size();
-            if (readSize != 0) {
-                for (int i = 0; i < readSet.size(); i++) {
-                    int fd = readSet.getElements()[i];
-                    if (Select.INSTANCE.FD_ISSET(fd, tempReadSet)) {
-                        readSet.remove(fd);
-                        VMThread.signalOSEvent(fd);
-                        num--;
-                        i--; // recheck location i
-                    }
-                }
-            }
-
-            int writeSize = writeSet.size();
-            if (writeSize != 0) {
-                for (int i = 0; i < writeSet.size(); i++) {
-                    int fd = writeSet.getElements()[i];
-                    if (Select.INSTANCE.FD_ISSET(fd, tempWriteSet)) {
-                        writeSet.remove(fd);
-                        VMThread.signalOSEvent(fd);
-                        num--;
-                        i--; // recheck location i
-                    }
-                }
-            }
-            if (num != 0) {
-                System.err.println("Missed handling a select event?\n num: " + num + "\nreadSize: " + readSize+ ", Read FDs set:");
+            num = handleEvents(num, readSet, tempReadSet);
+            num = handleEvents(num, writeSet, tempWriteSet);
+            if (num != 0 && DEBUG) {
+                System.err.println("Missed handling a select event?\n num: " + num + "\nreadSize: " + readSet.size() + ", Read FDs set:");
                 printFDSet(tempReadSet);
-                System.err.println("writeSize: " + writeSize + ", Write FDs set:");
+                System.err.println("writeSize: " + writeSet.size() + ", Write FDs set:");
                 printFDSet(tempWriteSet);
             }
             updateSets();
         } else if (num < 0) {
-            System.err.println("select error: " + LibC.INSTANCE.errno());
+            System.err.println("select error: " + LibCUtil.errno());
+        } else {
+            if (DEBUG) { VM.println("in waitForEvents(), select cancelled"); }
         }
-        return num;
     }
 
-   /**
-     * Poll the OS to see if there have been any events on the requested fds.
-     * 
-     * Try not to allocate if there are no events...
-     * @return number of events
-     */
-    public int pollEvents() {
-        return pollEvents(0);
-    }
-
-    /**
-     * Wait for an OS event, with a timeout.
-     * 
-     * Try not to allocate if there are no events...
-     * @param timout in ms
-     * @return number of events
-     */
-    public int waitForEvents(long timout) {
-        return pollEvents(timout);
-    }
-    
     /**
      * Update bit masks from IntSets, and update maxFD;
      */
@@ -263,22 +295,27 @@ public class SystemEventsImpl extends SystemEvents {
     }
     
     public void waitForReadEvent(int fd) {
-//VM.println("Waiting for read on fd: " + fd);
-        readSet.add(fd);
-        updateSets();
+        if (DEBUG) { VM.println("Waiting for read on fd: " + fd); }
+        Assert.always(fd >= 0 && fd < Select.FD_SETSIZE);
+        synchronized (this) {
+            readSet.add(fd);
+            updateSets();
+            notifyAll();
+        }
+        cancelSelectCall();
         VMThread.waitForOSEvent(fd); // read is ready, select will remove fd from readSet
     }
     
     public void waitForWriteEvent(int fd) {
-//VM.println("Waiting for write on fd: " + fd);
-        writeSet.add(fd);
-        updateSets();
+        if (DEBUG) { VM.println("Waiting for write on fd: " + fd); }
+        Assert.always(fd >= 0 && fd < Select.FD_SETSIZE);
+        synchronized (this) {
+            writeSet.add(fd);
+            updateSets();
+            notifyAll();
+        }
+        cancelSelectCall();
         VMThread.waitForOSEvent(fd);// write is ready, select will remove fd from writeSet
     }
-    
-//    
-//    public static int waitForWriteEvent(int fd) {
-//        
-//    }
-    
+
 }

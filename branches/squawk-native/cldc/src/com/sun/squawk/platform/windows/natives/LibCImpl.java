@@ -31,7 +31,6 @@
 package com.sun.squawk.platform.windows.natives;
 
 import com.sun.cldc.jna.*;
-import com.sun.cldc.jna.ptr.*;
 import com.sun.squawk.Address;
 
 public class LibCImpl implements LibC {
@@ -157,7 +156,7 @@ public class LibCImpl implements LibC {
     public final static int SEEK_CUR = 1;
     public final static int SEEK_END = 2;
 
-        public int initConstInt(int index) {
+    public int initConstInt(int index) {
         final int[] dummy = {};
         return dummy[index];
     }
@@ -167,14 +166,15 @@ public class LibCImpl implements LibC {
 
 
     /*----------------------------- methods -----------------------------*/
-    private final static String errno_NAME = "GetLastError";
-    private final Function errnoPtr;
+//    private final static String errno_NAME = "GetLastError";
+//    private final Function errnoPtr;
+//
+//    public int errno() {
+//        int result0 = errnoPtr.call0();
+//        int result = (int) result0;
+//        return result;
+//    }
 
-    public int errno() {
-        int result0 = errnoPtr.call0();
-        int result = (int) result0;
-        return result;
-    }
     private final Function openPtr;
 
     public int open(String arg0, int arg1, int arg2) {
@@ -285,7 +285,7 @@ public class LibCImpl implements LibC {
     
     public LibCImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
-        errnoPtr = jnaNativeLibrary.getFunction(errno_NAME);
+//        errnoPtr = jnaNativeLibrary.getFunction(errno_NAME);
         openPtr = jnaNativeLibrary.getFunction("open");
         statPtr = jnaNativeLibrary.getFunction("stat");
         fcntlPtr = jnaNativeLibrary.getFunction("fcntl");

@@ -28,9 +28,13 @@ package com.sun.cldc.jna;
 import com.sun.squawk.Address;
 import com.sun.squawk.NativeUnsafe;
 import com.sun.squawk.VM;
+import com.sun.squawk.VMThread;
 
 /**
  * A pointer to a native function that can be called from Java.
+ *
+ * A native function represented by a Function should not block. If you need to calling a blocking function,
+ * use  the BlockingFunction class.
  * 
  * <h3>Differences from JNA</h3>
  * <ul>
@@ -43,11 +47,11 @@ import com.sun.squawk.VM;
  * <li> no getFile()
  * </ul>
  */
-public final class Function {
-    private final static boolean DEBUG = false;
+public class Function {
+    protected final static boolean DEBUG = false;
 
-    private final Address funcAddr;
-    private final String name; // for debugging/tracing
+    protected final Address funcAddr;
+    protected final String name; // for debugging/tracing
 
     /**
      * Create a new function pointer with the given name to the given address
@@ -71,6 +75,14 @@ public final class Function {
     public static Function getFunction(String libraryName, String funcName) {
         return NativeLibrary.getInstance(libraryName).getFunction(funcName);
     }
+
+    /**
+     * Return the system errno value from the last native function call made by this Java thread.
+     * @return
+     */
+    public static int errno() {
+        return VMThread.currentThread().getErrno();
+    }
     
     /**
      * @return the function name
@@ -83,165 +95,165 @@ public final class Function {
         return "Function(" + name + ", " + funcAddr.toUWord().toInt() + ")";
     }
 
-    /**
-     * Call a function pointer with no arguments
-     * @return return value
-     */
+    protected void preamble() {
+        VM.print(toString());
+        VM.println(".call");
+    }
+
+    protected void postscript(int result) {
+        VM.print("call returned: ");
+        VM.print(result);
+        VM.println();
+    }
+
     public int call0() {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call0");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call0(funcAddr);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
+
         return result;
     }
 
-    /**
-     * Call a function pointer with one arguments
-     */
     public int call1(int i1) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call1");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call1(funcAddr, i1);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-    /**
-     * Call a function pointer with two arguments
-     */
     public int call2(int i1, int i2) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call2");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call2(funcAddr, i1, i2);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-    /**
-     * Call a function pointer with three arguments
-     */
     public int call3(int i1, int i2, int i3) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call3");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call3(funcAddr, i1, i2, i3);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-    /**
-     * Call a function pointer with four arguments
-     */
     public int call4(int i1, int i2, int i3, int i4) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call4");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call4(funcAddr, i1, i2, i3, i4);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-    /**
-     * Call a function pointer with five arguments
-     */
     public int call5(int i1, int i2, int i3, int i4, int i5) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call5");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call5(funcAddr, i1, i2, i3, i4, i5);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-        /**
-     * Call a function pointer with five arguments
-     */
     public int call6(int i1, int i2, int i3, int i4, int i5, int i6) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call6");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call6(funcAddr, i1, i2, i3, i4, i5, i6);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-        /**
-     * Call a function pointer with five arguments
-     */
     public int call7(int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call7");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call7(funcAddr, i1, i2, i3, i4, i5, i6, i7);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-        /**
-     * Call a function pointer with five arguments
-     */
     public int call8(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call8");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call8(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-        /**
-     * Call a function pointer with five arguments
-     */
     public int call9(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call9");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call9(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
-        /**
-     * Call a function pointer with five arguments
-     */
     public int call10(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10) {
         if (DEBUG) {
-            VM.print(name);
-            VM.println(".call10");
+            preamble();
         }
 //        VM.setBlocked(true);
         int result = NativeUnsafe.call10(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+        if (DEBUG) {
+            postscript(result);
+        }
 //        VM.setBlocked(false);
         return result;
     }
 
 
-    /*** THE FOLLOWING METHODS THAT TAKE POINTER ARGUMENTS ARE CONVIENIENCE FUNCTIONS FOR HAND-WRITTEN WRAPPERS.
+    /* THE FOLLOWING METHODS THAT TAKE POINTER ARGUMENTS ARE CONVIENIENCE FUNCTIONS FOR HAND-WRITTEN WRAPPERS.
      *   They may disapear in future versions of this API.
-     ***/
+     */
 
     /* ---- Call a function pointer with one arguments ---- */
 
@@ -473,7 +485,13 @@ public final class Function {
     public int call5(Pointer p1, Pointer p2, Pointer p3, Pointer p4, Pointer p5) {
         return call5(p1.address().toUWord().toPrimitive(), p2.address().toUWord().toPrimitive(), p3.address().toUWord().toPrimitive(), p4.address().toUWord().toPrimitive(), p5.address().toUWord().toPrimitive());
     }
-    
+
+
+
+
+
+        /*--------------- HELPERS ------------------*/
+
     /**
      * Standard conversion function that creates an structure instance of type <code>klass</code> from a C address <code>ptr</code>.
      * If <code>addr0</code> is not NULL, create a new Structure object and copy the data
@@ -512,4 +530,5 @@ public final class Function {
         Address addr = Address.fromPrimitive(ptr);
         return Pointer.NativeUnsafeGetString(addr);
     }
+
 }

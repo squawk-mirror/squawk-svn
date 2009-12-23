@@ -24,31 +24,64 @@
 
 package com.sun.squawk.platform;
 
+import com.sun.cldc.jna.TaskExecutor;
+import com.sun.squawk.VMThread;
+
 /**
  *
  * @author dw29446
  */
-public abstract class SystemEvents {
+public abstract class SystemEvents implements Runnable {
+
+    private volatile boolean cancelRunLoop;
+    protected TaskExecutor selectRunner;
 
     /**
-     * Poll the OS to see if there have been any events on the requested fds.
-     *
-     * Try not to allocate if there are no events...
-     * @return number of events
-     */
-    public abstract int pollEvents();
-
-    /**
-     * Wait for an OS event, with a timeout.
+     * Wait for an OS event, with a timeout. Signal VMThread when event occurs.
      *
      * Try not to allocate if there are no events...
      * @param timout in ms
      * @return number of events
      */
-    public abstract int waitForEvents(long timout);
+    protected abstract void waitForEvents(long timout);
 
     public abstract void waitForReadEvent(int fd);
 
     public abstract void waitForWriteEvent(int fd);
+
+    protected SystemEvents() {
+        selectRunner = new TaskExecutor("native IO handler", TaskExecutor.TASK_PRIORITY_MED, 0);
+    }
+
+    /**
+     * Start
+     */
+    public void startIO() {
+        Thread IOHandler = new Thread(this, "IOHandler");
+        // IOHandler.setPriority(Thread.MAX_PRIORITY); do we want to do this?
+        IOHandler.start();
+    }
+
+    /**
+     * IOHandler run loop. Wait on select until IO occurs.
+     */
+    public void run() {
+//VM.println("in SystemEvents.run()");
+        while (!cancelRunLoop) {
+            waitForEvents(Long.MAX_VALUE);
+            VMThread.yield();
+//VM.println("in SystemEvents.run() - woke up and try again");
+        }
+//VM.println("in SystemEvents.run() - cancelling");
+
+        selectRunner.cancelTaskExecutor(); /* cancel the native thread that we use for blocking calls...*/
+    }
+
+    /**
+     * Call to end the run() method.
+     */
+    public void cancelIOHandler() {
+        cancelRunLoop = true;
+    }
 
 }

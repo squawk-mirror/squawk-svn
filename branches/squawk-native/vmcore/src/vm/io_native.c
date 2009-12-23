@@ -38,6 +38,8 @@
 #include <dlfcn.h>
 #include <sys/stat.h>
 
+/*#include "util.h"*/
+
 #if defined(VXWORKS)
 #include <vxWorks.h>
 #include <msgQLib.h>
@@ -48,12 +50,30 @@
 #include "netinet/in.h"
 
 /*
-#include <vxWorksCommon.h>
+#include <types/vxWorksCommon.h>
 #include <in.h>
 */
+#include <types/vxTypesOld.h>
+
+/* can't get selectLib to load, resolving dependencies..
+#include <selectLib.h>
+ * so grab what we need (yuck!):
+ */
+#ifdef _WRS_KERNEL
+extern int	    select 		(int width, fd_set *pReadFds,
+					 fd_set *pWriteFds, fd_set *pExceptFds,
+					 struct timeval *pTimeOut);
+#else
+#include <sys/select.h>
+#endif
+
+#else
+#include <sys/select.h>
 #endif
 
 #endif
+
+#define DEBUG_SELECT FALSE
 
 /****** HARD CODED FOR MAC FOR NOW:  *************/
 
@@ -107,49 +127,142 @@ const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layo
 int sysFD_SIZE; FORCE_USED
 int sysSIZEOFSTAT; FORCE_USED
 
+#include "io_native.h"
+
+/*
+ * Act like POSIX select, except when a write occurs on pipefd, simply return.
+ *
+ * Called as a BlockingFunction. May block indefinitely.
+ */
+int squawk_select(int nfds,
+                fd_set * readfds, fd_set * writefds,
+                fd_set * errorfds, struct timeval * timeout) {
+    if (DEBUG_SELECT) { fprintf(stderr, "blocking in squawk_select\n"); }
+    int pipefd = getSelectReadPipeFd();
+    FD_SET(pipefd, readfds);
+    int res = select(nfds, readfds, writefds, errorfds, timeout);
+    if (res > 0) {
+        if (FD_ISSET(pipefd, readfds)) {
+            FD_CLR(pipefd, readfds);
+            readSelectPipeMsg();
+            res--;
+        }
+    }
+    if (DEBUG_SELECT) { fprintf(stderr, "squawk_select returning with %d fd events\n", res); }
+
+    /* on return, teLoopingHandler() will call signalEvent(), which will wake up Squawk thread (if needed), 
+     * and wake up Java thread waiting for select to return.
+     */
+    return res;
+};
+
+/*
+ * Called by a java thread when we need to bounce out of a blocking select call.
+ * Writes a message to a well-known pipe.
+ */
+int cancel_squawk_select() {
+    writeSelectPipeMsg();
+};
+
 /*---------------------------- Event Queue ----------------------------*/
 
 /*
+ * Stores some events that have not yet occurred, plus all events that have occurred.
  * @TODO: This is a polling mechanism. GetEvent has to search all event requests looking for events that occurred.
  *        May want to queue up events that have occurred. In any case, pay attention to linear searches, especially at 
  *        Event signalling time.
  */
-struct eventRequest {
-        int eventNumber;
-        //int eventData;
-        int eventStatus; // true if event occurred
-        struct eventRequest *next;
-};
-typedef struct eventRequest EventRequest;
 
 EventRequest *eventRequests;
 
 int nextEventNumber = 1;
 
 /*
- * Java has requested wait for an event. Store the request,
- * and each time Java asks for events, signal the event if it has happened
- *
- * @return the event number
+ * EventRequest has occured, so push it to the head of the list
+ * WARNING: Must hold threadEventMonitor lock.
  */
-int storeEventRequest (int eventData) {
-    EventRequest* newRequest = (EventRequest*)malloc(sizeof(EventRequest));
-    if (newRequest == NULL) {
-        //TODO set up error message for GET_ERROR and handle
-        //one per channel and clean on new requests.
-        return ChannelConstants_RESULT_EXCEPTION;
+void pushEventRequest(EventRequest* newRequest) {
+    assumeAlways(newRequest != NULL);
+    assumeAlways(newRequest->next == NULL);
+    assumeAlways(threadEventMonitor->lockCount > 0); /* really want to assert that this thread holds the lock...*/
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "pushEventRequest\n"); }
+    newRequest->next = eventRequests;
+    eventRequests = newRequest;
+}
+
+/*
+ * Signal that event has occured. Called by native thread.
+ */
+void signalEvent(EventRequest* evt) {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "signalEvent() before lock\n"); }
+    SimpleMonitorLock(threadEventMonitor);
+
+    addedEvent = TRUE;
+    evt->eventStatus = EVENT_REQUEST_STATUS_DONE;
+    if (evt->eventKind == EVENT_REQUEST_KIND_NATIVE_TASK) {
+        /* not on eventRequests yet. put it there now. */
+        pushEventRequest(evt);
     }
 
-    newRequest->eventNumber = nextEventNumber++;
-    //newRequest->eventData = eventData;
-    newRequest->eventStatus = false;
-    newRequest->next = NULL;
+    SimpleMonitorSignal(threadEventMonitor); /* wake up squawk thread if it was blocked in osMilliSleep(). */
+    SimpleMonitorUnlock(threadEventMonitor);
+}
 
-    if (newRequest->eventNumber <= 0) {
+/*
+ * Signal that error for event has occured. Called by native thread.
+ */
+void signalError(EventRequest* evt) {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "signalError() before lock\n"); }
+    SimpleMonitorLock(threadEventMonitor);
+
+    addedEvent = TRUE;
+    evt->eventStatus = EVENT_REQUEST_STATUS_ERROR;
+    if (evt->eventKind == EVENT_REQUEST_KIND_NATIVE_TASK) {
+        /* not on eventRequests yet. put it there now. */
+        pushEventRequest(evt);
+    }
+
+    SimpleMonitorSignal(threadEventMonitor); /* wake up squawk thread if it was blocked in osMilliSleep(). */
+    SimpleMonitorUnlock(threadEventMonitor);
+}
+
+/*
+ * Find EventRequest by event number.
+ * @return NULL if now event found.
+ */
+/*
+EventRequest* findEvent(int eventNumber) {
+    EventRequest* current = eventRequests;
+    while (current != NULL) {
+        if (current->eventNumber == eventNumber) {
+            return current;
+        } else {
+            current = current->next;
+        }
+    }
+   return NULL;
+}
+*/
+
+static int getNextEventNumber() {
+    int result = nextEventNumber++;
+    if (result <= 0) {
         // @TODO  Statically assign event number to thread. Thread can only wait for one event at a time.
         //        Could lazily incr counter at first IO operation by thread, or search for unused ID (keeping IDs compact).
         fatalVMError("Reached event number limit");
     }
+    return result;
+}
+
+#if 0
+/*
+ * If no other collection is holding event request, put it on eventRequests queue
+ * (NOT YET USED)
+ */
+void registerEventRequest (EventRequest* newRequest) {
+    assumeAlways(newRequest != NULL);
+    assumeAlways(newRequest->eventKind != EVENT_REQUEST_KIND_NATIVE_TASK); /* only added when event occurs */
+    SimpleMonitorLock(threadEventMonitor);
 
     if (eventRequests == NULL) {
         eventRequests = newRequest;
@@ -160,6 +273,31 @@ int storeEventRequest (int eventData) {
         }
         current->next = newRequest;
     }
+    SimpleMonitorUnlock(threadEventMonitor);
+}
+
+/*
+ * Java has requested wait for an event. Store the request,
+ * and each time Java asks for events, signal the event if it has happened
+ * (NOT YET USED)
+ *
+ * @return the event number
+ */
+int registerNewEventRequest () {
+    EventRequest* newRequest = (EventRequest*)malloc(sizeof(EventRequest));
+    if (newRequest == NULL) {
+        //TODO set up error message for GET_ERROR and handle
+        //one per channel and clean on new requests.
+        return ChannelConstants_RESULT_EXCEPTION;
+    }
+
+    newRequest->eventNumber = getNextEventNumber();
+    newRequest->eventKind = EVENT_REQUEST_KIND_PLAIN;
+    newRequest->eventStatus = false;
+    newRequest->next = NULL;
+
+    registerEventRequest(newRequest);
+
     return newRequest->eventNumber;
 }
 
@@ -167,69 +305,414 @@ int storeEventRequest (int eventData) {
  * If there are outstanding events then return its eventNumber. Otherwise return 0
  */
 int checkForEvents() {
-    return getEvent(false);
+    int result = 0;
+
+    SimpleMonitorLock(threadEventMonitor);
+    EventRequest* current = eventRequests;
+    while (current != NULL) {
+        if (current->eventStatus) {
+            result = current->eventNumber;
+            break;
+        } else {
+            current = current->next;
+        }
+    }
+    SimpleMonitorUnlock(threadEventMonitor);
+    return result;
 }
+#endif
 
 static void diagnosticWithValue(char* str, int val) {
     fprintf(stderr, "%s = %d\n", str, val);
 }
 
 static void printOutstandingEvents() {
+    SimpleMonitorLock(threadEventMonitor);
     EventRequest* current = eventRequests;
     while (current != NULL) {
     	diagnosticWithValue("event request id", current->eventNumber);
     	current = current->next;
     }
+    SimpleMonitorUnlock(threadEventMonitor);
 }
 
+INLINE NativeTask* toNativeTask(EventRequest* eventRequest) {
+    assume(eventRequest == NULL || eventRequest->eventKind == EVENT_REQUEST_KIND_NATIVE_TASK);
+    return (NativeTask*)eventRequest;
+}
+
+INLINE EventRequest* toEventRequest(NativeTask* eventRequest) {
+    return (EventRequest*)eventRequest;
+}
 /*
- * If there are outstanding event then return its eventNumber. If removeEventFlag is true, then
- * also remove the event from the queue. If no requests match the interrupt status
- * return 0.
+ * If there are outstanding event then remove the event from the queue and return its eventNumber.
+ * If no requests match the interrupt status return 0.
  *
- * Does linear search from older requests to newer. 
+ * Does linear search.
  */
-int getEvent(int removeEventFlag) {
-    int res = 0;
-    
-    if (eventRequests != NULL) {
-    	EventRequest* current = eventRequests;
-        EventRequest* previous = NULL;
-        while (current != NULL) {
-            if (current->eventStatus) {
-                res = current->eventNumber;
-                //unchain
-                if (removeEventFlag) {
-                    if (previous == NULL) {
-                        eventRequests = current->next;
-                    } else {
-                        previous->next = current->next;
-                    }
-                    free(current);
-                }
-                break;
+int getEvent() {
+    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() before lock\n"); }
+    SimpleMonitorLock(threadEventMonitor);
+    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() after lock\n"); }
+    EventRequest* current = eventRequests;
+    EventRequest* previous = NULL;
+    addedEvent = FALSE;
+
+    while (current != NULL) {
+        if (current->eventStatus >= EVENT_REQUEST_STATUS_DONE) {
+            int res = current->eventNumber;
+            //unchain
+            if (previous == NULL) {
+                eventRequests = current->next;
             } else {
-                previous = current;
-                current = current->next;
+                previous->next = current->next;
             }
+            current->next = NULL;
+            SimpleMonitorUnlock(threadEventMonitor);
+
+            /* TODO: Record and signal to java when eventStatus == EVENT_REQUEST_STATUS_ERROR*/
+
+            switch (current->eventKind) {
+                case EVENT_REQUEST_KIND_PLAIN: {
+                    free(current);
+                    break;
+                }
+                case EVENT_REQUEST_KIND_NATIVE_TASK: {
+                    /* these events have state that must be preserved, so don't delete until Java code asks for results. */
+                    break;
+                }
+                default: {
+                    shouldNotReachHere();
+                }
+            }
+            return res;
+        } else {
+            previous = current;
+            current = current->next;
         }
     }
-
-    return res;
+    SimpleMonitorUnlock(threadEventMonitor);
+    return 0;
 }
 
+/*---------------------------- TaskExecutor support ----------------------------*/
+#define DEFAULT_STACK (16 * 1024)
+
+/**
+ * Tell TaskExecutor to stop running
+ */
+static void cancelTaskExecutor(TaskExecutor* te) {
+     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "cancelTaskExecutor() before lock\n"); }
+     SimpleMonitorLock(te->monitor);
+     te->status = TASK_EXECUTOR_STATUS_STOPPING;
+     SimpleMonitorSignal(te->monitor);  /* TaskExecutor may be blocked in wait, so wake it up */
+     SimpleMonitorUnlock(te->monitor);
+    /* TODO: Record TaskExecutor on global list of all TaskExecutors? */
+}
+
+
+/**
+ * Add native task "ntask" to the TaskExecutor's run queue.
+ */
+static int addTaskToExecutor(TaskExecutor* te, NativeTask* ntask) {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "addTaskToExecutor() before lock\n"); }
+    SimpleMonitorLock(te->monitor);
+    if (te->status > TASK_EXECUTOR_STATUS_RUNNING) { /* STOPPING, DONE or ERROR */
+        SimpleMonitorUnlock(te->monitor);
+        return -1;
+    }
+    ntask->event.next = NULL;
+
+    if (te->runQ == NULL) {
+        te->runQ = ntask;
+    } else {
+        NativeTask* current = te->runQ;
+        while (current->event.next != NULL) {
+            current = toNativeTask(current->event.next);
+        }
+        current->event.next = toEventRequest(ntask);
+    }
+    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "addTaskToExecutor() before signal\n"); }
+
+    SimpleMonitorSignal(te->monitor);
+    SimpleMonitorUnlock(te->monitor);
+    return 0;
+}
+
+/**
+ * Get the next task on the run queue, blocking until task is ready.getn
+ * If TaskExecutor was cancelled, return NULL.
+ */
+static NativeTask* getNextTask(TaskExecutor* te) {
+    SimpleMonitorLock(te->monitor);
+
+    while (TRUE) {
+        NativeTask* ntask;
+
+        if (te->status != TASK_EXECUTOR_STATUS_RUNNING) { /* we've been cancelled! */
+            if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "getNextTask() we've been cancelled!\n"); }
+            SimpleMonitorUnlock(te->monitor);
+            return NULL;
+        }
+
+        ntask = te->runQ;
+        if (ntask) {
+            te->runQ = toNativeTask(ntask->event.next);
+            ntask->event.next = NULL;
+            SimpleMonitorUnlock(te->monitor);
+            //diagnosticWithValue("getNextTask() result: ", ntask);
+            return ntask;
+        } else {
+            if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getNextTask() before wait\n"); }
+            SimpleMonitorWait(te->monitor, -1);  /* no task yet, wait */
+            if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getNextTask() after wait\n"); }
+        }
+    }
+}
+
+/**
+ * A thread's handler that runs any NativeTasks that are placed in the run queue.
+ * This will loop, waiting for NativeTasks to show up on the runQ.
+ * Loop
+ */
+void teLoopingHandler(TaskExecutor* te) {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "in teLoopingHandler() %x\n", te); }
+    
+    assume(te && te->status == TASK_EXECUTOR_STATUS_STARTING);
+    setTaskID(te);
+    te->status = TASK_EXECUTOR_STATUS_RUNNING;
+    while (TRUE) {
+        NativeTask* ntask = getNextTask(te);
+        if (ntask) {
+            if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "in teLoopingHandler() calling handler %x\n", ntask->handler); }
+            ntask->result = (*ntask->handler)(ntask->arg1, ntask->arg2, ntask->arg3, ntask->arg4, ntask->arg5, ntask->arg6, ntask->arg7, ntask->arg8, ntask->arg9, ntask->arg10);
+            signalEvent(toEventRequest(ntask)); /* tell squawk thread that native function result is ready */
+        } else {
+            assumeAlways(te->status != TASK_EXECUTOR_STATUS_RUNNING); /* we've been cancelled! */
+            if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "in teLoopingHandler() cancelled, now cleanup \n"); }
+            /* Cancel any pending tasks on runQ. 
+             * no new tasks can be added unless status == TASK_EXECUTOR_STATUS_RUNNING, so can run without lock.
+             */
+            ntask = te->runQ;
+            te->runQ = NULL;
+            if (te->status < TASK_EXECUTOR_STATUS_DONE) {
+                te->status = TASK_EXECUTOR_STATUS_DONE;
+            }
+            /* te may be deleted by Java thread after this point, so don't ref te: */
+            te = NULL;
+
+            while (ntask) {
+                NativeTask* nextTask = toNativeTask(ntask->event.next);
+                ntask->event.next = NULL;
+                signalError(toEventRequest(ntask)); /* give task back to squawk thread */
+                ntask = nextTask;
+            }
+            break;
+        }
+    }
+}
+/**
+ * A thread's handler that runs one NativeTask
+ */
+void teOneShotHandler(TaskExecutor* te) {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "in teOneShotHandler() %x\n", te); }
+
+    assume(te);
+    NativeTask* ntask = te->runQ; /* in one shot case, written once at initialization, and read once, here. */
+    assumeAlways(ntask);          /* always set by createTaskExecutor() in runBlockingFunction */
+
+    setTaskID(te);
+    te->status = TASK_EXECUTOR_STATUS_RUNNING;
+    te->runQ = NULL;
+    ntask->ownedTaskExecutor = te; /* Squawk thread will delete te after reading ntask results...*/
+
+    ntask->result = (*ntask->handler)(ntask->arg1, ntask->arg2, ntask->arg3, ntask->arg4, ntask->arg5, ntask->arg6, ntask->arg7, ntask->arg8, ntask->arg9, ntask->arg10);
+
+    te->status = TASK_EXECUTOR_STATUS_DONE;
+    signalEvent(toEventRequest(ntask)); /* tell squawk thread that native function result is ready */
+    /* WARNING: Java thread may delete "te" and "ntask" at any time now! */
+}
+
+/*---------------------------- Blocking native call support ----------------------------*/
+
+static NativeTask* newNativeTask(TaskHandler handler, int eventNumber,
+                                                int arg1, int arg2, int arg3, int arg4, int arg5,
+                                                int arg6, int arg7, int arg8, int arg9, int arg10) {
+    /* TODO : think about pooling instead of malloc */
+    NativeTask* ntask = (NativeTask*)malloc(sizeof(NativeTask));
+    if (ntask == NULL) {
+        return NULL;
+    }
+    ntask->event.next = NULL;
+    ntask->event.eventNumber = eventNumber;
+    ntask->event.eventStatus = EVENT_REQUEST_STATUS_STARTING;
+    ntask->event.eventKind = EVENT_REQUEST_KIND_NATIVE_TASK;
+
+    ntask->handler = handler;
+    ntask->result = 0;
+    ntask->low_result = 0;
+    ntask->nt_errno = 0;
+    ntask->ownedTaskExecutor = NULL; /* will be set for oneshot TaskExecutors */
+
+    ntask->arg1 = arg1;
+    ntask->arg2 = arg2;
+    ntask->arg3 = arg3;
+    ntask->arg4 = arg4;
+    ntask->arg5 = arg5;
+    ntask->arg6 = arg6;
+    ntask->arg7 = arg7;
+    ntask->arg8 = arg8;
+    ntask->arg9 = arg9;
+    ntask->arg10 = arg10;
+    return ntask;
+}
+
+/**
+ * Run a blocking C function with the given arguments on the specified thread (TaskExecutor).
+ *
+ * A java thread can wait for the function to complete by waiting for the "eventNumber", and can retrieve the
+ * function result via NativeTask->result.
+ *
+ * This is intended to call C code that is not tightly integrated with the Squawk VM.
+ * The "handler" doesn't have to worry about event numbers, task ids, or signalling events.
+ */
+NativeTask* runBlockingFunctionOn(TaskExecutor* te, void* function,
+            int arg1, int arg2, int arg3, int arg4, int arg5,
+            int arg6, int arg7, int arg8, int arg9, int arg10) {
+    int rc;
+    int eventNumber = getNextEventNumber();
+
+    NativeTask* ntask = newNativeTask(function, eventNumber,
+                                      arg1, arg2, arg3, arg4, arg5,
+                                      arg6, arg7, arg8, arg9, arg10);
+     if (ntask == NULL) {
+        return NULL;
+    }
+
+    rc = addTaskToExecutor(te, ntask);
+    if (rc != 0) {
+        ntask->event.eventStatus = EVENT_REQUEST_STATUS_ERROR;
+        ntask->nt_errno = errno;
+    }
+
+    return ntask;
+}
+
+/**
+ * Run a blocking C function with the given arguments on some thread (TaskExecutor).
+ *
+ * A java thread can wait for the function to complete by waiting for the "eventNumber", and can retrieve the
+ * function result via NativeTask->result.
+ *
+ * This is intended to call C code that is not tightly integrated with the Squawk VM.
+ * The "handler" doesn't have to worry about event numbers, task ids, or signalling events.
+ */
+NativeTask* runBlockingFunction(void* function,
+            int arg1, int arg2, int arg3, int arg4, int arg5,
+            int arg6, int arg7, int arg8, int arg9, int arg10) {
+    int eventNumber = getNextEventNumber();
+    NativeTask* ntask = newNativeTask(function, eventNumber,
+                                      arg1, arg2, arg3, arg4, arg5,
+                                      arg6, arg7, arg8, arg9, arg10);
+    if (ntask == NULL) {
+        return NULL;
+    }
+
+    TaskExecutor* te = createTaskExecutor("native function runner", TASK_PRIORITY_MED, DEFAULT_STACK, TRUE, ntask);
+    if (te == NULL) {
+        ntask->event.eventStatus = EVENT_REQUEST_STATUS_ERROR;
+        ntask->nt_errno = errno;
+    }
+
+    return ntask;
+}
+
+void deleteNativeTask(NativeTask* ntask) {
+    assumeAlways(ntask->event.next == NULL); /* must not be in list */
+    assumeAlways(ntask->event.eventStatus > 0);
+    if (ntask->ownedTaskExecutor != NULL) {
+        int res = deleteTaskExecutor(ntask->ownedTaskExecutor);
+        assumeAlways(res == 0);
+    }
+    free(ntask);
+}
+
+/**
+ * for timing purposes
+ */
+void squawk_dummy_func() {
+
+}
+
+
 /*---------------------------- IO Impl ----------------------------*/
+/* void ms2TimeVal(long long ms, struct timeval* tv)
+ long long timeVal2ms(struct timeval* tv)
+ void ms2TimeSpec(long long ms, struct timespec* ts)
+ long long timeSpec2ms(struct timespec* ts)
+ void timeSpec2TimeVal(struct timespec* ts, struct timeval* tv)
+ void timeVal2TimeSpec(struct timeval* tv, struct timespec* ts)
+ void addTimeVal(struct timeval* tv_accum, struct timeval* tv_extra) ;
+ void addTimeSpec(struct timespec* ts_accum, struct timespec* ts_extra);
+ */
 
 /**
  * Initializes the IO subsystem.
-
  */
 void IO_initialize() {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In IO_initialize\n"); }
+    threadEventMonitor = SimpleMonitorCreate();
+    addedEvent = FALSE;
     sysFD_SIZE = sizeof(fd_set);
     sysSIZEOFSTAT = sizeof(struct stat);
-//printf("FD_SETSIZE: %d\n", FD_SETSIZE);
-//printf("sysFD_SIZE: %d\n", sysFD_SIZE);
-//printf("sysSIZEOFSTAT: %d\n", sysSIZEOFSTAT);
+
+    assumeAlways(offsetof(NativeTask, event.eventNumber) == (com_sun_squawk_NativeUnsafe_NATIVE_TASK_EVENTID_OFFSET * 4));
+    assumeAlways(offsetof(NativeTask, result) == (com_sun_squawk_NativeUnsafe_NATIVE_TASK_RESULT_OFFSET * 4));
+    assumeAlways(offsetof(NativeTask, low_result) == (com_sun_squawk_NativeUnsafe_NATIVE_TASK_LOW_RESULT_OFFSET * 4));
+    assumeAlways(offsetof(NativeTask, nt_errno) == (com_sun_squawk_NativeUnsafe_NATIVE_TASK_NT_ERRNO_RESULT_OFFSET * 4));
+
+    jlong t1 = 500; /* ms */
+    jlong t2 = 0;
+    struct timeval tval, tval2;
+    struct timespec tspec, tspec2;
+
+    ms2TimeVal(t1, &tval);
+    timeVal2TimeSpec(&tval, &tspec);
+    t2 = timeSpec2ms(&tspec);
+    if (t1 != t2) {
+        fprintf(stderr, "conversions: Expected %lld, got %lld\n", t1, t2);
+    }
+
+    t2 = 0;
+    ms2TimeVal(t2, &tval2);
+    addTimeVal(&tval, &tval2);
+    t2 = timeVal2ms(&tval);
+    if (t1 != t2) {
+        fprintf(stderr, "add timeval: Expected %lld, got %lld\n", t1, t2);
+    }
+
+
+    t2 = 0;
+    ms2TimeSpec(t2, &tspec2);
+    addTimeSpec(&tspec, &tspec2);
+    t2 = timeSpec2ms(&tspec);
+    if (t1 != t2) {
+        fprintf(stderr, "add timespec: Expected %lld, got %lld\n", t1, t2);
+    }
+
+    initSelectPipe();
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "Done IO_initialize\n"); }
+}
+
+/**
+ * Cleanup the IO subsystem.
+ */
+void IO_shutdown() {
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In IO_shutdown\n"); }
+    cleanupSelectPipe();
+
+    SimpleMonitorDestroy(threadEventMonitor);
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "Done IO_shutdown\n"); }
 }
 
 /******* per-context data ************/
@@ -386,7 +869,7 @@ void* sysdlsym(void* handle, char* name) {
     	case ChannelConstants_GLOBAL_GETEVENT: {
             // since this function gets called frequently it's a good place to put
             // the call that periodically resyncs our clock with the power controller
-            res = getEvent(true);
+            res = getEvent();
             // improve fairness of thread scheduling - see bugzilla #568
 // @TODO: Check that bare-metal version is OK: It unconditionally resets the bc.
 //        This can give current thread more time, if there was no event.
@@ -486,11 +969,7 @@ void* sysdlsym(void* handle, char* name) {
 
         /*--------------------------- CHANNEL OPS ---------------------------*/
 
-
-
-
         default: {
-fprintf(stderr, "Channel IO operand %d not yet implemented\n", op);
             res = ChannelConstants_RESULT_BADPARAMETER;
         }
     }

@@ -283,14 +283,6 @@ public interface LibC extends Library {
         ; // END OF DEFINES
     
     /**
-     * Gets the value of the C variable "errno".
-     * Only valid after certain system calls, and only if the system call failed in some way.
-     * 
-     * @return typically a positive number
-     */
-    /*@GlobalVar*/ int errno(); 
-    
-    /**
      * provides for control over descriptors.
      *
      * @param fd a descriptor to be operated on by cmd

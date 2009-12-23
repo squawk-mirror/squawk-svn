@@ -57,7 +57,9 @@ public class SystemEventsImpl extends SystemEvents {
 
     private int maxFD = 0; // system-wide highwater mark....
 
-
+    private BlockingFunction selectPtr;
+    private Function cancelSelectPtr;
+    protected Select select;
 
     private static int copyIntoFDSet(IntSet src, Pointer fd_set) {
 //System.err.println("Copying from " + src + " to " + fd_set);
@@ -104,8 +106,12 @@ public class SystemEventsImpl extends SystemEvents {
         return new Pointer(Select.fd_set_SIZEOF);
     }
 
-
     public SystemEventsImpl() {
+        select = Select.INSTANCE;
+        NativeLibrary jnaNativeLibrary = NativeLibrary.getDefaultInstance();
+        selectPtr = jnaNativeLibrary.getBlockingFunction("squawk_select");
+        selectPtr.setTaskExecutor(selectRunner);
+
         masterReadSet = FD_ALLOCATE();
         masterWriteSet = FD_ALLOCATE();
 
@@ -153,14 +159,24 @@ public class SystemEventsImpl extends SystemEvents {
     }
 
     /**
+     * Blocking call to select until IO occurs, the timeout occurs, or the read/write sets need to be updated
+     * (see updateSets() ??)
+     * @param theTimout
+     * @return number of file descriptors that have events
+     */
+    private int select(int nfds, Pointer readSet, Pointer writeSet, Pointer excSet, Pointer theTimout) {
+        return selectPtr.call5(nfds, readSet, writeSet, excSet, theTimout);
+    }
+    
+    /**
      * Poll the OS to see if there have been any events on the requested fds.
      *
      * Try not to allocate if there are no events...
-     * @return number of events
+     * @param timeout 
      */
-    private int pollEvents(long timeout) {
+    public void waitForEvents(long timeout) {
         if (maxFD <= 0) {
-            return -1;
+            return;
         }
 
         setupTempSet(readSet, masterReadSet, tempReadSet);
@@ -178,9 +194,9 @@ public class SystemEventsImpl extends SystemEvents {
             theTimout = timeoutTime.getPointer();
         }
 
-        int num = Select.INSTANCE.select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
+        int num = select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout);
         if (num < 0) {
-            System.err.println("select error: " + LibC.INSTANCE.errno());
+            System.err.println("select error: " + LibCUtil.errno());
         }
 
         if (num > 0) {
@@ -212,28 +228,6 @@ public class SystemEventsImpl extends SystemEvents {
             }
             updateSets();
         }
-        return num;
-    }
-
-   /**
-     * Poll the OS to see if there have been any events on the requested fds.
-     *
-     * Try not to allocate if there are no events...
-     * @return number of events
-     */
-    public int pollEvents() {
-        return pollEvents(0);
-    }
-
-    /**
-     * Wait for an OS event, with a timeout.
-     *
-     * Try not to allocate if there are no events...
-     * @param timout in ms
-     * @return number of events
-     */
-    public int waitForEvents(long timout) {
-        return pollEvents(timout);
     }
 
     /**

@@ -144,7 +144,6 @@ public final class VMThread implements GlobalStaticFields {
      */
     static SystemEvents systemEvents;
 
-
     /*-----------------------------------------------------------------------*\
      *                            The public API                             *
     \*-----------------------------------------------------------------------*/
@@ -841,6 +840,9 @@ public final class VMThread implements GlobalStaticFields {
 //  private final static int   MAXDEPTH = Integer.MAX_VALUE;
 /*end[SMARTMONITORS]*/
 
+    private int errno; /* save errno after native calls so java thread's will see correct errno value. */
+
+
     /**
      * Fail if thread invarients are true.
      */
@@ -1151,7 +1153,6 @@ VM.println();
          */
         //NativeUnsafe.setObject(serviceStack, SC.owner, serviceThread);
         serviceThread.stack = serviceStack.toObject();
-        
     }
     
     /**
@@ -1159,6 +1160,7 @@ VM.println();
      */
     static void initializeThreading2() {
         systemEvents = Platform.createSystemEvents();
+        systemEvents.startIO();
     }
 
     /**
@@ -1554,10 +1556,6 @@ VM.println("creating stack:");
                 signalEvent(event);
             }
 
-            if (systemEvents != null) {
-                systemEvents.pollEvents();
-            }
-
             /*
              * Add any threads waiting for a certain time that are now due.
              */
@@ -1608,20 +1606,18 @@ VM.println("creating stack:");
                     Isolate.printAllIsolateStates(System.err);
                     Assert.shouldNotReachHere("Dead-locked system: no schedulable threads");
                 }
-//VM.println("waitForEventl timeout..");
+//VM.println("waitForEvent timeout");
                 long waitTime = VM.getTimeMillis();
                 long oldWaitTimeTotal = getTotalWaitTime();
-                if (systemEvents == null || osevents.size() == 0) {
-                    VM.waitForEvent(delta);
-                } else {
-                     systemEvents.waitForEvents(delta);
-                }
+                VM.waitForEvent(delta);
                 waitTime = VM.getTimeMillis() - waitTime;
                 oldWaitTimeTotal += waitTime;
                 waitTimeHi32 = (int)(oldWaitTimeTotal >> 32);
                 waitTimeLo32 = (int)(oldWaitTimeTotal & 0xFFFFFFFF);
             }
         }
+        
+//VM.println("scheduling thread " + thread);
 
         /*
          * Set the next thread.
@@ -1921,10 +1917,36 @@ VM.println("creating stack:");
      * @param event the event number to unblock
      */
     public static void signalOSEvent(int event) {
+        if (false) {
+            VM.print("signalOSEvent: ");
+            VM.print(event);
+            VM.println();
+        }
+
         VMThread thread = osevents.findEvent(event);
         if (thread != null) {
             addToRunnableThreadsQueue(thread);
+        } else {
+            VM.print("!!! no thread found waiting on event");
         }
+    }
+
+    /**
+     * Return the system errno value from the last time a native function was called.
+     *
+     * @return zero if no error
+     */
+    public int getErrno() {
+        return errno;
+    }
+
+    /**
+     * Store the errno after calling a blocking native function.
+     * NOTE: non-blocking native functions set this in the interpreter loop as part of the NativeUnsafe.call()
+     * @param newErrno
+     */
+    void setErrno(int newErrno) {
+        errno = newErrno;
     }
 
     /**

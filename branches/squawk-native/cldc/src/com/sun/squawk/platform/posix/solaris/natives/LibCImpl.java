@@ -176,19 +176,19 @@ public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
 
     /*----------------------------- variables -----------------------------*/
 
-    private final Pointer errnoPtr;
-    
-    public int errno() {
-        return errnoPtr.getInt(0);
-    }
+//    private final Pointer errnoPtr;
+//
+//    public int errno() {
+//        return errnoPtr.getInt(0);
+//    }
 
 
     /*----------------------------- methods -----------------------------*/
     
-    public LibCImpl() {
-        NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
-        errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("errno", 4);
-    }
+//    public LibCImpl() {
+//        NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
+//        errnoPtr = jnaNativeLibrary.getGlobalVariableAddress("errno", 4);
+//    }
 
 }
 

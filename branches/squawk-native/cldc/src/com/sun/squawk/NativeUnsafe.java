@@ -580,6 +580,77 @@ public final class NativeUnsafe {
     }
 
     /*-----------------------------------------------------------------------*\
+     *                      Blocking C function support                     *
+    \*-----------------------------------------------------------------------*/
+
+    public final static int NATIVE_TASK_EVENTID_OFFSET =
+/*if[SQUAWK_64]*/
+            (1 * 2);
+/*else[SQUAWK_64]*/
+//          (1 * 1);
+/*end[SQUAWK_64]*/
+
+    public final static int NATIVE_TASK_RESULT_OFFSET = NATIVE_TASK_EVENTID_OFFSET + 3;
+    public final static int NATIVE_TASK_LOW_RESULT_OFFSET = NATIVE_TASK_RESULT_OFFSET + 1;
+    public final static int NATIVE_TASK_NT_ERRNO_RESULT_OFFSET = NATIVE_TASK_LOW_RESULT_OFFSET + 1;
+    public final static int NATIVE_TASK_ARGS_OFFSET = NATIVE_TASK_NT_ERRNO_RESULT_OFFSET + 1;
+
+    public static int getNativeTaskEventID(Address ntask) {
+        return getAsInt(ntask, NATIVE_TASK_EVENTID_OFFSET);
+    }
+
+    public static int getNativeTaskResult(Address ntask) {
+        return getAsInt(ntask, NATIVE_TASK_RESULT_OFFSET);
+    }
+
+    public static int getNativeTaskErrno(Address ntask) {
+        return getAsInt(ntask, NATIVE_TASK_NT_ERRNO_RESULT_OFFSET);
+    }
+
+    public static Address createTaskExecutor(Address name, int priority, int stacksize) throws NativePragma {
+        throw Assert.shouldNotReachHere("unimplemented when hosted");
+    }
+
+    public static int cancelTaskExecutor(Address taskExecutor) throws NativePragma {
+        throw Assert.shouldNotReachHere("unimplemented when hosted");
+    }
+
+    public static int deleteTaskExecutor(Address taskExecutor) throws NativePragma {
+        throw Assert.shouldNotReachHere("unimplemented when hosted");
+    }
+
+    public static Address runBlockingFunctionOn(Address taskExecutor, Address fptr,
+            int arg1, int arg2, int arg3, int arg4, int arg5,
+            int arg6, int arg7, int arg8, int arg9, int arg10) throws NativePragma {
+        throw Assert.shouldNotReachHere("unimplemented when hosted");
+    }
+
+    public static Address runBlockingFunction(Address fptr,
+            int arg1, int arg2, int arg3, int arg4, int arg5,
+            int arg6, int arg7, int arg8, int arg9, int arg10) throws NativePragma {
+        throw Assert.shouldNotReachHere("unimplemented when hosted");
+    }
+
+    public static int deleteNativeTask(Address ntask) throws NativePragma {
+        throw Assert.shouldNotReachHere("unimplemented when hosted");
+    }
+
+    public static int waitForBlockingFunction(Address ntask) {
+//VM.println("waitForBlockingFunction()...");
+        int evntid = getNativeTaskEventID(ntask);
+        VMThread.waitForEvent(evntid);
+//VM.println("done waitForBlockingFunction()");
+        int result = getNativeTaskResult(ntask);
+        VMThread.currentThread().setErrno(getNativeTaskErrno(ntask));
+        // TODO: do something with error code. throw exception or store for later use.
+        int rc = deleteNativeTask(ntask);
+        if (rc != 0) {
+System.err.println("deleteNativeTask failed");
+        }
+        return result;
+    }
+
+    /*-----------------------------------------------------------------------*\
      *               Raw (byte-orietened) memory support                     *
     \*-----------------------------------------------------------------------*/
     

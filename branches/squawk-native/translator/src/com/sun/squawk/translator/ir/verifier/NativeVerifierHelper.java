@@ -591,6 +591,13 @@ class NativeVerifierHelper {
             return;
         }
 
+        case Native.com_sun_squawk_NativeUnsafe$cancelTaskExecutor: {
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
         case Native.com_sun_squawk_NativeUnsafe$charAt: {
             frame.pop(INT); // int
             frame.pop(OOP); // java.lang.String
@@ -604,6 +611,29 @@ class NativeVerifierHelper {
             frame.pop(REF); // com.sun.squawk.Address
             frame.pop(REF); // com.sun.squawk.Address
             Assert.that(frame.isStackEmpty());
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$createTaskExecutor: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(REF); // com.sun.squawk.Address
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$deleteNativeTask: {
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$deleteTaskExecutor: {
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
             return;
         }
 
@@ -750,6 +780,41 @@ class NativeVerifierHelper {
 
         case Native.com_sun_squawk_NativeUnsafe$malloc: {
             frame.pop(UWORD); // com.sun.squawk.UWord
+            Assert.that(frame.isStackEmpty());
+            frame.push(REF); // com.sun.squawk.Address
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$runBlockingFunction: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(REF); // com.sun.squawk.Address
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$runBlockingFunctionOn: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            frame.pop(REF); // com.sun.squawk.Address
             Assert.that(frame.isStackEmpty());
             frame.push(REF); // com.sun.squawk.Address
             return;

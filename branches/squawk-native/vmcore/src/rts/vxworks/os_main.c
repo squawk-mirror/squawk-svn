@@ -37,6 +37,8 @@
 #define SQUAWK_VERSION "2010 FRC"
 #endif
 
+extern void freeBuffers();
+
 void Priv_SetWriteFileAllowed(int);
 
 int VXLOADARG(char* arg, char** argv, int argc) {
@@ -50,6 +52,15 @@ int VXLOADARG(char* arg, char** argv, int argc) {
         }
     }
     return argc;
+}
+
+/**
+ * Called by OTA server after killing Squawk task
+ * @TODO Should be called as part of normal shutdown, triggered by event from OTA server.
+ */
+void squawk_cleanup() {
+    freeBuffers();
+    IO_shutdown();
 }
 
 /**
