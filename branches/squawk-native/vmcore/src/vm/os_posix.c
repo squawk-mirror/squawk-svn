@@ -24,6 +24,14 @@
 
 /* Implementations of Squawk calls using standard POSIX calls. */
 
+#if defined(ASSUME) && ASSUME != 0
+#define sysAssume(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__); exit(1); }
+#else
+#define sysAssume(x) /**/
+#endif /* ASSUME */
+
+#define sysAssumeAlways(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__);   exit(1);}
+
 /* ----------------------- Condvar Support ------------------------*/
 
 /*

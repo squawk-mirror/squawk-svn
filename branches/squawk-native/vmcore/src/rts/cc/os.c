@@ -36,7 +36,7 @@
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
  #define sysPlatformName() "solaris"
 
-#include "../../vm/os_posix.c"
+#include "os_posix.c"
 
 /** 
  * Return another path to find the bootstrap suite with the given name.

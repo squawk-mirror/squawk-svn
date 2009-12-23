@@ -36,7 +36,7 @@
 #define sysPlatformName() "linux"
 #endif
 
-#include "../../vm/os_posix.c"
+#include "os_posix.c"
 
 /** 
  * Return another path to find the bootstrap suite with the given name.
