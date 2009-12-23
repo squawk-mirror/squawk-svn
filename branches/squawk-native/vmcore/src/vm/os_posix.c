@@ -22,7 +22,13 @@
  * information or have any questions.
  */
 
-/* Implementations of Squawk calls using standard POSIX calls. */
+#include <sched.h>
+#include <pthread.h>
+
+/* Implementations of Squawk calls using standard POSIX calls.
+ * Included by os.c  for platforms that support POSIX.
+ */
+
 
 #if defined(ASSUME) && ASSUME != 0
 #define sysAssume(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__); exit(1); }
@@ -315,7 +321,7 @@ static int taskPriorityMap(int genericPriority) {
 }
 
 int setTaskID(TaskExecutor* te) {
-    te->id = pthread_self();
+    te->id = (NativeTaskID)pthread_self();
 }
 
 /* function pointer used by pthreads: */

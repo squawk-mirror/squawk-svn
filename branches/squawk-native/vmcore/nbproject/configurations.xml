@@ -97,6 +97,7 @@
         <itemPath>src/vm/lisp2.c.spp</itemPath>
         <itemPath>src/vm/memory.c.spp</itemPath>
         <itemPath>src/vm/msg.c</itemPath>
+        <itemPath>os_posix.c</itemPath>
         <itemPath>src/vm/platform.h.spp</itemPath>
         <itemPath>src/vm/rom.h</itemPath>
         <itemPath>src/vm/squawk.c.spp</itemPath>
