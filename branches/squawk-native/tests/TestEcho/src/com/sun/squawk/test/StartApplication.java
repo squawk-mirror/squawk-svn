@@ -2,7 +2,7 @@ package com.sun.squawk.test;
 
 
 /*
- * Test ECho Server with 3 servers and 5 cleints each
+ * Test Echo Server with 3 servers and 5 clients each
  *
  * Created on Mar 5, 2009 3:37:29 PM;
  */

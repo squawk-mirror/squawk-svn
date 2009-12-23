@@ -46,7 +46,6 @@ public class EchoServer implements Runnable {
 
         EchoServerConnection(StreamConnection conn) {
             this.conn = conn;
-
         }
 
         public void run() {
@@ -60,10 +59,16 @@ public class EchoServer implements Runnable {
                 in = conn.openDataInputStream();
                 out = conn.openDataOutputStream();
                 while (true) {
-//                    int n = in.available();
-//                    n = Math.min(n, BUF_SIZE);
                     int n = in.read(buffer, 0, BUF_SIZE);
+                    if (n < 0) {
+                        System.out.println("server: client terminated connection");
+                        break;
+                    }
+                    //System.out.println("server: read data: " + new String(buffer, 0, n));
+
                     out.write(buffer, 0, n);
+                    //System.out.println("server: wrote data");
+
                 }
             } catch (IOException ex) {
                 System.out.println("Echo server closed due to " + ex);

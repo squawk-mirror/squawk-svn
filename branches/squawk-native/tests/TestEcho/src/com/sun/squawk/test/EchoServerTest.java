@@ -58,6 +58,7 @@ public class EchoServerTest implements Runnable {
             }
         } catch (IOException ex) {
             System.out.println("Echo server tester closed due to " + ex);
+            ex.printStackTrace();
         } finally {
             try {
                 if (in != null) {
