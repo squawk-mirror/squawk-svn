@@ -29,6 +29,10 @@
  * Included by os.c  for platforms that support POSIX.
  */
 
+/* not sure why this isn't picked up in limits.h */
+#ifndef PTHREAD_STACK_MIN
+#define	PTHREAD_STACK_MIN	((size_t)_sysconf(_SC_THREAD_STACK_MIN))
+#endif
 
 #if defined(ASSUME) && ASSUME != 0
 #define sysAssume(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__); exit(1); }
@@ -37,6 +41,53 @@
 #endif /* ASSUME */
 
 #define sysAssumeAlways(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__);   exit(1);}
+
+/* ----------------------- Time Support ------------------------*/
+
+#ifdef USE_CLOCK_GETTIME
+jlong sysTimeMicros() {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    /* We adjust to 1000 ticks per second */
+    return ((jlong)ts.tv_sec * 1000000) + ((ts.tv_nsec + 500) / 1000);
+}
+
+jlong sysTimeMillis(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return timeSpec2ms(&ts);
+}
+
+#define sys_clock_gettime clock_gettime
+
+#else
+jlong sysTimeMicros() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    /* We adjust to 1000 ticks per second */
+    return (jlong)tv.tv_sec * 1000000 + tv.tv_usec;
+}
+
+jlong sysTimeMillis(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return timeVal2ms(&tv);
+}
+
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME 1
+#endif
+
+static int sys_clock_gettime(int clk_id, struct timespec *res) {
+    int result;
+    struct timeval curtime;
+    sysAssume(clk_id == CLOCK_REALTIME);
+    result = gettimeofday(&curtime, NULL);
+    timeVal2TimeSpec(&curtime, res);
+    return result;
+};
+#endif
 
 /* ----------------------- Condvar Support ------------------------*/
 
@@ -165,7 +216,7 @@ int SimpleMonitorWait(SimpleMonitor* mon, jlong millis) {
         if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorWait on %s - timed\n", monitorName(mon)); }
 
         ms2TimeSpec(millis, &duration);
-        clock_gettime(CLOCK_REALTIME, &abstime);
+        sys_clock_gettime(CLOCK_REALTIME, &abstime);
         addTimeSpec(&abstime, &duration);
         mon->lockCount--;
         res = pthread_cond_timedwait(&mon->cv, &mon->mu, &abstime);
@@ -209,7 +260,7 @@ int SimpleMonitorLock(SimpleMonitor* mon) {
 int SimpleMonitorUnlock(SimpleMonitor* mon) {
     sysAssumeAlways(mon->lockCount == 1);
     sysAssume(SimpleMonitorIsLocked(mon));
-    
+
     mon->lockCount--;
     sysAssumeAlways(mon->lockCount == 0);
     if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorUnlock on %s \n", monitorName(mon)); }
@@ -218,38 +269,6 @@ int SimpleMonitorUnlock(SimpleMonitor* mon) {
     monitorErrCheck(mon, "SimpleMonitorUnlock", res, 0);
     return res;
 }
-
-/* ----------------------- Time Support ------------------------*/
-
-#if 1
-jlong sysTimeMicros() {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-
-    /* We adjust to 1000 ticks per second */
-    return ((jlong)ts.tv_sec * 1000000) + ((ts.tv_nsec + 500) / 1000);
-}
-
-jlong sysTimeMillis(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return timeSpec2ms(&ts);
-}
-
-#else
-jlong sysTimeMicros() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    /* We adjust to 1000 ticks per second */
-    return (jlong)tv.tv_sec * 1000000 + tv.tv_usec;
-}
-
-jlong sysTimeMillis(void) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return timeVal2ms(&tv);
-}
-#endif
 
 /* ----------------------- Sleep Support ------------------------*/
 
