@@ -54,6 +54,7 @@
           <itemPath>src/rts/vxworks/os_devices.h</itemPath>
           <itemPath>src/rts/vxworks/os_main.c</itemPath>
           <itemPath>src/rts/vxworks/os_math.h</itemPath>
+          <itemPath>src/rts/vxworks/socket_release.c</itemPath>
         </logicalFolder>
       </logicalFolder>
       <logicalFolder name="vm" displayName="vm" projectFiles="true">
@@ -90,6 +91,7 @@
         <itemPath>src/vm/globals.h</itemPath>
         <itemPath>src/vm/io_delegating.c</itemPath>
         <itemPath>src/vm/io_native.c</itemPath>
+        <itemPath>src/vm/io_native.h</itemPath>
         <itemPath>src/vm/io_socket.c</itemPath>
         <itemPath>src/vm/ioserver.c</itemPath>
         <itemPath>src/vm/lisp2.c.spp</itemPath>
@@ -134,6 +136,7 @@
               <Elem>SDA_DEBUGGER=1</Elem>
               <Elem>MACROIZE=1</Elem>
               <Elem>PLATFORM_TYPE_NATIVE=1</Elem>
+              <Elem>offsetof=1</Elem>
             </preprocessorList>
           </cTool>
         </makeTool>
