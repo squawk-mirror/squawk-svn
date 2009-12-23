@@ -33,93 +33,10 @@
 
 #define jlong  long long
 
-jlong sysTimeMicros(void) {
-    struct timeval tv;
-    long long result;
-    gettimeofday(&tv, NULL);
-    /* We adjust to 1000 ticks per second */
-    result = (jlong)tv.tv_sec * 1000000 + tv.tv_usec;
-    return result;
-}
-
-jlong sysTimeMillis(void) {
-    return sysTimeMicros() / 1000;
-}
-
-#define MAX_MICRO_SLEEP 999999
-
-/**
- * Sleep Squawk for specified milliseconds
- */
-void osMilliSleep(long long millis) {
-    if (millis <= 0) {
-        return;
-    }
-    long long elapsed = sysTimeMillis();
-    long long seconds = millis / 1000;
-    if (seconds > 0) {
-        // too long for usleep, so get close
-        sleep(seconds);
-    }
-    elapsed = sysTimeMillis() - elapsed;
-    if (elapsed < millis) {
-        millis = millis - elapsed;
-        long long micro = millis * 1000;
-        if (micro > MAX_MICRO_SLEEP) {
-            micro = MAX_MICRO_SLEEP;
-        }
-        usleep(micro);
-    }
-}
-
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
  #define sysPlatformName() "solaris"
 
-/**
- * Gets the page size (in bytes) of the system.
- *
- * @return the page size (in bytes) of the system
- */
-int sysGetPageSize(void) {
-    return sysconf(_SC_PAGESIZE);
-}
-
-/**
- * Sets a region of memory read-only or reverts it to read & write.
- *
- * @param start    the start of the memory region
- * @param end      one byte past the end of the region
- * @param readonly specifies if read-only protection is to be enabled or disabled
- */
-void sysToggleMemoryProtection(char* start, char* end, boolean readonly) {
-    size_t len = end - start;
-    if (mprotect(start, len, readonly ? PROT_READ : PROT_READ | PROT_WRITE) != 0) {
-        fprintf(stderr, "Could not toggle memory protection: %s\n", strerror(errno));
-    }
-}
-
-/**
- * Allocate a page-aligned chunk of memory of the given size.
- * 
- * @param size size in bytes to allocate
- * @return pointer to allocated memory or null.
- */
-INLINE void* sysValloc(size_t size) {
-//#ifdef sun
-    //buffer = malloc(size);    this may have been work-around for solaris bug 4846556, now fixed.
-//#else
-    return valloc(size);
-//#endif /* sun */
-}
-
-/**
- * Free chunk of memory allocated by sysValloc
- * 
- * @param ptr to to chunk allocated by sysValloc
- */
-INLINE void sysVallocFree(void* ptr) {
-    free(ptr);
-}
+#include "../../vm/os_posix.c"
 
 /** 
  * Return another path to find the bootstrap suite with the given name.
