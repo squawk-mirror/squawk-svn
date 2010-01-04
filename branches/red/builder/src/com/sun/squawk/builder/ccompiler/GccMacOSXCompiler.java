@@ -32,11 +32,16 @@ import com.sun.squawk.builder.*;
  * The interface to the GCC compiler on Mac OS X.
  */
 public class GccMacOSXCompiler extends GccCompiler {
+	public static final String RTS_INCLUDE_NAME = "gcc-macosx";
 
     public GccMacOSXCompiler(Build env, Platform platform) {
-        super("gcc-macosx", env, platform);
+        this(RTS_INCLUDE_NAME, env, platform);
     }
 
+    protected GccMacOSXCompiler(String name, Build env, Platform platform) {
+        super(name, env, platform);
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -77,7 +82,7 @@ public class GccMacOSXCompiler extends GccCompiler {
      */
     public String options(boolean disableOpts) {
         String result = super.options(disableOpts);
-        result += getArchOptions() + " -isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5 -mdynamic-no-pic -fvisibility=hidden ";
+        result += getArchOptions() + "-mdynamic-no-pic -fvisibility=hidden ";
         return result;
     }
 

@@ -34,7 +34,7 @@ import com.sun.squawk.builder.*;
 public class GccMacOSXX86Compiler extends GccMacOSXCompiler {
 
     public GccMacOSXX86Compiler(Build env, Platform platform) {
-        super(env, platform);
+        super("gcc-macosxx86", env, platform);
     }
 
     /**
@@ -51,8 +51,16 @@ public class GccMacOSXX86Compiler extends GccMacOSXCompiler {
     /**
      * {@inheritDoc}
      */
+    public String getRtsIncludeName() {
+    	return RTS_INCLUDE_NAME;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public String options(boolean disableOpts) {
         String result = super.options(disableOpts);
+        result += "-isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5 ";
         if (!disableOpts) {
             // @issue 1390. All x86 Macs are at least Prescott class, if not nocona. But gcc doesn't seem to know that.
             result = result + "-march=prescott ";
