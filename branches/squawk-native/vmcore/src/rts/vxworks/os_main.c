@@ -48,7 +48,9 @@ int VXLOADARG(char* arg, char** argv, int argc) {
         } else {                     
             argv[argc] = arg;        
             argc++;                  
+/*
             printf("[Squawk VM]    arg: %s\n", arg);
+*/
         }
     }
     return argc;
@@ -129,7 +131,9 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5) {
         }
         fclose(cmdFile);
     } else {
+/*
         fprintf(stderr, "[Squawk VM] Squawk command line file " CMD_LINE_FILENAME " not found, using default args...\n");
+*/
         argc = VXLOADARG("-suite:robot", argv, argc);
         argc = VXLOADARG("-Xmxnvm:1M",   argv, argc);
     }
@@ -153,7 +157,7 @@ void robotTask_DEBUG() {
 }
 
 void squawk_printVersion() {
-	printf("\r\n[Squawk VM] Version: %s, %s, %s\r\n", SQUAWK_VERSION, __DATE__, __TIME__);
+	printf("\n[Squawk VM] Version: %s, %s, %s\n", SQUAWK_VERSION, __DATE__, __TIME__);
 	fflush(stdout);
 }
 
@@ -163,7 +167,9 @@ void squawk_printVersion() {
 int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     int fd;
     FUNCPTR entryPt = (FUNCPTR)robotTask;
+/*
     fprintf(stderr, "[Squawk VM] Starting up...\n");
+*/
 
     cd("/c/ni-rt/system");
 
@@ -178,7 +184,9 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
         close(fd);
         remove("SQUAWK_DEBUG_ENABLED");
     } else {
+/*
         fprintf(stderr, "[Squawk VM] File SQUAWK_DEBUG_ENABLED not found, starting squawk in normal mode...\n");
+*/
     }
 
     /*

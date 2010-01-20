@@ -38,7 +38,7 @@ package com.sun.cldc.jna;
  * </ul>
  */
 public class Native {
-    public final static boolean DEBUG = true;
+    public final static boolean DEBUG = false;
     
     // TODO: Fix these
     public static final int POINTER_SIZE = 4;

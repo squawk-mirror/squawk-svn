@@ -641,7 +641,7 @@ public class MakeAPI extends Command {
             Constructors constructors = (Constructors) constructorsMap.get(cdoc.qualifiedName());
             constructors.print(sf, constructorsMap);
         }
-        printFields(sf, klass.getFields(root, cdoc.fields()));
+        printFields(sf, klass.getFields(root, cdoc.fields()), isInterface);
         printMethods(sf, klass.getMethods(root, cdoc.methods()));
         printNestedClasses(sf, cdoc.innerClasses());
 
@@ -752,11 +752,17 @@ public class MakeAPI extends Command {
      * @param sf     the source file being generated
      * @param fdocs  the javadoc for the fields
      */
-    private void printFields(SourceFile sf, List fdocs) {
+    private void printFields(SourceFile sf, List fdocs, boolean ownerIsInterface) {
         for (Iterator i = fdocs.iterator(); i.hasNext(); ) {
             FieldDoc fdoc = (FieldDoc)i.next();
             sf.printDoc(fdoc, this);
             String cve = fdoc.constantValueExpression();
+            // Handle the case where we have an interface defining a static final via an expression such as
+            //     public final static int FIOCLEX   = INSTANCE.initConstInt(0);
+            // See com.sun.squawk.platform.posix.natives.Ioctl
+            if (ownerIsInterface && cve == null) {
+                cve = getDefaultValue(fdoc.type());
+            }
             boolean needsStaticInit = false;
             if (cve == null) {
                 cve = "";

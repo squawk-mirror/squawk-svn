@@ -1013,7 +1013,7 @@ public final class Suite {
     }
 
     private static boolean isAnonymousOrPrivate(String className) {
-        int index = className.indexOf('$');
+        int index = className.lastIndexOf('$');
         if (index == -1) {
             return false;
         }
