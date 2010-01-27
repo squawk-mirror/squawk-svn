@@ -1,5 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson.scm.SubversionSCM_-DescriptorImpl>
+  <repositoryBrowser>hudson.scm.SubversionRepositoryBrowser</repositoryBrowser>
+  <generation>1</generation>
   <credentials class="hashtable">
     <entry>
       <string>&lt;https://squawk.dev.java.net:443&gt; CollabNet Subversion Repository</string>
@@ -9,6 +11,5 @@
       </hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
     </entry>
   </credentials>
-  <repositoryBrowser>hudson.scm.SubversionRepositoryBrowser</repositoryBrowser>
-  <generation>1</generation>
+  <revPropSupport class="hashtable"/>
 </hudson.scm.SubversionSCM_-DescriptorImpl>

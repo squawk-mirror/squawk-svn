@@ -26,10 +26,14 @@
     </locations>
     <useUpdate>true</useUpdate>
     <excludedRegions></excludedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector"/>
+  <concurrentBuild>false</concurrentBuild>
   <axes>
     <axis>
       <name>ASSERTIONS_ENABLED</name>
@@ -73,7 +77,9 @@
 cd trunk
 java -jar build.jar clean 
 java -jar build.jar copyphoneme
-java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING &amp;&amp; java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
+java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING
+
+java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
 $HUDSON_HOME/bin/runsmoketest.sh DELEGATING
 
 java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
@@ -95,4 +101,5 @@ java -jar build.jar clean </command>
     </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers/>
+  <runSequentially>false</runSequentially>
 </matrix-project>

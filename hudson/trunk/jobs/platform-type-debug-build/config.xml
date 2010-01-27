@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
   <actions/>
-  <description>Do a &quot;platform&quot; build from SVN. Do more testing than the matrix builds.</description>
+  <description>Build a full debug build of squawk-native from SVN. Build with assertions, debug code, assume, tracing, and interpreted gc.</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>2</numToKeep>
@@ -18,10 +18,6 @@
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>true</useUpdate>
-    <browser class="hudson.scm.browsers.FishEyeSVN">
-      <url>http://fisheye4.atlassian.com/browse/squawk/</url>
-      <rootModule></rootModule>
-    </browser>
     <excludedRegions></excludedRegions>
     <excludedUsers></excludedUsers>
     <excludedRevprop></excludedRevprop>
@@ -30,27 +26,18 @@
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <jdk>1.5</jdk>
-  <triggers class="vector">
-    <hudson.triggers.SCMTrigger>
-      <spec>7 * * * *
-</spec>
-    </hudson.triggers.SCMTrigger>
-  </triggers>
+  <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
       <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.5.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.5.0/jre/lib/i386:$LD_LIBRARY_PATH
 cd squawk-native
-
-$HUDSON_HOME/bin/verifyBuildJars2
-
 java -jar build.jar clean
 java -jar build.jar copyphoneme
-java -jar build.jar
-java -jar build.jar -prod -mac -o2 rom -metadata -lnt  cldc imp debugger
+java -jar build.jar -DPLATFORM_TYPE=DELEGATING -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
+java -jar build.jar -DPLATFORM_TYPE=DELEGATING -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt -metadata cldc imp debugger
 
 java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-rm squawk.suite.map
 java -jar build.jar genspec
 java -jar build.jar jvmenv
 java -jar build.jar systemproperties
@@ -61,10 +48,7 @@ java -jar build.jar Verifier
 ./squawk -h
 ./squawk -version
 $HUDSON_HOME/bin/runsmoketest.sh DELEGATING
-$HUDSON_HOME/bin/runiotests.sh
-
-/usr/bin/rm -rf tempdoc
-java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc
+$HUDSON_HOME/bin/rundsmoketest.sh DELEGATING
 
 ls -l &gt; sizereport.txt
 
@@ -73,27 +57,14 @@ cp squawk squawk.suite squawk.suite.metadata tmp
 java -jar build.jar clean 
 mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
 rmdir tmp
-
-java -jar build.jar clean </command>
+</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.tasks.JavadocArchiver>
-      <javadocDir>squawk-native/tempdoc/javadoc</javadocDir>
-      <keepAll>false</keepAll>
-    </hudson.tasks.JavadocArchiver>
     <hudson.tasks.ArtifactArchiver>
-      <artifacts>squawk-native/squawk,squawk-native/squawk.suite,squawk-native/squawk.suite.metadata,squawk-native/sizereport.txt</artifacts>
+      <artifacts>squawk-native/sizereport.txt</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
-    <hudson.tasks.BuildTrigger>
-      <childProjects>start-platform-type-matrix, platform-type-debug-build</childProjects>
-      <threshold>
-        <name>SUCCESS</name>
-        <ordinal>0</ordinal>
-        <color>BLUE</color>
-      </threshold>
-    </hudson.tasks.BuildTrigger>
     <hudson.tasks.Mailer>
       <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>

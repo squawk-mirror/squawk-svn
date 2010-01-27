@@ -23,16 +23,20 @@
       <rootModule></rootModule>
     </browser>
     <excludedRegions></excludedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
-  <jdk>(Default)</jdk>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <jdk>1.6</jdk>
   <triggers class="vector">
     <hudson.triggers.SCMTrigger>
       <spec>5 * * * *
 </spec>
     </hudson.triggers.SCMTrigger>
   </triggers>
+  <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
       <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
@@ -44,6 +48,8 @@ java -jar build.jar clean
 java -jar build.jar copyphoneme
 java -jar build.jar
 java -jar build.jar -prod -mac -o2 rom -metadata cldc imp debugger
+
+ls -l &gt; sizereport.txt
 
 java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
 java -jar build.jar genspec
@@ -58,11 +64,11 @@ java -jar build.jar Verifier
 $HUDSON_HOME/bin/runsmoketest.sh DELEGATING
 
 /usr/bin/rm -rf tempdoc
-java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc
+
+echo MAKEAPI DISABLED FOR NOW!
+#java -jar build.jar -verbose makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc -verbose -docletpath build.jar
 
 java -jar $HUDSON_HOME/findbugs/lib/findbugs.jar -textui -project $HUDSON_HOME/bin/findbugs-bootstrap.fbp -exclude $HUDSON_HOME/bin/findbugs-filter.xml -output findbugs.xml
-
-ls -l &gt; sizereport.txt
 
 mkdir tmp
 cp squawk squawk.suite squawk.suite.metadata tmp
@@ -73,10 +79,10 @@ rmdir tmp
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.tasks.JavadocArchiver>
-      <javadocDir>trunk/tempdoc/javadoc</javadocDir>
-      <keepAll>false</keepAll>
-    </hudson.tasks.JavadocArchiver>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.ArtifactArchiver>
       <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
       <latestOnly>false</latestOnly>
@@ -96,7 +102,6 @@ rmdir tmp
       <newFailureThreshold></newFailureThreshold>
       <healthy></healthy>
       <unHealthy></unHealthy>
-      <height></height>
       <pluginName>[FINDBUGS] </pluginName>
       <thresholdLimit>low</thresholdLimit>
       <defaultEncoding></defaultEncoding>
@@ -109,30 +114,17 @@ rmdir tmp
       <newFailureThreshold></newFailureThreshold>
       <healthy></healthy>
       <unHealthy></unHealthy>
-      <height></height>
       <pluginName>[TASKS] </pluginName>
       <thresholdLimit>low</thresholdLimit>
       <defaultEncoding></defaultEncoding>
-      <high></high>
-      <normal></normal>
+      <high>FIXME, BUG</high>
+      <normal>TODO</normal>
       <low></low>
-      <ignoreCase>false</ignoreCase>
+      <ignoreCase>true</ignoreCase>
       <pattern></pattern>
       <excludePattern></excludePattern>
+      <canRunOnFailed>false</canRunOnFailed>
     </hudson.plugins.tasks.TasksPublisher>
-    <hudson.plugins.pmd.PmdPublisher>
-      <threshold></threshold>
-      <newThreshold></newThreshold>
-      <failureThreshold></failureThreshold>
-      <newFailureThreshold></newFailureThreshold>
-      <healthy></healthy>
-      <unHealthy></unHealthy>
-      <height></height>
-      <pluginName>[PMD] </pluginName>
-      <thresholdLimit>low</thresholdLimit>
-      <defaultEncoding></defaultEncoding>
-      <pattern></pattern>
-    </hudson.plugins.pmd.PmdPublisher>
     <hudson.tasks.Mailer>
       <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
