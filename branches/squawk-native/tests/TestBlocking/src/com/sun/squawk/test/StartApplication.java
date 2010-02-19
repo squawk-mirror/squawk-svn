@@ -32,6 +32,54 @@ public class StartApplication extends MIDlet {
         }
     }
 
+    void testTime() {
+        long t1, t2;
+        long sum;
+        long max;
+        long min;
+        int i;
+
+        sum = 0;
+        max = 0;
+        min = Long.MAX_VALUE;
+        for (i = 0; i < 10; i++) {
+            long diff;
+            t1 = VM.getTimeMicros();
+            t2 = VM.getTimeMicros();
+            diff = t2 - t1;
+            sum += diff;
+            if (diff > max) {
+                max = diff;
+            }
+            if (diff < min) {
+                min = diff;
+            }
+        }
+        System.out.println("testTime: getTimeMicros took avg of " + (sum / i) + " usec ");
+        System.out.println("    min = " + min + " usec ");
+        System.out.println("    max = " + max + " usec ");
+
+        sum = 0;
+        max = 0;
+        min = Long.MAX_VALUE;
+        for (i = 0; i < 10; i++) {
+            long diff;
+            t1 = VM.getTimeMicros();
+            t2 = VM.getTimeMillis();
+            diff = (t2 * 1000) - t1;
+            sum += diff;
+            if (diff > max) {
+                max = diff;
+            }
+            if (diff < min) {
+                min = diff;
+            }
+        }
+        System.out.println("testTime: getTimeMicros vs. getTimeMillis took avg of " + (sum / i) + " usec ");
+        System.out.println("    min = " + min + " usec ");
+        System.out.println("    max = " + max + " usec ");
+    }
+
     BlockingFunction usleepPtr =  NativeLibrary.getDefaultInstance().getBlockingFunction("usleep");
 
     /**
@@ -55,6 +103,43 @@ public class StartApplication extends MIDlet {
      */
     void nativeSleep(int ms) {
         nativeUsleep(ms * 1000);
+    }
+    
+    /**
+     * Sleep ms milliseconds using native code
+     * @param ms
+     */
+    void systemSleep(int ms) {
+        long time = VM.getTimeMicros();
+        sleep(ms);
+        time = VM.getTimeMicros() - time;
+        if (time - (ms * 1000) != 0) {
+            System.out.println("sleep missed deadline of " + ms + " ms by " + (time - (ms * 1000)) + " usec");
+        } else {
+            System.out.println("sleep of " + ms + " ok");
+        }
+    }
+
+    void testSystemSleep() {
+        System.out.println("testSystemSleep");
+
+        systemSleep(1000);
+        systemSleep(100);
+        systemSleep(100);
+        systemSleep(100);
+        systemSleep(10);
+        systemSleep(10);
+        systemSleep(10);
+        systemSleep(5);
+        systemSleep(5);
+        systemSleep(5);
+        systemSleep(2);
+        systemSleep(2);
+        systemSleep(2);
+        systemSleep(1);
+        systemSleep(1);
+        systemSleep(1);
+        System.out.println(Thread.currentThread() + " done testSystemSleep");
     }
 
     void testSleep() {
@@ -150,7 +235,7 @@ public class StartApplication extends MIDlet {
         System.out.println("testHTTP - try to read web page from desktop http server");
         System.out.println("    NOTE: $$$$ is normal - it indicates that other Java threads can run while sockets are blocked on reads.");
 
-        String[] args = {"10.0.0.6"};
+        String[] args = {"10.0.0.6", "8080"};
         try {
             com.sun.squawk.io.j2me.socket.Test.main(args);
             System.out.println("testHTTP - DONE");
@@ -175,12 +260,19 @@ public class StartApplication extends MIDlet {
 
     protected void startApp() throws MIDletStateChangeException {
         System.out.println("Hello, Blocking Test");
+        System.gc();
+
+        System.out.println("-----------------");
+        testTime();
 
         System.out.println("-----------------");
         timeDefaultBlockingCall();
         
         System.out.println("-----------------");
         timeDefaultBlockingCallWTask();
+
+        System.out.println("-----------------");
+        testSystemSleep();
 
         System.out.println("-----------------");
         testSleep();

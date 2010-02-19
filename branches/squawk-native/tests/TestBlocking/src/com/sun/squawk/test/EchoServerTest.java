@@ -50,7 +50,7 @@ public class EchoServerTest implements Runnable {
                 byte[] msgBytes = msg.getBytes();
                 long ms = System.currentTimeMillis();
                 out.write(msgBytes);
-
+//Thread.yield();
                 in.readFully(buffer, 0, msgBytes.length);
                 ms = System.currentTimeMillis() - ms;
 
