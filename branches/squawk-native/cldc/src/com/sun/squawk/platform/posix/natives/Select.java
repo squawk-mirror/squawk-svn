@@ -47,7 +47,7 @@ public interface Select extends Library {
     /**
      * The maximum number of file descriptors that a fd_set object can hold information about.
      */
-    public static final int fd_set_SIZEOF = INSTANCE.initConstInt(0);
+    public static final int fd_set_SIZEOF = INSTANCE.initConstInt(1);
 
     /**
      * Select() examines the I/O descriptor sets whose addresses are passed in readfds, writefds,

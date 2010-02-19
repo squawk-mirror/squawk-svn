@@ -311,6 +311,12 @@ class PrivateInputStream extends InputStream {
     boolean eof = false;
 
     /**
+     * Buffer used by readByte()
+     */
+    private byte[] tmpReadBuf;
+
+
+    /**
      * Constructor
      * @param pointer to the connection object
      *
@@ -318,6 +324,7 @@ class PrivateInputStream extends InputStream {
      */
     /* public */ PrivateInputStream(Protocol parent) throws IOException {
         this.parent = parent;
+        tmpReadBuf = new byte[1];
     }
 
     /**
@@ -353,7 +360,7 @@ class PrivateInputStream extends InputStream {
         if (eof) {
             return -1;
         }
-        res = Protocol.gcfSockets.readByte(parent.handle);
+        res = Protocol.gcfSockets.readByte(parent.handle, tmpReadBuf);
         if (res == -1) {
             eof = true;
         }
@@ -392,25 +399,14 @@ class PrivateInputStream extends InputStream {
         }
         // Check for array index out of bounds, and NullPointerException,
         // so that the native code doesn't need to do it
-        int test = b[off] + b[off + len - 1];
+        int test = b[off];
+        test = b[off + len - 1];
         
         int n = Protocol.gcfSockets.readBuf(parent.handle, b, off, len);
+        if (n == -1) {
+            eof = true;
+        }
 
-        // This is implementing "readFully()" not read()
-//        while (n < len) {
-//            int count = Protocol.gcfSockets.readBuf(parent.handle, b, off + n, len - n);
-//            if (count == -1) {
-//                eof = true;
-//                if (n == 0) {
-//                    n = -1;
-//                }
-//                break;
-//            }
-//            n += count;
-//            if (n == len) {
-//                break;
-//            }
-//        }
         if (parent == null) {
             throw new InterruptedIOException();
         }

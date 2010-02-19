@@ -39,7 +39,7 @@ public class SelectImpl implements Select {
     // we're having some problems with class initialization being required for thread initialization!
     public final static int fd_set_SIZEOF = 260;//Native.getLibraryLoading().getGlobalVariableAddress("sysFD_SIZE", 4).getInt(0);
 
-        public int initConstInt(int index) {
+    public int initConstInt(int index) {
         final int[] dummy = {};
         return dummy[index];
     }

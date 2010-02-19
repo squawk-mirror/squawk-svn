@@ -34,6 +34,7 @@ import java.util.Hashtable;
 /*end[OLD_IIC_MESSAGES]*/
 import com.sun.squawk.io.mailboxes.Mailbox;
 import com.sun.squawk.peripheral.PeripheralRegistry;
+import com.sun.squawk.platform.SystemEvents;
 import com.sun.squawk.pragma.GlobalStaticFields;
 import com.sun.squawk.pragma.InterpreterInvokedPragma;
 import com.sun.squawk.pragma.NotInlinedPragma;
@@ -3709,6 +3710,31 @@ hbp.dumpState();
             throw new IOException("no native I/O peer for isolate");
         }
         executeCIO(context, ChannelConstants.CONTEXT_FREECHANNEL, channel, 0, 0, 0, 0, 0, 0, null, null);
+    }
+
+    /**
+     * Set the maximum time that the system will wait in select.
+     * Used in PLATFORM_TYPE=NATIVE builds.
+     *
+     * @param max max wait time in ms. Must be > 0.
+     */
+    public void setMaxSelectWait(long max) {
+        SystemEvents sysEvents = VMThread.getSystemEvents();
+        if (sysEvents != null) {
+            sysEvents.setMaxWait(max);
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    /**
+     * Set the maximum time that system will wait for IO, interrupts, etc.
+     * WARNING: This can break system sleeping, and should only be used in emergencies.
+     *
+     * @param max max wait time in ms. Must be > 0.
+     */
+    public void setMaxSystemWait(long max) {
+        VMThread.setMaxSystemWait(max);
     }
 
 /*if[!OLD_IIC_MESSAGES]*/

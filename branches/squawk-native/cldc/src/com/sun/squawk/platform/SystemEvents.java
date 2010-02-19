@@ -35,6 +35,7 @@ public abstract class SystemEvents implements Runnable {
 
     private volatile boolean cancelRunLoop;
     protected TaskExecutor selectRunner;
+    protected long max_wait = Long.MAX_VALUE;
 
     /**
      * Wait for an OS event, with a timeout. Signal VMThread when event occurs.
@@ -82,6 +83,18 @@ public abstract class SystemEvents implements Runnable {
      */
     public void cancelIOHandler() {
         cancelRunLoop = true;
+    }
+
+    /**
+     * Set the maximum time that the system will wait in select
+     *
+     * @param max max wait time in ms. Must be > 0.
+     */
+    public void setMaxWait(long max) {
+        if (max <= 0) {
+            throw new IllegalArgumentException();
+        }
+        max_wait = max;
     }
 
 }

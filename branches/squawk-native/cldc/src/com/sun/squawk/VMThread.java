@@ -144,6 +144,16 @@ public final class VMThread implements GlobalStaticFields {
      */
     static SystemEvents systemEvents;
 
+    /**
+     * Maximum time that system will wait for IO, interrupts, etc.
+     * WARNING: This can break system sleeping, and should only be used in emergencies.
+     *
+     * NOTE: global statics cannot handle "long" variables, so encode Long.MAX_VALUE as -1,
+     * and other values as 1..Int.MAX_VALUE.
+     */
+    private static int max_wait; // initialized to -1 in initializeThreading().
+
+
     /*-----------------------------------------------------------------------*\
      *                            The public API                             *
     \*-----------------------------------------------------------------------*/
@@ -209,6 +219,25 @@ public final class VMThread implements GlobalStaticFields {
      */
     public static int getThreadSwitchCount() {
         return threadSwitchCount;
+    }
+
+    /**
+     * Set the maximum time that system will wait for IO, interrupts, etc.
+     * WARNING: This can break system sleeping, and should only be used in emergencies.
+     *
+     * @param max max wait time in ms. Must be > 0, and either Long.MAX_VALUE or < Integer.MAX_VALUE.
+     */
+    static void setMaxSystemWait(long max) {
+        if (max <= 0) {
+            throw new IllegalArgumentException();
+        }
+        if (max == Long.MAX_VALUE) {
+            max_wait = -1;
+        } else if (max > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException();
+        } else {
+            max_wait = (int)max;
+        }
     }
 
    /**
@@ -1137,6 +1166,7 @@ VM.println();
         osevents            = new EventHashtable();
         currentThread       = asVMThread(new Thread()); // Startup using a dummy thread
         serviceThread       = currentThread;
+        max_wait            = -1; // encode value of Long.MAX_VALUE
 
         /*
          * Convert the block of memory allocated for the service thread's stack into a
@@ -1607,6 +1637,11 @@ VM.println("creating stack:");
                     Assert.shouldNotReachHere("Dead-locked system: no schedulable threads");
                 }
 //VM.println("waitForEvent timeout");
+                // Emergency switch in case waitForEvent() "breaks" (misses wakeups and hangs)
+                // This hasn't happenned, but need a fix that can be run in the field.
+                if (max_wait != -1 && delta > max_wait) {
+                    delta = max_wait;
+                }
                 long waitTime = VM.getTimeMillis();
                 long oldWaitTimeTotal = getTotalWaitTime();
                 VM.waitForEvent(delta);

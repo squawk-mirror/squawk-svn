@@ -195,6 +195,7 @@ public class SystemEventsImpl extends SystemEvents implements Runnable {
             for (int i = 0; i < waitingSet.size(); i++) {
                 int fd = waitingSet.getElements()[i];
                 if (select.FD_ISSET(fd, eventFDSet)) {
+                    //if (DEBUG) { VM.println("handleEvents: event on fd: " + fd + " num: " + (num-1)); }
                     waitingSet.remove(fd);        // shrink waitingSet
                     VMThread.signalOSEvent(fd);
                     num--;
@@ -208,6 +209,15 @@ public class SystemEventsImpl extends SystemEvents implements Runnable {
         return num;
     }
 
+    private boolean didCheck = false;
+
+    private void doCheck() {
+        didCheck = true;
+        int sysFD_SIZE = NativeLibrary.getDefaultInstance().getGlobalVariableAddress("sysFD_SIZE", 4).getInt(0);
+        Assert.always(select.FD_SETSIZE == (sysFD_SIZE * 8), "select.FD_SETSIZE: " + select.FD_SETSIZE + " sysFD_SIZE: " + sysFD_SIZE);
+        Assert.always(select.fd_set_SIZEOF == sysFD_SIZE, "fd_set_SIZEOF: " + select.fd_set_SIZEOF);
+    }
+
     /**
      * Poll the OS to see if there have been any events on the requested fds.
      * 
@@ -215,39 +225,28 @@ public class SystemEventsImpl extends SystemEvents implements Runnable {
      * @param timeout  md to wait, or 0 for no wait, or Long.MAX_VALUE for inifinite wait
      */
     public void waitForEvents(long timeout) {
-        long elapsedTime = System.currentTimeMillis();
-        if (timeout != 0) {
-            synchronized (this) {
-                try {
-                    while (maxFD <= 0) {
-                        wait((timeout == Long.MAX_VALUE) ? 0 : timeout);
-                    }
-                } catch (InterruptedException ex) {
-                }
-            }
-            elapsedTime = System.currentTimeMillis() - elapsedTime;
-            if (timeout != Long.MAX_VALUE) {
-                timeout -= elapsedTime;
-            }
+        if (DEBUG && !didCheck) {
+            doCheck();
         }
 
-        if (maxFD <= 0) {
-            return;
-        }
         // TODO: reset the cancelSelectCall()  - ie drain the pipe.
         
         setupTempSet(readSet, masterReadSet, tempReadSet);
         setupTempSet(writeSet, masterWriteSet, tempWriteSet);
 
         Pointer theTimout;
+
+        // Emergency switch in case select() "breaks" (misses wakeups and hangs)
+        // This hasn't happenned, but need a fix that can be run in the field.
+        if (timeout > max_wait) {
+            timeout = max_wait;
+        }
         if (timeout == 0) {
             if (DEBUG) { VM.println("WARNING: Why are we polling select??? -----------------------------------------"); }
             theTimout = zeroTime.getPointer();
         } else if (timeout == Long.MAX_VALUE) {
             theTimout = Pointer.NULL();
         } else {
-            if (DEBUG) { VM.println("WARNING: Why are we slow polling select??? -----------------------------------------"); }
-
             timeoutTime.tv_sec = timeout / 1000;
             timeoutTime.tv_usec = (timeout % 1000) * 1000;
             timeoutTime.write();
@@ -262,8 +261,12 @@ public class SystemEventsImpl extends SystemEvents implements Runnable {
 //          VM.println("Write FDs set:");
 //          printFDSet(tempWriteSet);
 //      }
+        
+        if (DEBUG) { VM.println("waitForEvents - before select"); }
 
-        int num = select(maxFD + 1, tempReadSet, tempWriteSet, Pointer.NULL(), theTimout); /* block waiting for event or timeout */
+        int num = select(maxFD + 1, tempReadSet, tempWriteSet,
+                         Pointer.NULL(), theTimout); /* block waiting for event or timeout */
+        if (DEBUG) { VM.println("waitForEvents - after select. num = " + num); }
         // TODO : do non-blocking call if timeout == 0
         
         if (num > 0) {
@@ -295,25 +298,19 @@ public class SystemEventsImpl extends SystemEvents implements Runnable {
     }
     
     public void waitForReadEvent(int fd) {
-        if (DEBUG) { VM.println("Waiting for read on fd: " + fd); }
-        Assert.always(fd >= 0 && fd < Select.FD_SETSIZE);
-        synchronized (this) {
-            readSet.add(fd);
-            updateSets();
-            notifyAll();
-        }
+        if (DEBUG) { VM.println("waitForReadEvent fd: " + fd); }
+        Assert.that(fd >= 0 && fd < Select.FD_SETSIZE);
+        readSet.add(fd);
+        updateSets();
         cancelSelectCall();
         VMThread.waitForOSEvent(fd); // read is ready, select will remove fd from readSet
     }
     
     public void waitForWriteEvent(int fd) {
-        if (DEBUG) { VM.println("Waiting for write on fd: " + fd); }
-        Assert.always(fd >= 0 && fd < Select.FD_SETSIZE);
-        synchronized (this) {
-            writeSet.add(fd);
-            updateSets();
-            notifyAll();
-        }
+        if (DEBUG) { VM.println("waitForWriteEvent fd: " + fd); }
+        Assert.that(fd >= 0 && fd < Select.FD_SETSIZE);
+        writeSet.add(fd);
+        updateSets();
         cancelSelectCall();
         VMThread.waitForOSEvent(fd);// write is ready, select will remove fd from writeSet
     }

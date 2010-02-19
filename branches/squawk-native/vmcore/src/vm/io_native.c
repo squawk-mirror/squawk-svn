@@ -73,6 +73,9 @@ extern int	    select 		(int width, fd_set *pReadFds,
 
 #endif
 
+
+static volatile int io_shutting_down;
+
 #define DEBUG_SELECT FALSE
 
 /****** HARD CODED FOR MAC FOR NOW:  *************/
@@ -137,12 +140,15 @@ int sysSIZEOFSTAT; FORCE_USED
 int squawk_select(int nfds,
                 fd_set * readfds, fd_set * writefds,
                 fd_set * errorfds, struct timeval * timeout) {
-    if (DEBUG_SELECT) { fprintf(stderr, "blocking in squawk_select\n"); }
     int pipefd = getSelectReadPipeFd();
+    int maxfd = max(nfds, pipefd + 1);
+    if (DEBUG_SELECT) { fprintf(stderr, "blocking in squawk_select. nfds: %d, maxfd: %d\n", nfds, maxfd); }
+
     FD_SET(pipefd, readfds);
-    int res = select(nfds, readfds, writefds, errorfds, timeout);
+    int res = select(maxfd, readfds, writefds, errorfds, timeout);
     if (res > 0) {
         if (FD_ISSET(pipefd, readfds)) {
+	        if (DEBUG_SELECT) { fprintf(stderr, "squawk_select read pipe message\n"); }
             FD_CLR(pipefd, readfds);
             readSelectPipeMsg();
             res--;
@@ -195,6 +201,12 @@ void pushEventRequest(EventRequest* newRequest) {
  */
 void signalEvent(EventRequest* evt) {
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "signalEvent() before lock\n"); }
+
+    if (io_shutting_down) {
+ //        fprintf(stderr, "signalEvent() while shutting down\n");
+         return;
+    }
+
     SimpleMonitorLock(threadEventMonitor);
 
     addedEvent = TRUE;
@@ -213,6 +225,12 @@ void signalEvent(EventRequest* evt) {
  */
 void signalError(EventRequest* evt) {
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "signalError() before lock\n"); }
+
+    if (io_shutting_down) {
+ //        fprintf(stderr, "signalEvent() while shutting down\n");
+         return;
+    }
+
     SimpleMonitorLock(threadEventMonitor);
 
     addedEvent = TRUE;
@@ -351,7 +369,13 @@ INLINE EventRequest* toEventRequest(NativeTask* eventRequest) {
  * Does linear search.
  */
 int getEvent() {
-    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() before lock\n"); }
+    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() before lock. 0x%x\n", eventRequests); }
+
+    if (eventRequests == NULL) {
+        /* bail out early. try again later */
+        return 0;
+    }
+
     SimpleMonitorLock(threadEventMonitor);
     if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() after lock\n"); }
     EventRequest* current = eventRequests;
@@ -385,6 +409,7 @@ int getEvent() {
                     shouldNotReachHere();
                 }
             }
+	    	if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() returning %d\n", res); }
             return res;
         } else {
             previous = current;
@@ -392,6 +417,7 @@ int getEvent() {
         }
     }
     SimpleMonitorUnlock(threadEventMonitor);
+    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() returning 0\n"); }
     return 0;
 }
 
@@ -662,6 +688,7 @@ void squawk_dummy_func() {
 void IO_initialize() {
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In IO_initialize\n"); }
     threadEventMonitor = SimpleMonitorCreate();
+    io_shutting_down = FALSE;
     addedEvent = FALSE;
     sysFD_SIZE = sizeof(fd_set);
     sysSIZEOFSTAT = sizeof(struct stat);
@@ -708,8 +735,12 @@ void IO_initialize() {
  * Cleanup the IO subsystem.
  */
 void IO_shutdown() {
+    io_shutting_down = TRUE;
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In IO_shutdown\n"); }
     cleanupSelectPipe();
+
+    printOutstandingEvents();
+    eventRequests = NULL;
 
     SimpleMonitorDestroy(threadEventMonitor);
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "Done IO_shutdown\n"); }
@@ -867,8 +898,6 @@ void* sysdlsym(void* handle, char* name) {
         }
 
     	case ChannelConstants_GLOBAL_GETEVENT: {
-            // since this function gets called frequently it's a good place to put
-            // the call that periodically resyncs our clock with the power controller
             res = getEvent();
             // improve fairness of thread scheduling - see bugzilla #568
 // @TODO: Check that bare-metal version is OK: It unconditionally resets the bc.
@@ -882,8 +911,6 @@ void* sysdlsym(void* handle, char* name) {
 
     	case ChannelConstants_GLOBAL_WAITFOREVENT: {
             long long millisecondsToWait = makeLong(i1, i2);
-            /*long long target = ((long long)sysTimeMillis()) + millisecondsToWait;
-              if (target <= 0) target = 0x7FFFFFFFFFFFFFFFLL; // overflow detected*/
             osMilliSleep(millisecondsToWait);
             res = 0;
             break;

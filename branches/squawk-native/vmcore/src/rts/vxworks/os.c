@@ -22,9 +22,6 @@
  * information or have any questions.
  */
 
-#define open(filename, flags) open(filename, flags, 0644)
-
-
 /* The package that contains the native code to use for a "NATIVE" platform type*/
 #define sysPlatformName() "vxworks"
 
@@ -36,6 +33,9 @@
 #include "jni.h"
 #include <semLib.h>
 #include <taskLib.h>
+#include <ioLib.h>
+
+#define open(filename, flags) open(filename, flags, 0644)
 
 
 #define jlong  int64_t
@@ -389,7 +389,8 @@ int SimpleMonitorUnlock(SimpleMonitor* mon) {
 /* ----------------------- Sleep Support ------------------------*/
 
 /**
- * addedEvent is set TRUE by multiple writers (native threads) when adding evt, and read by the Squawk thread in osMilliSleep and cleared by the Squawk thread in getEvent().
+ * addedEvent is set TRUE by multiple writers (native threads) when adding evt, and read by the Squawk thread
+ * in osMilliSleep and cleared by the Squawk thread in getEvent().
  */
 volatile int addedEvent;
 
@@ -641,6 +642,7 @@ int initSelectPipe() {
     int rc = pipeDevCreate (SELECT_PIPE_NAME, 100, 10);
     sysAssume(rc == OK);
     selectPipeFD = open(SELECT_PIPE_NAME, O_RDWR | O_NONBLOCK);
+//fprintf(stderr, "initSelectPipe: fd = %d\n", selectPipeFD);
     return (selectPipeFD == -1) ? -1 : 0;
 }
 
@@ -664,9 +666,26 @@ int readSelectPipeMsg() {
     return rc;
 }
 
+int numMessages(int fd) {
+    int num;
+    int res = ioctl(fd, FIONMSGS, &num);
+    if (res == ERROR) {
+        return ERROR;
+    } else {
+        return num;
+    }
+}
+
+/** This should be non-blocking...*/
 int writeSelectPipeMsg()  {
-    int dummy = 5;
-    return write(selectPipeFD, &dummy, 1);
+    char dummy = 5;
+    int pending = numMessages(selectPipeFD);
+    int res;
+    if (pending == 0) {
+//fprintf(stderr, "Sending message to cancel select call.\n");
+        res = write(selectPipeFD, &dummy, 1);
+    }
+    return res;
 }
 
 int getSelectReadPipeFd() {

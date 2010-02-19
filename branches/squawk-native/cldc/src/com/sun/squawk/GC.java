@@ -2109,6 +2109,10 @@ VM.println("encodeLengthWord");
                 VM.print(" @");
                 VM.printAddress(obj);
             }
+       } else if (obj instanceof Monitor) {
+            Monitor mon = (Monitor) obj;
+            VM.print("Monitor for ");
+            printObject(mon.object);
         } else {
             VM.print(klass.getInternalName());
             VM.print(" size: ");
@@ -2117,6 +2121,13 @@ VM.println("encodeLengthWord");
             VM.printAddress(obj);
         }
         VM.println();
+    }
+
+    static void printObject(Object obj) {
+        Klass klass = GC.getKlass(obj);
+        int blkSize = GC.getBodySize(klass, Address.fromObject(obj));
+        int objSize = blkSize + (klass.isArray() ? HDR.arrayHeaderSize : HDR.basicHeaderSize);
+        printObject(obj, klass, objSize);
     }
     
    /**
@@ -2145,11 +2156,14 @@ VM.println("encodeLengthWord");
     /**
      * Do actual heap walk, from start object, or whole heap is startObj is null.
      * Collect statistics in heapstats table.
-     * 
+     *
      * @param startObj the object to start walking from , or null
+     * @param endObject the object to end walking from , or null
+     * @param printInstances if true, print each instance found
      */
-    static void collectHeapStats(Object startObj, boolean printInstances) {
+    static void collectHeapStats(Object startObj, Object endObject, boolean printInstances) {
         Address start;
+        Address end;
         if (startObj == null) {
             start = heapStart;
         } else {
@@ -2158,11 +2172,17 @@ VM.println("encodeLengthWord");
             }
             start = GC.oopToBlock(GC.getKlass(startObj), Address.fromObject(startObj));
         }
+        if (endObject == null) {
+            end = allocTop;
+        } else {
+            if (!inRam(endObject)) {
+                throw new IllegalArgumentException();
+            }
+            end = GC.oopToBlock(GC.getKlass(endObject), Address.fromObject(endObject));
+        }
 
         int oldPartialCollectionCount = partialCollectionCount;
         int oldFullCollectionCount = fullCollectionCount;
-
-        Address end = allocTop;
 
         for (Address block = start; block.lo(end); ) {
             Address object = GC.blockToOop(block);
@@ -2189,30 +2209,6 @@ VM.println("encodeLengthWord");
         }
     }
     
-    /**
-     * print an estimate the number of bytes used by this hastable, not including keys and values.
-     * 
-     * @param tbl
-     */
-    public static void printEstimatedHashtableSize(SquawkHashtable tbl) {
-        Klass entryKlass = null;
-        Klass classStatKlass = Klass.asKlass(ClassStat.class);
-        Object internalTbl = tbl.getEntryTable();
-        int size = tbl.size();
-        try {
-            entryKlass = Klass.forName("com.sun.squawk.util.HashtableEntry");
-        } catch (ClassNotFoundException ex) {
-            Assert.shouldNotReachHere();
-        }
-
-        VM.println("The above includes these objects used to calculate class stats:");
-        VM.println("Class:\t Count: \t Bytes:");
-        print1Stat(GC.getKlass(tbl).toString(), 1, GC.getObjectBytes(tbl));
-        print1Stat(GC.getKlass(internalTbl).toString(), 1, GC.getObjectBytes(internalTbl));
-        print1Stat(entryKlass.toString(), size, size * GC.getObjectBytes(entryKlass));
-        print1Stat(classStatKlass.toString(), size, size * GC.getObjectBytes(classStatKlass));
-    }
-    
     private static void print1Stat(String key, int count, int size) {
         System.out.print(key);
         System.out.print(": \t");
@@ -2222,18 +2218,19 @@ VM.println("encodeLengthWord");
         System.out.println();
     }
     
-    /**
+   /**
      * Do actual heap walk, from start object, or whole heap is startObj is null.
      * Count how many instances, and how many bytes are used, by all objects that are the same aage or youngre than
      * startObj. Print out statistics of each class that has at least one instance in the set found in the heap walk.
      * Statistics are NOT sorted.
-     * 
+     *
      * @param startObj the object to start walking from , or null
      * @param printInstances if true, print information about each object before printing statistics
      */
     public static void printHeapStats(Object startObj, boolean printInstances) {
+        Object endObjectMarker = new Object();
         initHeapStats();
-        
+
         Enumeration e = heapstats.elements();
         while (e.hasMoreElements()) {
             ClassStat cs = (ClassStat) e.nextElement();
@@ -2243,8 +2240,8 @@ VM.println("encodeLengthWord");
         if (printInstances) {
             VM.println("Instances in heap:");
         }
-        collectHeapStats(startObj, printInstances);
-        
+        collectHeapStats(startObj, endObjectMarker, printInstances);
+
 
         VM.println("Class:\t Count: \t Bytes:");
         e = heapstats.keys();
@@ -2255,8 +2252,7 @@ VM.println("encodeLengthWord");
                 print1Stat(key.toString(), cs.count, cs.size);
             }
         }
-        
-        printEstimatedHashtableSize(heapstats);
+        heapstats = null;
     }
     
 }

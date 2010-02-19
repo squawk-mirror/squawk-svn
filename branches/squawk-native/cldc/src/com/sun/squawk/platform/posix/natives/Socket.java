@@ -42,50 +42,39 @@ public interface Socket extends Library {
     Socket INSTANCE = (Socket)
             Native.loadLibrary("socket",
                                Socket.class);
-        
-    //            /* Supported address families. */
-    //#define AF_UNSPEC	0
-    //#define AF_UNIX		1	/* Unix domain sockets 		*/
-    //#define AF_INET		2	/* Internet IP Protocol 	*/
-    //#define AF_AX25		3	/* Amateur Radio AX.25 		*/
-    //#define AF_IPX		4	/* Novell IPX 			*/
-    //#define AF_APPLETALK	5	/* Appletalk DDP 		*/
-    //#define	AF_NETROM	6	/* Amateur radio NetROM 	*/
-    //#define AF_BRIDGE	7	/* Multiprotocol bridge 	*/
-    //#define AF_AAL5		8	/* Reserved for Werner's ATM 	*/
-    //#define AF_X25		9	/* Reserved for X.25 project 	*/
-    //#define AF_INET6	10	/* IP version 6			*/
-    //#define AF_MAX		12	/* For now.. */
-    public final static int AF_INET = SocketImpl.AF_INET;
+
+    /* Supported address families. */
+    public final static int AF_INET = INSTANCE.initConstInt(0);
     
     /* Socket types. */
-    //#define SOCK_RDM	4		/* reliably-delivered message	*/
-    //#define SOCK_SEQPACKET	5		/* sequential packet socket	*/
-    //#define SOCK_PACKET	10		/* linux specific way of	*/
-    public final static int SOCK_STREAM = SocketImpl.SOCK_STREAM; /* stream (connection) socket	*/
-    public final static int SOCK_DGRAM = SocketImpl.SOCK_DGRAM;  /* datagram (conn.less) socket	*/
-    public final static int SOCK_RAW = SocketImpl.SOCK_RAW;    /* raw socket			*/
+    public final static int SOCK_STREAM = INSTANCE.initConstInt(1); /* stream (connection) socket	*/
+    public final static int SOCK_DGRAM = INSTANCE.initConstInt(2);  /* datagram (conn.less) socket	*/
+    public final static int SOCK_RAW = INSTANCE.initConstInt(3);    /* raw socket			*/
     
     /* Definitions of bits in internet address integers. */
-    public final static int INADDR_ANY = SocketImpl.INADDR_ANY;
+    public final static int INADDR_ANY = INSTANCE.initConstInt(4);
     
-    public final static int INET_ADDRSTRLEN = SocketImpl.INET_ADDRSTRLEN;
+    public final static int INET_ADDRSTRLEN = INSTANCE.initConstInt(5);
     
     /* Socket options */
     /*
      * Level number for (get/set)sockopt() to apply to socket itself.
      */
-    public final static int SOL_SOCKET = SocketImpl.SOL_SOCKET;         /* options for socket level */
+    public final static int SOL_SOCKET = INSTANCE.initConstInt(6);      /* options for socket level */
     /*
      * Option flags per-socket.
      */
-    public final static int SO_DEBUG = SocketImpl.SO_DEBUG;             /* turn on debugging info recording */
-    public final static int SO_ACCEPTCONN = SocketImpl.SO_ACCEPTCONN;   /* socket has had listen() */
-    public final static int SO_REUSEADDR = SocketImpl.SO_REUSEADDR;		/* allow local address reuse */
-    public final static int SO_KEEPALIVE = SocketImpl.SO_KEEPALIVE;		/* keep connections alive */
-    public final static int SO_DONTROUTE = SocketImpl.SO_DONTROUTE;		/* just use interface addresses */
-    public final static int SO_BROADCAST = SocketImpl.SO_BROADCAST;		/* permit sending of broadcast msgs */
-    public final static int SO_OOBINLINE = SocketImpl.SO_OOBINLINE;		/* leave received OOB data in line */
+    public final static int SO_DEBUG        = INSTANCE.initConstInt(7); /* turn on debugging info recording */
+    public final static int SO_ACCEPTCONN   = INSTANCE.initConstInt(8); /* socket has had listen() */
+    public final static int SO_REUSEADDR    = INSTANCE.initConstInt(9); /* allow local address reuse */
+    public final static int SO_KEEPALIVE    = INSTANCE.initConstInt(10);	/* keep connections alive */
+    public final static int SO_DONTROUTE    = INSTANCE.initConstInt(11);	/* just use interface addresses */
+    public final static int SO_BROADCAST    = INSTANCE.initConstInt(12);	/* permit sending of broadcast msgs */
+    public final static int SO_OOBINLINE    = INSTANCE.initConstInt(13);	/* leave received OOB data in line */
+
+    public final static int IPPROTO_TCP     = INSTANCE.initConstInt(14);		/* Level number for (get/set)sockopt() to apply to TCP */
+
+    public final static int TCP_NODELAY     = INSTANCE.initConstInt(15);		/* don't delay send to coalesce packets */
 
     /*
      * Additional options, not kept in so_options.
@@ -99,10 +88,6 @@ public interface Socket extends Library {
     public final static int SO_ERROR    = 0x1007;       /* get error status and clear */
     public final static int SO_TYPE     = 0x1008;       /* get socket type */
 
-
-    public final static int IPPROTO_TCP = SocketImpl.IPPROTO_TCP;		/* Level number for (get/set)sockopt() to apply to TCP */
-
-    public final static int TCP_NODELAY = SocketImpl.TCP_NODELAY;		/* don't delay send to coalesce packets */
 
 
     /**

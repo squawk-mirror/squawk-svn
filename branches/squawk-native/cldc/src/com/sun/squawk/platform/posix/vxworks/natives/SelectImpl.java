@@ -28,6 +28,8 @@
 
 package com.sun.squawk.platform.posix.vxworks.natives;
 
+import com.sun.cldc.jna.Native;
+
 public class SelectImpl extends com.sun.squawk.platform.posix.natives.SelectImpl {
 
     /*----------------------------- defines -----------------------------*/
@@ -37,7 +39,13 @@ public class SelectImpl extends com.sun.squawk.platform.posix.natives.SelectImpl
     public final static int fd_set_SIZEOF = 256;//Native.getLibraryLoading().getGlobalVariableAddress("sysFD_SIZE", 4).getInt(0);
 
     private final static int[] intConstants = {FD_SETSIZE, fd_set_SIZEOF};
+
+    private static boolean[] intConstantCheck;
+
     public int initConstInt(int index) {
+        if (Native.DEBUG) {
+             intConstantCheck = Native.doInitCheck(intConstantCheck, intConstants.length, index);
+        }
         return intConstants[index];
     }
 

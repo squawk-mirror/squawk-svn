@@ -84,15 +84,30 @@ public interface GCFSockets {
     public int readBuf(int handle, byte b[], int off, int len) throws IOException;
 
     /**
-     * Reada a byte from the open socket connection.
-     *     * This function will return an unsigned byte, or -1.
-     * -1 means that EOF was reached.
-     * @param handle the socket descriptor
+     * Read a byte from the open socket connection.
+     * This function will return an unsigned byte (0-255) if data was read,
+     * or -1 if EOF was reached.
      *
-     * @return the byte read
+     * @param fd the socket descriptor
+     *
+     * @return the byte read or -1
      * @throws IOException 
      */
     public int readByte(int handle) throws IOException;
+
+    /**
+     * Read a byte from the open socket connection.
+     * This function will return an unsigned byte (0-255) if data was read,
+     * or -1 if EOF was reached.
+     * This version is passed a temporary buffer instead of allocating one.
+     *
+     * @param fd the socket descriptor
+     * @param b
+     * @return the byte read or -1
+     * @throws IOException
+     */
+    public int readByte(int fd, byte[] b) throws IOException;
+
 
     /**
      * Writes to the open socket connection.

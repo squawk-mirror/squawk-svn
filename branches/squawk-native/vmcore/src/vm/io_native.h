@@ -204,6 +204,9 @@ void teLoopingHandler(TaskExecutor* te);
 
 #else /* PLATFORM_TYPE_NATIVE */
 
+typedef struct TaskExecutor_struct {
+} TaskExecutor;
+
 NORETURN void fatalVMError(char *msg);
 
 /* define some stubs...*/

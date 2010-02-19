@@ -33,27 +33,6 @@ import com.sun.cldc.jna.ptr.*;
 
 public abstract class SocketImpl implements Socket {
 
-    /*----------------------------- defines -----------------------------*/
-
-    public final static int AF_INET = 2;
-    public final static int SOCK_STREAM = 1;
-    public final static int SOCK_DGRAM = 2;
-    public final static int SOCK_RAW = 3;
-    public final static int INADDR_ANY = 0;
-    public final static int INET_ADDRSTRLEN = 16;
-    public final static int SOL_SOCKET = 65535;
-    public final static int SO_DEBUG = 1;
-    public final static int SO_ACCEPTCONN = 2;
-    public final static int SO_REUSEADDR = 4;
-    public final static int SO_KEEPALIVE = 8;
-    public final static int SO_DONTROUTE = 16;
-    public final static int SO_BROADCAST = 32;
-    public final static int SO_OOBINLINE = 256;
-
-
-    public final static int IPPROTO_TCP = 6;
-    public final static int TCP_NODELAY = 1;
-
     /*----------------------------- methods -----------------------------*/
     private final Function getsockoptPtr;
     

@@ -8,7 +8,7 @@
  * 
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNUp
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
  * 
@@ -31,7 +31,6 @@ import com.sun.squawk.platform.GCFSockets;
 import com.sun.cldc.jna.ptr.IntByReference;
 import com.sun.squawk.platform.posix.natives.*;
 import com.sun.squawk.platform.posix.natives.LibC.*;
-
 import com.sun.squawk.util.Assert;
 import java.io.IOException;
 
@@ -88,11 +87,11 @@ public class GCFSocketsImpl implements GCFSockets {
         }
 
         if (!tryFcntl) {
-            if (DEBUG) {    System.out.println("calling ioctl");    }
+            if (DEBUG) {    System.out.println("set_blocking_flags: calling ioctl FIONBIO = " + !is_blocking);    }
             IntByReference setting = new IntByReference(is_blocking ? 0 : 1); /* if "is_blocking"==true, NBIO = FALSE */
-            int res = ioctl.ioctl(fd, Ioctl.INSTANCE.FIONBIO, setting);
+            int res = ioctl.ioctl(fd, Ioctl.FIONBIO, setting);
             setting.free();
-            if (DEBUG) {    System.out.println("ioctl returned: " + res); }
+            if (DEBUG) {    System.out.println("set_blocking_flags: ioctl returned: " + res); }
             if (res >= 0) {
                 return;
             }
@@ -277,14 +276,7 @@ public class GCFSocketsImpl implements GCFSockets {
 
         if (NBIO_WORKS) {
             result = libc.read(fd, buf, length); // We rely on open0() for setting the socket to non-blocking
-            if (result == 0) {
-                // If remote side has shut down the connection gracefully, and all
-                // data has been received, recv() will complete immediately with
-                // zero bytes received.
-                //
-                // This is true for Win32/CE and Linux
-                result = -1;
-            } else if (result < 0) {
+            if (result < 0) {
                 int err_code = LibCUtil.errno();
                 if (err_code == LibC.EWOULDBLOCK) {
                     if (DEBUG) {    System.err.println("Wait for read in select..."); }
@@ -312,47 +304,38 @@ public class GCFSocketsImpl implements GCFSockets {
             int n = Math.min(bAvail, length); // don't read more than is asked for...
             result = libc.read(fd, buf, n); // only read what we know is there...
             LibCUtil.errCheckNeg(result);
-            if (result == 0) {
-                // If remote side has shut down the connection gracefully, and all
-                // data has been received, recv() will complete immediately with
-                // zero bytes received.
-                //
-                // This is true for Win32/CE and Linux
-                if (DEBUG) {    System.err.println("readBuf(" + fd + ") saw remote side shutdown."); }
-                result = -1;
-            }
         }
-        
-        if (offset != 0 && result > 0) {
-            System.arraycopy(buf, 0, b, offset, result);
-        }
-        if (DEBUG) { System.out.println("readBuf() = " + result); }
 
-        return result;
-    }
-
-    public int readByte(int fd) throws IOException {
-        int result = -1;
-        byte[] b = new byte[1];
-        int n = readBuf(fd, b, 0, 1);
-        if (DEBUG) {    System.err.println("readByte(" + fd + ") = " + n + ", data = " + b[0]); }
-
-        if (n == 1) {
-            result = b[0] & 0xFF; // do not sign-extend
-
-            Assert.that(0 <= result && result <= 255, "no sign extension");
-        } else if (n == 0) {
+        if (result == 0) {
             // If remote side has shut down the connection gracefully, and all
             // data has been received, recv() will complete immediately with
             // zero bytes received.
             //
             // This is true for Win32/CE and Linux
+            if (DEBUG) {    System.err.println("readBuf(" + fd + ") saw remote side shutdown."); }
             result = -1;
-        } else {
-            Assert.always(n == -1);
+        }
+        
+        if (offset != 0 && result > 0) {
+            System.arraycopy(buf, 0, b, offset, result);
+        }
+        if (DEBUG) { System.out.println("readBuf(" + fd + ") = " + result); }
+
+        return result;
+    }
+
+    public int readByte(int fd, byte[] b) throws IOException {
+        int result = -1; // EOF
+
+        if (readBuf(fd, b, 0, 1) == 1) {
+            result = b[0] & 0xFF; // do not sign-extend
         }
 
         return result;
+    }
+
+    public int readByte(int fd) throws IOException {
+        return readByte(fd, new byte[1]);
     }
     
     /**
@@ -429,11 +412,11 @@ public class GCFSocketsImpl implements GCFSockets {
      */
     public void setSockOpt(int socket, int level, int option_name, int option_value) throws IOException {
         IntByReference value = new IntByReference(option_value);
-        Assert.always(option_value == value.getValue());
+        Assert.that(option_value == value.getValue());
         if (DEBUG) { System.out.println("setSockOpt(" + socket + ", " + level + ", " + option_name + ", " + option_value + ")"); }
         int err = sockets.setsockopt(socket, level, option_name, value, 4);
 
-        Assert.always(option_value == value.getValue());
+        Assert.that(option_value == value.getValue());
         value.free();
         LibCUtil.errCheckNeg(err);
 

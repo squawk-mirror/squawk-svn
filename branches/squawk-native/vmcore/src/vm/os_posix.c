@@ -165,13 +165,10 @@ SimpleMonitor* SimpleMonitorCreate() {
     }
     res = pthread_mutex_init(&(mon->mu), NULL);
     monitorErrCheck(mon, "SimpleMonitorCreate mutex", res, 0);
-
     res = pthread_cond_init(&(mon->cv), NULL);
     monitorErrCheck(mon, "SimpleMonitorCreate condvar", res, 0);
-
     mon->lockCount = 0;
     sysAssume(!SimpleMonitorIsLocked(mon));
-
     if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorCreate on %s\n", monitorName(mon)); }
     return mon;
 }
@@ -183,10 +180,8 @@ int SimpleMonitorDestroy(SimpleMonitor* mon) {
     int res;
     sysAssumeAlways(!mon->lockCount);
     sysAssume(!SimpleMonitorIsLocked(mon));
-
     res = pthread_mutex_destroy(&(mon->mu));
     monitorErrCheck(mon, "SimpleMonitorDestroy mutex", res, 0);
-
     res = pthread_cond_destroy(&(mon->cv));
     monitorErrCheck(mon, "SimpleMonitorDestroy condvar", res, 0);
     mon->lockCount = -1;
@@ -236,20 +231,16 @@ int SimpleMonitorSignal(SimpleMonitor* mon) {
     if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorSignal on %s\n", monitorName(mon)); }
     sysAssumeAlways(mon->lockCount);
     sysAssume(SimpleMonitorIsLocked(mon));
-
     res = pthread_cond_signal(&mon->cv);
     monitorErrCheck(mon, "SimpleMonitorSignal", res, 0);
-
     sysAssume(SimpleMonitorIsLocked(mon));
     return res;
 }
 
 int SimpleMonitorLock(SimpleMonitor* mon) {
     if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorLock on %s  - before\n", monitorName(mon)); }
-
     int res = pthread_mutex_lock(&mon->mu);
     monitorErrCheck(mon, "SimpleMonitorLock", res, 0);
-
     if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorLock on %s  - after\n", monitorName(mon)); }
     sysAssume(SimpleMonitorIsLocked(mon));
     sysAssumeAlways(mon->lockCount == 0);
@@ -260,7 +251,6 @@ int SimpleMonitorLock(SimpleMonitor* mon) {
 int SimpleMonitorUnlock(SimpleMonitor* mon) {
     sysAssumeAlways(mon->lockCount == 1);
     sysAssume(SimpleMonitorIsLocked(mon));
-
     mon->lockCount--;
     sysAssumeAlways(mon->lockCount == 0);
     if (DEBUG_MONITORS) { fprintf(stderr, "SimpleMonitorUnlock on %s \n", monitorName(mon)); }
@@ -408,15 +398,15 @@ static int pfd[2];
 static int setNonBlocking(int fd) {
     int res = -1;
     int flags = fcntl(fd, F_GETFL, 0);
-    //fprintf(stderr, "fcntl returned: %d\n", flags);
+	// fprintf(stderr, "initSelectPipe: fcntl returned: %d\n", flags);
 
     if (flags >= 0) {
-        //fprintf(stderr, "set_blocking_flags: calling fcntl F_SETFL flags: %d\n", flags | O_NONBLOCK);
+		// fprintf(stderr, "set_blocking_flags: calling fcntl F_SETFL flags: %d\n", flags | O_NONBLOCK);
         if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-             //fprintf(stderr, "fcntl F_SETFL failed. errno = %d\n", errno);
+			// fprintf(stderr, "initSelectPipe: fcntl F_SETFL failed. errno = %d\n", errno);
         }
     } else {
-        //fprintf(stderr, "fcntl F_GETFL failed. errno = %d\n", errno);
+		// fprintf(stderr, "initSelectPipe: fcntl F_GETFL failed. errno = %d\n", errno);
     }
     return res;
 }
@@ -426,8 +416,7 @@ int initSelectPipe() {
     sysAssume(rc == 0);
     rc = setNonBlocking(pfd[0]);
     rc = setNonBlocking(pfd[1]);
-//fprintf(stderr, "read df = %d, write fd = %d\n", pfd[0], pfd[1]);
-
+	// fprintf(stderr, "initSelectPipe: read df = %d, write fd = %d\n", pfd[0], pfd[1]);
     return rc;
 }
 
@@ -450,8 +439,10 @@ int readSelectPipeMsg() {
 }
 
 int writeSelectPipeMsg()  {
-    int dummy = 5;
-    return write(pfd[1], &dummy, 1);
+    char dummy = 5;
+    int res = write(pfd[1], &dummy, 1);
+//fprintf(stderr, "Sending message to cancel select call. res = %d, errno = %d\n", res, errno);
+    return res;
 }
 
 int getSelectReadPipeFd() {

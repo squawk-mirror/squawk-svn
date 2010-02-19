@@ -32,21 +32,8 @@ import com.sun.cldc.jna.*;
 
 public abstract class SelectImpl implements Select {
 
-    /*----------------------------- defines -----------------------------*/
-//
-//    public final static int FD_SETSIZE = 1024;
-//    // we're having some problems with class initialization being required for thread initialization!
-//    public final static int fd_set_SIZEOF = 128;//Native.getLibraryLoading().getGlobalVariableAddress("sysFD_SIZE", 4).getInt(0);
-
     /*----------------------------- methods -----------------------------*/
-//    private final Function selectPtr;
-//
-//    public int select(int arg0, Pointer arg1, Pointer arg2, Pointer arg3, Pointer arg4) {
-//        int result0 = selectPtr.call5(arg0, arg1, arg2, arg3, arg4);
-//        int result = (int)result0;
-//        return result;
-//    }
-    
+
     private final Function FD_ISSETPtr;
     
     public boolean FD_ISSET(int arg0, Pointer arg1) {
@@ -69,7 +56,6 @@ public abstract class SelectImpl implements Select {
     
     public SelectImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
-//        selectPtr = jnaNativeLibrary.getFunction("select");
         FD_ISSETPtr = jnaNativeLibrary.getFunction("sysFD_ISSET");
         FD_CLRPtr = jnaNativeLibrary.getFunction("sysFD_CLR");
         FD_SETPtr = jnaNativeLibrary.getFunction("sysFD_SET");
