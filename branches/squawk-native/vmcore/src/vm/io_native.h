@@ -231,7 +231,13 @@ NativeTask* runBlockingFunction(void* function,
 
 }
 
-void deleteNativeTaskEvent(NativeTask* ntask) {
+NativeTask* runBlockingFunctionOn(TaskExecutor* te, void* function,
+            int arg1, int arg2, int arg3, int arg4, int arg5,
+            int arg6, int arg7, int arg8, int arg9, int arg10) {
+    fatalVMError("NativeTasks not supported in this configuration");
+}
+
+void deleteNativeTask(NativeTask* ntask) {
      fatalVMError("NativeTasks not supported in this configuration");
 }
 

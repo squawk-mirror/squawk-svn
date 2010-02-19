@@ -317,6 +317,7 @@ void osMilliSleep(long long millis) {
 }
 #endif
 
+#if PLATFORM_TYPE_NATIVE
 /* ----------------------- Native Task Support ------------------------*/
 
 static int taskPriorityMap(int genericPriority) {
@@ -448,6 +449,7 @@ int writeSelectPipeMsg()  {
 int getSelectReadPipeFd() {
     return pfd[0];
 }
+#endif /* PLATFORM_TYPE_NATIVE */
 
 /* ----------------------- Memory Support ------------------------*/
 
