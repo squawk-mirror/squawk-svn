@@ -191,10 +191,17 @@ public class StartApplication extends MIDlet {
     }
 
     BlockingFunction dummyFuncPtr =  NativeLibrary.getDefaultInstance().getBlockingFunction("squawk_dummy_func");
+    Function dummyFuncNBPtr =  NativeLibrary.getDefaultInstance().getFunction("squawk_dummy_func");
 
     long timeDummyFunc() {
         long time = VM.getTimeMicros();
         dummyFuncPtr.call0();
+        return VM.getTimeMicros() - time;
+    }
+
+    long timeDummyFuncNB() {
+        long time = VM.getTimeMicros();
+        dummyFuncNBPtr.call0();
         return VM.getTimeMicros() - time;
     }
 
@@ -223,6 +230,27 @@ public class StartApplication extends MIDlet {
         timeDefaultBlockingCall0();
     }
 
+    void timeDefaultNonBlockingCall() {
+        System.out.println("timeDefaultNonBlockingCall: ");
+        long sum = 0;
+        long max = 0;
+        long min = Long.MAX_VALUE;
+        int i;
+        for (i = 0; i < 500; i++) {
+            long time = timeDummyFuncNB();
+            sum += time;
+            if (time > max) {
+                max = time;
+            }
+            if (time < min) {
+                min = time;
+            }
+        }
+        System.out.println("timeDummyFunc took avg of " + (sum / i) + " usec ");
+        System.out.println("    min = " + min + " usec ");
+        System.out.println("    max = " + max + " usec ");
+    }
+
     void timeDefaultBlockingCallWTask() {
         System.out.println("timeDefaultBlockingCall: with specified TaskExecutor");
         TaskExecutor te = new TaskExecutor("timeDummyFunc runner");
@@ -235,7 +263,7 @@ public class StartApplication extends MIDlet {
         System.out.println("testHTTP - try to read web page from desktop http server");
         System.out.println("    NOTE: $$$$ is normal - it indicates that other Java threads can run while sockets are blocked on reads.");
 
-        String[] args = {"10.0.0.6", "8080"};
+        String[] args = {"10.0.0.11", "80"};
         try {
             com.sun.squawk.io.j2me.socket.Test.main(args);
             System.out.println("testHTTP - DONE");
@@ -264,6 +292,9 @@ public class StartApplication extends MIDlet {
 
         System.out.println("-----------------");
         testTime();
+
+        System.out.println("-----------------");
+        timeDefaultNonBlockingCall();
 
         System.out.println("-----------------");
         timeDefaultBlockingCall();
