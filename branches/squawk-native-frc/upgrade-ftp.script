@@ -1,0 +1,6 @@
+open 10.0.0.2
+user
+
+put squawk.out /ni-rt/system/FRC_UserProgram.out
+put squawk.suite /ni-rt/system/squawk.suite
+quit

@@ -1,0 +1,6 @@
+open 10.0.0.2
+user
+
+#put NewWPILibJ/NewWPILibJ.suite /ni-rt/system/robot.suite
+put ../rollingthunder/WPILibJ/WPILibJ.suite /ni-rt/system/robot.suite
+quit
