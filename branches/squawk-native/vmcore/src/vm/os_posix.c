@@ -363,7 +363,7 @@ TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize) {
     rc = pthread_attr_setstacksize(&attr, (PTHREAD_STACK_MIN > stacksize) ? PTHREAD_STACK_MIN : stacksize);
 
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In createTaskExecutor, about to start new thread %s\n", name); }
-    rc = pthread_create(&id, &attr, teLoopingHandler, te);
+    rc = pthread_create(&id, &attr, (pthread_func_t)teLoopingHandler, te);
 
     if (rc != 0) {
         te->status = TASK_EXECUTOR_STATUS_ERROR;

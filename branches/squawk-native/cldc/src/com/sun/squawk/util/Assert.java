@@ -97,7 +97,7 @@ public class Assert {
      * @param   cond  condition to be tested
      * @param   msg   message that explains the failure
      *
-     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static void that(boolean cond, String msg) {
         if (ASSERTS_ENABLED && !cond) {
@@ -106,7 +106,7 @@ public class Assert {
     }
 
     /**
-     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static void that(boolean cond, String msg, String filename, int lineno) {
         if (ASSERTS_ENABLED && !cond) {
@@ -155,7 +155,7 @@ public class Assert {
     }
 
     /**
-     * @vm2c macro( { fprintf(stderr, "shouldNotReachHere: %s -- %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( { fprintf(stderr, "shouldNotReachHere: %s -- %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static RuntimeException shouldNotReachHere(String msg, String filename, int lineno) throws NotInlinedPragma {
         throwAssertFailedException("Assertion failed: should not reach here: ", msg, filename, lineno);
@@ -200,7 +200,7 @@ public class Assert {
      * @param   cond  condition to be tested
      * @param   msg   message that explains the failure
      *
-     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static void thatFatal(boolean cond, String msg) {
         if (!cond) {
@@ -219,7 +219,7 @@ public class Assert {
     }
 
     /**
-     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static void thatFatal(boolean cond, String msg, String filename, int lineno) {
         if (!cond) {
@@ -265,7 +265,7 @@ public class Assert {
      *         be legal and thus avoid the need to return meaningless
      *         values from functions that have failed.
      *
-     * @vm2c macro( { fprintf(stderr, "shouldNotReachHere: %s -- %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( { fprintf(stderr, "shouldNotReachHere: %s -- %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static RuntimeException shouldNotReachHereFatal(String msg) {
         VM.print("Assertion failed: ");
@@ -276,7 +276,7 @@ public class Assert {
     }
 
     /**
-     * @vm2c macro( { fprintf(stderr, "shouldNotReachHere: %s -- %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( { fprintf(stderr, "shouldNotReachHere: %s -- %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static RuntimeException shouldNotReachHereFatal(String msg, String filename, int lineno) {
         VM.print("Assertion failed: ");
@@ -329,7 +329,7 @@ public class Assert {
      * @param   cond  condition to be tested
      * @param   msg   message that explains the failure
      *
-     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static void always(boolean cond, String msg) {
         if (!cond) {
@@ -344,7 +344,7 @@ public class Assert {
     }
 
     /**
-     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", msg, __FILE__, __LINE__); fatalVMError(""); } )
+     * @vm2c macro( if (!(cond)) { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", (char*)msg, __FILE__, __LINE__); fatalVMError(""); } )
      */
     public static void always(boolean cond, String msg, String filename, int lineno) {
         if (!cond) {

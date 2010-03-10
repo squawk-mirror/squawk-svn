@@ -372,7 +372,7 @@ INLINE EventRequest* toEventRequest(NativeTask* eventRequest) {
  * Does linear search.
  */
 int getEvent() {
-    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() before lock. 0x%x\n", eventRequests); }
+    if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() before lock. 0x%p\n", eventRequests); }
 
     if (eventRequests == NULL) {
         /* bail out early. try again later */
@@ -504,7 +504,7 @@ static NativeTask* getNextTask(TaskExecutor* te) {
  * Loop
  */
 void teLoopingHandler(TaskExecutor* te) {
-    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "in teLoopingHandler() %x\n", te); }
+    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "in teLoopingHandler() %p\n", te); }
     
     assume(te && te->status == TASK_EXECUTOR_STATUS_STARTING);
     setTaskID(te);
@@ -512,7 +512,7 @@ void teLoopingHandler(TaskExecutor* te) {
     while (TRUE) {
         NativeTask* ntask = getNextTask(te);
         if (ntask) {
-            if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "in teLoopingHandler() calling handler %x\n", ntask->handler); }
+            if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "in teLoopingHandler() calling handler %p\n", ntask->handler); }
             ntask->result = (*ntask->handler)(ntask->arg1, ntask->arg2, ntask->arg3, ntask->arg4, ntask->arg5, ntask->arg6, ntask->arg7, ntask->arg8, ntask->arg9, ntask->arg10);
             signalEvent(toEventRequest(ntask)); /* tell squawk thread that native function result is ready */
         } else {

@@ -1243,7 +1243,7 @@ void setupSignals() {
 
 void termHandler(int signum, siginfo_t * pInfo, void * pContext) {
 /* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
-    fprintf(stderr, "\nSquawk VM caught signal %d\nTERMINATING\n", signum);
+    fprintf(stderr, "\nSquawk VM caught signal %d\nTERMINATIN©G\n", signum);
   
     fatalVMError(strsignal(signum));
 
@@ -1258,13 +1258,13 @@ void crashHandler(int signum, siginfo_t * pInfo, void * pContext) {
     fprintf(stderr, "    si_value.sival_int: 0x%x\n", pInfo->si_value.sival_int);
 #else
     fprintf(stderr, "    si_errno: %d\n", pInfo->si_errno);
-    fprintf(stderr, "    si_addr: %x\n", pInfo->si_addr);
+    fprintf(stderr, "    si_addr: %p\n", pInfo->si_addr);
 #endif
 
     if (nativeFuncPtr == NULL) {
         fprintf(stderr, "    Not in callout to native function.\n");
     } else {
-        fprintf(stderr, "    In callout to native function: %x\n", nativeFuncPtr);
+        fprintf(stderr, "    In callout to native function: %p\n", nativeFuncPtr);
          Dl_info dlinfo;
          if (dladdr(nativeFuncPtr, &dlinfo)) {
             fprintf(stderr, "   named: %s\n", dlinfo.dli_sname);
@@ -1757,7 +1757,7 @@ extern  void fatalInterpreterError0(char *msg, int opcode, int _iparm, ByteAddre
 
 int printValueInRange(Address value, char* valueName, Address low, Address high, char* rangeName) {
     int result = (value >= low && value < high);
-    fprintf(stderr, "    %s: %x. Is %sin %s range %x .. %x\n", valueName, value, (result ? "" : "NOT "), rangeName, low, high);
+    fprintf(stderr, "    %s: %p. Is %sin %s range %p .. %p\n", valueName, value, (result ? "" : "NOT "), rangeName, low, high);
     return result;
 }
 
@@ -1770,7 +1770,7 @@ void printStrSafely(Address value, char* valueName, Address low, Address high, c
         printJavaString(value, stderr, null, 0);
         fprintf(stderr, "\n");
     } else {
-        fprintf(stderr, "%x is NOT in %s range %x .. %x\n", value, rangeName, low, high);
+        fprintf(stderr, "%p is NOT in %s range %p .. %p\n", value, rangeName, low, high);
     }
 }
 

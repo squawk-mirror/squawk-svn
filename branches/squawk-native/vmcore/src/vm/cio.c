@@ -121,13 +121,13 @@ void cioExecute(void) {
 
 /*if[FLOATS]*/
         case ChannelConstants_INTERNAL_PRINTDOUBLE: {
-            fprintf(vmOut, format("%D"), makeLong(i1, i2));
+            fprintf(vmOut, format("%D"), lb2d(makeLong(i1, i2)));
             fflush(vmOut);
             break;
         }
 
         case ChannelConstants_INTERNAL_PRINTFLOAT: {
-            fprintf(vmOut, "%f", i1);
+            fprintf(vmOut, "%f", ib2f(i1));
             fflush(vmOut);
             break;
         }
