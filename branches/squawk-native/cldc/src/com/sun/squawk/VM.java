@@ -24,10 +24,12 @@
 
 package com.sun.squawk;
 
+import com.sun.cldc.jna.TaskExecutor;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Stack;
 
 /*if[OLD_IIC_MESSAGES]*/
 //import com.sun.squawk.io.ServerConnectionHandler;
@@ -224,6 +226,12 @@ public class VM implements GlobalStaticFields {
      * If VM.outPrint() ever fails to print to System.err, then set to true, and print to VM.print.
      */
     private static boolean safePrintToVM;
+
+    /**
+     * System-global cache of TaskExecutors
+     */
+    private static Stack taskCache;
+
     
 //    private static boolean isBlocked;
     
@@ -273,6 +281,8 @@ public class VM implements GlobalStaticFields {
          * Fill in the args array with the C command line arguments.
          */
         GC.copyCStringArray(argv, args);
+
+        taskCache = new Stack();
 
         /*
          * Start the isolate guarded with an exception handler. Once the isolate
@@ -2322,7 +2332,25 @@ hbp.dumpState();
     }
     
     static boolean executingHooks;
-        
+
+    private static void cleanupTaskExecutors() {
+        for (int i = 0; i < taskCache.size(); i++) {
+            TaskExecutor te = (TaskExecutor) taskCache.elementAt(i);
+            te.cancelTaskExecutor();
+        }
+
+        while (!taskCache.isEmpty()) {
+            for (int i = 0; i < taskCache.size(); /*nothing*/) {
+                TaskExecutor te = (TaskExecutor) taskCache.elementAt(i);
+                if (te.deleteTaskExecutor() == 0) {
+                    taskCache.removeElementAt(i);
+                } else {
+                    i++;
+                }
+            }
+        }
+    }
+
     /**
      * Halt the VM in the normal way. Any registered shutdown hooks will be run.
      *
@@ -2339,6 +2367,9 @@ hbp.dumpState();
         executingHooks = true;
         
         shutdownHooks.runHooks();
+        // system-wide shutdown
+        cleanupTaskExecutors();
+
         haltVM(code);
     }
     
@@ -2470,7 +2501,7 @@ hbp.dumpState();
         return shutdownHooks.remove(iso, hook);
     }
     
-        /**
+    /**
      * Registers a new virtual-machine shutdown hook.
      *
      * <p> The Java virtual machine <i>shuts down</i> in response to two kinds
@@ -2580,6 +2611,14 @@ hbp.dumpState();
         }
         
         return shutdownHooks.remove(VMThread.asVMThread(hook).getIsolate(), hook);
+    }
+
+    /**
+     * Return a system global Stack of cached TaskExecutors. Only for use by the JNA implementation.
+     * @return
+     */
+    public static Stack getTaskCache() {
+        return taskCache;
     }
 
     /**

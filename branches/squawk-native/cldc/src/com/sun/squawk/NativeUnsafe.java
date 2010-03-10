@@ -625,12 +625,6 @@ public final class NativeUnsafe {
         throw Assert.shouldNotReachHere("unimplemented when hosted");
     }
 
-    public static Address runBlockingFunction(Address fptr,
-            int arg1, int arg2, int arg3, int arg4, int arg5,
-            int arg6, int arg7, int arg8, int arg9, int arg10) throws NativePragma {
-        throw Assert.shouldNotReachHere("unimplemented when hosted");
-    }
-
     public static int deleteNativeTask(Address ntask) throws NativePragma {
         throw Assert.shouldNotReachHere("unimplemented when hosted");
     }

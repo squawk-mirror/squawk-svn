@@ -131,6 +131,8 @@ void signalEvent(EventRequest* evt);
  *                                NativeTask                                 *
 \*---------------------------------------------------------------------------*/
 
+#define FORCE_RESCHEDULE_FOR_NATIVE_EVENT 1
+
 typedef void* NativeTaskID;
 
 #define TASK_PRIORITY_LOW 3
@@ -161,7 +163,6 @@ typedef struct {
         arg6, arg7, arg8, arg9, arg10;
 
     TaskHandler handler;
-    struct TaskExecutor_struct* ownedTaskExecutor; /* if this NativeTask has it's own TaskExecutor, record it. */
 } NativeTask;
 
 #if PLATFORM_TYPE_NATIVE
@@ -185,7 +186,7 @@ typedef struct TaskExecutor_struct {
 /**
  * Create a new TaskExecutor and native thread.
  */
-TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int oneShot, NativeTask* initialTask);
+TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize);
 
 /**
  * Tell TaskExecutor to stop running
@@ -199,7 +200,6 @@ static int deleteTaskExecutor(TaskExecutor* te);
 
 int setTaskID(TaskExecutor* te);
 
-void teOneShotHandler(TaskExecutor* te);
 void teLoopingHandler(TaskExecutor* te);
 
 #else /* PLATFORM_TYPE_NATIVE */
@@ -212,7 +212,7 @@ NORETURN void fatalVMError(char *msg);
 /* define some stubs...*/
 
 
-TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int oneShot, NativeTask* initialTask) {
+TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize) {
     fatalVMError("TaskExecutor not supported in this configuration");
     return NULL;
 }

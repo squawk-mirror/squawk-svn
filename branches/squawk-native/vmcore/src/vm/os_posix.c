@@ -340,18 +340,17 @@ typedef void*(*pthread_func_t)(void*);
 /**
  * Create a new TaskExecutor and native thread.
  */
-TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int oneShot, NativeTask* initialTask) {
+TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize) {
     TaskExecutor* te = (TaskExecutor*)malloc(sizeof(TaskExecutor));
     pthread_attr_t attr;
     pthread_t id;
     /* sched_param param; */
     int rc; /* return code */
-    pthread_func_t wrapper = oneShot ? (pthread_func_t)&teOneShotHandler : (pthread_func_t)&teLoopingHandler;
 
     if (te == NULL) {
         return NULL;
     }
-    te->runQ = initialTask;
+    te->runQ = NULL;
     te->monitor = SimpleMonitorCreate();
     te->status = TASK_EXECUTOR_STATUS_STARTING;
 
@@ -364,7 +363,7 @@ TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int on
     rc = pthread_attr_setstacksize(&attr, (PTHREAD_STACK_MIN > stacksize) ? PTHREAD_STACK_MIN : stacksize);
 
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In createTaskExecutor, about to start new thread %s\n", name); }
-    rc = pthread_create(&id, &attr, wrapper, te);
+    rc = pthread_create(&id, &attr, teLoopingHandler, te);
 
     if (rc != 0) {
         te->status = TASK_EXECUTOR_STATUS_ERROR;

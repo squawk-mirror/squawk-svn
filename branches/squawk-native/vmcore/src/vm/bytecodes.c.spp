@@ -4179,7 +4179,7 @@ foundSlot:
                     Address nameAddr = popAddress();
                     char* name = (char*)nameAddr;
                     int result;
-                    result = (int)createTaskExecutor(name, priority, stacksize, FALSE, NULL);
+                    result = (int)createTaskExecutor(name, priority, stacksize);
                     pushInt(result);
                     break;
                 }
@@ -4201,25 +4201,6 @@ foundSlot:
                     NativeTask* ntask = (NativeTask*)popAddress();
                     deleteNativeTask(ntask);
                     pushInt(0);
-                    break;
-                }
-
-                case Native_com_sun_squawk_NativeUnsafe_runBlockingFunction: {
-                    int i10 = popInt();
-                    int i9 = popInt();
-                    int i8 = popInt();
-                    int i7 = popInt();
-                    int i6 = popInt();
-                    int i5 = popInt();
-                    int i4 = popInt();
-                    int i3 = popInt();
-                    int i2 = popInt();
-                    int i1 = popInt();
-                    Address address = popAddress();
-                    funcPtr10 fptr = (funcPtr10)address;
-                    int result;
-                    result = (int)runBlockingFunction(fptr, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
-                    pushInt(result);
                     break;
                 }
 

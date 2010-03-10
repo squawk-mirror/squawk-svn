@@ -785,23 +785,6 @@ class NativeVerifierHelper {
             return;
         }
 
-        case Native.com_sun_squawk_NativeUnsafe$runBlockingFunction: {
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            frame.pop(REF); // com.sun.squawk.Address
-            Assert.that(frame.isStackEmpty());
-            frame.push(REF); // com.sun.squawk.Address
-            return;
-        }
-
         case Native.com_sun_squawk_NativeUnsafe$runBlockingFunctionOn: {
             frame.pop(INT); // int
             frame.pop(INT); // int

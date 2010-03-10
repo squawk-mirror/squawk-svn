@@ -218,6 +218,9 @@ void signalEvent(EventRequest* evt) {
 
     SimpleMonitorSignal(threadEventMonitor); /* wake up squawk thread if it was blocked in osMilliSleep(). */
     SimpleMonitorUnlock(threadEventMonitor);
+#if FORCE_RESCHEDULE_FOR_NATIVE_EVENT
+    bc = 0;
+#endif
 }
 
 /*
@@ -436,7 +439,6 @@ static void cancelTaskExecutor(TaskExecutor* te) {
     /* TODO: Record TaskExecutor on global list of all TaskExecutors? */
 }
 
-
 /**
  * Add native task "ntask" to the TaskExecutor's run queue.
  */
@@ -537,27 +539,6 @@ void teLoopingHandler(TaskExecutor* te) {
         }
     }
 }
-/**
- * A thread's handler that runs one NativeTask
- */
-void teOneShotHandler(TaskExecutor* te) {
-    if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "in teOneShotHandler() %x\n", te); }
-
-    assume(te);
-    NativeTask* ntask = te->runQ; /* in one shot case, written once at initialization, and read once, here. */
-    assumeAlways(ntask);          /* always set by createTaskExecutor() in runBlockingFunction */
-
-    setTaskID(te);
-    te->status = TASK_EXECUTOR_STATUS_RUNNING;
-    te->runQ = NULL;
-    ntask->ownedTaskExecutor = te; /* Squawk thread will delete te after reading ntask results...*/
-
-    ntask->result = (*ntask->handler)(ntask->arg1, ntask->arg2, ntask->arg3, ntask->arg4, ntask->arg5, ntask->arg6, ntask->arg7, ntask->arg8, ntask->arg9, ntask->arg10);
-
-    te->status = TASK_EXECUTOR_STATUS_DONE;
-    signalEvent(toEventRequest(ntask)); /* tell squawk thread that native function result is ready */
-    /* WARNING: Java thread may delete "te" and "ntask" at any time now! */
-}
 
 /*---------------------------- Blocking native call support ----------------------------*/
 
@@ -578,7 +559,6 @@ static NativeTask* newNativeTask(TaskHandler handler, int eventNumber,
     ntask->result = 0;
     ntask->low_result = 0;
     ntask->nt_errno = 0;
-    ntask->ownedTaskExecutor = NULL; /* will be set for oneshot TaskExecutors */
 
     ntask->arg1 = arg1;
     ntask->arg2 = arg2;
@@ -624,42 +604,9 @@ NativeTask* runBlockingFunctionOn(TaskExecutor* te, void* function,
     return ntask;
 }
 
-/**
- * Run a blocking C function with the given arguments on some thread (TaskExecutor).
- *
- * A java thread can wait for the function to complete by waiting for the "eventNumber", and can retrieve the
- * function result via NativeTask->result.
- *
- * This is intended to call C code that is not tightly integrated with the Squawk VM.
- * The "handler" doesn't have to worry about event numbers, task ids, or signalling events.
- */
-NativeTask* runBlockingFunction(void* function,
-            int arg1, int arg2, int arg3, int arg4, int arg5,
-            int arg6, int arg7, int arg8, int arg9, int arg10) {
-    int eventNumber = getNextEventNumber();
-    NativeTask* ntask = newNativeTask(function, eventNumber,
-                                      arg1, arg2, arg3, arg4, arg5,
-                                      arg6, arg7, arg8, arg9, arg10);
-    if (ntask == NULL) {
-        return NULL;
-    }
-
-    TaskExecutor* te = createTaskExecutor("native function runner", TASK_PRIORITY_MED, DEFAULT_STACK, TRUE, ntask);
-    if (te == NULL) {
-        ntask->event.eventStatus = EVENT_REQUEST_STATUS_ERROR;
-        ntask->nt_errno = errno;
-    }
-
-    return ntask;
-}
-
 void deleteNativeTask(NativeTask* ntask) {
     assumeAlways(ntask->event.next == NULL); /* must not be in list */
     assumeAlways(ntask->event.eventStatus > 0);
-    if (ntask->ownedTaskExecutor != NULL) {
-        int res = deleteTaskExecutor(ntask->ownedTaskExecutor);
-        assumeAlways(res == 0);
-    }
     free(ntask);
 }
 

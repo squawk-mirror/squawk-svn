@@ -260,7 +260,7 @@ static char* monitorName(SimpleMonitor* mon) {
     }
 }
 
-static void monitorErrCheck(SimpleMonitor* mon, char* msg, int res, int expectedValue) {
+INLINE void monitorErrCheck(SimpleMonitor* mon, char* msg, int res, int expectedValue) {
     if (res != 0 && res != expectedValue) {
         fprintf(stderr, "unexpected result in %s on %s: %d. errno: %d \n", msg, monitorName(mon), res, errno);
     }
@@ -564,10 +564,9 @@ int setTaskID(TaskExecutor* te) {
 /**
  * Create a new TaskExecutor and native thread.
  */
-TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int oneShot, NativeTask* initialTask) {
+TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize) {
     int taskID;
     TaskExecutor* te = (TaskExecutor*)malloc(sizeof(TaskExecutor));
-    void* wrapper = oneShot ? &teOneShotHandler : &teLoopingHandler;
 
     if (te == NULL) {
         return NULL;
@@ -580,7 +579,7 @@ TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int on
         stacksize = MIN_STACK_SIZE;
     }
     
-    te->runQ = initialTask;
+    te->runQ = NULL;
     te->monitor = SimpleMonitorCreate();
     if (te->monitor == NULL) {
         te->status = EVENT_REQUEST_STATUS_ERROR;
@@ -595,7 +594,7 @@ TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int on
                         taskPriorityMap(priority),
                             VX_FP_TASK,				// options
                             stacksize,					// stack size
-                            wrapper,           // function to start
+                            (void*)teLoopingHandler,           // function to start
                             (int)te, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     if (taskID == ERROR) {
@@ -620,8 +619,12 @@ TaskExecutor* createTaskExecutor(char* name, int priority, int stacksize, int on
  */
 static int deleteTaskExecutor(TaskExecutor* te) {
     if (te->status != TASK_EXECUTOR_STATUS_DONE) {
-        return -1;
+        usleep(100);
+        if (te->status != TASK_EXECUTOR_STATUS_DONE) {
+            return -1;
+        }
     }
+    
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "deleteTaskExecutor()\n"); }
     sysAssumeAlways(te->runQ == NULL);
     SimpleMonitorDestroy(te->monitor);
@@ -658,7 +661,7 @@ int cleanupSelectPipe() {
 }
 
 int readSelectPipeMsg() {
-    int dummy = 5;
+    char dummy = 5;
     int rc;
     while ((rc == read(selectPipeFD, &dummy, 1)) == 1) {
 
@@ -668,7 +671,7 @@ int readSelectPipeMsg() {
 
 int numMessages(int fd) {
     int num;
-    int res = ioctl(fd, FIONMSGS, &num);
+    int res = ioctl(fd, FIONMSGS, (int)&num);
     if (res == ERROR) {
         return ERROR;
     } else {

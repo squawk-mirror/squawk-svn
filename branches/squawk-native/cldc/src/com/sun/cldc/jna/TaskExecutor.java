@@ -27,6 +27,7 @@ package com.sun.cldc.jna;
 import com.sun.squawk.Address;
 import com.sun.squawk.NativeUnsafe;
 import com.sun.squawk.VM;
+import java.util.Stack;
 
 /**
  * A TaskExecutor is a native thread that can be used to run native functions.
@@ -36,9 +37,12 @@ public class TaskExecutor {
     public final static int TASK_PRIORITY_MED = 2;
     public final static int TASK_PRIORITY_LOW = 3;
 
-    private Address te;
+    public final static int MAX_NUM_CACHABLE_TASK_EXECUTORS = 8;
+    
+    private static int cachedTECount;
 
-    final static TaskExecutor DEFAULT = new DefaultTaskExecutor();
+    protected Address te;
+
 
     private TaskExecutor() {
         te = Address.zero();
@@ -49,12 +53,35 @@ public class TaskExecutor {
      */
     private static class DefaultTaskExecutor extends TaskExecutor {
 
+        DefaultTaskExecutor() {
+            super("cached TaskExecutor " + (cachedTECount++));
+        }
+
         Address runBlockingFunction(Address fptr,
                 int arg1, int arg2, int arg3, int arg4, int arg5,
                 int arg6, int arg7, int arg8, int arg9, int arg10) {
 //VM.println("DefaultTaskExecutor.runBlockingFunction()");
-            return NativeUnsafe.runBlockingFunction(fptr, arg1, arg2, arg3, arg4, arg5,
+            checkTaskExecutor();
+            return NativeUnsafe.runBlockingFunctionOn(te, fptr, arg1, arg2, arg3, arg4, arg5,
                     arg6, arg7, arg8, arg9, arg10);
+        }
+
+        /**
+         * When done with this anonymous TE, either cache it for later or kill it.
+         */
+        void cleanup() {
+            Stack cache = VM.getTaskCache();
+            boolean kill = false;
+            synchronized (cache) {
+                if (cache.size() > MAX_NUM_CACHABLE_TASK_EXECUTORS) {
+                    kill = true;
+                } else {
+                    cache.push(this);
+                }
+            }
+            if (kill) {
+                stopTaskExecutor();
+            }
         }
     }
 
@@ -90,6 +117,31 @@ public class TaskExecutor {
     }
 
     /**
+     * Look for a cached TaskExecutor or create a new one.
+     * @return an anonymous TaskExecutor
+     */
+    static TaskExecutor getCachedTaskExecutor() {
+        TaskExecutor te = null;
+        Stack cache = VM.getTaskCache();
+        synchronized (cache) {
+            if (!cache.isEmpty()) {
+                te = (TaskExecutor) cache.pop();
+            }
+        }
+        if (te == null) {
+            te = new DefaultTaskExecutor();
+        }
+        te.checkTaskExecutor();
+        return te;
+    }
+
+    /**
+     * Clean up after a call
+     */
+    void cleanup() {
+    }
+
+    /**
      * Tell TaskExecutor to stop running new NativeTasks.
      * Any NativeTasks that were pending on the TaskExecutor's run queue
      * will be signalled as completing with an error.
@@ -115,7 +167,7 @@ public class TaskExecutor {
         return result;
     }
 
-    void checkTaskExecutor() {
+    final void checkTaskExecutor() {
         if (te.isZero()) {
             throw new IllegalStateException("TaskExecutor has been closed");
         }

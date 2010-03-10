@@ -33,7 +33,7 @@ import com.sun.squawk.VM;
  */
 public class BlockingFunction extends Function {
 
-    private TaskExecutor taskExecutor;
+    private TaskExecutor taskExecutor = null;
 
     /**
      * Create a new blocking function pointer with the given name to the given address
@@ -43,7 +43,6 @@ public class BlockingFunction extends Function {
      */
     BlockingFunction(String name, Address funcAddr) {
         super(name, funcAddr);
-        taskExecutor = TaskExecutor.DEFAULT;
     }
 
     public String toString() {
@@ -68,7 +67,7 @@ public class BlockingFunction extends Function {
      * @param te
      */
     public void setTaskExecutor(TaskExecutor te) {
-        if (taskExecutor != TaskExecutor.DEFAULT) {
+        if (taskExecutor != null) {
             throw new IllegalStateException("already has TaskExecutor");
         }
         taskExecutor = te;
@@ -78,18 +77,28 @@ public class BlockingFunction extends Function {
      * Set this blocking function to run using a default TaskExecutor.
      */
     public void setDefaultTaskExecutor() {
-        taskExecutor = TaskExecutor.DEFAULT;
+        taskExecutor = null;
+    }
+
+    private TaskExecutor getTE() {
+        if (taskExecutor == null) {
+            return TaskExecutor.getCachedTaskExecutor();
+        } else {
+            return taskExecutor;
+        }
     }
 
     public int call0() {
         if (DEBUG) {
             preamble();
         }
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -97,11 +106,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -109,11 +120,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, 0, 0, 0, 0, 0, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, 0, 0, 0, 0, 0, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -121,11 +134,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, 0, 0, 0, 0, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, 0, 0, 0, 0, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -133,11 +148,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, i4, 0, 0, 0, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, i4, 0, 0, 0, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -145,11 +162,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, 0, 0, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, 0, 0, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -157,11 +176,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, 0, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, 0, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -169,12 +190,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-        
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, 0, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, 0, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -182,12 +204,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, 0, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, 0, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -195,12 +218,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9, 0);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9, 0);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
 
@@ -208,12 +232,13 @@ public class BlockingFunction extends Function {
         if (DEBUG) {
             preamble();
         }
-
-        Address ntask = taskExecutor.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
+        TaskExecutor te = getTE();
+        Address ntask = te.runBlockingFunction(funcAddr, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10);
         int result = NativeUnsafe.waitForBlockingFunction(ntask);
         if (DEBUG) {
             postscript(result);
         }
+        te.cleanup();
         return result;
     }
     
