@@ -28,7 +28,7 @@
 #include <jni.h>
 
 /* The package that conmtains the native code to use for a "NATIVE" platform type*/
- #define sysPlatformName() "macosx"
+#define sysPlatformName() "macosx"
 
 #include "os_posix.c"
 

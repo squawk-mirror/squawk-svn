@@ -2564,7 +2564,13 @@ public class Build {
         } else {
             properties.setProperty("LISP2_BITMAP", "false");
         }
-        
+
+        if (getPlatform() instanceof Windows_X86) {
+            if (!getProperty("PLATFORM_TYPE").equals(Options.DELEGATING)) {
+                properties.setProperty("PLATFORM_TYPE", Options.DELEGATING);
+                log(true, "[Forcing PLATFORM_TYPE to DELEGATING on Windows]");
+            }
+        }
         tryPlatformType(cOptions, Options.BARE_METAL);
         tryPlatformType(cOptions, Options.DELEGATING);
         tryPlatformType(cOptions, Options.NATIVE);

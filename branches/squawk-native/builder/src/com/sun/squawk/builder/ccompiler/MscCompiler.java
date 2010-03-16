@@ -81,23 +81,43 @@ public class MscCompiler extends CCompiler {
         return buf.append(options.cflags).append(' ').toString();
     }
 
+    private String getDirFromEnv(String var) {
+        String value = System.getProperty(var);
+        if (value == null) {
+            value = System.getenv(var);
+            if (value != null) {
+                env.log(env.verbose, "Found env variable: " + var + "=" + value);
+                if (new File(value).exists()) {
+                    return value;
+                } else {
+                    env.log(env.verbose, "directory does not exist: " + value);
+                }
+            }
+        } else {
+            env.log(env.verbose, "Found property variable: " + var + "=" + value);
+
+            if (new File(value).exists()) {
+                return value;
+            } else {
+                env.log(env.verbose, "directory does not exist: " + value);
+            }
+        }
+        env.log(env.verbose, "No value for variable: " + var);
+        return null;
+    }
+
     public String getClCommandString() {
         if (clCommandString == null) {
             final String[] envvars = {
                 VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE,
-                VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE,
+                VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE,
                 MS_PLATFORM_SDK_VARIABLE};
 
             clCommandString = "cl";
             String toolsDirectory = null;
             for (int i = 0; i < envvars.length; i++) {
-                toolsDirectory = System.getProperty(envvars[i]);
-                if (toolsDirectory == null) {
-                    toolsDirectory = System.getenv(envvars[i]);
-                    if (toolsDirectory != null) {
-                        break;
-                    }
-                } else {
+                toolsDirectory = getDirFromEnv(envvars[i]);
+                if (toolsDirectory != null) {
                     break;
                 }
             }

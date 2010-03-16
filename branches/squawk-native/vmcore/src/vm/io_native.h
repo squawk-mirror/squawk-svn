@@ -33,8 +33,12 @@
 extern "C" {
 #endif
 
-
+#ifdef _MSC_VER
+#include <winsock2.h> /* for some reason timeval is defined here */
+#else
 #include <sys/times.h>
+#endif
+
 /*---------------------------------------------------------------------------*\
  *                                Time Conversions                           *
 \*---------------------------------------------------------------------------*/
@@ -48,6 +52,7 @@ INLINE long long timeVal2ms(struct timeval* tv) {
     return (long long)tv->tv_sec * 1000 + ((tv->tv_usec + 500) / 1000);
 };
 
+#ifndef _MSC_VER
 INLINE void ms2TimeSpec(long long ms, struct timespec* ts) {
     ts->tv_sec = ms / 1000;
     ts->tv_nsec = ((long)(ms % 1000)) * 1000000;
@@ -66,6 +71,8 @@ INLINE void timeVal2TimeSpec(struct timeval* tv, struct timespec* ts) {
     ts->tv_sec  = tv->tv_sec;
     ts->tv_nsec = tv->tv_usec * 1000;
 };
+#endif
+
 #define MAX_USEC (   1000000 - 1)
 #define MAX_NSEC (1000000000 - 1)
 #define MAX_SEC 0x7fffffff
@@ -82,6 +89,7 @@ INLINE void addTimeVal(struct timeval* tv_accum, struct timeval* tv_extra) {
     }
 };
 
+#ifndef _MSC_VER
 INLINE void addTimeSpec(struct timespec* ts_accum, struct timespec* ts_extra) {
     ts_accum->tv_sec += ts_extra->tv_sec;
     ts_accum->tv_nsec += ts_extra->tv_nsec;
@@ -93,6 +101,7 @@ INLINE void addTimeSpec(struct timespec* ts_accum, struct timespec* ts_extra) {
         ts_accum->tv_sec = MAX_SEC;
     }
 };
+#endif
 
 /*---------------------------------------------------------------------------*\
  *                                  EventRequest                             *
@@ -205,6 +214,8 @@ void teLoopingHandler(TaskExecutor* te);
 #else /* PLATFORM_TYPE_NATIVE */
 
 typedef struct TaskExecutor_struct {
+    int te_errno;
+    NativeTaskID id;
 } TaskExecutor;
 
 NORETURN void fatalVMError(char *msg);

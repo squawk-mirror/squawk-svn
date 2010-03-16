@@ -27,7 +27,6 @@
 
 #ifdef _MSC_VER
 #include <windows.h>
-#include <winsock2.h>
 #else
 
 #ifndef offsetof
@@ -142,10 +141,11 @@ int squawk_select(int nfds,
                 fd_set * errorfds, struct timeval * timeout) {
     int pipefd = getSelectReadPipeFd();
     int maxfd = max(nfds, pipefd + 1);
+    int res;
     if (DEBUG_SELECT) { fprintf(stderr, "blocking in squawk_select. nfds: %d, maxfd: %d\n", nfds, maxfd); }
 
     FD_SET(pipefd, readfds);
-    int res = select(maxfd, readfds, writefds, errorfds, timeout);
+    res = select(maxfd, readfds, writefds, errorfds, timeout);
     if (res > 0) {
         if (FD_ISSET(pipefd, readfds)) {
 	        if (DEBUG_SELECT) { fprintf(stderr, "squawk_select read pipe message\n"); }
@@ -372,6 +372,8 @@ INLINE EventRequest* toEventRequest(NativeTask* eventRequest) {
  * Does linear search.
  */
 int getEvent() {
+    EventRequest* current = NULL;
+    EventRequest* previous = NULL;
     if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() before lock. 0x%p\n", eventRequests); }
 
     if (eventRequests == NULL) {
@@ -381,8 +383,7 @@ int getEvent() {
 
     SimpleMonitorLock(threadEventMonitor);
     if (DEBUG_EVENTS_LEVEL > 1) { fprintf(stderr, "getEvent() after lock\n"); }
-    EventRequest* current = eventRequests;
-    EventRequest* previous = NULL;
+    current = eventRequests;
     addedEvent = FALSE;
 
     while (current != NULL) {
@@ -645,6 +646,7 @@ void IO_initialize() {
     assumeAlways(offsetof(NativeTask, low_result) == (com_sun_squawk_NativeUnsafe_NATIVE_TASK_LOW_RESULT_OFFSET * 4));
     assumeAlways(offsetof(NativeTask, nt_errno) == (com_sun_squawk_NativeUnsafe_NATIVE_TASK_NT_ERRNO_RESULT_OFFSET * 4));
 
+#ifndef _MSC_VER
     jlong t1 = 500; /* ms */
     jlong t2 = 0;
     struct timeval tval, tval2;
@@ -673,6 +675,7 @@ void IO_initialize() {
     if (t1 != t2) {
         fprintf(stderr, "add timespec: Expected %lld, got %lld\n", t1, t2);
     }
+#endif
 
     initSelectPipe();
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "Done IO_initialize\n"); }
