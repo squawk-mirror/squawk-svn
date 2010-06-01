@@ -16,9 +16,7 @@ Each platform type is built +/- ASSERTIONS_ENABLED, DEBUG_CODE_ENABLED, TRACING_
     <numToKeep>2</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -27,11 +25,14 @@ Each platform type is built +/- ASSERTIONS_ENABLED, DEBUG_CODE_ENABLED, TRACING_
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>true</useUpdate>
+    <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector"/>
+  <concurrentBuild>false</concurrentBuild>
   <axes>
     <axis>
       <name>ASSERTIONS_ENABLED</name>
@@ -95,4 +96,5 @@ java -jar build.jar clean </command>
     </hudson.tasks.ArtifactArchiver>
   </publishers>
   <buildWrappers/>
+  <runSequentially>false</runSequentially>
 </matrix-project>
