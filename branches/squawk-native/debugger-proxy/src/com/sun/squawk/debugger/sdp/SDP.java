@@ -347,12 +347,12 @@ public class SDP {
         }
 
         if (!sniffOnly) {
-        if (classPath == null) {
-            System.err.println("A path for the Squawk classes must be specified using the -cp option. For example:");
-            System.err.println("    -cp:j2me/j2meclasses:debugger/j2meclasses:samples/j2meclasses");
-            return false;
-        }
-        ProxySupport.initializeTranslator(classPath);
+            if (classPath == null) {
+                System.err.println("A path for the Squawk classes must be specified using the -cp option. For example:");
+                System.err.println("    -cp:j2me/j2meclasses:debugger/j2meclasses:samples/j2meclasses");
+                return false;
+            }
+            ProxySupport.initializeTranslator(classPath);
         }
 
         System.setProperty("squawk.debugger.log.level", logLevel);
@@ -704,7 +704,7 @@ public class SDP {
      */
     private void goSniff() {
         canTalkToDebugger = true; // always true for sniffer
-
+        
         // Establish the connection to the VM
         JDWPListener vmSniffer = new JDWPSniffer.JVMSniffer();
         
