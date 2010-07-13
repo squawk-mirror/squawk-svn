@@ -124,6 +124,11 @@ public class Romizer {
      * The search path for classes in the suite.
      */
     private String classPath;
+    
+    /**
+     * The search path for classes in the suite, but with Java 5 meta data still present.
+     */
+    private String java5ClassPath;
 
     /**
      * The Romizer instance used to create the parent of the suite being romized.
@@ -351,7 +356,11 @@ public class Romizer {
 	        } catch (NoClassDefFoundError e) {
                 if (romizer != null && romizer.getLastClassName() != null) {
 	            	classNames.add(romizer.getLastClassName());
-                    System.err.println("WARNING: Deferring " + e.getClass().getSimpleName() + " for class " +  e.getMessage() + " while translating " + romizer.getLastClassName());
+                    System.err.println("WARNING: Deferring Errors:");
+                    System.out.println("   " + e.getClass().getSimpleName() + ": " + romizer.getLastClassName());
+                    System.out.println("   message: " + e.getLocalizedMessage());
+                    System.out.println("   possibly in class: " + romizer.getLastClassName());
+                    // TODO Deal with fact that for TCK this must continue
 	                continue;
                 }
                 throw e;
@@ -390,9 +399,9 @@ public class Romizer {
             // Install resources found
             for (int i=0, maxI=resources.size(); i < maxI; i++) {
                 ResourceFile resourceFile = (ResourceFile) resources.elementAt(i);
-                if (VM.isVerbose()) {
+//                if (VM.isVerbose()) {
                     System.out.println("[Including resource: " + resourceFile.name + "]");
-                }
+//                }
                 suite.installResource(resourceFile);
             }
             // Install the jad properties passed on the command line
@@ -474,6 +483,8 @@ public class Romizer {
                 break;
             } else if (arg.startsWith("-cp:")) {
                 classPath = ArgsUtilities.toPlatformPath(arg.substring("-cp:".length()), true);
+            } else if (arg.startsWith("-java5cp:")) {
+                java5ClassPath = ArgsUtilities.toPlatformPath(arg.substring("-java5cp:".length()), true);
             } else if (arg.startsWith("-exclude:")) {
                 excludeFile = arg.substring("-exclude:".length());
             } else if (arg.startsWith("-noclassdeffounderrorclass:")) {
@@ -558,7 +569,7 @@ public class Romizer {
                 }
             } else if (arg.startsWith("-suitepath:")) {
                 String path = arg.substring("-suitepath:".length());
-                ObjectMemoryLoader.setFilePath(path);
+                ObjectMemoryLoader.addFilePath(path);
                 
             } else if (arg.startsWith("-nobuildproperties")) {
                 if (buildDotOverrideFileName != null) {
@@ -817,8 +828,14 @@ public class Romizer {
         if (createJars) {
             String jarFilePath = suiteName + "_classes.jar";
             File jarFile = new File(jarFilePath);
-            jarClasses(jarFile, strippedSuite);
+            jarClasses(jarFile, strippedSuite, false);
             generatedFiles.addElement(jarFile.getAbsolutePath());
+            if (java5ClassPath != null) {
+                jarFilePath = suiteName + "_java5.jar";
+                jarFile = new File(jarFilePath);
+                jarClasses(jarFile, strippedSuite, true);
+                generatedFiles.addElement(jarFile.getAbsolutePath());
+            }
         }
 
         // Ensures that saving worked
@@ -880,11 +897,11 @@ public class Romizer {
      * @param file   the jar file to create
      * @param suite  the suite to jar
      */
-    private void jarClasses(File file, Suite suite) {
+    private void jarClasses(File file, Suite suite, boolean doJava5) {
         try {
             FileOutputStream fos = new FileOutputStream(file);
             ZipOutputStream zos = new JarOutputStream(fos);
-            ClasspathConnection classPath = (ClasspathConnection)Connector.open("classpath://" + this.classPath);
+            ClasspathConnection classPath = (ClasspathConnection)Connector.open("classpath://" + (doJava5? this.java5ClassPath:this.classPath));
             for (int i = 0; i < suite.getClassCount(); i++) {
                 Klass klass = suite.getKlass(i);
                 if (klass.isSynthetic()) {
