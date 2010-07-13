@@ -423,7 +423,6 @@ public class GC implements GlobalStaticFields {
         if (VM.isHosted()) {
         	nvmEnd = next;
         } else if (next.hi(nvmEnd)) {
-VM.println("allocateNvmBuffer");
             throw VM.getOutOfMemoryError();
         }
         nvmAllocationPointer = next;
@@ -634,9 +633,10 @@ VM.println("allocateNvmBuffer");
 
     /**
      * Determines if a given object is in RAM.
-     *
-     * @vm2c code( fatalVMError("hosted-only method"); return false; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fatalVMError(\"hosted-only method\"); return false;")
+/*end[JAVA5SYNTAX]*/
     static boolean inRamHosted(Object object) throws HostedPragma {
         return !(object instanceof Address);
     }
@@ -1010,6 +1010,11 @@ VM.println("allocateNvmBuffer");
         cb.memory = (byte[])copiedObjects.toObject();
     }
 
+    private static void encodeLengthWordError() throws NotInlinedPragma {
+			VM.println("encodeLengthWord");
+            throw VM.getOutOfMemoryError();
+    }
+
     /**
      * Encode an array length word.
      *
@@ -1021,8 +1026,7 @@ VM.println("allocateNvmBuffer");
         // an out of memory error is the cleanest way to handle this situtation
         // in the rare case that there was enough memory to allocate the array
         if (length > 0x3FFFFFF) {
-VM.println("encodeLengthWord");
-            throw VM.getOutOfMemoryError();
+            encodeLengthWordError();
         }
         return UWord.fromPrimitive((length << HDR.headerTagBits) | HDR.arrayHeaderTag);
     }
@@ -1062,9 +1066,10 @@ VM.println("encodeLengthWord");
      *
      * @param object the object
      * @return its class
-     *
-     * @vm2c proxy( getClass )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="getClass")
+/*end[JAVA5SYNTAX]*/
     public static Klass getKlass(Object object)  throws ForceInlinedPragma {
         Assert.that(object != null);
         Address classOrAssociation = NativeUnsafe.getAddress(object, HDR.klass);
@@ -1892,10 +1897,12 @@ VM.println("encodeLengthWord");
      * @return the address of the block of memory allocated for <code>object</code>
      */
     static Address oopToBlock(Klass klass, Address object) {
-        if (Klass.getSystemID(klass) == CID.BYTECODE_ARRAY) {
-            return MethodBody.oopToBlock(object);   // Method
-        } else if (Klass.isSquawkArray(klass)) {
-            return object.sub(HDR.arrayHeaderSize); // Array
+        if (Klass.isSquawkArray(klass)) {
+            if (Klass.getSystemID(klass) == CID.BYTECODE_ARRAY) {
+                return MethodBody.oopToBlock(object);   // Method
+            } else {
+                return object.sub(HDR.arrayHeaderSize); // Array
+            }
         } else {
             return object.sub(HDR.basicHeaderSize); // Instance
         }
@@ -1974,7 +1981,7 @@ VM.println("encodeLengthWord");
      *
      * @param   strings  the table to which the strings are to be added
      */
-    static void getStrings(SquawkHashtable strings) {
+    static String findInRomString(String string) {
 
         Isolate isolate = VM.getCurrentIsolate();
 
@@ -1984,11 +1991,14 @@ VM.println("encodeLengthWord");
             Assert.that(suite != null);
             parent = suite.getReadOnlyObjectMemory();
             suite = suite.getParent();
+            if (suite == null) {
+                return null;
+            }
         }
 
         int percent = 0;
         if (GC.GC_TRACING_SUPPORTED && VM.isVeryVerbose()) {
-            VM.print("Building String intern table from read-only memory");
+            VM.print("Scanning String objects from read-only memory");
         }
         
         while (parent != null) {
@@ -1996,7 +2006,9 @@ VM.println("encodeLengthWord");
             for (Address block = parent.getStart(); block.lo(end); ) {
                 Address object = GC.blockToOop(block);
                 if (object.toObject() instanceof String) {
-                    strings.put(object.toObject(), object.toObject());
+                    if (object.toObject().equals(string)) {
+                        return (String) object.toObject();
+                    }
                 }
               
                 if (GC.GC_TRACING_SUPPORTED && VM.isVeryVerbose()) {
@@ -2016,6 +2028,7 @@ VM.println("encodeLengthWord");
         if (GC.GC_TRACING_SUPPORTED && VM.isVeryVerbose()) {
             VM.println(" done");
         }
+        return null;
     }
     
     /*---------------------------------------------------------------------------*\
@@ -2138,6 +2151,7 @@ VM.println("encodeLengthWord");
      */
     static int getObjectBytes(Object object) {
         Klass klass = GC.getKlass(object);
+        Assert.that(Klass.getSystemID(klass) != CID.BYTECODE_ARRAY); //  Doesn't calculate headers sizes for methods correctly
         int blkSize = GC.getBodySize(klass, Address.fromObject(object));
         return blkSize + (klass.isArray() ? HDR.arrayHeaderSize : HDR.basicHeaderSize);
     }
@@ -2149,17 +2163,50 @@ VM.println("encodeLengthWord");
      * @return the size in bytes
      */
     static int getObjectBytes(Klass klass) {
+        Assert.that(Klass.getSystemID(klass) != CID.BYTECODE_ARRAY); //  Doesn't calculate headers sizes for methods correctly
         int size = klass.getInstanceSize() << HDR.LOG2_BYTES_PER_WORD;
         return size += HDR.basicHeaderSize;
     }
     
     /**
-     * Do actual heap walk, from start object, or whole heap is startObj is null.
-     * Collect statistics in heapstats table.
+     * Perform doBlock with all objects starting from startObject.
      *
      * @param startObj the object to start walking from , or null
-     * @param endObject the object to end walking from , or null
-     * @param printInstances if true, print each instance found
+     */
+    public static void allObjectsFromDo(Object startObj, DoBlock doBlock) {
+        Address start;
+        if (startObj == null) {
+            start = heapStart;
+        } else {
+            if (!inRam(startObj)) {
+                throw new IllegalArgumentException();
+            }
+            start = GC.oopToBlock(GC.getKlass(startObj), Address.fromObject(startObj));
+        }
+
+        int oldPartialCollectionCount = partialCollectionCount;
+        int oldFullCollectionCount = fullCollectionCount;
+
+        Address end = allocTop;
+
+        for (Address block = start; block.lo(end); ) {
+            Address object = GC.blockToOop(block);
+            Klass klass = GC.getKlass(object);
+            int blkSize = GC.getBodySize(klass, object);
+            doBlock.value(object.toObject());
+            if ((oldPartialCollectionCount != partialCollectionCount) ||
+                (oldFullCollectionCount != fullCollectionCount)) {
+                throw new IllegalStateException("GC during heap walk");
+            }
+            block = object.add(blkSize);
+        }
+    }
+    
+    /**
+     * Do actual heap walk, from start object, or whole heap is startObj is null.
+     * Collect statistics in heapstats table.
+     * 
+     * @param startObj the object to start walking from , or null
      */
     static void collectHeapStats(Object startObj, Object endObject, boolean printInstances) {
         Address start;

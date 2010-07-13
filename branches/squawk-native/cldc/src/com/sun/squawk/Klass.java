@@ -48,7 +48,11 @@ import com.sun.squawk.vm.*;
  * @version 1.0
  * @see     com.sun.squawk.KlassMetadata
  */
-public class Klass {
+/*if[JAVA5SYNTAX]*/
+public class Klass<T> {
+/*else[JAVA5SYNTAX]*/
+//public class Klass {
+/*end[JAVA5SYNTAX]*/
 
     /*---------------------------------------------------------------------------*\
      *      Fields of Klass, some of which may be accessed directly by the VM    *
@@ -417,9 +421,19 @@ public class Klass {
      * @throws java.lang.InstantiationException
      * @throws java.lang.IllegalAccessException 
      */
-    public final Object newInstance() /*throws InstantiationException, IllegalAccessException */ {
+    public final
+/*if[JAVA5SYNTAX]*/
+T
+/*else[JAVA5SYNTAX]*/
+//Object
+/*end[JAVA5SYNTAX]*/
+	newInstance() /* throws InstantiationException, IllegalAccessException */ {
         Assert.always(!(isSquawkArray() || isInterface() || isAbstract()) && hasDefaultConstructor());
-        Object res = GC.newInstance(this);
+/*if[JAVA5SYNTAX]*/
+        T res = (T) GC.newInstance(this);
+/*else[JAVA5SYNTAX]*/
+//        Object res = GC.newInstance(this);
+/*end[JAVA5SYNTAX]*/
         try {
             VM.callStaticOneParm(this, indexForInit & 0xFF, res);
         } catch (NoClassDefFoundError e) {
@@ -1010,7 +1024,7 @@ public class Klass {
      * Static version of {@link #getSystemID()} so that garbage collector can
      * invoke this method on a possibly forwarded Klass object.
      */
-    static int getSystemID(Klass klass) {
+    static int getSystemID(Klass klass) throws AllowInlinedPragma {
         return klass.id;
     }
 
@@ -1210,7 +1224,7 @@ public class Klass {
      * @param    anInterface  the class to check
      * @return   true if <code>klass</code> is an interface class and this class implements it.
      */
-    private final boolean isImplementorOf(Klass anInterface) {
+    public final boolean isImplementorOf(Klass anInterface) {
         Assert.that(anInterface.isInterface());
         for (int i = 0 ; i < interfaces.length ; i++) {
             Klass iface = interfaces[i];
@@ -1336,7 +1350,7 @@ public class Klass {
      *
      * @param iklass the interface class
      * @param islot  the virtual slot of the interface
-     * @return the virtual slot of this class
+     * @return the virtual slot of this class, or -1 if not found
      */
     final int findSlot(Klass iklass, int islot) {
         int icount = interfaces.length;
@@ -1345,7 +1359,11 @@ public class Klass {
                 return interfaceVTableMaps[i][islot];
             }
         }
-        Assert.that(superType != null);
+        if (superType == null) {
+            // protect against malicious code that got past "interface type erasure" in the preverifier
+            // it's possible that *this* klass does not implement iklass
+           return -1;
+        }
         return superType.findSlot(iklass, islot);
     }
     
@@ -1971,6 +1989,8 @@ public class Klass {
                 case CID.OFFSET:
                 case CID.UWORD:
                     Assert.shouldNotReachHere();
+                    table = null;
+                    break;
                     
                 case CID.BYTE:    // fall through ...
                 case CID.BOOLEAN: // fall through ...
@@ -2403,7 +2423,7 @@ public class Klass {
                     initModifiers = (byte) method.getModifiers();
                 } else if (method.isClinit()) {
                     indexForClinit = offset;
-                    Assert.always(!hasGlobalStatics()); // <clinit> found for class with global variables.
+                    Assert.always(!hasGlobalStatics(), "No static initializer can be used on GlobalStaticFields"); // <clinit> found for class with global variables.
                 } else if (method.isMain()) {
                     indexForMain = offset;
                 }
@@ -2988,7 +3008,7 @@ public class Klass {
      * @param  args  the arguments to be passed to the invocation
      * @throws NotInlinedPragma as this method saves the current frame pointer
      */
-    final void main(String[] args) throws NotInlinedPragma {
+    public final void main(String[] args) throws NotInlinedPragma {
         int index = indexForMain;
         if (index >= 0) {
             Assert.that(GC.getKlass(staticMethods[index]) == Klass.BYTECODE_ARRAY);

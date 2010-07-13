@@ -29,4 +29,5 @@ package com.sun.squawk.pragma;
  *
  */
 public interface GlobalStaticFields {
+    
 }

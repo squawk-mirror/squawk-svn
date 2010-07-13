@@ -24,10 +24,8 @@
 
 package com.sun.squawk.io.j2me.socket;
 
-import com.sun.squawk.VM;
 import java.io.*;
 import javax.microedition.io.*;
-import com.sun.squawk.microedition.io.*;
 import com.sun.squawk.io.ConnectionBase;
 import com.sun.squawk.platform.GCFSockets;
 import com.sun.squawk.platform.Platform;

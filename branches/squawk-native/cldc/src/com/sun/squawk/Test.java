@@ -1,4 +1,4 @@
-//if[!FLASH_MEMORY]
+//!!!!!!!!!INCLUDE !!!!!!!! for testing if[!FLASH_MEMORY]
 /*
  * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
@@ -103,6 +103,7 @@ public class Test {
         x48();
         x49();
         x50();
+        x51();
         randomTimeTest();
 
         // Give the finalizers (if any) a chance to run
@@ -705,6 +706,33 @@ public class Test {
         delta = System.currentTimeMillis() - start;
         System.out.println("Empty exception calls per " + COUNT + " = " + delta + "ms");
         
+    }
+
+    public interface IDictionary {
+    }
+
+    static class HD implements IDictionary {
+    }
+
+    static class AD implements IDictionary {
+    }
+
+    static IDictionary getElements(boolean deepCopy) {
+        IDictionary dictThis = null;
+        if (deepCopy) {
+            dictThis = new HD();
+        } else {
+            dictThis = new AD();
+        }
+        if (dictThis == null) {
+            return null;
+        }
+        return dictThis;
+    }
+
+    static void x51() {
+        result("x51: getElements(true)", getElements(true) instanceof IDictionary);
+        result("x51: getElements(false)", getElements(false) instanceof IDictionary);
     }
 
 }

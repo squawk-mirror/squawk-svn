@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2009 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This code is free software; you can redistribute it and/or modify
@@ -320,7 +320,10 @@ public final class ChannelConstants {
     public static final int SPI_SEND_AND_RECEIVE_WITH_DEVICE_SELECT = 208;
     public static final int SPI_SEND_AND_RECEIVE = 209;
     public static final int SPI_GET_MAX_TRANSFER_SIZE = 210;
+    public static final int SPI_PULSE_WITH_DEVICE_SELECT = 211;
 
+    public static final int GET_HARDWARE_REVISION = 290;
+    
     public static final int I2C_OPEN            = 250;
     public static final int I2C_CLOSE           = 251;
     public static final int I2C_SET_CLOCK_SPEED = 252;

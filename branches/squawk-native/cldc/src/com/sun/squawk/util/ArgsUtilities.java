@@ -261,10 +261,28 @@ public class ArgsUtilities {
                     int baseDirPrefix = arg.length() + 1;
                     while (true) {
                         String fullName = dis.readUTF();
+                        if (fullName.indexOf(".svn/") != -1) {
+                            continue;
+                        }
                         /*
                          * Strip off the base directory name
                          */
                         String name = fullName.substring(baseDirPrefix);
+                        int indexOfExclude = name.indexOf(".svn/");
+                        if (indexOfExclude != -1) {
+                            continue;
+                        }
+                        indexOfExclude = name.indexOf(".hg/");
+                        if (indexOfExclude != -1) {
+                            continue;
+                        }
+                        indexOfExclude = name.indexOf("CVS/");
+                        if (indexOfExclude != -1) {
+                            continue;
+                        }
+                        if (fullName.endsWith(".DS_Store")) {
+                            continue;
+                        }
                         if (name.endsWith(".class")) {
                             name = name.substring(0, name.length() - ".class".length());
                             name = name.replace('/', '.');

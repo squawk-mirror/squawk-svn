@@ -24,14 +24,13 @@
 
 package javax.microedition.io;
 
-import com.sun.squawk.VM;
 import java.io.*;
 import java.util.Hashtable;
 import com.sun.squawk.io.*;
 import com.sun.squawk.platform.Platform;
 
 /**
- * This class is factory for creating new Connection objects.
+ * This class is a factory for creating new Connection objects.
  * <p>
  * The creation of Connections is performed dynamically by looking
  * up a protocol implementation class whose name is formed from the
@@ -130,9 +129,9 @@ public class Connector {
     public final static int READ_WRITE = (READ|WRITE);
 
     /**
-     * The platform name.
+     * Name of host system. (j2se/j2me/parm/ipaq etc.)
      */
-     private static String platform;
+     private static String host;
 
     /**
      * The root of the classes.
@@ -143,17 +142,18 @@ public class Connector {
      * Class initializer.
      */
     static {
-        /* Set up the platform name */
-        platform = System.getProperty("microedition.platform");
-        if ((platform == null) || (platform.equals("generic"))) {
-            platform = "j2se"; // default to SE to handle delegating IO to hotspot (altough VM.isHosted() should be true then...)
+        host = "j2me";
+        classRoot = "com.sun.squawk.io";
+
+        /* Get the system configuration name */
+        if (System.getProperty("microedition.configuration") == null) {
+            host = "j2se"; /* Use "j2se" if none is specified */
         }
 
-        /* Set up the library class root path */
-        /* This may vary from one CLDC implementation to another */
-        classRoot = System.getProperty("javax.microedition.io.Connector.protocolpath");
-        if (classRoot == null) {
-            classRoot = "com.sun.squawk.io";
+        /* See if there is an alternate protocol class root path */
+        String propertyClassRoot = System.getProperty("javax.microedition.io.Connector.protocolpath");
+        if (propertyClassRoot != null) {
+            classRoot = propertyClassRoot;
         }
     }
 
@@ -169,9 +169,8 @@ public class Connector {
      * @return                 A new Connection object.
      *
      * @exception IllegalArgumentException If a parameter is invalid.
-     * @exception ConnectionNotFoundException If the target of the
-     *   name cannot be found, or if the requested protocol type
-     *   is not supported.
+     * @exception ConnectionNotFoundException If the requested connection
+     *   cannot be made, or the protocol type does not exist.
      * @exception IOException  If some other kind of I/O error occurs.
      */
     public static Connection open(String name) throws IOException {
@@ -186,9 +185,8 @@ public class Connector {
      * @return                 A new Connection object.
      *
      * @exception IllegalArgumentException If a parameter is invalid.
-     * @exception ConnectionNotFoundException If the target of the
-     *   name cannot be found, or if the requested protocol type
-     *   is not supported.
+     * @exception ConnectionNotFoundException If the requested connection
+     *   cannot be made, or the protocol type does not exist.
      * @exception IOException  If some other kind of I/O error occurs.
      */
     public static Connection open(String name, int mode) throws IOException {
@@ -205,9 +203,8 @@ public class Connector {
      * @return                 A new Connection object
      *
      * @exception IllegalArgumentException If a parameter is invalid.
-     * @exception ConnectionNotFoundException If the target of the
-     *   name cannot be found, or if the requested protocol type
-     *   is not supported.
+     * @exception ConnectionNotFoundException if the requested connection
+     * cannot be made, or the protocol type does not exist.
      * @exception IOException  If some other kind of I/O error occurs.
      */
     public static Connection open(String name, int mode, boolean timeouts) throws IOException {
@@ -231,15 +228,18 @@ public class Connector {
         name = name.substring(colon+1);
 
         /* First try for specific host class */
-        Connection result = openPrim(protocol, protocol, name, mode, timeouts, platform);
+        Connection result = openPrim(protocol, protocol, name, mode, timeouts, host, classRoot);
         if (result == null) {
-            if (VM.isHosted()) { // same as platform != j2me
-                // make sure we try j2me before giving up, but don't search 2x if we don't have to
-                result = openPrim(protocol, protocol, name, mode, timeouts, "j2me");
+            if (host.equals("j2me")) {
+                // Try the phoneme set of protocols
+                result = openPrim(protocol, protocol, name, mode, timeouts, "j2me", "com.sun.midp.io");
+            } else {
+                // make sure we try j2me before giving up, but only if the first try was not already j2me
+                result = openPrim(protocol, protocol, name, mode, timeouts, "j2me", classRoot);
             }
             if (result == null && Platform.IS_DELEGATING) {
                 // try to channel out to embedded JVM
-                result = openPrim("channel", protocol, name, mode, timeouts, platform);
+                result = openPrim("channel", protocol, name, mode, timeouts, host, classRoot);
             }
             if (result == null) {
                 throw new ConnectionNotFoundException("The '"+protocol+"' protocol does not exist");
@@ -262,7 +262,7 @@ public class Connector {
      *
      * @exception IOException If some other kind of I/O error occurs.
      */
-    private static Connection openPrim(String protocolClassName, String protocolName, String name, int mode, boolean timeouts, String platform) throws IOException {
+    private static Connection openPrim(String protocolClassName, String protocolName, String name, int mode, boolean timeouts, String platform, String packageRoot) throws IOException {
         try {
             ConnectionBase con;
 /*if[!REUSEABLE_MESSAGES]*/
@@ -276,7 +276,7 @@ public class Connector {
                  * Use the platform and protocol names to look up a class
                  * to implement the connection and construct a new instance
                  */
-                String fullclassname = classRoot + "." + platform + "." + protocolClassName + ".Protocol";
+                String fullclassname = packageRoot + "." + platform + "." + protocolClassName + ".Protocol";
                 Class clazz = null;
                 
                 if (protocolTable == null) { // bootstrapping gets in the way. Wait until class is initialized before getting fancy
@@ -319,7 +319,41 @@ public class Connector {
     // support for class caching in openPrim().
     private final static String NO_CLASS_FOUND = "NO PROTOCOL CLASS";
     private final static Hashtable protocolTable = new Hashtable();
-    
+
+    /**
+     * Create and open a connection input stream.
+     *
+     * @param  name            The URL for the connection.
+     * @return                 An InputStream.
+     *
+     * @exception IllegalArgumentException If a parameter is invalid.
+     * @exception ConnectionNotFoundException If the target of the
+     *   name cannot be found, or if the requested protocol type
+     *   is not supported.
+     * @exception IOException  If some other kind of I/O error occurs.
+     */
+    public static InputStream openInputStream(String name) throws IOException {
+
+        return openDataInputStream(name);
+    }
+
+    /**
+     * Create and open a connection output stream.
+     *
+     * @param  name            The URL for the connection.
+     * @return                 An OutputStream.
+     *
+     * @exception IllegalArgumentException If a parameter is invalid.
+     * @exception ConnectionNotFoundException If the target of the
+     *   name cannot be found, or if the requested protocol type
+     *   is not supported.
+     * @exception IOException  If some other kind of I/O error occurs.
+     */
+    public static OutputStream openOutputStream(String name) throws IOException {
+
+        return openDataOutputStream(name);
+    }
+
     /**
      * Create and open a connection input stream.
      *
@@ -332,8 +366,7 @@ public class Connector {
      *   is not supported.
      * @exception IOException  If some other kind of I/O error occurs.
      */
-    public static DataInputStream openDataInputStream(String name)
-        throws IOException {
+    public static DataInputStream openDataInputStream(String name) throws IOException {
 	
   	    InputConnection con = null;
         try {
@@ -361,9 +394,7 @@ public class Connector {
      *   is not supported.
      * @exception IOException  If some other kind of I/O error occurs.
      */
-    public static DataOutputStream openDataOutputStream(String name)
-        throws IOException {
-
+    public static DataOutputStream openDataOutputStream(String name) throws IOException {
         OutputConnection con = null;
         try {
             con = (OutputConnection)Connector.open(name, Connector.WRITE);
@@ -377,44 +408,6 @@ public class Connector {
             con.close();
         }
     }
-
-    /**
-     * Create and open a connection input stream.
-     *
-     * @param  name            The URL for the connection.
-     * @return                 An InputStream.
-     *
-     * @exception IllegalArgumentException If a parameter is invalid.
-     * @exception ConnectionNotFoundException If the target of the
-     *   name cannot be found, or if the requested protocol type
-     *   is not supported.
-     * @exception IOException  If some other kind of I/O error occurs.
-     */
-    public static InputStream openInputStream(String name)
-        throws IOException {
-
-        return openDataInputStream(name);
-    }
-
-    /**
-     * Create and open a connection output stream.
-     *
-     * @param  name            The URL for the connection.
-     * @return                 An OutputStream.
-     *
-     * @exception IllegalArgumentException If a parameter is invalid.
-     * @exception ConnectionNotFoundException If the target of the
-     *   name cannot be found, or if the requested protocol type
-     *   is not supported.
-     * @exception IOException  If some other kind of I/O error occurs.
-     */
-    public static OutputStream openOutputStream(String name)
-        throws IOException {
-
-        return openDataOutputStream(name);
-    }
-
-}
 
 /*if[!OLD_IIC_MESSAGES]*/
 /*else[OLD_IIC_MESSAGES]*/
@@ -431,3 +424,4 @@ public class Connector {
 //    }
 //}
 /*end[OLD_IIC_MESSAGES]*/
+}

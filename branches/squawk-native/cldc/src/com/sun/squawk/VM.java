@@ -40,6 +40,7 @@ import com.sun.squawk.platform.SystemEvents;
 import com.sun.squawk.pragma.GlobalStaticFields;
 import com.sun.squawk.pragma.InterpreterInvokedPragma;
 import com.sun.squawk.pragma.NotInlinedPragma;
+import com.sun.squawk.pragma.AllowInlinedPragma;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.util.IntHashtable;
 import com.sun.squawk.util.SquawkHashtable;
@@ -249,7 +250,7 @@ public class VM implements GlobalStaticFields {
      * @param bootstrapSuite        the bootstrap suite
      */
     static void startup(Suite bootstrapSuite) throws InterpreterInvokedPragma {
-//VM.println("In Startup");
+
         /*
          * Set default for allowing Runtime.gc() to work.
          */
@@ -463,10 +464,15 @@ public class VM implements GlobalStaticFields {
      */
     static int findSlot(Object obj, Klass iklass, int islot) throws InterpreterInvokedPragma {
 /*if[FAST_INVOKEINTERFACE]*/
-        throw Assert.shouldNotReachHere();
+        // in this case only called to throw the exception
+       throw new Error("AbstractMethodError");
 /*else[FAST_INVOKEINTERFACE]*/
 //        Klass klass = GC.getKlass(obj);
-//        return klass.findSlot(iklass, islot);
+//        int result = klass.findSlot(iklass, islot);
+//        if (result < 0) {
+//            throw new Error("AbstractMethodError");
+//        }
+//        return result;
 /*end[FAST_INVOKEINTERFACE]*/
     }
 
@@ -1277,7 +1283,7 @@ hbp.dumpState();
      *
      * @return true if running in a hosted environment, ie in a JSE VM
      */
-    public static boolean isHosted() {
+    public static boolean isHosted() throws AllowInlinedPragma {
         return false;
     }
 
@@ -1327,29 +1333,32 @@ hbp.dumpState();
      *
      * @param fp   a frame pointer
      * @return the pointer to the frame that is the calling context for <code>fp</code>
-     *
-     * @vm2c code( return getObject(_fp, FP_returnFP); )
      */
-    native static Address getPreviousFP(Address fp);
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="return getObject(_fp, FP_returnFP);")
+/*end[JAVA5SYNTAX]*/
+    native static Address getPreviousFP(Address fp) throws AllowInlinedPragma;
 
     /**
      * Gets the previous instruction pointer from a frame pointer.
      *
      * @param fp the frame pointer
      * @return the previous instruction pointer
-     *
-     * @vm2c code( return getObject(_fp, FP_returnIP); )
      */
-    native static Address getPreviousIP(Address fp);
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="return getObject(_fp, FP_returnIP);")
+/*end[JAVA5SYNTAX]*/
+    native static Address getPreviousIP(Address fp) throws AllowInlinedPragma;
 
     /**
      * Set the previous frame pointer.
      *
      * @param fp the frame pointer
      * @param pfp the previous frame pointer
-     *
-     * @vm2c code( setObject(_fp, FP_returnFP, pfp); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="setObject(_fp, FP_returnFP, pfp);")
+/*end[JAVA5SYNTAX]*/
     native static void setPreviousFP(Address fp, Address pfp);
 
     /**
@@ -1357,9 +1366,10 @@ hbp.dumpState();
      *
      * @param fp the frame pointer
      * @param pip the previous instruction pointer
-     *
-     * @vm2c code( setObject(_fp, FP_returnIP, pip); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="setObject(_fp, FP_returnIP, pip);")
+/*end[JAVA5SYNTAX]*/
     native static void setPreviousIP(Address fp, Address pip);
 
     /*-----------------------------------------------------------------------*\
@@ -1371,9 +1381,10 @@ hbp.dumpState();
      *
      * @param object the object to be cast
      * @return the object cast to be a Klass
-     *
-     * @vm2c macro( ((Address)object) )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="((Address)object)")
+/*end[JAVA5SYNTAX]*/
     native static Klass asKlass(Object object);
 
     /**
@@ -1440,9 +1451,10 @@ hbp.dumpState();
      *
      * @param object the object to be cast
      * @return the object cast to be a Klass
-     *
-     * @vm2c macro( (object) )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="(object)")
+/*end[JAVA5SYNTAX]*/
     static Klass asKlass(Address object) {
         return VM.asKlass(object.toObject());
     }
@@ -1478,9 +1490,10 @@ hbp.dumpState();
      * Gets the number of global integer variables.
      *
      * @return  the number of global integer variables
-     *
-     * @vm2c macro( GLOBAL_INT_COUNT )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="GLOBAL_INT_COUNT")
+/*end[JAVA5SYNTAX]*/
     native static int getGlobalIntCount();
 
     /**
@@ -1488,9 +1501,10 @@ hbp.dumpState();
      *
      * @param  index   index of the entry in the global integer table
      * @return the value of entry <code>index</code> in the global integer table
-     *
-     * @vm2c macro( Ints[index] )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="Ints[index]")
+/*end[JAVA5SYNTAX]*/
     native static int getGlobalInt(int index);
 
     /**
@@ -1498,18 +1512,20 @@ hbp.dumpState();
      *
      * @param  value   the value to set
      * @param  index   index of the entry to update in the global integer table
-     *
-     * @vm2c code( Ints[index] = value; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="Ints[index] = value;")
+/*end[JAVA5SYNTAX]*/
     native static void setGlobalInt(int value, int index);
 
     /**
      * Gets the number of global pointer variables.
      *
      * @return  the number of global pointer variables
-     *
-     * @vm2c macro( GLOBAL_ADDR_COUNT )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="GLOBAL_ADDR_COUNT")
+/*end[JAVA5SYNTAX]*/
     native static int getGlobalAddrCount();
 
     /**
@@ -1517,9 +1533,10 @@ hbp.dumpState();
      *
      * @param  index   index of the entry in the global pointer table
      * @return the value of entry <code>index</code> in the global pointer table
-     *
-     * @vm2c macro( Addrs[index] )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="Addrs[index]")
+/*end[JAVA5SYNTAX]*/
     native static Address getGlobalAddr(int index);
 
     /**
@@ -1527,18 +1544,20 @@ hbp.dumpState();
      *
      * @param  value   the value to set
      * @param  index   index of the entry to update in the global pointer table
-     *
-     * @vm2c code( Addrs[index] = value; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="Addrs[index] = value;")
+/*end[JAVA5SYNTAX]*/
     native static void setGlobalAddr(Address value, int index);
 
     /**
      * Gets the number of global object pointer variables.
      *
      * @return  the number of global object pointer variables
-     *
-     * @vm2c macro( GLOBAL_OOP_COUNT )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="GLOBAL_OOP_COUNT")
+/*end[JAVA5SYNTAX]*/
     native static int getGlobalOopCount();
 
     /**
@@ -1546,9 +1565,10 @@ hbp.dumpState();
      *
      * @param  index   index of the entry in the global object pointer table
      * @return the value of entry <code>index</code> in the global object pointer table
-     *
-     * @vm2c macro(  Oops[index] )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="Oops[index]")
+/*end[JAVA5SYNTAX]*/
     native static Object getGlobalOop(int index);
 
     /**
@@ -1556,18 +1576,20 @@ hbp.dumpState();
      *
      * @param  value   the value to set
      * @param  index   index of the entry to update in the global object pointer table
-     *
-     * @vm2c code( Oops[index] = value; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="Oops[index] = value;")
+/*end[JAVA5SYNTAX]*/
     native static void setGlobalOop(Object value, int index);
 
     /**
      * Gets the address of the global object pointer table.
      *
      * @return  the address of the global object pointer table
-     *
-     * @vm2c code( return Oops; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="return Oops;")
+/*end[JAVA5SYNTAX]*/
     native static Address getGlobalOopTable();
 
 
@@ -1616,9 +1638,10 @@ hbp.dumpState();
      *
      * @param stream  the stream to use for the print... methods
      * @return the current stream used for VM printing
-     *
-     * @vm2c proxy( setStream )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="setStream")
+/*end[JAVA5SYNTAX]*/
     private static int setStream0(int stream) {
         return execSyncIO(ChannelConstants.INTERNAL_SETSTREAM, stream);
     }
@@ -1627,9 +1650,10 @@ hbp.dumpState();
      * Prints a character to the VM stream.
      *
      * @param ch      the character to print
-     * @vm2c code( fprintf(streams[currentStream], "%c", ch);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], \"%c\", ch); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     static void printChar(char ch) {
         execSyncIO(ChannelConstants.INTERNAL_PRINTCHAR, ch);
     }
@@ -1638,10 +1662,10 @@ hbp.dumpState();
      * Prints an integer to the VM stream.
      *
      * @param val     the integer to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], "%i", val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], \"%i\", val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     static void printInt(int val) {
         execSyncIO(ChannelConstants.INTERNAL_PRINTINT, val);
     }
@@ -1650,10 +1674,10 @@ hbp.dumpState();
      * Prints a long to the VM stream.
      *
      * @param val     the long to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%L"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%L\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     static void printLong(long val) {
         int i1 = (int)(val >>> 32);
         int i2 = (int)val;
@@ -1665,10 +1689,10 @@ hbp.dumpState();
      * value depending on the underlying platform.
      *
      * @param val     the word to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%A"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%A\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printUWord(UWord val) {
         int i1 = (int)(val.toPrimitive() >> 32);
         int i2 = (int)val.toPrimitive();
@@ -1680,10 +1704,10 @@ hbp.dumpState();
      * value depending on the underlying platform.
      *
      * @param val     the offset to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%O"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%O\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printOffset(Offset val) {
         int i1 = (int)(val.toPrimitive() >> 32);
         int i2 = (int)val.toPrimitive();
@@ -1694,10 +1718,10 @@ hbp.dumpState();
      * Prints a string to the VM stream.
      *
      * @param str     the string to print
-     *
-     * @vm2c code( printJavaString(str, streams[currentStream], null, 0);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="printJavaString(str, streams[currentStream], null, 0); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     static void printString(String str) {
         executeCIO(-1, ChannelConstants.INTERNAL_PRINTSTRING, -1, 0, 0, 0, 0, 0, 0, str, null);
     }
@@ -1730,10 +1754,10 @@ hbp.dumpState();
      * value depending on the underlying platform.
      *
      * @param val     the address to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%A"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%A\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printAddress(Object val) {
         executeCIO(-1, ChannelConstants.INTERNAL_PRINTADDRESS, -1, 0, 0, 0, 0, 0, 0, val, null);
     }
@@ -1743,10 +1767,10 @@ hbp.dumpState();
      * value depending on the underlying platform.
      *
      * @param val     the address to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%A"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%A\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printAddress(Address val) {
         printAddress(val.toObject());
     }
@@ -1755,10 +1779,10 @@ hbp.dumpState();
      * Prints the name of a global oop to the VM stream.
      *
      * @param index   the index of the variable to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], "Global oop:%d", index);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], \"Global oop:%d\", index); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     static void printGlobalOopName(int index) {
         execSyncIO(ChannelConstants.INTERNAL_PRINTGLOBALOOPNAME, index);
     }
@@ -2087,9 +2111,10 @@ hbp.dumpState();
 
     /**
      * Halts the VM because of a fatal condition.
-     *
-     * @vm2c code( fatalVMError(""); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fatalVMError(\"\");")
+/*end[JAVA5SYNTAX]*/
     public native static void fatalVMError();
     
     /**
@@ -2126,9 +2151,10 @@ hbp.dumpState();
      *
      * @return the number of backward branch instructions the VM has executed or -1 if instruction
      *         profiling is disabled
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     public native static long getBranchCount();
 
     /**
@@ -2231,9 +2257,10 @@ hbp.dumpState();
      * Gets the current time.
      *
      * @return the time in microseconds
-     *
-     * @vm2c proxy( sysTimeMicros )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="sysTimeMicros")
+/*end[JAVA5SYNTAX]*/
     public static long getTimeMicros() {
         // Must get high word first as it causes the value to be setup that will be accessed via the INTERNAL_LOW_RESULT call
         long high = execSyncIO(ChannelConstants.INTERNAL_GETTIMEMICROS_HIGH, 0);
@@ -2245,9 +2272,10 @@ hbp.dumpState();
      * Gets the current time.
      *
      * @return the time in milliseconds
-     *
-     * @vm2c proxy( sysTimeMillis )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="sysTimeMillis")
+/*end[JAVA5SYNTAX]*/
     public static long getTimeMillis() {
 /*if[!FLASH_MEMORY]*/
     	// Must get high word first as it causes the value to be setup that will be accessed via the INTERNAL_LOW_RESULT call
@@ -2365,11 +2393,16 @@ hbp.dumpState();
         }
         
         executingHooks = true;
-        
+        if (VM.isVerbose()) {
+            System.out.println("Running top-level shutdown hooks:");
+        }
         shutdownHooks.runHooks();
         // system-wide shutdown
         cleanupTaskExecutors();
 
+        if (VM.isVerbose()) {
+            System.out.println("Done running top-level shutdown hooks.");
+        }
         haltVM(code);
     }
     
@@ -2630,11 +2663,13 @@ hbp.dumpState();
      * @param      dstPos       the byte offset into dst.
      * @param      length       the number of bytes to be copied.
      * @param      nvmDst       the destination buffer is in NVM
-     *
-     * @vm2c proxy
      */
+
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     public native static void copyBytes(Address src, int srcPos, Address dst, int dstPos, int length, boolean nvmDst);
-    
+
     /**
      * Set memory region to value.
      *
@@ -2956,17 +2991,10 @@ hbp.dumpState();
      *
      * @param      start        the start address of the memory area
      * @param      end          the end address of the memory area
-     *
-     * @vm2c code( if (ASSUME || TYPEMAP) {
-     *                 while (start < end) {
-     *                     if (ASSUME) {
-     *                         *((UWord *)start) = DEADBEEF;
-     *                     }
-     *                     setType(start, AddressType_UNDEFINED, HDR_BYTES_PER_WORD);
-     *                     start = (UWord *)start + 1;
-     *                 }
-     *             } )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="if (ASSUME || TYPEMAP) { while (start < end) { if (ASSUME) { *((UWord *)start) = DEADBEEF; } setType(start, AddressType_UNDEFINED, HDR_BYTES_PER_WORD); start = (UWord *)start + 1; } }")
+/*end[JAVA5SYNTAX]*/
     native static void deadbeef(Address start, Address end);
     
     /** 
@@ -2981,8 +3009,15 @@ hbp.dumpState();
      */
     public static Object shallowCopy(Object original) {
         Klass klass = GC.getKlass(original);
-        Object copy = GC.newInstance(klass); // dst is new object
-        VM.copyBytes(Address.fromObject(original), 0, Address.fromObject(copy), 0, klass.getInstanceSize() * HDR.BYTES_PER_WORD, false);
+        Object copy;
+        if (klass.isArray()) {
+            int length = GC.getArrayLength(original);
+            copy = GC.newArray(klass, length);
+            System.arraycopy(original, 0, copy, 0, length);
+        } else {
+            copy = GC.newInstance(klass); // dst is new object
+            VM.copyBytes(Address.fromObject(original), 0, Address.fromObject(copy), 0, klass.getInstanceSize() * HDR.BYTES_PER_WORD, false);
+        }
         return copy;
     }
 
@@ -3320,13 +3355,10 @@ hbp.dumpState();
 
     /**
      * Gets the result of the last service operation.
-     *
-     * @vm2c code(
-                    int res = com_sun_squawk_ServiceOperation_result;
-                    com_sun_squawk_ServiceOperation_result = 0xDEADBEEF;
-                    return res;
-                );
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="int res = com_sun_squawk_ServiceOperation_result; com_sun_squawk_ServiceOperation_result = 0xDEADBEEF; return res;")
+/*end[JAVA5SYNTAX]*/
     private native static int serviceResult();
 
     /**
@@ -3464,26 +3496,7 @@ hbp.dumpState();
      */
     private static void raiseChannelException(int context) throws IOException {
         String name = getExceptionMessage(context);
-        Object exception = null;
-        try {
-            Class exceptionClass = Class.forName(name);
-            try {
-                exception = exceptionClass.newInstance();
-            } catch (IllegalAccessException ex1) {
-            } catch (InstantiationException ex1) {
-            }
-        } catch (ClassNotFoundException ex) {
-        }
-        if (exception != null) {
-            if (exception instanceof IOException) {
-                throw (IOException)exception;
-            } else if (exception instanceof RuntimeException) {
-                throw (RuntimeException)exception;
-            } else if (exception instanceof Error) {
-                throw (Error)exception;
-            }
-        }
-        throw new IOException(name);
+        throw new IOException("Channel Exception: " + name);
     }
 
     /**

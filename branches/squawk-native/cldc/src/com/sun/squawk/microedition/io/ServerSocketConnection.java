@@ -1,3 +1,4 @@
+/*if[FALSE]*/
 /*
  *   
  *
@@ -29,10 +30,6 @@ package com.sun.squawk.microedition.io;
 import javax.microedition.io.*;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 
 /**
  * This interface defines the server socket stream connection.
@@ -60,28 +57,22 @@ import java.io.DataOutputStream;
  * each new <code>SocketConnection</code>.
  * </P>
  * <P>
- * A server socket can be used to dynamically select an
- * available port by omitting both the host and the port
- * parameters in the connection URL string.
- * For example, <code>socket://</code> 
- * defines an inbound server socket on a port which is allocated 
- * by the system.
- * To discover the assigned port number use the 
- * <code>getLocalPort</code> method.
+ * A server socket can be used to dynamically select an available port by
+ * omitting both the host and the port parameters in the connection URL string.
+ * For example, <code>socket://</code> defines an inbound server socket on a 
+ * port which is allocated by the system. To discover the assigned port number
+ * use the <code>getLocalPort</code> method.
  * </P> 
- * <H2>
- * BNF Format for Connector.open() string
- * </H2>
+ * <H2>BNF Format for Connector.open() string </H2>
  * <P>
- * The URI must conform to the BNF syntax specified below.  If the URI
- * does not conform to this syntax, an <code>IllegalArgumentException</code>
- * is thrown.
+ * The URI must conform to the BNF syntax specified below.  If the URI does not
+ * conform to this syntax, an <code>IllegalArgumentException</code> is thrown.
  * </P>
  * <TABLE BORDER="1">
  * <TR>
  * <TD>&lt;socket_connection_string&gt; </TD>
- * <TD>::= "<strong>socket://</strong>" | 
- *          "<strong>socket://</strong>"&lt;hostport&gt; </TD>
+ * <TD>::= "<strong>socket://</strong>" | "<strong>socket://</strong>"&lt;hostport&gt;
+ * </TD>
  * </TR>
  * <TR>
  * <TD>&lt;hostport&gt; </TD>
@@ -89,21 +80,18 @@ import java.io.DataOutputStream;
  * </TR>
  * <TR>
  * <TD>&lt;host&gt; </TD>
- * <TD>::= omitted for inbound connections, 
- * See <a href="SocketConnection.html">SocketConnection</a>
- * </TD>
+ * <TD>::= omitted for inbound connections, See <a
+ * href="SocketConnection.html">SocketConnection</a></TD>
  * </TR>
  * <TR>
  * <TD>&lt;port&gt; </TD>
  * <TD>::= <I>numeric port number </I>(omitted for system assigned port) </TD>
  * </TR>
  * </TABLE>
- * <H2>
- * Examples
- * </H2>
+ * <H2> Examples </H2>
  * <P>
- * The following examples show how a <code>ServerSocketConnection</code>
- * would be used to access a sample loopback program.
+ * The following examples show how a <code>ServerSocketConnection</code> would
+ * be used to access a sample loopback program.
  * </P>
  * <PRE>
  *   // Create the server listening socket for port 1234 
@@ -140,34 +128,34 @@ import java.io.DataOutputStream;
  *   ..
  * </PRE>
  */
-public interface ServerSocketConnection
-    extends  StreamConnectionNotifier {
-
-    /**
-     * Gets the local address to which the socket is bound.
-     *
-     * <P>The host address(IP number) that can be used to connect to this
-     * end of the socket connection from an external system. 
-     * Since IP addresses may be dynamically assigned, a remote application
-     * will need to be robust in the face of IP number reassignment.</P>
-     * <P> The local hostname (if available) can be accessed from 
-     * <code> System.getProperty("microedition.hostname")</code>
-     * </P>
-     *
-     * @return the local address to which the socket is bound.
-     * @exception  IOException  if the connection was closed
-     * @see SocketConnection
-     */
-    public  String getLocalAddress() throws IOException;
-
-    /**
-     * Returns the local port to which this socket is bound.
-     *
-     * @return the local port number to which this socket is connected.
-     * @exception  IOException  if the connection was closed
-     * @see SocketConnection
-     */
-    public  int  getLocalPort() throws IOException;
-
-
-}
+//public interface ServerSocketConnection extends  StreamConnectionNotifier {
+//
+//    /**
+//     * Gets the local address to which the socket is bound.
+//     *
+//     * <P>The host address(IP number) that can be used to connect to this
+//     * end of the socket connection from an external system.
+//     * Since IP addresses may be dynamically assigned, a remote application
+//     * will need to be robust in the face of IP number reassignment.</P>
+//     * <P> The local hostname (if available) can be accessed from
+//     * <code> System.getProperty("microedition.hostname")</code>
+//     * </P>
+//     *
+//     * @return the local address to which the socket is bound.
+//     * @exception  IOException  if the connection was closed
+//     * @see SocketConnection
+//     */
+//    public  String getLocalAddress() throws IOException;
+//
+//    /**
+//     * Returns the local port to which this socket is bound.
+//     *
+//     * @return the local port number to which this socket is connected.
+//     * @exception  IOException  if the connection was closed
+//     * @see SocketConnection
+//     */
+//    public  int  getLocalPort() throws IOException;
+//
+//
+//}
+/*end[FALSE]*/

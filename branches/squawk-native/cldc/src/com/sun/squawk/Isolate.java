@@ -33,8 +33,6 @@ import com.sun.squawk.io.mailboxes.Mailbox;
 import com.sun.squawk.io.mailboxes.MailboxAddress;
 import com.sun.squawk.pragma.*;
 import com.sun.squawk.util.*;
-import com.sun.squawk.util.SquawkVector;
-import com.sun.squawk.util.SquawkHashtable;
 import com.sun.squawk.vm.*;
 
 /************************************ WARNING: THIS CLASS CAN'T REQUIRE A STATIC INITIALIZER! ***********************************************/
@@ -48,7 +46,8 @@ import com.sun.squawk.vm.*;
  *
  * <pre>
  *  // The creating isolate
- *  Isolate i = new Isolate("org.example.App", "test", null, Isolate.currentIsolate().getParentSuiteSourceURI());
+ *  String[] args = {"test"};
+ *  Isolate i = new Isolate("org.example.App", args, null, Isolate.currentIsolate().getParentSuiteSourceURI());
  *  i.start();
  *  i.join(); // wait for child isolate to finish
  *  System.out.println("Child isolate returned with exit code: " + i.getExitCode());
@@ -65,7 +64,7 @@ import com.sun.squawk.vm.*;
  *</pre>
  *
  * Note that the last two arguments to the constructor are a classpath, and a URI, which specify where the isolate's main class can be found. The classpath is used when Squawk is
- * configured with a class {@link TranslatorInterface}, while the URI specifies the {@link Suite} which contains the translated class file org.example.App. In this example code
+ * configured to translate classes to the Squawk suite format dynamically, while the URI specifies the suite which contains the translated class file org.example.App. In this example code
  * we specified that the child isolate will use the same suite as the parent Isolate.<p>
  *
  * <h3>Hibernation</h3>
@@ -587,9 +586,10 @@ public final class Isolate implements Runnable {
      * Get the name of the main class.
      *
      * @return the name
-     *
-     * @vm2c code( return com_sun_squawk_Isolate_mainClassName(this); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="return com_sun_squawk_Isolate_mainClassName(this);")
+/*end[JAVA5SYNTAX]*/
     public String getMainClassName() {
         return copyIfCurrentThreadIsExternal(mainClassName);
     }
@@ -730,7 +730,7 @@ public final class Isolate implements Runnable {
 
     /**
      * Adds a named property to this isolate. These properties are included in the
-     * look up performed by {@link System#getProperty(String)}.
+     * look up performed by {@link System#getProperty}.
      *
      * @param key    the name of the property
      * @param value  the value of the property or null to remove the property
@@ -754,7 +754,7 @@ public final class Isolate implements Runnable {
      * <p>
      * Isolate properties include those passed into the isolate's constructor,
      * properties inhertited from the squawk command line, and properties set
-     * by {@link Isolate#setProperty()}.
+     * by {@link Isolate#setProperty}.
      *
      * @param key  the name of the property to get
      * @return the value of the property named by 'key' or null if there is no such property
@@ -796,7 +796,7 @@ public final class Isolate implements Runnable {
      * <p>
      * Isolate properties include those passed into the isolate's constructor,
      * properties inhertited from the squawk command line, and properties set
-     * by {@link Isolate#setProperty()}.
+     * by {@link Isolate#setProperty}.
      *
      * @return enumeration of property keys
      */
@@ -1245,31 +1245,29 @@ public final class Isolate implements Runnable {
      * @see #intern
      */
     private String intern0(String value) {
-        String internedString = lookupInterned(value);
-        if (internedString == null) {
-            internedStrings.put(value, value);
-            internedString = value;
+        if (value == null) {
+            return null;
         }
-        return internedString;
-    }
-
-    /**
-     * Returns a previously interened version for the string object, or null.
-     *
-     * @param value a string to lookup
-     * @return  a previously interned string that has the same contents as this string, or null
-     *
-     * @see #lookupInterned
-     */
-    private String lookupInterned0(String value) {
         Assert.that(VM.isHosted() || (this == VM.getCurrentIsolate() && this.isAlive()));
+        if (!GC.inRam(value)) {
+            return value;
+        }
         if (internedStrings == null) {
             internedStrings = new SquawkHashtable();
-            if (!VM.isHosted()) {
-                GC.getStrings(internedStrings); // depends on current isolate
-            }
         }
-        return (String)internedStrings.get(value);
+        String internedString = (String) internedStrings.get(value);
+        if (internedString == null) {
+            if (!VM.isHosted()) {
+                internedString = GC.findInRomString(value); // depends on current isolate
+            }
+            if (internedString == null) {
+                internedString = value;
+            } else {
+                value = internedString;
+            }
+            internedStrings.put(internedString, internedString);
+        }
+        return internedString;
     }
 
     /**
@@ -1300,34 +1298,6 @@ public final class Isolate implements Runnable {
     public static String intern(String value) {
         return VM.getCurrentIsolate().intern0(value);
     }
-
-    /**
-     * Returns a previously interened version for the string object, or null.
-     * <p>
-     * A pool of strings, initially empty, is maintained privately by the
-     * class <code>Isolate</code>.
-     * <p>
-     * When the lookupInterned method is invoked, if the pool already contains a
-     * string equal to this <code>String</code> object as determined by
-     * the {@link #equals(Object)} method, then the string from the pool is
-     * returned. Otherwise, return null.
-     * <p>
-     * It follows that for any two strings <code>s</code> and <code>t</code>,
-     * <code>s.intern() == t.intern()</code> is <code>true</code>
-     * if and only if <code>s.equals(t)</code> is <code>true</code>.
-     * <p>
-     * All literal strings and string-valued constant expressions are
-     * interned. String literals are defined in &sect;3.10.5 of the
-     * <a href="http://java.sun.com/docs/books/jls/html/">Java Language
-     * Specification</a>
-     *
-     * @param value a string to lookup
-     * @return  a previously interned string that has the same contents as this string, or null
-     */
-    public static String lookupInterned(String value) {
-        return VM.getCurrentIsolate().lookupInterned0(value);
-    }
-
 
     /*---------------------------------------------------------------------------*\
      *                            Isolate Execution                              *
@@ -2281,6 +2251,7 @@ public final class Isolate implements Runnable {
      * IO exceptions are caught and might be printed.
      *
      * @param url     the URL identifying the connection to be removed
+     * @throws IllegalArgumentException if <code>url</code> does not name a current out stream
      *
      * @see #listOut
      * @see #addOut
@@ -2288,6 +2259,9 @@ public final class Isolate implements Runnable {
      */
     public void removeOut(String url) {
         OutputStream oldstrm = stdout.remove(url);
+        if (oldstrm == null) {
+            throw new IllegalArgumentException("no stream named: " + url);
+        }
         try {
             oldstrm.flush();
             oldstrm.close();
@@ -2302,14 +2276,18 @@ public final class Isolate implements Runnable {
      * IO exceptions are caught and might be printed.
      *
      * @param url     the URL identifying the connection to be removed
+     * @throws IllegalArgumentException if <code>url</code> does not name a current error stream
      *
      * @see #listErr
      * @see #addErr
      * @see #clearErr
      */
     public void removeErr(String url) {
-       OutputStream oldstrm = stderr.remove(url);
-       try {
+        OutputStream oldstrm = stderr.remove(url);
+        if (oldstrm == null) {
+            throw new IllegalArgumentException("no stream named: " + url);
+        }
+        try {
             oldstrm.flush();
             oldstrm.close();
         } catch (IOException ex) {
@@ -2526,157 +2504,6 @@ public final class Isolate implements Runnable {
         // will threads wake up still waiting for messages? And what about re-registering the
         // Mailbox?
     }
-
-/*if[TRUE]*/
-/*else[TRUE]*/
-//
-//    // Notes from Doug: This is still a work in progress and depending on resources/requirements, may
-//    // take quite some time for extra thought/design/implementation. My main concern with what exists
-//    // so far is that we are introducing more inter-isolate pointers which have not-yet-thought-out
-//    // implications for isolate hibernation & migration.
-//    //
-//    // In the long run, I think an implementation closer to that of MVM will be required to make
-//    // reasoning and robustness of true isolation better. That implementation does not have
-//    // inter-isolate pointers (within Java code & data structures at least) and instead employs
-//    // the concept of 'task IDs' and 'link IDs' to refer to objects not owned by the current
-//    // isolate.
-//
-//    /*---------------------------------------------------------------------------*\
-//     *                            Inter-isolate messages                         *
-//    \*---------------------------------------------------------------------------*/
-//
-//    /**
-//     * A FIFO queue for the inbox of an isolate. This implementation is derived
-//     * the standard J2SE java.util.LinkedList class.
-//     */
-//    static final class ParcelQueue {
-//
-//        Entry header = new Entry(null, null, null);
-//        int size = 0;
-//
-//        public ParcelQueue() {
-//            header.next = header.previous = header;
-//        }
-//
-//        public Parcel removeLast() {
-//            return remove(header.previous);
-//        }
-//
-//        public void addFirst(Parcel parcel) {
-//            addBefore(parcel, header.next);
-//        }
-//
-//        /**
-//         * Removes all of the elements from this list.
-//        public void clear() {
-//            Entry e = header.next;
-//            while (e != header) {
-//                Entry next = e.next;
-//                e.next = e.previous = null;
-//                e.element = null;
-//                e = next;
-//            }
-//            header.next = header.previous = header;
-//            size = 0;
-//        }
-//        */
-//
-//        static class Entry {
-//            Parcel parcel;
-//            Entry next;
-//            Entry previous;
-//
-//            Entry(Parcel parcel, Entry next, Entry previous) {
-//                this.parcel = parcel;
-//                this.next = next;
-//                this.previous = previous;
-//            }
-//        }
-//
-//        private Entry addBefore(Parcel parcel, Entry e) {
-//            Entry newEntry = new Entry(parcel, e, e.previous);
-//            newEntry.previous.next = newEntry;
-//            newEntry.next.previous = newEntry;
-//            size++;
-//            return newEntry;
-//        }
-//
-//        private Parcel remove(Entry e) {
-//            Assert.that(e != header, "can remove element from empty queue");
-//            Parcel result = e.parcel;
-//            e.previous.next = e.next;
-//            e.next.previous = e.previous;
-//            e.next = e.previous = null;
-//            e.parcel = null;
-//            size--;
-//            return result;
-//        }
-//    }
-//
-//    private final ParcelQueue messageInbox = new ParcelQueue();
-//
-//    public static class Message {
-//        Message copy() {
-//            return null;
-//        }
-//    }
-//
-//    /**
-//     * A <code>Parcel</code> encapsulates a {@link Message} posted to an isolate
-//     * and contains a reference to the sending isolate.
-//     */
-//    public final static class Parcel {
-//        public final Message message;
-//        public final Isolate sender;
-//        Parcel(Message message, Isolate sender) {
-//            this.message = message;
-//            this.sender = sender;
-//        }
-//    }
-//
-//    public static void sendMessage(Isolate to, Message message) {
-//        if (to == null || message == null) {
-//            throw new NullPointerException();
-//        }
-//        synchronized (message) {
-//            synchronized (to.messageInbox) {
-//                to.messageInbox.addFirst(new Parcel(message.copy(), VM.getCurrentIsolate()));
-//
-//                // notify any thread (in the receiving isolate) that another
-//                // message has been deposited in its inbox
-//
-//                to.messageInbox.notifyAll();
-//            }
-//        }
-//    }
-//
-//    /**
-//     * Retrieves the next available message sent to this isolate, blocking until
-//     * a message is available. Once a message has been retrieved, it is removed from
-//     * the receiving isolate's <i>inbox</i>.
-//     *
-//     * @param from  if not <code>null</code>, only a message sent by <code>from</code>
-//     *              will be returned
-//     * @return the retrieved message
-//     */
-//    public static Parcel receiveMessage(Isolate from) {
-//        Isolate current = VM.getCurrentIsolate();
-//        ParcelQueue inbox = current.messageInbox;
-//        synchronized (inbox) {
-//            while (inbox.size == 0) {
-//                if (!current.isAlive()) {
-//                    // throw something???
-//                }
-//                try {
-//                    inbox.wait();
-//                } catch (InterruptedException e) {
-//                }
-//            }
-//
-//        }
-//        return null;
-//    }
-/*end[TRUE]*/
 
     /*---------------------------------------------------------------------------*\
      *                            Debugger Support                               *
