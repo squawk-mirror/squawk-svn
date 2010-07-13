@@ -57,9 +57,10 @@ PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.file.*
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.socket.*
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.j2me.serversocket.*
 # Currently the platform classes are only used by PLATFORM_TYPE=NATIVE, but that may change...
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.GCFFile
+PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.GCFSockets
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.BaseFileHandler
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.posix.*
-PLATFORM_TYPE!=NATIVE                          com.sun.squawk.platform.callouts.*
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.microedition.io.*
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.ConnectionBaseInterface
 PLATFORM_TYPE!=NATIVE                          com.sun.squawk.io.ConnectionBaseAdapter
@@ -82,10 +83,20 @@ PLATFORM_TYPE!=NATIVE                           com.sun.squawk.platform.windows.
 FLASH_MEMORY=false                             com.sun.squawk.io.j2me.spotsuite.*
 
 
+###############################################
+# Other Property-dependant classes
+###############################################
+VERIFY_SIGNATURES=false                         com.sun.squawk.security.verifier.*
+
+###############################################
+# Obsolete properties?
+###############################################
+RESOURCE.CONNECTION=false                      com.sun.squawk.io.connections.ClasspathConnection
 
 ###############################################
 # Classes on the way out. No known users:
 ###############################################
 com.sun.cldc.io.connections.HttpConnection
 com.sun.squawk.ClassTunnel
+
 

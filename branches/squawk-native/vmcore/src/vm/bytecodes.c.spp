@@ -844,6 +844,27 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
 //    
 //    return val;
 //}
+//static int MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int p, int b0) {
+//    int offset;
+//    offset = 3;
+//    if ((b0 & 1) != 0) {
+//        offset++;
+//    }
+//    if ((b0 & 2) != 0) {
+//        offset++;
+//    }
+//    if ((b0 & 4) != 0) {
+//        offset++;
+//    }
+//    while (offset-- > 0) {
+//        int val;
+//        val = NativeUnsafe_getUByte_LI(oop, p--);
+//        if (val > 127) {
+//            p--;
+//        }
+//    }
+//    return p + 1;
+//}
 /*end[VM2C]*/
 
         /**
@@ -955,26 +976,10 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
             int p = HDR_methodInfoStart;
             int b0 = getUByte($mp, p--);
             if (b0 < 128) {
-                p--;
+                return p;
             } else {
-                int offset = 3;
-                if ((b0 & com_sun_squawk_MethodBody_FMT_E) != 0) {
-                    offset++;
-                }
-                if ((b0 & com_sun_squawk_MethodBody_FMT_R) != 0) {
-                    offset++;
-                }
-                if ((b0 & com_sun_squawk_MethodBody_FMT_T) != 0) {
-                    offset++;
-                }
-                while(offset-- > 0) {
-                    int val = getUByte($mp, p--);
-                    if (val > 127) {
-                        p--;
-                    }
-                }
+                return MethodBody_getOffsetToLastMinfoByte0_LII($mp, p, b0);
             }
-            return p + 1;
         }
 
 #ifdef _MSC_VER
@@ -3204,7 +3209,12 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
                     }
                 }
                 klass = com_sun_squawk_Klass_superType(klass);
-                assume(klass != null);
+                if (klass == null) {
+                    /* this can occur if malicious bytecode takes advantage of "interface type erasure" in the preverifier,
+                     * so the object doesn't actually implement the expected interface. The runtime has to check this case
+                     */
+                    return -1;
+                }
             }
 foundSlot:
            return slot;
@@ -3226,13 +3236,20 @@ foundSlot:
 
             nullCheck(oop);
             slot = do_findslot0(oop, interfaceKlass, iparm);
-            pushInt(slot);
+            if (likely(slot >= 0)) {
+                pushInt(slot);
+            } else {
+                pushAddress(oop);
+                pushAddress(interfaceKlass);
+                pushInt(iparm);
+                call(com_sun_squawk_VM_findSlot); /* will throw error for us */
+            }
 /*else[FAST_INVOKEINTERFACE]*/
-//          Address cls = popAddress();
+//          Address interfaceKlass = popAddress();
 //          Address oop = popAddress();
 //          nullCheck(oop);
 //          pushAddress(oop);
-//          pushAddress(cls);
+//          pushAddress(interfaceKlass);
 //          pushInt(iparm);
 //          call(com_sun_squawk_VM_findSlot);
 /*end[FAST_INVOKEINTERFACE]*/

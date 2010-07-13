@@ -941,7 +941,7 @@ INLINE_UNALIGNED void setUnalignedLong(Address base, Offset offset, jlong value)
          */
 INLINE_UNALIGNED int getUnalignedShort(Address base, Offset offset) {
             signed char *ea = &((signed char *)base)[offset];
-            if (PLATFORM_UNALIGNED_LOADS || isAligned((UWord)ea, 2)) {
+            if (PLATFORM_UNALIGNED_LOADS) {
                  return getShortTyped(ea, 0, AddressType_ANY);
             } else {
                 if (PLATFORM_BIG_ENDIAN) {
@@ -965,7 +965,7 @@ INLINE_UNALIGNED int getUnalignedShort(Address base, Offset offset) {
          */
 INLINE_UNALIGNED int getUnalignedInt(Address base, Offset offset) {
             signed char *ea = &((signed char *)base)[offset];
-            if (PLATFORM_UNALIGNED_LOADS || isAligned((UWord)ea, 4)) {
+            if (PLATFORM_UNALIGNED_LOADS) {
                 return getIntTyped(ea, 0, AddressType_ANY);
             } else {
                 int b1 = getUByteTyped(ea, 0, AddressType_ANY);

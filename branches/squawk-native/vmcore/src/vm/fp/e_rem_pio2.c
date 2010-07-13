@@ -28,7 +28,7 @@
  * use __kernel_rem_pio2()
  */
 
-#include "platform.h"
+#include "../platform.h"
 #include "global.h"
 
 /*

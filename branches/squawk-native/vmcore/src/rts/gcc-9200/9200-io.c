@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This code is free software; you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include "i2c.h"
 #include "flash.h"
 #include "avr.h"
+#include "system.h"
 #include "9200-io.h"
 
 // Forward declarations
@@ -70,7 +71,7 @@ static void doDeepSleep(long long targetMillis, int remain_powered) {
 	} else {
     	unsigned int statusReturnedFromDeepSleep = deepSleep(millisecondsToWait);
 	    lowLevelSetup(); //need to repeat low-level setup after a restart
-    	avrSetOutstandingStatus(statusReturnedFromDeepSleep);
+    	avrSetOutstandingEvents(statusReturnedFromDeepSleep);
 	}
 }
 
@@ -144,14 +145,14 @@ void osMilliSleep(long long millisecondsToWait) {
         target = 0x7FFFFFFFFFFFFFFFLL; // overflow detected
     }
 //  diagnosticWithValue("GLOBAL_WAITFOREVENT - deepSleepEnabled", deepSleepEnabled);
-//  diagnosticWithValue("GLOBAL_WAITFOREVENT - sleepManagerRunning", sleepManagerRunning);
-//  diagnosticWithValue("GLOBAL_WAITFOREVENT - minimumDeepSleepMillis", minimumDeepSleepMillis);
+//	diagnosticWithValue("GLOBAL_WAITFOREVENT - sleepManagerRunning", sleepManagerRunning);
+//	diagnosticWithValue("GLOBAL_WAITFOREVENT - minimumDeepSleepMillis", minimumDeepSleepMillis);
     if ((millisecondsToWait < 0x7FFFFFFFFFFFFFFFLL) && deepSleepEnabled && !sleepManagerRunning && (millisecondsToWait >= minimumDeepSleepMillis)) {
-//     diagnosticWithValue("GLOBAL_WAITFOREVENT - deep sleeping for", (int)millisecondsToWait);
-       setDeepSleepEventOutstanding(target);
+//	    diagnosticWithValue("GLOBAL_WAITFOREVENT - deep sleeping for", (int)millisecondsToWait);
+        setDeepSleepEventOutstanding(target);
     } else {
-//     diagnosticWithValue("GLOBAL_WAITFOREVENT - shallow sleeping for", (int)millisecondsToWait);
-       doShallowSleep(target);
+//	    diagnosticWithValue("GLOBAL_WAITFOREVENT - shallow sleeping for", (int)millisecondsToWait);
+        doShallowSleep(target);
     }
 }
 
@@ -160,7 +161,7 @@ void osMilliSleep(long long millisecondsToWait) {
  ******************************************************************/
 #define WAIT_FOR_DEEP_SLEEP_EVENT_NUMBER (DEVICE_LAST+1)
 #define FIRST_IRQ_EVENT_NUMBER (WAIT_FOR_DEEP_SLEEP_EVENT_NUMBER+1)
-int serialPortInUse[] = {0,0,0};
+int serialPortInUse[] = {0,0,0,0,0,0};
 
 /* Java has requested serial chars */
 int getSerialPortEvent(int device_type) {
@@ -188,8 +189,12 @@ unsigned int java_irq_status = 0; // bit set = that irq has outstanding interrup
 
 void usb_state_change()	{
 	int cpsr = disableARMInterrupts();
+#if AT91SAM9G20
+	java_irq_status |= (1<<10); // USB Device ID
+#else
 	java_irq_status |= (1<<11); // USB Device ID
-	setARMInterruptBits(cpsr);
+#endif
+    setARMInterruptBits(cpsr);
 }
 
 IrqRequest *irqRequests;
@@ -200,6 +205,9 @@ void setup_java_interrupts() {
 	// This routine is called from os.c
 	// NB interrupt handler coded in java-irq-hndl.s
 	unsigned int id;
+#if AT91SAM9G20
+    diagnosticWithValue("initial val of irqRequests", (int)irqRequests);
+#endif
 	for (id = 0; id <= 31; id++) {
 		if (!((1 << id) & RESERVED_PERIPHERALS)) {
 			at91_irq_setup (id, &java_irq_hndl);
@@ -223,7 +231,10 @@ int storeIrqRequest (int irq_mask) {
 
         newRequest->next = NULL;
         newRequest->irq_mask = irq_mask;
-
+#if AT91SAM9G20
+    diagnosticWithValue("storeIrqRequest  - irqRequests", (int)irqRequests);
+    diagnosticWithValue("storeIrqRequest  - newRequest", (int)newRequest);
+#endif
         if (irqRequests == NULL) {
         	irqRequests = newRequest;
         	newRequest->eventNumber = FIRST_IRQ_EVENT_NUMBER;
@@ -488,6 +499,12 @@ int avr_low_result = 0;
             // rx data in receive
             spi_sendAndReceiveWithDeviceSelect(i1, i2, i3, i4, i5, i6, send, receive);
             break;
+        case ChannelConstants_SPI_PULSE_WITH_DEVICE_SELECT:
+            // CE pin in i1
+            // device address in i2
+            // pulse duration in i3
+            spi_pulseWithDeviceSelect(i1, i2, i3);
+            break;
         case ChannelConstants_SPI_GET_MAX_TRANSFER_SIZE:
             res = SPI_DMA_BUFFER_SIZE;
             break;
@@ -529,7 +546,11 @@ int avr_low_result = 0;
             res = i2c_probe(i1, i2);
             break;
 
-    	case ChannelConstants_FLASH_ERASE:
+        case ChannelConstants_GET_HARDWARE_REVISION:
+        	res = get_hardware_revision();
+    		break;
+
+        case ChannelConstants_FLASH_ERASE:
             data_cache_disable();
             res = flash_erase_sector((Flash_ptr)i2);
             data_cache_enable();
@@ -658,7 +679,7 @@ int avr_low_result = 0;
         	break;
         	
         case ChannelConstants_AVR_GET_STATUS:
-        	res = avrGetOutstandingStatus();
+        	res = avrGetOutstandingEvents();
         	break;
         	
         case ChannelConstants_SET_DEEP_SLEEP_ENABLED:

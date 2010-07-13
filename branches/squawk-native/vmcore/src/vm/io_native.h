@@ -39,6 +39,7 @@ extern "C" {
 #include <sys/times.h>
 #endif
 
+#if (PLATFORM_TYPE_BARE_METAL == 0)
 /*---------------------------------------------------------------------------*\
  *                                Time Conversions                           *
 \*---------------------------------------------------------------------------*/
@@ -103,6 +104,7 @@ INLINE void addTimeSpec(struct timespec* ts_accum, struct timespec* ts_extra) {
 };
 #endif
 
+#endif /* !PLATFORM_TYPE_BARE_METAL*/
 /*---------------------------------------------------------------------------*\
  *                                  EventRequest                             *
 \*---------------------------------------------------------------------------*/

@@ -611,14 +611,6 @@ void deleteNativeTask(NativeTask* ntask) {
     free(ntask);
 }
 
-/**
- * for timing purposes
- */
-void squawk_dummy_func() {
-
-}
-
-
 /*---------------------------- IO Impl ----------------------------*/
 /* void ms2TimeVal(long long ms, struct timeval* tv)
  long long timeVal2ms(struct timeval* tv)
@@ -629,6 +621,8 @@ void squawk_dummy_func() {
  void addTimeVal(struct timeval* tv_accum, struct timeval* tv_extra) ;
  void addTimeSpec(struct timespec* ts_accum, struct timespec* ts_extra);
  */
+
+int ioInitialized = FALSE;
 
 /**
  * Initializes the IO subsystem.
@@ -678,6 +672,7 @@ void IO_initialize() {
 #endif
 
     initSelectPipe();
+    ioInitialized = TRUE;
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "Done IO_initialize\n"); }
 }
 
@@ -686,6 +681,9 @@ void IO_initialize() {
  */
 void IO_shutdown() {
     io_shutting_down = TRUE;
+    if (!ioInitialized) {
+        return;
+    }
     if (DEBUG_EVENTS_LEVEL) { fprintf(stderr, "In IO_shutdown\n"); }
     cleanupSelectPipe();
 
@@ -753,15 +751,22 @@ void testIntStar2(int *outparam) {
     *outparam = 73;
 }
 
+/**
+ * for timing purposes
+ */
+void squawk_dummy_func() {
+
+}
+
 /* INTERNAL DYNAMIC SYMBOL SUPPORT */
 typedef struct dlentryStruct {
     const char* name;
     void* entry;
 } dlentry;
 
-#define DL_TABLE_SIZE 9
+#define DL_TABLE_SIZE 11
 
-static dlentry dltable[DL_TABLE_SIZE] = {
+static dlentry dltable[] = {
     {"sysFD_SIZE",      &sysFD_SIZE},
     {"sysSIZEOFSTAT",   &sysSIZEOFSTAT},
     {"sysFD_CLR",       &sysFD_CLR},
@@ -769,8 +774,11 @@ static dlentry dltable[DL_TABLE_SIZE] = {
     {"sysFD_ISSET",     &sysFD_ISSET},
     {"com_sun_squawk_platform_posix_callouts_Libc_Stat_layout", (void*)&com_sun_squawk_platform_posix_callouts_Libc_Stat_layout},
     {"_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout", (void*)&_com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout},
+    {"squawk_select",   &squawk_select},
+    {"cancel_squawk_select", &cancel_squawk_select},
+    {"squawk_dummy_func", &squawk_dummy_func},
     {"testIntStar1",    &testIntStar1},
-    {"testIntStar2",    &testIntStar2}
+    {"testIntStar2",    &testIntStar2},
 };
     
 #ifndef USE_CUSTOM_DL_CODE
