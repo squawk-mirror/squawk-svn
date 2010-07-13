@@ -118,15 +118,15 @@ public class MscCompiler extends CCompiler {
             for (int i = 0; i < envvars.length; i++) {
                 toolsDirectory = getDirFromEnv(envvars[i]);
                 if (toolsDirectory != null) {
-                    break;
-                }
+                        break;
+                    }
             }
            
             if (toolsDirectory == null) {
             	toolsDirectory = "";
             }
             try {
-                String command = "\"" + toolsDirectory + "vsvars32.bat\" && " + clCommandString;
+                String command = "cmd /C \"\"" + toolsDirectory + "vsvars32.bat\" && " + clCommandString + "\"";
             	env.log(env.verbose, "Trying to find compiler command with: " + command);
                 // Try the command to see if it works, if it does work then we want to use it
                 Runtime.getRuntime().exec(command);

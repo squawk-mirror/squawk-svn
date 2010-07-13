@@ -32,16 +32,21 @@ import com.sun.squawk.builder.*;
  * The interface to the GCC compiler on Mac OS X.
  */
 public class GccMacOSXCompiler extends GccCompiler {
+	public static final String RTS_INCLUDE_NAME = "gcc-macosx";
 
     public GccMacOSXCompiler(Build env, Platform platform) {
-        super("gcc-macosx", env, platform);
+        this(RTS_INCLUDE_NAME, env, platform);
     }
 
+    protected GccMacOSXCompiler(String name, Build env, Platform platform) {
+        super(name, env, platform);
+    }
+    
     /**
      * {@inheritDoc}
      */
     public String getLinkSuffix() {
-        String suffix = " " + get64BitOption() + " -framework CoreFoundation";
+        String suffix = " " + get64BitOption() + " -framework CoreFoundation -dead-strip " + getArchOptions() + " ";
         if (options.isPlatformType(Options.DELEGATING)) {
             suffix = suffix + " -framework JavaVM";
         }
@@ -60,6 +65,19 @@ public class GccMacOSXCompiler extends GccCompiler {
      */
     public String getArchitecture() {
         return "PPC";
+    }
+
+    public String getArchOptions() {
+        return "-arch ppc ";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String options(boolean disableOpts) {
+        String result = super.options(disableOpts);
+        result += getArchOptions() + "-mdynamic-no-pic -fvisibility=hidden ";
+        return result;
     }
 
 }

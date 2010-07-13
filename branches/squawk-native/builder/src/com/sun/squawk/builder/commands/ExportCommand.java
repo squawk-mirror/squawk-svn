@@ -34,7 +34,7 @@ import java.util.zip.ZipEntry;
 import java.util.regex.*;
 
 /**
- * This is the command that produces a jar file of all the Squawk3G files under CVS control.
+ * This is the command that produces a jar file of all the Squawk files under CVS control.
  *
  */
 public class ExportCommand extends Command {
@@ -47,7 +47,7 @@ public class ExportCommand extends Command {
     /**
      * The set of excluded files.
      */
-    private Set excluded;
+    private Set<String> excluded;
 
     public ExportCommand(Build env) {
         super(env, "export");
@@ -57,7 +57,7 @@ public class ExportCommand extends Command {
      * {@inheritDoc}
      */
     public String getDescription() {
-        return "exports the Squawk3G CVS controlled distribution to a jar file";
+        return "exports the Squawk CVS controlled distribution to a jar file";
     }
 
     /**
@@ -90,7 +90,7 @@ public class ExportCommand extends Command {
      * @param path   the path of the file to be processed
      * @throws BuildException if <code>path</code> cannot be opened or there is an IO error while reading it
      */
-    private void processFileList(Set files, String listFile) {
+    private void processFileList(Set<String> files, String listFile) {
         try {
             File file = new File(listFile);
             char[] input = new char[ (int) file.length()];
@@ -120,8 +120,8 @@ public class ExportCommand extends Command {
         try {
             Pattern pattern = Pattern.compile("([^/]?)/([^/]*)/[^/]*/[^/]*/([^/]*)/[^/]*");
 
-            List nonBinary = new ArrayList();
-            List binary = new ArrayList();
+            List<String> nonBinary = new ArrayList<String>();
+            List<String> binary = new ArrayList<String>();
 
             BufferedReader br = new BufferedReader(new FileReader(entries));
             String entry = br.readLine();
@@ -145,8 +145,8 @@ public class ExportCommand extends Command {
             br.close();
 
             String[][] lists = new String[][] {
-                   (String[]) nonBinary.toArray(new String[nonBinary.size()]),
-                   (String[]) binary.toArray(new String[binary.size()])
+                   nonBinary.toArray(new String[nonBinary.size()]),
+                   binary.toArray(new String[binary.size()])
             };
 
             return lists;
@@ -170,12 +170,11 @@ public class ExportCommand extends Command {
     /**
      * Determines if a given file is to be excluded from the distribution.
      *
-     * @param relativePath  the path of the file to test relative to the Squawk3G base dir
+     * @param relativePath  the path of the file to test relative to the Squawk base dir
      * @return  true if the file is to be excluded
      */
     private boolean isExcluded(String relativePath) {
-        for (Iterator iterator = excluded.iterator(); iterator.hasNext();) {
-            String prefix = (String)iterator.next();
+        for (String prefix: excluded) {
             if (relativePath.startsWith(prefix)) {
                 return true;
             }
@@ -205,7 +204,7 @@ public class ExportCommand extends Command {
                 continue;
             }
 
-            String entryName = "Squawk3G/" + relativePath;
+            String entryName = "Squawk/" + relativePath;
             ZipEntry e = new ZipEntry(entryName);
             e.setTime(file.lastModified());
             if (file.length() == 0) {
@@ -250,7 +249,7 @@ public class ExportCommand extends Command {
     public void run(String[] args) {
 
         String oldLineSeparator = System.getProperty("line.separator");
-        excluded = new HashSet();
+        excluded = new HashSet<String>();
         verbose = false;
 
         int argc = 0;
@@ -284,8 +283,7 @@ public class ExportCommand extends Command {
             FileOutputStream fos = new FileOutputStream(jarFile);
             ZipOutputStream zos = new JarOutputStream(fos);
             FileSet fs = new FileSet(new File("."), new FileSet.NameSelector("Entries"));
-            for (Iterator iterator = fs.list().iterator(); iterator.hasNext(); ) {
-                File entries = (File)iterator.next();
+            for (File entries: fs.list()) {
                 if (entries.isFile()) {
                     File dir = entries.getParentFile();
                     if (dir.getName().equals("CVS")) {
@@ -309,7 +307,7 @@ public class ExportCommand extends Command {
     /**
      * Creates the jar file based on today's date.
      *
-     * @return  a file with the name "Squawk3G-<year>_<month>_<day-of-month>.jar"
+     * @return  a file with the name "Squawk-<year>_<month>_<day-of-month>.jar"
      */
     private File createDefaultJarFile() {
         File jarFile;
@@ -328,7 +326,7 @@ public class ExportCommand extends Command {
         }
 
         String date = year + '_' + month + '_' + day;
-        jarFile = new File("Squawk3G-" + date + ".jar");
+        jarFile = new File("Squawk-" + date + ".jar");
         return jarFile;
     }
 }

@@ -26,6 +26,7 @@ package com.sun.squawk.builder.commands;
 
 import java.io.*;
 import java.util.*;
+
 import com.sun.squawk.builder.*;
 import com.sun.squawk.builder.ccompiler.*;
 import com.sun.squawk.builder.util.*;
@@ -45,6 +46,8 @@ public class RomCommand extends Command {
     public static final File VM_SRC_FILE = new File(VM_SRC_DIR, "squawk.c");
     public static final File VM2C_SRC_FILE = new File(VM_SRC_DIR, "vm2c.c.spp");
 
+    public static final String PREPROCESSED_FOR_VM2C_DIR_NAME = "preprocessed-vm2c";
+
     /**
      * The name of the bootstrap suite.
      */
@@ -54,6 +57,11 @@ public class RomCommand extends Command {
      * Determines if the C compilation step should be executed or not.
      */
     private boolean compilationEnabled = true;
+    
+    /**
+     * Used to indicate that run does not need to compile, since the rom command was used with a -parent: argument.
+     */
+    protected boolean noNeedToCompile;
 
     public RomCommand(Build env) {
         super(env, "rom");
@@ -101,6 +109,8 @@ public class RomCommand extends Command {
         String endian = env.getPlatform().isBigEndian() ? "big" : "little";
         String parentSuite = null;
         boolean createMetadatas = false;
+        SuiteMetadata parentSuiteMetadata = new SuiteMetadata();
+        SuiteMetadata suiteMetadata = new SuiteMetadata();
 
         int argc = 0;
         while (argc != args.length) {
@@ -118,8 +128,16 @@ public class RomCommand extends Command {
                     arch = arg.substring("-arch:".length());
                 } else if (arg.startsWith("-endian:")) {
                     endian = arg.substring("-endian:".length());
-                } if (arg.startsWith("-parent:")) {
-                	parentSuite = arg.substring("-parent:".length());
+                } else if (arg.startsWith("-parent:")) {
+                    parentSuite = arg.substring("-parent:".length());
+                    noNeedToCompile = true;
+                    try {
+                        FileInputStream fileIn = new FileInputStream(parentSuite + ".suite.suitemetadata");
+                        ObjectInputStream in = new ObjectInputStream(fileIn);
+                        parentSuiteMetadata = (SuiteMetadata) in.readObject();
+                    } catch (IOException e) {
+                    } catch (ClassNotFoundException e) {
+                    }
                 } else if (arg.startsWith("-metadata")) {
                     createMetadatas = true;
                 } else {
@@ -137,28 +155,33 @@ public class RomCommand extends Command {
 
         // The remaining args are the modules making up one or more suites
         boolean isBootstrapSuite = parentSuite == null;
+        List<File> allClassesLocations = new ArrayList<File>();
+        List<File> allJava5ClassesLocations = new ArrayList<File>();
         while (argc != args.length) {
 
-            List<String> classesLocations = new ArrayList<String>();
+            List<File> classesLocations = new ArrayList<File>();
+            List<File> java5ClassesLocations = new ArrayList<File>();
             String suiteName = null;
-            String cp = "";
             boolean createJars = true;
 
             while (argc != args.length) {
 
                 String module = args[argc++];
-                String moduleClasses;
 
                 if (module.equals("--")) {
                     break;
                 }
 
-                if (module.charAt(0) == '-') {
+                if (module.startsWith("-o:")) {
+                    suiteName = module.substring("-o:".length());
+                    continue;
+                } else if (module.charAt(0) == '-') {
                     throw new BuildException("cannot specify romizer options for any suite except the first: " + module);
                 }
 
                 if (module.endsWith(".jar") || module.endsWith(".zip")) {
-                    moduleClasses = module;
+                    classesLocations.add(new File(module));
+                    module = new File(module).getName();
                     if (module.endsWith("_classes.jar")) {
                         // This is most likely the jar file build by a previous execution of the romizer
                         module = module.substring(0, module.length() - "_classes.jar".length());
@@ -167,24 +190,35 @@ public class RomCommand extends Command {
                         module = module.substring(0, module.length() - ".jar".length());
                     }
                 } else {
-                    File j2meclasses = new File(module, "j2meclasses");
-                    if (!j2meclasses.exists() || !j2meclasses.isDirectory()) {
-                        throw new BuildException("'" + module + "' module is not a jar/zip file and does not have a 'j2meclasses' subdirectory");
-                    }
-                    moduleClasses = j2meclasses.getPath();
-                    // TODO: Remove the res one, here to keep backward compatibility with
-                    // samples module, and not able to test it fully to make sure that
-                    // rename of res->resources will succeed
-                    // Add the res folder to add the necessary resources
-                    File resources = new File(module, "res");
-                    if (resources.exists() && resources.isDirectory()) {
-                        classesLocations.add(resources.getPath());
-                    }
-
-                    // Add the resources folder to add the necessary resources
-                    resources = new File(module, "resources");
-                    if (resources.exists() && resources.isDirectory()) {
-                        classesLocations.add(resources.getPath());
+                    Command moduleCommand = env.getCommand(module);
+                    if (moduleCommand instanceof Target) {
+                        suiteMetadata.addTargetIncluded(module);
+                        if (!parentSuiteMetadata.includesTarget(module)) {
+                            suiteMetadata.addTargetIncluded(module);
+                            Target target = (Target) moduleCommand;
+                            suiteMetadata.addTargetsIncluded(target.getDependencyNames());
+                            List<File> dirs = new ArrayList<File>();
+                            target.addDependencyDirectories(target.getPreverifiedDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
+                            target.addDependencyDirectories(target.getResourcesDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
+                            for (File file: dirs) {
+                                if (!allClassesLocations.contains(file) && file.exists()) {
+                                    classesLocations.add(file);
+                                    allClassesLocations.add(file);
+                                }
+                            }
+                            if (target.j2me) {
+                            	dirs = new ArrayList<File>();
+                            	target.addDependencyDirectories(target.getCompiledDirectoryName(), dirs, parentSuiteMetadata.getTargetsIncluded());
+                                for (File file: dirs) {
+                                	if (!allJava5ClassesLocations.contains(file) && file.exists()) {
+                                		java5ClassesLocations.add(file);
+                                		allJava5ClassesLocations.add(file);
+                                	}
+                                }
+                            }
+                        }
+                    } else {
+                        throw new BuildException("'" + module + "' module is not a jar/zip file and does not have a target defined for it");
                     }
                 }
 
@@ -192,22 +226,13 @@ public class RomCommand extends Command {
                 if (suiteName == null) {
                     suiteName = module;
                 }
-
-                // Update the class path for the current suite
-                if (cp == "") {
-                    cp = moduleClasses;
-                } else {
-                    cp += File.pathSeparator + moduleClasses;
-                }
-
-                // Add the directory/jar to the set of locations scanned for classes
-                classesLocations.add(moduleClasses);
             }
 
             if (isBootstrapSuite) {
-    	        romizerArgs.add("-o:" + bootstrapSuiteName);
+                suiteName = bootstrapSuiteName;
+                romizerArgs.add("-o:" + suiteName);
                 if (extraCP != "") {
-                    cp += File.pathSeparator + extraCP;
+                    classesLocations.add(new File(extraCP));
                 }
                 romizerArgs.add("-arch:" + arch);
                 romizerArgs.add("-endian:" + endian);
@@ -215,7 +240,22 @@ public class RomCommand extends Command {
                 romizerArgs.add("--");
                 romizerArgs.add("-o:" + suiteName);
             }
-            romizerArgs.add("-cp:" + cp);
+            StringBuilder cp = new StringBuilder();
+            cp.append("-cp:");
+            for (File file: classesLocations) {
+                cp.append(file.getPath());
+                cp.append(File.pathSeparatorChar);
+            }
+            romizerArgs.add(cp.toString());
+            if (!java5ClassesLocations.isEmpty()) {
+            	StringBuilder java5Cp = new StringBuilder();
+            	java5Cp.append("-java5cp:");
+                for (File file: java5ClassesLocations) {
+                	java5Cp.append(file.getPath());
+                	java5Cp.append(File.pathSeparatorChar);
+                }
+                romizerArgs.add(java5Cp.toString());
+            }
             if (createMetadatas) {
                 romizerArgs.add("-metadata");
             }
@@ -223,20 +263,38 @@ public class RomCommand extends Command {
                 romizerArgs.add("-jars");
             }
 
-            romizerArgs.addAll(classesLocations);
+            for (File file: classesLocations) {
+                romizerArgs.add(file.getPath());
+            }
 
+            if (createMetadatas) {
+                FileOutputStream fileOut;
+                ObjectOutputStream out = null;
+                try {
+                    File file = new File(suiteName + ".suite.suitemetadata");
+                    env.log(env.verbose, "SUITEMETADATA:" + file.getPath());
+                    fileOut = new FileOutputStream(file);
+                    out = new ObjectOutputStream(fileOut);
+                    out.writeObject(suiteMetadata);
+                } catch (FileNotFoundException e1) {
+                } catch (IOException e) {
+                } finally {
+                    if (out != null) try {out.close();} catch (IOException e) {}
+                }
+            }
+            
             isBootstrapSuite = false;
         }
 
-    	if (parentSuite != null) {
-    		String arg = "-parent:" + parentSuite;
-    		if (romizerArgs.get(0).equals("--")) {
-    			romizerArgs.set(0, arg);
-    		} else {
-    			romizerArgs.add(0, arg);
-    		}
-    	}
-    	
+        if (parentSuite != null) {
+            String arg = "-parent:" + parentSuite;
+            if (romizerArgs.get(0).equals("--")) {
+                romizerArgs.set(0, arg);
+            } else {
+                romizerArgs.add(0, arg);
+            }
+        }
+
         args = new String[romizerArgs.size()];
         romizerArgs.toArray(args);
         return args;
@@ -274,16 +332,26 @@ public class RomCommand extends Command {
         }));
 
         File srcDir = new File("cldc", "src");
-        File preDir = new File("cldc", "preprocessed");
+        if (!srcDir.exists()) {
+            env.log(env.info, "No " + srcDir + " so assuming no need to generate vm2c files, ie remote build and files are already generated");
+            return;
+        }
+        File preDir;
+        if (env.isJava5SyntaxSupported()) {
+            preDir = new File("cldc", "preprocessed");
+        } else {
+            Target cldcTarget = (Target) env.getCommandForced("cldc");
+            preDir = env.preprocess(new File("cldc"), cldcTarget.srcDirs, true, true);
+        }
 
         // Rebuilds the generated file if any of the *.java files in cldc/src or cldc/preprocessed have
         // a later modification date than the generated file.
-        if (!VM2C_SRC_FILE.exists() || (srcDir.exists() && !new FileSet(srcDir, isOutOfDate).list().isEmpty()) || (preDir.exists() && !new FileSet(preDir, isOutOfDate).list().isEmpty())) {
+        if (!VM2C_SRC_FILE.exists() || !new FileSet(srcDir, isOutOfDate).list().isEmpty() || (preDir.exists() && !new FileSet(preDir, isOutOfDate).list().isEmpty())) {
             // Verify that the vm2c commands were installed in my env, if not then throw an exception
             // This is to handle case where vm2c did not install itself, but we still wanted to run the rom command to do just compilation
             Command command = env.getCommand("runvm2c");
             if (command == null) {
-            	throw new BuildException("The module vm2c and runvm2c we're not installed, this is very likely due to these modules requiring the use of JDK 1.5 or higher");
+                throw new BuildException("The module vm2c and runvm2c we're not installed, this is very likely due to these modules requiring the use of JDK 1.5 or higher");
             }
             // Ensure that the *existing* preprocessed files in cldc are in sync with the original sources
             FileSet.Selector selector = new FileSet.AndSelector(Build.JAVA_SOURCE_SELECTOR, new FileSet.DependSelector(new FileSet.SourceDestDirMapper(srcDir, preDir)) {
@@ -322,7 +390,10 @@ public class RomCommand extends Command {
         CCompiler ccompiler = env.getCCompiler();
 
         args = runRomizer(args);
-
+        if (noNeedToCompile) {
+            return;
+        }
+        
         JDK jdk = env.getJDK();
         String options;
         if (compilationEnabled) {
@@ -331,7 +402,7 @@ public class RomCommand extends Command {
         	options = "Built via -nocomp, assuming custom cross-compilation";
         }
         createBuildFlagsHeaderFile(options);
-        
+
         if (env.getBooleanProperty("VM2C")) {
             updateVM2CGeneratedFile();
         } else {
@@ -351,15 +422,15 @@ public class RomCommand extends Command {
             File[] includeDirs;
 
             if (ccompiler.isCrossPlatform()) {
-                includeDirs = new File[]{VM_SRC_DIR, FP_SRC_DIR,
-                            new File(VM_SRC_RTS_DIR, ccompiler.getName())
+                includeDirs = new File[] {VM_SRC_DIR, FP_SRC_DIR,
+                            new File(VM_SRC_RTS_DIR, ccompiler.getRtsIncludeName())
                         };
             } else {
-                includeDirs = new File[]{new File(jdk.getHome(), "include"),
+                includeDirs = new File[] {new File(jdk.getHome(), "include"),
                             jdk.getJNI_MDIncludePath(),
                             VM_SRC_DIR,
                             FP_SRC_DIR,
-                            new File(VM_SRC_RTS_DIR, ccompiler.getName())
+                            new File(VM_SRC_RTS_DIR, ccompiler.getRtsIncludeName())
                         };
             }
 
@@ -480,5 +551,8 @@ public class RomCommand extends Command {
             Build.delete(preprocessedFile);
         }
         Build.delete(VM2C_SRC_FILE);
+        if (!env.isJava5SyntaxSupported()) {
+            Build.clear(new File("cldc", PREPROCESSED_FOR_VM2C_DIR_NAME), true);
+        }
     }
 }

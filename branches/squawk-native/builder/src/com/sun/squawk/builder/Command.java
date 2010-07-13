@@ -31,42 +31,7 @@ import java.util.*;
  * A Command instance describes a builder command.
  */
 public abstract class Command {
-
-    /**
-     * A sentinel iterator over an empty collection.
-     */
-    public final static Iterator EMPTY_ITERATOR = new Iterator() {
-
-        /**
-         * {@inheritDoc}
-         *
-         * @return <tt>false</tt>
-         */
-        public boolean hasNext() {
-            return false;
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Throws NoSuchElementException.
-         */
-        public Object next() {
-            throw new NoSuchElementException();
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Throws  UnsupportedOperationException.
-         */
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-    };
     
-    private boolean dependenciesProcessed;
-
     /**
      * An iterator that translates a command name to a command as it iterates
      * over a collection of command names.
@@ -128,6 +93,8 @@ public abstract class Command {
     public Command(Build env, String name) {
         this.env = env;
         this.name = name;
+        dependencies = new ArrayList<String>();
+        triggeredCommands = new ArrayList<String>();
     }
 
     /**
@@ -183,6 +150,27 @@ public abstract class Command {
     }
 
     /**
+     * Filter out dependencies that are directories.
+     * @param cmd
+     * @return true if command that should execute first
+     */
+    private boolean processDependencies(String cmd) {
+        // @TODO FIX:
+        return true;
+
+//        if (env.getCommand(cmd) != null) {
+//                return true;
+//            } else {
+//                File dir = new File(getBaseDir(), cmd);
+//                if (!dir.exists() || !dir.isDirectory()) {
+//                    throw new BuildException("Dependent directory not found: " + dir);
+//                }
+//                env.processBuilderDotPropertiesFile(dir);
+//                return false;
+//            }
+    }
+
+    /**
      * Adds one or more commands that this command depends upon. The dependencies of a command
      * are run before the command itself is run.
      *
@@ -195,7 +183,9 @@ public abstract class Command {
             if (dependencies == null) {
                 dependencies = new ArrayList<String>();
             }
-            dependencies.add(cmd);
+            if (processDependencies(cmd)) {
+                dependencies.add(cmd);
+            }
         }
     }
 
@@ -204,14 +194,8 @@ public abstract class Command {
      *
      * @return an iteration of the dependencies of this command
      */
-    public final Iterator getDependencies() {
-        if (!dependenciesProcessed) {
-            dependenciesProcessed = true;
-            if (dependencies != null) {
-                dependencies = processDependencies(dependencies);
-            }
-        }
-        return dependencies == null ? EMPTY_ITERATOR : new CommandNameIterator(dependencies);
+    public final List<String> getDependencyNames() {
+        return dependencies;
     }
 
     /**
@@ -260,8 +244,8 @@ public abstract class Command {
      *
      * @return an iteration of the commands triggered by this command
      */
-    public final Iterator getTriggeredCommands() {
-        return triggeredCommands == null ? EMPTY_ITERATOR : new CommandNameIterator(triggeredCommands);
+    public final List<String> getTriggeredCommandNames() {
+        return triggeredCommands;
     }
 
     /**

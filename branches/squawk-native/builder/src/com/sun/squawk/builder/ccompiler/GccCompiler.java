@@ -48,8 +48,8 @@ public class GccCompiler extends CCompiler {
         StringBuffer buf = new StringBuffer();
         if (!disableOpts) {
             if (options.o1)                 { buf.append("-O1 ");               }
-            if (options.o2)                 { buf.append("-O2 ");               }
-//          if (options.o2)                 { buf.append(" -Os  -finline-functions -finline-limit=50 -Winline  ");               }
+            if (options.o2)              { buf.append("-O2 ");               }
+            // if (options.o2)                 { buf.append(" -Os  -finline-functions -finline-limit=55 --param max-inline-insns-single=55 -Winline  ");               }
             // think about -frtl-abstract-sequences, not in gcc 4.0.1 though.
             if (options.o3)                 { buf.append("-DMAXINLINE -O3 ");   }
 //          if (options.o3)                 { buf.append("-DMAXINLINE -O3 -Winline ");   }
@@ -144,9 +144,9 @@ public class GccCompiler extends CCompiler {
      * @return the linkage options that must come after the input object files
      */
     public String getLinkSuffix() {
-        String jvmLib = env.getPlatform().getJVMLibraryPath();
         String suffix = " " + get64BitOption();
         if (options.isPlatformType(Options.DELEGATING)) {
+            String jvmLib = env.getPlatform().getJVMLibraryPath();
             suffix = suffix + " -L" + jvmLib.replaceAll(File.pathSeparator, " -L") + " -ljvm";
         } else if (options.isPlatformType(Options.SOCKET) || options.isPlatformType(Options.NATIVE)) {
             suffix = suffix + " -lsocket" + " -lnsl";
@@ -194,11 +194,12 @@ public class GccCompiler extends CCompiler {
 
         if (dll) {
             output = System.mapLibraryName(out);
-            exec = "-o " + output + " " + getSharedLibrarySwitch() + " " + Build.join(objects) + " " + getLinkSuffix();
+            exec = "-o " + output + " " + getSharedLibrarySwitch();
         } else {
             output = out + platform.getExecutableExtension();
-            exec = "--gc-sections -o " + output + " " + Build.join(objects) + " " + getLinkSuffix();
+            exec = "--gc-sections -o " + output;
         }
+        exec += " " + Build.join(objects) + " " + getLinkSuffix();
         env.exec("gcc " + exec);
         return new File(output);
     }

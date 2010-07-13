@@ -69,7 +69,7 @@ public class DocumentorCommand extends Command {
     private static final String JAVADOC_DIR = "Javadoc";
 
     private Build env;
-    private Hashtable replacementTags;
+    private Hashtable<String, String> replacementTags;
     private Properties globalProperties;
 
     private int uniqID = 0;
@@ -77,7 +77,7 @@ public class DocumentorCommand extends Command {
     public DocumentorCommand(Build env) {
         super(env, "documentor");
         this.env = env;
-        replacementTags = new Hashtable();
+        replacementTags = new Hashtable<String, String>();
     }
 
     /**
@@ -108,7 +108,7 @@ public class DocumentorCommand extends Command {
      * @param fileList     the <code>Vector</code> containing list of <code>File</code>'s to zip
      * @param outputFile   where to place the output zip file
      */
-    public void buildZip(Vector fileList, File outputFile) throws Exception {
+    public void buildZip(Vector<File> fileList, File outputFile) throws Exception {
 
             // Make zip file
             ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(outputFile));
@@ -116,9 +116,7 @@ public class DocumentorCommand extends Command {
             byte data[] = new byte[2048];
 
             // Add each file
-            for (int i = 0; i < fileList.size(); i++) {
-                File f = (File)fileList.get(i);
-
+            for (File f: fileList) {
                 FileInputStream fi = new FileInputStream(f);
                 ZipEntry entry = new ZipEntry(f.getPath());
 
@@ -176,7 +174,7 @@ public class DocumentorCommand extends Command {
                     File zipfile = new File(DOCS_DIR, globalProperties.getProperty("publicWebZipfile"));
 
                     StringTokenizer st = new StringTokenizer(globalProperties.getProperty("publicWebDirectories", ""), ";");
-                    Vector fileList = new Vector();
+                    Vector<File> fileList = new Vector<File>();
 
                     while (st.hasMoreTokens()) {
                         File f = new File(DOCS_DIR, st.nextToken());
@@ -222,9 +220,9 @@ public class DocumentorCommand extends Command {
         }
     }
 
-    private Vector getFileList(File start) {
+    private Vector<File> getFileList(File start) {
 
-        Vector v = new Vector();
+        Vector<File> v = new Vector<File>();
 
         File[] files = getValidFiles(start);
 
@@ -245,7 +243,7 @@ public class DocumentorCommand extends Command {
         // get all matching files/directories, recurse dirs
         // Folder properties
         final Properties p = getDirectoryProperties(start);
-        final Hashtable filesToExclude = getFilesToIgnore(p);
+        final Hashtable<String, String> filesToExclude = getFilesToIgnore(p);
 
         // Filter files
         FilenameFilter filter = new FilenameFilter() {
@@ -368,7 +366,7 @@ public class DocumentorCommand extends Command {
 
         // This directory gets removed when "clean" is run. Bit neater to do this here
         // then do recreate documentor.properties file.
-        if(dir.getName().equals(this.JAVADOC_DIR)) {
+        if(dir.getName().equals(JAVADOC_DIR)) {
             recurseSubFolders = false;
         }
 
@@ -413,8 +411,8 @@ public class DocumentorCommand extends Command {
         Properties p = new Properties();
 
         // copy the default values from the global file
-        for(Enumeration e = globalProperties.keys(); e.hasMoreElements();) {
-            String key = (String)e.nextElement();
+        for(Enumeration<?> e = globalProperties.keys(); e.hasMoreElements();) {
+            String key = (String) e.nextElement();
             p.put(key, globalProperties.get(key));
         }
 
@@ -656,9 +654,9 @@ public class DocumentorCommand extends Command {
      * @param p the <code>Properties</code> for this folder
      * @return a hashtable of entries
      */
-    private Hashtable getFilesToIgnore(Properties p) {
+    private Hashtable<String, String> getFilesToIgnore(Properties p) {
 
-        Hashtable exludedFiles = new Hashtable();
+        Hashtable<String, String> exludedFiles = new Hashtable<String, String>();
 
         String exludedFilesString = p.getProperty("excludeFiles", "");
         StringTokenizer st = new StringTokenizer(exludedFilesString, ";");
@@ -776,9 +774,8 @@ public class DocumentorCommand extends Command {
        replacementTags.put("date", new Date().toString());
 
        // Look at each tag type, and fix as appropriate
-       for(Iterator i = replacementTags.keySet().iterator(); i.hasNext();) {
-           String tagName = (String)i.next();
-           String replacementData = (String)replacementTags.get(tagName);
+       for(String tagName: replacementTags.keySet()) {
+           String replacementData = replacementTags.get(tagName);
 
            // for some reason, replaceAll munges the slashes
            replacementData = replacementData.replace('\\', '/');
