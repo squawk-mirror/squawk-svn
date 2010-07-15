@@ -213,6 +213,12 @@ int setTaskID(TaskExecutor* te);
 
 void teLoopingHandler(TaskExecutor* te);
 
+NativeTask* runBlockingFunctionOn(TaskExecutor* te, void* function,
+            int arg1, int arg2, int arg3, int arg4, int arg5,
+            int arg6, int arg7, int arg8, int arg9, int arg10);
+
+void deleteNativeTask(NativeTask* ntask);
+
 #else /* PLATFORM_TYPE_NATIVE */
 
 typedef struct TaskExecutor_struct {
