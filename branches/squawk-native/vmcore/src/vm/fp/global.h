@@ -105,7 +105,7 @@ extern double JFP_lib_scalbn (double x, int n);
 extern double JFP_lib_sqrt(double x);
 extern double JFP_lib_fabs(double x);
 
-#if PROCESSOR_ARCHITECTURE_X86
+#if PROCESSOR_ARCHITECTURE_X86 && !defined(__SSE2_MATH__ )
 // x86 requires a much more complicated solution. See fp_bytecodes.c.
 extern double JFP_lib_muld(double x, double y);
 extern double JFP_lib_divd(double x, double y);

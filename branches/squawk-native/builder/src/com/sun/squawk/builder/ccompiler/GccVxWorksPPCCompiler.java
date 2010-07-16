@@ -78,56 +78,18 @@ public class GccVxWorksPPCCompiler extends GccCompiler {
     }
 
     /**
-     * Compiles a small C program to determine the default pointer size of this version of gcc.
-     *
-     * @return  the size (in bytes) of a pointer compiled by this version of gcc
-     */
-/*    @Override
-    protected int getDefaultSizeofPointer() {
-        if (defaultSizeofPointer == -1) {
-            try {
-                File cFile = File.createTempFile("sizeofpointer", ".c");
-                PrintStream out = new PrintStream(new FileOutputStream(cFile));
-                out.println("#include <stdlib.h>");
-                out.println("int main (int argc, char **argv) {");
-                out.println("    exit(sizeof(char *));");
-                out.println("}");
-                out.close();
-
-                String exePath = cFile.getPath();
-                File exe = new File(exePath.substring(0, exePath.length() - 2));
-
-                env.exec("ccppc -o " + exe.getPath() + " " + cFile.getPath(),
-                        null, platform.getToolsDir());
-                cFile.delete();
-
-                try {
-                    env.exec(exe.getPath());
-                } catch (BuildException e) {
-                    exe.delete();
-                    return defaultSizeofPointer = e.exitValue;
-                }
-                throw new BuildException("gcc pointer size test returned 0");
-            } catch (IOException ioe) {
-                throw new BuildException("could run pointer size gcc test", ioe);
-            }
-        }
-        return defaultSizeofPointer;
-    }
-*/    
-    /**
      * {@inheritDoc}
      *
      * CC_ARCH_SPEC = -mcpu=603 -mstrict-align -mno-implicit-fp -mlongcall
-LIBPATH =
-LIBS =
-
-IDE_INCLUDES = -I$(WIND_BASE)/target/h -I$(WIND_BASE)/target/h/WPILib -I$(WIND_BASE)/target/h/wrn/coreip
-
-IDE_LIBRARIES = $(WIND_BASE)/target/lib/WPILib.a
-
+     * LIBPATH =
+     * LIBS =
+     *
+     * IDE_INCLUDES = -I$(WIND_BASE)/target/h -I$(WIND_BASE)/target/h/WPILib -I$(WIND_BASE)/target/h/wrn/coreip
+     *
+     * IDE_LIBRARIES = $(WIND_BASE)/target/lib/WPILib.a
+     *
      * DEBUGFLAGS_C-Compiler = -O2 -fstrength-reduce -fno-builtin
-
+     * 
      */
     @Override
     public File compile(File[] includeDirs, File source, File dir, boolean disableOpts) {
@@ -190,6 +152,22 @@ IDE_LIBRARIES = $(WIND_BASE)/target/lib/WPILib.a
 
         return new File(output);
     }
+
+    @Override
+    public String getLinkSuffix() {
+        throw new RuntimeException("not used in this config.");
+    }
+
+    @Override
+    public String getSharedLibrarySwitch() {
+        throw new RuntimeException("not used in this config.");
+    }
+
+    @Override
+    protected int getDefaultSizeofPointer() {
+        throw new RuntimeException("not used in this config.");
+    }
+
     
     @Override
     public boolean isCrossPlatform() {

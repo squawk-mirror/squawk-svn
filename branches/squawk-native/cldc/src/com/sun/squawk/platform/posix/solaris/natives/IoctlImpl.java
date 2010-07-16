@@ -86,8 +86,8 @@ public class IoctlImpl extends com.sun.squawk.platform.posix.natives.IoctlImpl {
         /* public final static int FIONREAD =  */ _IOR('f', 127),
         /* public final static int FIONBIO =  */ _IOW('f', 126),
         /* public final static int FIOASYNC =  */ _IOW('f', 125),
-        /* public final static int FIOSETOWN =  */ _IOR('f', 123),
-        /* public final static int FIOGETOWN =  */ _IOR('f', 122)
+        /* public final static int FIOSETOWN =  */ _IOW('f', 124),
+        /* public final static int FIOGETOWN =  */ _IOR('f', 123)
     };
 
     private static boolean[] intConstantCheck;

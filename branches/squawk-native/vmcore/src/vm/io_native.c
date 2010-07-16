@@ -105,7 +105,7 @@ const int com_sun_squawk_platform_posix_callouts_Libc_Stat_layout[com_sun_squawk
 
 #define com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN 6
 
-#if defined(sun) || defined(_MSC_VER)
+#if defined(sun) || defined(_MSC_VER) || defined(linux)
 const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
     com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
     sizeof(struct sockaddr_in),
@@ -114,7 +114,7 @@ const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layo
     offsetof(struct sockaddr_in, sin_port),
     offsetof(struct sockaddr_in, sin_addr)
 };
-#else /* linux mac osx, vxworks */
+#else /* mac osx, vxworks */
 const int _com_sun_squawk_platform_posix_natives_SocketImpl_sockaddr_inImpl_layout[com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN] = {
     com_sun_squawk_platform_posix_callouts_Socket_SockAddr_layout_LEN, 
     sizeof(struct sockaddr_in),

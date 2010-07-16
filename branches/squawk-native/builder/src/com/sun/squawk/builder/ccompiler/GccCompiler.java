@@ -77,7 +77,16 @@ public class GccCompiler extends CCompiler {
             append(get64BitOption()).append(' ');
 
         if (isTargetX86Architecture()) {
-            buf.append("-ffloat-store ");
+            // getting correct (for Java semantics) FP behavior is tricky on x86.
+            // This used to be sufficent on gcc < 4.0:
+            // -ffloat-store
+            // but not so much on gc 4.0+. -mpc64 sounds like a good idea, but not in gcc 4.0
+            // Note that C code can conditionally compile on __SSE2_MATH__ 
+            if (useSSE2Math()) {
+                buf.append("-msse2 -mfpmath=sse "); // force 64bit doubles... Really, I mean it.
+            } else {
+                buf.append("-ffloat-store ");
+            }
         }
 
         buf.append("-DPLATFORM_BIG_ENDIAN=" + platform.isBigEndian()).append(' ');
@@ -149,7 +158,11 @@ public class GccCompiler extends CCompiler {
             String jvmLib = env.getPlatform().getJVMLibraryPath();
             suffix = suffix + " -L" + jvmLib.replaceAll(File.pathSeparator, " -L") + " -ljvm";
         } else if (options.isPlatformType(Options.SOCKET) || options.isPlatformType(Options.NATIVE)) {
-            suffix = suffix + " -lsocket" + " -lnsl";
+            if (platform.getName().toLowerCase().startsWith("linux")) {
+                suffix = suffix +  " -lnsl";
+            } else {
+                suffix = suffix + " -lsocket" + " -lnsl";
+            }
         }
 
         if (options.kernel && options.hosted) {
@@ -210,4 +223,14 @@ public class GccCompiler extends CCompiler {
     public String getArchitecture() {
         return "X86";
     }
+
+    /**
+     * Use more Java-friendly SSE2 FP instructions instead of x87.
+     * SSE2 defined for P4 and newer CPUs, including Atom.
+     * @return boolean
+     */
+    public boolean useSSE2Math() {
+        return true;
+    }
+
 }

@@ -41,7 +41,7 @@ public abstract class LibCImpl implements LibC {
     /*----------------------------- variables -----------------------------*/
 
     /*----------------------------- methods -----------------------------*/
-    private final Function openPtr;
+    protected final Function openPtr;
     
     public int open(String arg0, int arg1, int arg2) {
         Pointer var0 = Pointer.createStringBuffer(arg0);
@@ -51,7 +51,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function statPtr;
+    protected final Function statPtr;
     
     public int stat(String arg0, stat arg1) {
         Pointer var0 = Pointer.createStringBuffer(arg0);
@@ -66,7 +66,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function fcntlPtr;
+    protected final Function fcntlPtr;
     
     public int fcntl(int arg0, int arg1, int arg2) {
         int result0 = fcntlPtr.call3(arg0, arg1, arg2);
@@ -74,7 +74,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function writePtr;
+    protected final Function writePtr;
     
     public int write(int arg0, byte[] arg1, int arg2) {
         boolean oldState = PrivatePointer.setUpArrayBufferState();
@@ -87,7 +87,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function closePtr;
+    protected final Function closePtr;
     
     public int close(int arg0) {
         int result0 = closePtr.call1(arg0);
@@ -95,7 +95,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function readPtr;
+    protected final Function readPtr;
     
     public int read(int arg0, byte[] arg1, int arg2) {
         boolean oldState = PrivatePointer.setUpArrayBufferState();
@@ -108,7 +108,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function fstatPtr;
+    protected final Function fstatPtr;
     
     public int fstat(int arg0, stat arg1) {
         arg1.allocateMemory();
@@ -121,7 +121,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function fsyncPtr;
+    protected final Function fsyncPtr;
     
     public int fsync(int arg0) {
         int result0 = fsyncPtr.call1(arg0);
@@ -129,7 +129,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
     
-    private final Function lseekPtr;
+    protected final Function lseekPtr;
     
     public int lseek(int arg0, long arg1, int arg2) {
         int var1 = (int)(arg1 >>> 32);
@@ -139,7 +139,7 @@ public abstract class LibCImpl implements LibC {
         return result;
     }
 
-    private final Function unlinkPtr;
+    protected final Function unlinkPtr;
 
     public int unlink(String arg0) {
         Pointer var0 = Pointer.createStringBuffer(arg0);
@@ -151,18 +151,27 @@ public abstract class LibCImpl implements LibC {
     
     public LibCImpl() {
         NativeLibrary jnaNativeLibrary = Native.getLibraryLoading();
-        openPtr = jnaNativeLibrary.getFunction("open");
-        statPtr = jnaNativeLibrary.getFunction("stat");
-        fcntlPtr = jnaNativeLibrary.getFunction("fcntl");
-        writePtr = jnaNativeLibrary.getFunction("write");
-        closePtr = jnaNativeLibrary.getFunction("close");
-        readPtr = jnaNativeLibrary.getFunction("read");
-        fstatPtr = jnaNativeLibrary.getFunction("fstat");
-        fsyncPtr = jnaNativeLibrary.getFunction("fsync");
-        lseekPtr = jnaNativeLibrary.getFunction("lseek");
-        unlinkPtr = jnaNativeLibrary.getFunction("unlink");
+        openPtr = jnaNativeLibrary.getFunction(realName("open"));
+        statPtr = jnaNativeLibrary.getFunction(realName("stat"));
+        fcntlPtr = jnaNativeLibrary.getFunction(realName("fcntl"));
+        writePtr = jnaNativeLibrary.getFunction(realName("write"));
+        closePtr = jnaNativeLibrary.getFunction(realName("close"));
+        readPtr = jnaNativeLibrary.getFunction(realName("read"));
+        fstatPtr = jnaNativeLibrary.getFunction(realName("fstat"));
+        fsyncPtr = jnaNativeLibrary.getFunction(realName("fsync"));
+        lseekPtr = jnaNativeLibrary.getFunction(realName("lseek"));
+        unlinkPtr = jnaNativeLibrary.getFunction(realName("unlink"));
     }
-    
+
+    /**
+     * Allow platforms to substitute different names.
+     * @param nominalName
+     * @return the actual name for the platform
+     */
+    public String realName(String nominalName) {
+        return nominalName;
+    }
+
     public static class statImpl extends Structure {
     
         /*----------------------------- defines -----------------------------*/

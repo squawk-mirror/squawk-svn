@@ -115,6 +115,7 @@ public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
     /* public final static int ENOSTR = */60,
     /* public final static int EPROTO = */71,
     /* public final static int ETIME = */61,
+    // ------------------
     /* public final static int F_DUPFD = */0,
     /* public final static int F_GETFD = */1,
     /* public final static int F_SETFD = */2,

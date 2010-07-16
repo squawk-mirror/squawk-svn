@@ -313,9 +313,6 @@ public class Klass<T> {
      * @throws java.lang.ClassNotFoundException 
      */
     public static synchronized Klass forName(String className) throws ClassNotFoundException {
-        final boolean allowSystemClasses = false; // these were parameters...
-        final boolean runClassInitializer = true;
-        
        // Verbose trace.
         if (VM.isVeryVerbose()) {
             VM.print("[Klass.forName(");
@@ -329,40 +326,21 @@ public class Klass<T> {
         if (klass == null) {
             if (isolate.getLeafSuite().isClosed()) {
                 cnfe = new ClassNotFoundException(className + " [The current isolate has no class path]");
-            } else if (!allowSystemClasses && (className.startsWith("java.") ||
-                                               className.startsWith("javax.") ||
-                                               className.startsWith("com.sun.squawk.") ||
-                                               className.startsWith("com.sun.cldc."))) {
+            } else if ((className.startsWith("java.") ||
+                        className.startsWith("javax.") ||
+                        className.startsWith("com.sun.squawk.") ||
+                        className.startsWith("com.sun.cldc."))) {
                 String packageName = className.substring(0, className.lastIndexOf('.'));
                 cnfe = new ClassNotFoundException("Prohibited package name: " + packageName);
             } else {
                 TranslatorInterface translator = isolate.getTranslator();
                 if (translator != null) {
                     translator.open(isolate.getLeafSuite(), isolate.getClassPath());
-//                    long freeMem = 0;
-//                    if (GC.isTracing(GC.TRACE_BASIC)) {
-//                        VM.collectGarbage(true);
-//                        freeMem = GC.freeMemory();
-//                    }
-
                     if (translator.isValidClassName(className)) {
                         klass = Klass.getClass(className, false);
                         translator.load(klass);
                         // Must load complete closure
                         translator.close(Suite.DEBUG);
-
-//                        if (GC.isTracing(GC.TRACE_BASIC)) {
-//                            VM.collectGarbage(true);
-//                            VM.print("** Class.forName(\"");
-//                            VM.print(className);
-//                            VM.print("\"):  free memory before = ");
-//                            VM.print(freeMem);
-//                            VM.print(", free memory after = ");
-//                            VM.print(GC.freeMemory());
-//                            VM.print(", difference = ");
-//                            VM.print(freeMem - GC.freeMemory());
-//                            VM.println();
-//                        }
                     }
                 } else {
                     if (VM.isVerbose()) {
@@ -374,9 +352,7 @@ public class Klass<T> {
 
 
         if (klass != null && klass.getState() != Klass.STATE_DEFINED) {
-            if (runClassInitializer) {
-                klass.initialiseClass();
-            }
+            klass.initialiseClass();
             return klass;
         }
         if (VM.getCurrentIsolate().getLeafSuite().shouldThrowNoClassDefFoundErrorFor(className)) {
@@ -2629,8 +2605,8 @@ T
                   currentClass == null ||
                   currentClass == this ||
                   method.isPublic()    ||
-                  method.isProtected() ||
-                (!method.isPrivate() && this.isInSamePackageAs(currentClass))
+                 (method.isProtected() && (currentClass.isSubclassOf(this) || this.isInSamePackageAs(currentClass))) ||
+                 (!method.isPrivate() && this.isInSamePackageAs(currentClass))
                ) {
                 return method;
             }
