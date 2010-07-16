@@ -140,7 +140,7 @@ public class Klass<T> {
      * The mapping from each interface method to the virtual method that
      * implements it. The mapping for the methods of the interface at index
      * <i>idx</i> in the <code>interfaces</code> array is at index
-     * <i>idx</i> in the <code>interfaceSlotTables</code> array. The
+     * <i>idx</i> in the <code>interfaceVTableMaps</code> array. The
      * mapping is encoded as an array where a value
      * <i>m</i> at index <i>i</i> indicates that the method at
      * index <i>m</i> in the vtable of this class implements the interface
@@ -574,7 +574,7 @@ T
      * Determines if the specified <code>Object</code> is assignment-compatible
      * with the object represented by this <code>Klass</code>.
      * @param obj object to test
-     * @return true if obj is intance of this klass
+     * @return true if obj is instance of this klass
      */
     public final boolean isInstance(Object obj) {
         return obj != null && isAssignableFrom(GC.getKlass(obj));
@@ -893,7 +893,7 @@ T
      * are the same as the names returned by {@link #getName() getName} except
      * for classes representing arrays and classes representing primitive types.
      * For the former, the delimiting <code>L</code> and <code>;</code> are
-     * ommitted and the internal implementation classes are returned for the
+     * omitted and the internal implementation classes are returned for the
      * latter. Thus:
      *
      * <blockquote><pre>
@@ -976,7 +976,7 @@ T
 
     /**
      * Formats the names of a given array of classes into a single string
-     * with each class name seperated by a space. The {@link #getName()}
+     * with each class name separated by a space. The {@link #getName()}
      * method is used to convert each class to a name.
      *
      * @param   klasses  the classes to format
@@ -1158,7 +1158,7 @@ T
     }
 
     /**
-     * Determines if this class is ony used by the VM internally and does not
+     * Determines if this class is only used by the VM internally and does not
      * correspond to any Java source language type.
      *
      * @return true if this is a VM internal type
@@ -1353,10 +1353,12 @@ T
      * @return the virtual slot of this class, or -1 if not found
      */
     final int findSlot(Klass iklass, int islot) {
-        int icount = interfaces.length;
-        for (int i = 0; i < icount; i++) {
-            if (interfaces[i] == iklass) {
-                return interfaceVTableMaps[i][islot];
+        if (!isAbstract()) {
+            int icount = interfaces.length;
+            for (int i = 0; i < icount; i++) {
+                if (interfaces[i] == iklass) {
+                    return interfaceVTableMaps[i][islot];
+                }
             }
         }
         if (superType == null) {
@@ -1684,7 +1686,7 @@ T
     }
 
     /**
-     * Constant denoting the intial state of a Klass.
+     * Constant denoting the initial state of a Klass.
      */
     public final static byte STATE_DEFINED = 0;
 
@@ -1812,7 +1814,7 @@ T
      * given set of class file field definitions. The {@link #staticFieldsSize}
      * and {@link #refStaticFieldsSize} values are initialized and the offset
      * of each field is computed. The offsets for all the non-primitive fields
-     * are gauranteed to be lower than the offset of any primitive field.
+     * are guaranteed to be lower than the offset of any primitive field.
      *
      * @param fields  class file field definitions for the static fields
      * @return a copy of the given array sorted by offsets
@@ -2490,7 +2492,7 @@ T
     /**
      * Adds the elements of <code>interfaces</code> to <code>closure</code>
      * that are not already in it. For each interface added, this method
-     * recurses on the interfaces implmented by the added interface.
+     * recurses on the interfaces implemented by the added interface.
      *
      * @param closure     a collection of interfaces
      * @param interfaces  the array of interfaces to add to <code>closure</code>
@@ -2531,7 +2533,7 @@ T
         /*
          * Add all the interfaces implemented by the abstract class(es) in
          * the super class hierarchy up until the first non-abstract class
-         * in the hierarchy. This is required so that the 'interfaceSlots'
+         * in the hierarchy. This is required so that the 'interfaceVTableMaps'
          * table for this class also includes the methods implemented by
          * abstract super classes (which have no such table).
          */
@@ -3054,7 +3056,7 @@ T
      * Gets the initialization state. This will be one of the
      * <code>INITSTATE_*</code> values.
      *
-     * @return  the initialzation state of this class
+     * @return  the initialization state of this class
      */
     private int getInitializationState() {
         if (getClassState() != null) {

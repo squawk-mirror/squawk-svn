@@ -73,5 +73,11 @@
                 <source-level>1.5</source-level>
             </compilation-unit>
         </java-data>
+        <spellchecker-wordlist xmlns="http://www.netbeans.org/ns/spellchecker-wordlist/1">
+            <word>bytecode</word>
+            <word>hashcode</word>
+            <word>Klass</word>
+            <word>vtable</word>
+        </spellchecker-wordlist>
     </configuration>
 </project>

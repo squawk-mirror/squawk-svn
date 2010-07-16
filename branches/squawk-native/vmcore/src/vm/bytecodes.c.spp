@@ -3215,6 +3215,15 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
                      */
                     return -1;
                 }
+
+                /* Abstract classes do not contain interfaceVTableMaps, so skip those.
+                 * Note that the initial class we check is a concrete class, as is the last class
+                 * (java.lang.Object)
+                 */
+                while ((com_sun_squawk_Klass_modifiers(klass) & com_sun_squawk_Modifier_ABSTRACT) != 0) {
+                    klass = com_sun_squawk_Klass_superType(klass);
+                }
+
             }
 foundSlot:
            return slot;
