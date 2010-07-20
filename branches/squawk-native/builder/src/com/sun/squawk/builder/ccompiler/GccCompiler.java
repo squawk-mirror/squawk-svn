@@ -159,7 +159,7 @@ public class GccCompiler extends CCompiler {
             suffix = suffix + " -L" + jvmLib.replaceAll(File.pathSeparator, " -L") + " -ljvm";
         } else if (options.isPlatformType(Options.SOCKET) || options.isPlatformType(Options.NATIVE)) {
             if (platform.getName().toLowerCase().startsWith("linux")) {
-                suffix = suffix +  " -lnsl";
+                suffix = suffix +  " -lnsl -lpthread";
             } else {
                 suffix = suffix + " -lsocket" + " -lnsl";
             }

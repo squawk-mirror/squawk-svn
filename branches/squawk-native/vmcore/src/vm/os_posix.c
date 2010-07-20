@@ -31,7 +31,7 @@
 
 /* not sure why this isn't picked up in limits.h */
 #ifndef PTHREAD_STACK_MIN
-#define	PTHREAD_STACK_MIN	((size_t)_sysconf(_SC_THREAD_STACK_MIN))
+#define	PTHREAD_STACK_MIN	((size_t)sysconf(_SC_THREAD_STACK_MIN))
 #endif
 
 #if defined(ASSUME) && ASSUME != 0
