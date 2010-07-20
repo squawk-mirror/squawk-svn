@@ -33,6 +33,10 @@ import com.sun.squawk.platform.Platform;
 import com.sun.squawk.platform.SystemEvents;
 import java.util.Enumeration;
 
+/*if[SCJ]*/
+import javax.realtime.RealtimeThread;
+/*end[SCJ]*/
+
 /**
  * The Squawk implementation of threads.
  * 
@@ -52,7 +56,7 @@ public final class VMThread implements GlobalStaticFields {
     /**
      * The initial size (in words) of a thread's stack.
      */
-    private final static int INITIAL_STACK_SIZE = 168;
+    private final static int INITIAL_STACK_SIZE = 16800; // TODO: SCJ temp
 
     /**
      * The minimum size (in words) of a thread's stack. This constant accounts for the
@@ -152,8 +156,7 @@ public final class VMThread implements GlobalStaticFields {
      * and other values as 1..Int.MAX_VALUE.
      */
     private static int max_wait; // initialized to -1 in initializeThreading().
-
-
+    
     /*-----------------------------------------------------------------------*\
      *                            The public API                             *
     \*-----------------------------------------------------------------------*/
@@ -239,6 +242,58 @@ public final class VMThread implements GlobalStaticFields {
             max_wait = (int)max;
         }
     }
+    
+/*if[SCJ]*/
+    /**
+     * 
+     */
+    public VMThread(Thread apiThread, String name, int stackSize) {
+        Assert.always(apiThread != null);
+        this.apiThread    = apiThread;
+        this.threadNumber = nextThreadNumber++;
+        this.state        = NEW;
+        this.stackSize    = stackSize;
+        Object target = NativeUnsafe.getObject(apiThread, (int)FieldOffsets.java_lang_Thread$target);
+        if (target instanceof Isolate) {
+            if (apiThread instanceof RealtimeThread) {
+                this.isolate  = (Isolate)target;
+            } else {
+                throw new SecurityException("No permision to create a realtime thread");
+            }
+        } else {
+            this.isolate  = VM.getCurrentIsolate();
+        }
+        if (currentThread != null) {
+            priority = (byte)currentThread.getPriority();
+            if (priority > MAX_PRIORITY) {
+                // don't inherit system priority
+                priority = NORM_PRIORITY;
+            }
+        } else { // initialize the primordial thread
+            priority = NORM_PRIORITY;
+        }
+        
+        if (name != null) {
+            this.name = name;
+        } else {
+            if (threadNumber == 0) {
+                this.name = "SCJThread-0";
+            } else {
+                this.name = "SCJThread-".concat(String.valueOf(threadNumber));
+            }
+        }
+    }
+    
+    public BackingStore saveAllocationContext(BackingStore bs){
+    	BackingStore old = savedAllocCtx;
+    	savedAllocCtx = bs;
+    	return old;
+    }
+    
+    public BackingStore getSavedAllocationContext(){
+    	return savedAllocCtx;
+    }
+/*end[SCJ]*/    
 
    /**
      * Allocates a new <code>VMThread</code> object to support a given API Thread instance.
@@ -516,7 +571,7 @@ public final class VMThread implements GlobalStaticFields {
             currentThread.handlePendingInterrupt();
         }
     }
-
+    
     /**
      * Waits for an isolate to stop.
      *
@@ -2568,6 +2623,13 @@ VM.println("creating stack:");
 		}
 		return result;
 	}
+	
+/*if[SCJ]*/    
+	/**
+	 * The current allocate context
+	 */
+	private BackingStore savedAllocCtx;
+/*end[SCJ]*/    
     
 //    /** debug code */
 //    public static void main(String[] args) {

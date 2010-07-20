@@ -652,6 +652,10 @@ public class GC implements GlobalStaticFields {
             return inRamHosted(object);
         } else {
             Address ptr = Address.fromObject(object);
+/*if[SCJ]*/
+            if(BackingStore.inImmortal(ptr)||BackingStore.inScoped(ptr))
+                return true;
+/*end[SCJ]*/
             if (ptr.loeq(ramStart)) {
                 return false;
             } else if (ptr.hi(ramEnd)) {
@@ -800,8 +804,13 @@ public class GC implements GlobalStaticFields {
             return allocatePrimHosted(size, klass, arrayLength);
         }
 
-        Object oop = VM.allocate(size, klass, arrayLength);
-
+        Object oop = null;
+/*if[SCJ]*/
+        oop = BackingStore.allocate(size, klass, arrayLength);
+/*else[SCJ]*/        
+//        oop = VM.allocate(size, klass, arrayLength);
+/*end[SCJ]*/
+        
         /*
          * Trace.
          */
@@ -1657,7 +1666,12 @@ public class GC implements GlobalStaticFields {
      * @return the monitor
      */
     static Monitor getMonitor(Object object) {
+               
         if (GC.inRam(object)) {
+/*if[SCJ]*/
+            BackingStore newBS = BackingStore.getBackingStore(object);
+            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+/*end[SCJ]*/
             /*
              * Objects in RAM have their monitors attached to ObjectAssociation
              * that sits between the object and its class.
@@ -1665,11 +1679,19 @@ public class GC implements GlobalStaticFields {
             ObjectAssociation assn = getObjectAssociation(object);
             Monitor monitor = assn.getMonitor();
             if (monitor == null) {
+                VM.println(GC.getKlass(object).getName());
                 monitor = new Monitor(object);
                 assn.setMonitor(monitor);
             }
+/*if[SCJ]*/
+            BackingStore.setCurrentContext(oldBS);
+/*end[SCJ]*/
             return monitor;
         } else {
+/*if[SCJ]*/
+            BackingStore newBS = BackingStore.getImmortal();
+            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+/*end[SCJ]*/
             /*
              * Objects in ROM or NVM have their monitors in a hashtable that is
              * maintained by the isolate.
@@ -1677,9 +1699,13 @@ public class GC implements GlobalStaticFields {
             SquawkHashtable monitorTable = VM.getCurrentIsolate().getMonitorHashtable();
             Monitor monitor = (Monitor)monitorTable.get(object);
             if (monitor == null) {
+                VM.println(GC.getKlass(object).getName());
                 monitor = new Monitor(object);
                 monitorTable.put(object, monitor);
             }
+/*if[SCJ]*/
+            BackingStore.setCurrentContext(oldBS);
+/*end[SCJ]*/
             return monitor;
         }
     }

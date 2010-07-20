@@ -260,6 +260,9 @@ public class VM implements GlobalStaticFields {
          * Initialize the garbage collector, suite manager then allocate a VMBufferDecoder
          * for use by the code in do_throw() and the OutOfMemoryError.
          */
+/*if[SCJ]*/
+        BackingStore.initialize(bootstrapSuite);
+/*end[SCJ]*/       
         GC.initialize(bootstrapSuite);
 
         vmbufferDecoder  = new VMBufferDecoder();
@@ -284,7 +287,7 @@ public class VM implements GlobalStaticFields {
         GC.copyCStringArray(argv, args);
 
         taskCache = new Stack();
-
+        
         /*
          * Start the isolate guarded with an exception handler. Once the isolate
          * has been started enter the service operation loop.

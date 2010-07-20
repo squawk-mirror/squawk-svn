@@ -132,7 +132,11 @@ public final class Isolate implements Runnable {
     /**
      * The name of the wrapper class used to start up midlets.
      */
-    private final static String MIDLET_WRAPPER_CLASS = "com.sun.squawk.imp.MIDletMainWrapper";
+/*if[SCJ]*/
+    private final static String MIDLET_WRAPPER_CLASS = "com.sun.squawk.scj.SafeletLauncher";
+/*else[SCJ]*/
+//    private final static String MIDLET_WRAPPER_CLASS = "com.sun.squawk.imp.MIDletMainWrapper";
+/*end[SCJ]*/
 
     /**
      * The debugger agent under which this isolate is being debugged by (if any).

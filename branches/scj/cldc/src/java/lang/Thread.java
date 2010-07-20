@@ -332,4 +332,11 @@ public class Thread implements Runnable {
     public String toString() {
         return vmThread.toString();
     }
+    
+/*if[SCJ]*/
+    protected Thread(Runnable target, String name, int stackSize){
+        this.target = target;
+        vmThread = new VMThread(this, name, stackSize);
+    }
+/*end[SCJ]*/    
 }

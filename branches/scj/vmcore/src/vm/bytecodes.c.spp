@@ -638,6 +638,13 @@
 #if ASSUME
 /*DEF*/ void boundsAssume(Address $oop, int $index) {
             assume($oop);
+            
+            if((unsigned int) $index >= (unsigned int)getArrayLength($oop)){
+            	printValueInRange($oop, "oop", com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, "object");
+            	printValueInRange($index, "index", com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, "object");
+            	printValueInRange(getArrayLength($oop), "length", com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, "object");
+            }            
+
             /* use the unsigned bounds check trick: */
             assume((unsigned int) $index < (unsigned int)getArrayLength($oop));
         }
@@ -1173,6 +1180,10 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
             UWord   ipOffset   = ((UWord)ip) - oldMP;
             Address newThread  = com_sun_squawk_VMThread_otherThread;
             Address newStack   = (Address)com_sun_squawk_VMThread_stack(newThread);
+#ifdef SCJ
+            Address oldAllocCtx = com_sun_squawk_BackingStore_curContext;
+            Address newAllocCtx = (Address)com_sun_squawk_VMThread_savedAllocCtx(newThread);
+#endif
             assume(newStack != null);
             assume(!com_sun_squawk_GC_collecting);
 
@@ -1188,6 +1199,9 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
                 assume(oldStack == (Address)ss);
                 setObject(oldStack, SC_lastFP, fp);
                 setUWord(oldStack, SC_lastBCI, ipOffset);
+#ifdef SCJ
+                set_com_sun_squawk_VMThread_savedAllocCtx(oldThread, oldAllocCtx);
+#endif
             }
 
             /*
@@ -1271,6 +1285,9 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
 /*fprintf(stderr, format("fp = %d newMP = %d ipoffset = %d ip=%d tid=%d returnFP=%A\n"), fp, newMP, ipOffset, ip, com_sun_squawk_VMThread_threadNumber(newThread), getObject(fp, FP_returnFP));*/
                 }
             }
+#ifdef SCJ
+            set_com_sun_squawk_VMThread_savedAllocCtx(newThread, newAllocCtx);
+#endif
         }
 
         /**
@@ -3196,6 +3213,13 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
             klass = getClass(oop);
             while (true) {
                 Address interfaces = com_sun_squawk_Klass_interfaces(klass); // never null
+
+                if(com_sun_squawk_BackingStore_SCJ_DEBUG_ENABLED){
+                    printValueInRange(oop, "oop", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "code");
+                    printValueInRange(klass, "klass", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "code");
+                    printValueInRange(interfaces, "interfaces", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "code");
+                }
+
                 int interfacesCount = getArrayLength(interfaces);
                 int i;
 
@@ -3203,6 +3227,12 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
                     if (getObject(interfaces, i) == interfaceKlass) {
                         Address vtableMaps = com_sun_squawk_Klass_interfaceVTableMaps(klass);  // never null
                         Address vtableMap = getObject(vtableMaps, i);
+
+                        if(com_sun_squawk_BackingStore_SCJ_DEBUG_ENABLED){
+            				printValueInRange(vtableMaps, "vtableMaps", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "code");
+            				printValueInRange(vtableMap, "vtableMap", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "code");
+            			}
+
                         boundsAssume(vtableMap, iindex);
                         slot = getShort(vtableMap, iindex);
                         goto foundSlot;
