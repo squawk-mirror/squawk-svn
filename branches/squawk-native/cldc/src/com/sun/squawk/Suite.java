@@ -100,6 +100,13 @@ public final class Suite {
      * See implementation of {@link Klass#forName(String)} for more information.
      */
     private String[] noClassDefFoundErrorClassNames;
+
+    /**
+     * List of classes that are unused in the suite.
+     * They will be deleted in the stripped version of the suite.
+     * This field not saved in the suite file.
+     */
+    private Klass[] stripClassesLater;
 	
     /**
      * Creates a new <code>Suite</code> instance.
@@ -301,6 +308,7 @@ public final class Suite {
         }
         byte[] bytes = getResourceData(name);
         if (bytes == null) {
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
             // TODO Should we throw exceptions here like forName ?, I do not think so, since getting resources is not
             // as hard a requirement as being able to find a class ?
             if (isClosed()) {
@@ -316,6 +324,9 @@ public final class Suite {
             if (bytes == null) {
                 return null;
             }
+/*else[ENABLE_DYNAMIC_CLASSLOADING]*/
+//          return null;
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         }
         return new ByteArrayInputStream(bytes);
     }
@@ -399,6 +410,17 @@ public final class Suite {
             System.arraycopy(old, 0, metadatas, 0, old.length);
         }
         metadatas[suiteID] = metadata;
+    }
+ 
+    private void removeClass(Klass klass) {
+        int suiteID = klass.getSuiteID();
+        Assert.always(classes[suiteID] == klass);
+        classes[suiteID] = null;
+        metadatas[suiteID] = null;
+    }
+
+    public void setUnusedClasses(Klass[] klasses) {
+        stripClassesLater = klasses;
     }
     
     /**
@@ -792,6 +814,7 @@ public final class Suite {
      * @throws IOException if there was some IO problem while writing the output
      */
     public ObjectMemory save(DataOutputStream dos, String uri, boolean bigEndian) throws java.io.IOException, OutOfMemoryError {
+        stripClassesLater = null; // don't save this...
         ObjectMemorySerializer.ControlBlock cb = VM.copyObjectGraph(this);
         ObjectMemory parentMemory = null;
         if (!isBootstrap()) {
@@ -974,6 +997,18 @@ public final class Suite {
     		System.arraycopy(manifestProperties, 0, copy.manifestProperties, 0, manifestProperties.length);
 
     		copy.metadatas = KlassMetadata.strip(this, metadatas, type);
+
+            if (stripClassesLater != null) {
+                 if (VM.isVerbose()) {
+                 	System.out.println("Removing classes from " + copy);
+                 }
+                for (int i = 0; i < stripClassesLater.length; i++) {
+                	if (VM.isVerbose()) {
+                        System.out.println("Removing from suite: " + stripClassesLater[i]);
+                    }
+                    copy.removeClass(stripClassesLater[i]);
+                }
+            }
         }
 
         copy.updateConfiguration(type);

@@ -340,7 +340,7 @@ public final class CHeaderFileCreator {
         for (int cid = 0; cid != classCount; cid++) {
             Klass klass = suite.getKlass(cid);
 
-            if (klass.isArray() || klass.getInternalName().charAt(0) == '-') {
+            if (klass == null || klass.isArray() || klass.getInternalName().charAt(0) == '-') {
                 continue;
             }
      
