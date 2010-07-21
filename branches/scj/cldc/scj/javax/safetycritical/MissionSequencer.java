@@ -59,7 +59,7 @@ public abstract class MissionSequencer extends AsyncEventHandler {
     }
 
     public void exec() {
-        memory = new MissionMemory();
+        memory = new MissionMemory(0);
         do {
             memory.reset();
             memory.enter(this);

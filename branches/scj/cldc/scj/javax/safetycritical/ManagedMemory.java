@@ -18,7 +18,7 @@ public abstract class ManagedMemory extends ScopedMemory {
 
     // @SCJAllowed(INFRASTRUCTURE)
     ManagedMemory(long size) {
-        super(size);
+        this(size, RealtimeThread.currentRealtimeThread());
     }
 
     /**
@@ -74,13 +74,12 @@ public abstract class ManagedMemory extends ScopedMemory {
             throw new IllegalStateException();
         if (nested == null) {
             nested = new PrivateMemory(size, current);
+            nested.setOwner(getOwner());
         } else {
-            nested.reset();
-            nested.resize(size);
+            nested.allocBS(size, current);
         }
         nested.enter(logic);
-        nested.reset();
-        nested.resize(0);
+        nested.destroyBS();
     }
 
     /**

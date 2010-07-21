@@ -3,27 +3,42 @@ Memo:
 
 - Allocating process: new -> GC.allocatePrim() -> BackingStore.allocate()
 
-- Current allocating context is hold by BackingStore; VMThread has a field called "savedAllocCtx", which is used 
-  to save the current allocating context for the current thread which will be switched out immediately.
-     
-- All classes are pre-initialized in Immortal at SafeletLauncher.main() right before SCJ program starts to run
+- Current allocating context is hold by BackingStore; VMThread has a field 
+  called "savedAllocCtx", which is used to save the current allocating 
+  context for the current thread which will be switched out immediately.
 
-- Immortal and Scoped are seen as RAM during SCJ execution, so we put the check in GC.inRam(Object) as well and 
-  return true if the object is in Immortal or Scoped.
+- Immortal and Scoped are seen as RAM during SCJ execution, so we put the 
+  check in GC.inRam(Object) as well and return true if the object is in 
+  Immortal or Scoped.
+
+- ObjectAssociation / Monitor allocation - two choices:
+  1) allocate along with the object - space wasting
+  2) allocate upon required at the scope where the object is allocated 
+     - overhead: search for and switch allocation context (chosen)
+
+- Class state allocation - two choices:
+  1) pre-allocate in immortal memory before user program starts to run 
+  2) allocate upon required in immortal memory (chosen)
 
 TODO:
 
-- For now, we start the SCJ instead of Midlet launcher simply by replacing the original value of Isolate.MIDLET_WRAPPER_CLASS 
-  with com.sun.squawk.scj.SafeletLauncher. And also, the Safelet class name is hard coded in SafeletLauncher. We may want to
-  do the SCJ startup process more elegantly by extending the builder ...
+- For now, we start the SCJ instead of Midlet launcher simply by replacing 
+  the original value of Isolate.MIDLET_WRAPPER_CLASS with 
+  com.sun.squawk.scj.SafeletLauncher. And also, the Safelet class name is 
+  hard coded in SafeletLauncher. We may want to do the SCJ startup process 
+  more elegantly by extending the builder ...
 
-- Need to check what data structures have been allocated dynamically. On high level, we must make sure those data structures
-  are of proper life time and allocated in the proper scope ...
+- Need to check what data structures have been allocated dynamically. On 
+  high level, we must make sure those data structures are of proper life 
+  time and allocated in the proper scope ...  
   
-- ObjectAssociation / Monitor allocation - two choices:
-  1) allocate along with the object - overhead more space
-  2) allocate upon required at the place where the object is allocated - overhead: search for and switch allocation context (chosen)
+- Add scope check for making sure no dangling pointer happened. This results 
+  in the need of write barrier.
+  
+- Monitor object allocations are triggered when printing. Check why??
 
-- Class state allocation - two choices:
-  1) pre-allocate in immortal memory before user program starts to run (chosen)
-  2) allocate upon required in immortal memory
+- Need to implement BackingStore.getBackingStore(Object) in a more efficient
+  way; for now it is done by simply line searching for the BS enclosing the 
+  address of the object. The search time can be decreased by:
+  1) add BS  pointer to object header
+  2) make BS organization support binary search. (plan to do)     

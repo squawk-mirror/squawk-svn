@@ -1224,8 +1224,26 @@ public final class Isolate implements Runnable {
          * class state object or result in an exception being thrown.
          */
         if (ks == null) {
+//            VM.print(getName());
+//            VM.print(": class state in is null for [");
+//            VM.print(klass.getName());
+//            VM.println("]");
+//            
+//            Object cur = classStateQueue;
+//            VM.print(" Q: ");
+//            while (cur != null) {
+//                Klass kkk = (Klass)NativeUnsafe.getObject(cur, CS.klass);
+//                VM.print(kkk.getName());                
+//                VM.print(" | ");
+//                cur = NativeUnsafe.getObject(cur, CS.next);
+//            }
+//            VM.println("");            
+            
             Assert.that(klass.getSystemID() != CID.KLASS);
             ks = klass.initializeInternal();
+
+//            VM.print(klass.getName());
+//            VM.println(" initialized!");
         }
 
         Assert.that(ks != null);
@@ -1337,7 +1355,7 @@ public final class Isolate implements Runnable {
             klassKlass.clinit();
             classKlassInitialized = true;
 //VM.print("Klass initialized for ");
-//VM.println(this);
+//VM.println(this.getName());
         }
     }
 

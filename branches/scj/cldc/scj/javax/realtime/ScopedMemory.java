@@ -9,10 +9,6 @@ public abstract class ScopedMemory extends MemoryArea implements
 
     private static ScopedMemory primordialScope;
 
-    public ScopedMemory(long size) {
-        super(size);
-    }
-
     /**
      * allocate BS from specified BS
      * 

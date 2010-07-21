@@ -3,11 +3,8 @@ package com.sun.squawk.scj;
 import javax.realtime.RealtimeThread;
 import javax.safetycritical.Safelet;
 
-import com.sun.squawk.BackingStore;
 import com.sun.squawk.Isolate;
 import com.sun.squawk.Klass;
-import com.sun.squawk.Suite;
-import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
 
 public class SafeletLauncher {
@@ -33,11 +30,11 @@ public class SafeletLauncher {
         VMThread.currentThread().setName(className + " - main");
 
         // initialize all classes in all suites
-        Suite suite = iso.getLeafSuite();
-        while (suite != null) {
-            BackingStore.preInitializeClassInSuite(suite);
-            suite = suite.getParent();
-        }
+        // Suite suite = iso.getLeafSuite();
+        // while (suite != null) {
+        // BackingStore.preInitializeClassInSuite(suite);
+        // suite = suite.getParent();
+        // }
 
         try {
             klass = Klass.forName(className);

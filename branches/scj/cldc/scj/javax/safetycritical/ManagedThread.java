@@ -20,6 +20,7 @@ public class ManagedThread extends RealtimeThread implements ManagedSchedulable 
     public ManagedThread(PriorityParameters priority, StorageParameters storage, long initSize,
             Runnable logic) {
         super(priority, storage, initSize, logic);
+        ((ManagedMemory) getInitArea()).setOwner(this);
     }
 
     // @SCJAllowed(LEVEL_2)

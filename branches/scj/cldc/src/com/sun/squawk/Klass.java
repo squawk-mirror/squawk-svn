@@ -3064,12 +3064,22 @@ T
             istate = istate.next;
         }
         if (istate == null) {
-            istate = new KlassInitializationState();
-            istate.next = first;
-            istate.thread = thread;
-            istate.klass = this;
-            istate.classState = GC.newClassState(this);
-            initializationQueue = istate;
+/*if[SCJ]*/
+            BackingStore newBS = BackingStore.getImmortal();
+            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+            try {
+/*end[SCJ]*/
+                istate = new KlassInitializationState();
+                istate.next = first;
+                istate.thread = thread;
+                istate.klass = this;
+                istate.classState = GC.newClassState(this);
+                initializationQueue = istate;
+/*if[SCJ]*/
+            } finally{      
+                BackingStore.setCurrentContext(oldBS);
+            }
+/*end[SCJ]*/
         } else {
             istate.thread = thread;
         }

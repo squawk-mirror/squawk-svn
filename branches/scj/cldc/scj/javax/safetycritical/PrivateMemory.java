@@ -4,7 +4,7 @@ import javax.realtime.RealtimeThread;
 import javax.realtime.SizeEstimator;
 
 //@SCJAllowed
-public class PrivateMemory extends ManagedMemory {
+public final class PrivateMemory extends ManagedMemory {
 
     /**
      * 

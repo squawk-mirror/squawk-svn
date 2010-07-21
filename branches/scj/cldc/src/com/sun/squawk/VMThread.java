@@ -1585,7 +1585,12 @@ VM.println("creating stack:");
                 VMThread thread = VMThread.currentThread;
                 Assert.always(thread == this);
                 thread.appThreadTop = thread.framePointerAsOffset(VM.getFP());
-                apiThread.run();
+/*if[SCJ]*/
+                if(Isolate.currentIsolate().isClassKlassInitialized() && apiThread instanceof RealtimeThread)
+                    ((RealtimeThread)apiThread).getInitArea().enter(apiThread);
+                else
+/*end[SCJ]*/
+                    apiThread.run();
             } catch (OutOfMemoryError e) {
                 uncaughtException = true;
                 VM.print("Uncaught out of memory error on thread  - aborting isolate ");
@@ -2288,11 +2293,8 @@ VM.println("creating stack:");
                 * Let waiting thread try to execute. If a waiting thread has >= priority to current thread,
                 * it will run now.
                 */
-
-                if (monitor.hasHadWaiter) {
-                    addToRunnableThreadsQueue(currentThread);
-                    reschedule();
-                }
+                addToRunnableThreadsQueue(currentThread);
+                reschedule();
             } else {
 /*if[SMARTMONITORS]*/
                 /*
@@ -2417,7 +2419,6 @@ VM.println("creating stack:");
      */
     public static void monitorNotify(Object object, boolean notifyAll) {
 
-/*if[SMARTMONITORS]*/
         /*
          * If the object is on the pending monitor queue there cannot be another thread to notify.
          */
@@ -2426,7 +2427,6 @@ VM.println("creating stack:");
 //traceMonitor("monitorNotify FASTPATH: ", null, object);
             return;
         }
-/*end[SMARTMONITORS]*/
 
         /*
          * Signal any waiting threads.

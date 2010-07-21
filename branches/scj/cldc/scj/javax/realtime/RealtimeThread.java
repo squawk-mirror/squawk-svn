@@ -5,7 +5,6 @@ import javax.safetycritical.StorageParameters;
 
 import com.sun.squawk.BackingStore;
 import com.sun.squawk.VM;
-import com.sun.squawk.util.Assert;
 
 //@SCJAllowed(LEVEL_1)
 public class RealtimeThread extends Thread {
@@ -14,6 +13,11 @@ public class RealtimeThread extends Thread {
      * The total backing store space for this thread
      */
     private BackingStore bs;
+
+    /**
+     * 
+     */
+    private MemoryArea initArea;
 
     /**
 	 * 
@@ -26,34 +30,6 @@ public class RealtimeThread extends Thread {
     private PriorityParameters pPara;
 
     /**
-	 * 
-	 */
-    private long initSize;
-
-    /**
-	 * 
-	 */
-    private Runner runner;
-
-    /**
-	 * 
-	 */
-    private static Runner temp;
-
-    /**
-	 * 
-	 * 
-	 */
-    private static class Runner implements Runnable {
-        public MemoryArea initArea;
-        public Runnable logic;
-
-        public void run() {
-            initArea.enter(logic);
-        }
-    }
-
-    /**
      * 
      * @param isolate
      * @param string
@@ -62,6 +38,8 @@ public class RealtimeThread extends Thread {
     public RealtimeThread(String string, int stackSize, Runnable logic) {
         super(logic, string, stackSize);
         this.bs = BackingStore.getScoped();
+        this.initArea = ImmortalMemory.instance();
+        // TODO: default sPara and pPara??
 
         if (BackingStore.SCJ_DEBUG_ENABLED) {
             VM.println("[SCJ] Create primordial realtime thread ");
@@ -71,23 +49,13 @@ public class RealtimeThread extends Thread {
 
     public RealtimeThread(PriorityParameters pPara, StorageParameters sPara, long initSize,
             Runnable logic) {
-        this(pPara, sPara, initSize, logic, RealtimeThread.currentRealtimeThread()
-                .getBackingStore().excavate(
-                        (int) checkStorageParameters(sPara).getTotalBackingStoreSize()));
-    }
-
-    public RealtimeThread(PriorityParameters pPara, StorageParameters sPara, long initSize,
-            Runnable logic, BackingStore bs) {
         // TODO: check parameters and set priority
-        super(createRunner(), null, (int) checkStorageParameters(sPara).getJavaStackSize());
+        super(logic, null, (int) checkStorageParameters(sPara).getJavaStackSize());
         this.pPara = checkPriorityParameters(pPara);
         this.sPara = sPara;
-        this.initSize = initSize;
-        this.bs = bs;
-        Assert.always(RealtimeThread.temp != null);
-        this.runner = RealtimeThread.temp;
-        this.runner.logic = logic;
-        this.runner.initArea = new PrivateMemory(initSize, this);
+        this.bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
+                (int) sPara.getTotalBackingStoreSize());
+        this.initArea = new PrivateMemory(initSize, this);
 
         if (BackingStore.SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] Create RealtimeThread ");
@@ -95,12 +63,23 @@ public class RealtimeThread extends Thread {
         }
     }
 
-    protected MemoryArea getInitArea() {
-        return runner.initArea;
+    public RealtimeThread(PriorityParameters pPara, StorageParameters sPara, long initSize,
+            Runnable logic, BackingStore bs) {
+        // TODO: check parameters and set priority
+        super(logic, null, (int) checkStorageParameters(sPara).getJavaStackSize());
+        this.pPara = checkPriorityParameters(pPara);
+        this.sPara = sPara;
+        this.bs = bs;
+        this.initArea = new PrivateMemory(initSize, this);
+
+        if (BackingStore.SCJ_DEBUG_ENABLED) {
+            VM.print("[SCJ] Create RealtimeThread ");
+            VM.println(getName());
+        }
     }
 
-    protected long getInitSize() {
-        return initSize;
+    public MemoryArea getInitArea() {
+        return initArea;
     }
 
     protected StorageParameters getStorageParameters() {
@@ -161,7 +140,7 @@ public class RealtimeThread extends Thread {
         if (bs == null) {
             throw new Error("Backing store must be specified before the thread can start!");
         }
-        if (runner != null && runner.initArea == null) {
+        if (initArea == null) {
             throw new Error("Initial area must be specified before the thread can start!");
         }
         super.start();
@@ -204,11 +183,6 @@ public class RealtimeThread extends Thread {
         // TODO:
         return false;
     }
-
-    private static Runnable createRunner() {
-        RealtimeThread.temp = new Runner();
-        return RealtimeThread.temp;
-    };
 
     private static PriorityParameters checkPriorityParameters(PriorityParameters priority) {
         // TODO:

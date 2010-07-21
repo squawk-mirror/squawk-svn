@@ -32,27 +32,13 @@ public abstract class MemoryArea implements AllocationContext {
     }
 
     /**
-     * allocate BS from current thread's BS
-     * 
-     * @param size
-     */
-    public MemoryArea(long size) {
-        this(size, RealtimeThread.currentRealtimeThread());
-    }
-
-    /**
      * allocate BS from specified BS
      * 
      * @param size
      * @param container
      */
-    public MemoryArea(long size, RealtimeThread thread) {
-        if (size < 0)
-            throw new Error("memory size cannot be negative");
-        this.size = size;
-        if (thread == null)
-            throw new Error("thread is null");
-        this.bs = thread.getBackingStore().excavate((int) size);
+    public MemoryArea(long size, RealtimeThread from) {
+        this.allocBS(size, from);
         this.bs.setMirror(this);
     }
 
@@ -76,7 +62,7 @@ public abstract class MemoryArea implements AllocationContext {
      * Empty the memory and set the backing store to include all the rest free
      * memory space of its container.
      */
-    public void reset() {
+    protected void reset() {
         bs.reset();
     }
 
@@ -87,6 +73,9 @@ public abstract class MemoryArea implements AllocationContext {
 
     // @SCJAllowed
     public void enter(Runnable logic) {
+        if (bs == null)
+            throw new Error("Backing store is null");
+        
         BackingStore old = BackingStore.setCurrentContext(bs);
         try {
             logic.run();
@@ -170,11 +159,21 @@ public abstract class MemoryArea implements AllocationContext {
         return size;
     }
 
-    public void destroy() {
+    public void destroyBS() {
         bs.destroy();
+        bs = null;
     }
 
-    public void destroyAllAbove() {
+    public void allocBS(long size, RealtimeThread from) {
+        if (size < 0)
+            throw new Error("memory size cannot be negative");
+        this.size = size;
+        if (from == null)
+            throw new Error("resource thread is null");
+        this.bs = from.getBackingStore().excavate((int) size);
+    }
+
+    public void destroyAllAboveBS() {
         bs.destroyAllAbove();
     }
 }

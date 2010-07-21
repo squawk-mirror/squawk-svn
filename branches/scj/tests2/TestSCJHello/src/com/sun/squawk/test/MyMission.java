@@ -11,28 +11,29 @@ public class MyMission extends Mission {
     ManagedThread hello;
     ManagedThread world;
 
+    static long B = 1;
+    static long KB = 1024 * B;
+    static long MB = 1024 * KB;
+
     PriorityParameters priority = new PriorityParameters(42);
-    StorageParameters storage = new StorageParameters(1000000, 5000, 5000);
-    long initAreaSize = 5000;
+    StorageParameters storage = new StorageParameters(50 * KB, -1, 5 * KB);
+    long initAreaSize = 5 * KB;
 
     protected void initialize() {
-        System.out.print("[SCJ Hello] Mission initialize ... ");
-        System.out.print(turn);
-        System.out.println(" turn");
-
-        hello = new ManagedThread(priority, storage, initAreaSize, new Printer("Hello"));
-        world = new ManagedThread(priority, storage, initAreaSize, new Printer("World"));
+        System.out.println("[SCJ Hello] mission " + turn + " initialize ... ");
+        hello = new ManagedThread(priority, storage, initAreaSize, new Printer("Hello", 3,
+                initAreaSize));
+        world = new ManagedThread(priority, storage, initAreaSize, new Printer("World", 3,
+                initAreaSize));
         hello.register();
         world.register();
     }
 
     public long missionMemorySize() {
-        return 2000000;
+        return 1 * MB;
     }
 
     protected void cleanUp() {
-        System.out.print("[SCJ Hello] Mission clean up ... ");
-        System.out.print(turn);
-        System.out.println(" turn");
+        System.out.println("[SCJ Hello] mission " + turn + " clean up ... ");
     }
 }

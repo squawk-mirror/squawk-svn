@@ -134,7 +134,7 @@ public class BackingStore implements GlobalStaticFields {
                 "SCP limit is not word aligned");
 
         SCJ_DEBUG_ENABLED = Klass.DEBUG_CODE_ENABLED;
-        SCJ_DEBUG_ALLOC = true;
+        SCJ_DEBUG_ALLOC = false;
 
         klass = bootstrapSuite.lookup("com.sun.squawk.BackingStore");
         HEADER_PLUS_INSTANCE_SIZE = roundUpToWord(HDR.basicHeaderSize + klass.getInstanceSize()
