@@ -12,11 +12,11 @@
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>2</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -25,9 +25,12 @@
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>true</useUpdate>
+    <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
     <excludedUsers></excludedUsers>
     <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
@@ -70,23 +73,34 @@
         <string>false</string>
       </values>
     </axis>
+    <axis>
+      <name>label</name>
+      <values>
+        <string>master</string>
+      </values>
+    </axis>
   </axes>
   <builders>
     <hudson.tasks.Shell>
-      <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+      <command>#!/bin/bash
+LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 cd trunk
-java -jar build.jar clean 
-java -jar build.jar copyphoneme
-java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING
 
-java -jar build.jar -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
-$HUDSON_HOME/bin/runsmoketest.sh DELEGATING
+hudsondir=$HUDSON_HOME
 
-java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+echo huddir $hudsondir
+./d.sh clean 
+./d.sh copyphoneme
+./d.sh -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING
+
+./d.sh -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
+$hudsondir/bin/runsmoketest.sh DELEGATING
+
+./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
 rm squawk.suite.map
 
 ls -l &gt; sizereport.txt
-java -jar build.jar clean </command>
+./d.sh clean </command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
@@ -94,11 +108,6 @@ java -jar build.jar clean </command>
       <artifacts>trunk/sizereport.txt</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
-    <hudson.tasks.Mailer>
-      <recipients>squawk-regression@sun.com</recipients>
-      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
-      <sendToIndividuals>false</sendToIndividuals>
-    </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers/>
   <runSequentially>false</runSequentially>

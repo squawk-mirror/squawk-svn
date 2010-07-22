@@ -1,20 +1,20 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
-  <actions class="java.util.concurrent.CopyOnWriteArrayList"/>
+  <actions/>
   <description>Experimental job that tries to trigger the Hudson javatest plugin. Not working yet!</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>4</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.NullSCM"/>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <jdk>(Default)</jdk>
   <triggers class="vector"/>
+  <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
       <command></command>
@@ -25,10 +25,6 @@
       <artifacts>batch-report/html/*.html</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
-    <hudson.plugins.javatest__report.JavaTestReportPublisher>
-      <includes>batch-report/html/*.html</includes>
-      <jtwork>batch-work</jtwork>
-    </hudson.plugins.javatest__report.JavaTestReportPublisher>
     <hudson.tasks.Mailer>
       <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>

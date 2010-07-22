@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson.scm.SubversionSCM_-DescriptorImpl>
-  <generation>1</generation>
+  <generation>57</generation>
   <credentials class="hashtable">
     <entry>
       <string>&lt;https://squawk.dev.java.net:443&gt; CollabNet Subversion Repository</string>

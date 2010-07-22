@@ -5,11 +5,11 @@
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>2</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -18,18 +18,22 @@
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <useUpdate>true</useUpdate>
+    <doRevert>false</doRevert>
     <browser class="hudson.scm.browsers.FishEyeSVN">
       <url>http://fisheye4.atlassian.com/browse/squawk/</url>
       <rootModule></rootModule>
     </browser>
     <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
     <excludedUsers></excludedUsers>
     <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
   </scm>
-  <canRoam>true</canRoam>
+  <assignedNode>master</assignedNode>
+  <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <jdk>1.6</jdk>
+  <jdk>(Default)</jdk>
   <triggers class="vector">
     <hudson.triggers.SCMTrigger>
       <spec>5 * * * *
@@ -39,40 +43,78 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+      <command>#!/bin/bash
+LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+
+export JAVA_HOME=/usr
 cd trunk
 
-$HUDSON_HOME/bin/verifyBuildJars2
+pwd
+#/home/squawk/Hudson-Squawk/hudson/trunk/bin/runsmoketest.sh 
 
-java -jar build.jar clean
-java -jar build.jar copyphoneme
-java -jar build.jar
-java -jar build.jar -prod -mac -o2 rom -metadata cldc imp debugger
+platform=&apos;unknown&apos;
+unamestr=`uname`
+hudsondir=&apos;null&apos;
+
+
+if [[ &quot;$unamestr&quot; == &apos;Linux&apos; ]];then
+   platform=&apos;linux&apos;
+elif [[ &quot;$unamestr&quot; == &apos;Darwin&apos; ]];then
+   platform=&apos;mac&apos;
+elif [[ &quot;$unamestr&quot; == &apos;CYGWIN_NT-5.1&apos; ]];then
+   platform=&apos;windows&apos;
+fi
+
+if [[ $platform == &apos;linux&apos; ]]; then
+	echo &apos;lin&apos;
+        hudsondir=&apos;/home/squawk/Hudson-Squawk/hudson/trunk&apos;
+elif [[ $platform == &apos;mac&apos; ]]; then
+   	echo &apos;mac&apos;
+        #hudsondir=$HUDSON_HOME
+elif [[ $platform == &apos;windows&apos; ]];then
+	echo &apos;win&apos;
+fi
+
+
+
+echo huddir $hudsondir
+
+#$HUDSON_HOME/bin/verifyBuildJars2
+./d.sh -verbose builder
+./d.sh   clean
+./d.sh
+./d.sh  copyphoneme
+./d.sh -verbose -prod -mac -o2 rom -metadata cldc imp debugger
 
 ls -l &gt; sizereport.txt
 
-java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-java -jar build.jar genspec
-java -jar build.jar jvmenv
-java -jar build.jar systemproperties
-java -jar build.jar Mnemonics
-java -jar build.jar OPC
-java -jar build.jar OperandStackEffect
-java -jar build.jar Verifier
+./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+./d.sh genspec
+./d.sh jvmenv
+./d.sh systemproperties
+./d.sh Mnemonics
+./d.sh OPC
+./d.sh OperandStackEffect
+./d.sh Verifier
 ./squawk -h
 ./squawk -version
-$HUDSON_HOME/bin/runsmoketest.sh DELEGATING
 
-/usr/bin/rm -rf tempdoc
+
+echo working directory
+pwd
+
+$hudsondir/bin/runsmoketest.sh DELEGATING
+ls  $hudsondir/bin/
+rm -rf tempdoc
 
 echo MAKEAPI DISABLED FOR NOW!
 #java -jar build.jar -verbose makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc -verbose -docletpath build.jar
 
-java -jar $HUDSON_HOME/findbugs/lib/findbugs.jar -textui -project $HUDSON_HOME/bin/findbugs-bootstrap.fbp -exclude $HUDSON_HOME/bin/findbugs-filter.xml -output findbugs.xml
+java -jar $hudsondir/findbugs/lib/findbugs.jar -textui -project $hudsondir/bin/findbugs-bootstrap.fbp -exclude $hudsondir/bin/findbugs-filter.xml -output findbugs.xml
 
 mkdir tmp
 cp squawk squawk.suite squawk.suite.metadata tmp
-java -jar build.jar clean 
+./d.sh clean 
 mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
 rmdir tmp
 </command>
@@ -83,53 +125,14 @@ rmdir tmp
       <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.BuildTrigger>
-      <childProjects>full-debug-build, small-build, build-matrix</childProjects>
+      <childProjects>normal-build-linux,normal-build-windows</childProjects>
       <threshold>
         <name>SUCCESS</name>
         <ordinal>0</ordinal>
         <color>BLUE</color>
       </threshold>
     </hudson.tasks.BuildTrigger>
-    <hudson.plugins.findbugs.FindBugsPublisher>
-      <threshold></threshold>
-      <newThreshold></newThreshold>
-      <failureThreshold></failureThreshold>
-      <newFailureThreshold></newFailureThreshold>
-      <healthy></healthy>
-      <unHealthy></unHealthy>
-      <pluginName>[FINDBUGS] </pluginName>
-      <thresholdLimit>low</thresholdLimit>
-      <defaultEncoding></defaultEncoding>
-      <pattern></pattern>
-    </hudson.plugins.findbugs.FindBugsPublisher>
-    <hudson.plugins.tasks.TasksPublisher>
-      <threshold></threshold>
-      <newThreshold></newThreshold>
-      <failureThreshold></failureThreshold>
-      <newFailureThreshold></newFailureThreshold>
-      <healthy></healthy>
-      <unHealthy></unHealthy>
-      <pluginName>[TASKS] </pluginName>
-      <thresholdLimit>low</thresholdLimit>
-      <defaultEncoding></defaultEncoding>
-      <high>FIXME, BUG</high>
-      <normal>TODO</normal>
-      <low></low>
-      <ignoreCase>true</ignoreCase>
-      <pattern></pattern>
-      <excludePattern></excludePattern>
-      <canRunOnFailed>false</canRunOnFailed>
-    </hudson.plugins.tasks.TasksPublisher>
-    <hudson.tasks.Mailer>
-      <recipients>squawk-regression@sun.com</recipients>
-      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
-      <sendToIndividuals>false</sendToIndividuals>
-    </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers/>
 </project>

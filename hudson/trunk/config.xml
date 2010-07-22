@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson>
-  <version>1.324</version>
-  <numExecutors>4</numExecutors>
+  <version>1.361</version>
+  <numExecutors>2</numExecutors>
   <mode>NORMAL</mode>
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
   <securityRealm class="hudson.security.SecurityRealm$None"/>
@@ -61,13 +61,52 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
     </jdk>
   </jdks>
   <clouds/>
-  <slaves/>
+  <slaves>
+    <slave>
+      <name>Ubuntu</name>
+      <description></description>
+      <remoteFS>/home/squawk-lin/</remoteFS>
+      <numExecutors>2</numExecutors>
+      <mode>EXCLUSIVE</mode>
+      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+      <launcher class="hudson.slaves.JNLPLauncher"/>
+      <label></label>
+      <nodeProperties/>
+    </slave>
+    <slave>
+      <name>WindowsXP32</name>
+      <description></description>
+      <remoteFS>c:\</remoteFS>
+      <numExecutors>2</numExecutors>
+      <mode>NORMAL</mode>
+      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+      <launcher class="hudson.slaves.JNLPLauncher"/>
+      <label></label>
+      <nodeProperties>
+        <hudson.slaves.EnvironmentVariablesNodeProperty>
+          <envVars serialization="custom">
+            <unserializable-parents/>
+            <tree-map>
+              <default>
+                <comparator class="hudson.util.CaseInsensitiveComparator"/>
+              </default>
+              <int>1</int>
+              <string>CYGWIN_HOME</string>
+              <string>c:\cygwin\bin</string>
+            </tree-map>
+          </envVars>
+        </hudson.slaves.EnvironmentVariablesNodeProperty>
+      </nodeProperties>
+    </slave>
+  </slaves>
   <quietPeriod>5</quietPeriod>
   <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
   <views>
     <hudson.model.AllView>
       <owner class="hudson" reference="../../.."/>
       <name>All</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
     </hudson.model.AllView>
     <listView>
       <owner class="hudson" reference="../../.."/>
@@ -105,6 +144,8 @@ Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&
 &lt;i&gt;When the TCK is running, you can check console of the &lt;br&gt;&#xd;
 currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/&quot;&gt;start-tck-cmdline&lt;/a&gt; job to see progress.&lt;/i&gt;&#xd;
 </description>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
       <jobNames class="tree-set">
         <comparator class="hudson.util.CaseInsensitiveComparator"/>
         <string>build-flash-memory-matrix</string>

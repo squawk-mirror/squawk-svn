@@ -5,62 +5,65 @@
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>4</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
-  <scm class="hudson.scm.NullSCM"/>
-  <canRoam>true</canRoam>
+  <properties/>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <local>trunk</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <useUpdate>true</useUpdate>
+    <doRevert>false</doRevert>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+  </scm>
+  <assignedNode>master</assignedNode>
+  <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <jdk>1.5</jdk>
+  <jdk>(Default)</jdk>
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.5.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.5.0/jre/lib/i386:$LD_LIBRARY_PATH
-
+      <command>LD_LIBRARY_PATH=/usr/lib:/usr/local/lib:/usr/jdk/instances/jdk1.5.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.5.0/jre/lib/i386:$LD_LIBRARY_PATH
+PATH=/usr/bin:$PATH
+cd trunk
 $HUDSON_HOME/bin/verifyBuildJars2
 
-java -jar build.jar clean
-java -jar build.jar copyphoneme
-java -jar build.jar
-java -jar build.jar -prod -mac -o2 rom -metadata cldc imp debugger
+./d.sh clean
+./d.sh copyphoneme
+./d.sh
+./d.sh -prod -mac -o2 rom -metadata cldc imp debugger
 
-java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-java -jar build.jar genspec
-java -jar build.jar jvmenv
-java -jar build.jar systemproperties
-java -jar build.jar Mnemonics
-java -jar build.jar OPC
-java -jar build.jar OperandStackEffect
-java -jar build.jar Verifier
+./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+./d.sh genspec
+./d.sh jvmenv
+./d.sh systemproperties
+./d.sh Mnemonics
+./d.sh OPC
+./d.sh OperandStackEffect
+./d.sh Verifier
 ./squawk -h
 ./squawk -version
+
 $HUDSON_HOME/bin/runsmoketest.sh NATIVE
 $HUDSON_HOME/bin/runiotests.sh
 
 /usr/bin/rm -rf tempdoc
-java -jar build.jar makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc
+#./d.sh makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc
 </command>
     </hudson.tasks.Shell>
   </builders>
-  <publishers>
-    <hudson.tasks.JavadocArchiver>
-      <javadocDir>tempdoc/javadoc</javadocDir>
-      <keepAll>false</keepAll>
-    </hudson.tasks.JavadocArchiver>
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>squawk, squawk.suite</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
-    <hudson.tasks.Mailer>
-      <recipients>derek.white@sun.com</recipients>
-      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
-      <sendToIndividuals>false</sendToIndividuals>
-    </hudson.tasks.Mailer>
-  </publishers>
+  <publishers/>
   <buildWrappers/>
   <customWorkspace>/scratch/dw29446/hudson/test-ws</customWorkspace>
 </project>
