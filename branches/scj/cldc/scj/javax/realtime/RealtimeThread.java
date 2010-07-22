@@ -37,13 +37,13 @@ public class RealtimeThread extends Thread {
     // @SCJAllowed(INFRASTRUCTURE)
     public RealtimeThread(String string, int stackSize, Runnable logic) {
         super(logic, string, stackSize);
-        this.bs = BackingStore.getScoped();
-        this.initArea = ImmortalMemory.instance();
+        bs = BackingStore.getScoped();
+        initArea = ImmortalMemory.instance();
         // TODO: default sPara and pPara??
 
         if (BackingStore.SCJ_DEBUG_ENABLED) {
             VM.println("[SCJ] Create primordial realtime thread ");
-            this.bs.printInfo();
+            bs.printInfo();
         }
     }
 
@@ -192,5 +192,11 @@ public class RealtimeThread extends Thread {
     private static StorageParameters checkStorageParameters(StorageParameters storage) {
         // TODO:
         return storage;
+    }
+
+    public void startRun() {
+        initArea.enter(this);
+        initArea.destroyBS();
+        initArea = null;
     }
 }

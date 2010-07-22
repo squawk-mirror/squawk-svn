@@ -1799,7 +1799,7 @@ public class GC implements GlobalStaticFields {
         ObjectAssociation assn = new ObjectAssociation(klass);
         
         // The Lisp2Collector relies on ObjectAssociations always being at a higher address
-        // than the object with which they are associated
+        // than the object with which they are associated        
         Assert.that(VM.isHosted() || Address.fromObject(object).lo(Address.fromObject(assn)));
         
         NativeUnsafe.setObject(object, HDR.klass, assn);

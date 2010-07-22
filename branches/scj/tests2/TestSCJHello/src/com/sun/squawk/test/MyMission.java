@@ -16,15 +16,17 @@ public class MyMission extends Mission {
     static long MB = 1024 * KB;
 
     PriorityParameters priority = new PriorityParameters(42);
-    StorageParameters storage = new StorageParameters(50 * KB, -1, 5 * KB);
-    long initAreaSize = 5 * KB;
+    StorageParameters storage = new StorageParameters(1 * MB, -1, 5 * KB);
+    long privateSize = 5 * KB;
+    long initSize = 50 * KB;
+    int privateDepth = 10;
 
     protected void initialize() {
         System.out.println("[SCJ Hello] mission " + turn + " initialize ... ");
-        hello = new ManagedThread(priority, storage, initAreaSize, new Printer("Hello", 3,
-                initAreaSize));
-        world = new ManagedThread(priority, storage, initAreaSize, new Printer("World", 3,
-                initAreaSize));
+        hello = new ManagedThread(priority, storage, initSize, new Printer("Hello", privateDepth,
+                privateSize));
+        world = new ManagedThread(priority, storage, initSize, new Printer("World", privateDepth,
+                privateSize));
         hello.register();
         world.register();
     }

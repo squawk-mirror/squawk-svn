@@ -1587,7 +1587,7 @@ VM.println("creating stack:");
                 thread.appThreadTop = thread.framePointerAsOffset(VM.getFP());
 /*if[SCJ]*/
                 if(Isolate.currentIsolate().isClassKlassInitialized() && apiThread instanceof RealtimeThread)
-                    ((RealtimeThread)apiThread).getInitArea().enter(apiThread);
+                    ((RealtimeThread)apiThread).startRun();
                 else
 /*end[SCJ]*/
                     apiThread.run();

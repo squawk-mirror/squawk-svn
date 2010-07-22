@@ -1181,7 +1181,7 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
             Address newThread  = com_sun_squawk_VMThread_otherThread;
             Address newStack   = (Address)com_sun_squawk_VMThread_stack(newThread);
 #ifdef SCJ
-            Address oldAllocCtx = com_sun_squawk_BackingStore_curContext;
+            Address oldAllocCtx = com_sun_squawk_BackingStore_currentAllocContext;
             Address newAllocCtx = (Address)com_sun_squawk_VMThread_savedAllocCtx(newThread);
 #endif
             assume(newStack != null);

@@ -75,7 +75,7 @@ public abstract class MemoryArea implements AllocationContext {
     public void enter(Runnable logic) {
         if (bs == null)
             throw new Error("Backing store is null");
-        
+
         BackingStore old = BackingStore.setCurrentContext(bs);
         try {
             logic.run();
@@ -160,8 +160,10 @@ public abstract class MemoryArea implements AllocationContext {
     }
 
     public void destroyBS() {
-        bs.destroy();
-        bs = null;
+        if (this != ImmortalMemory.instance()) {
+            bs.destroy();
+            bs = null;
+        }
     }
 
     public void allocBS(long size, RealtimeThread from) {

@@ -6,11 +6,8 @@ import javax.safetycritical.ManagedMemory;
 public class Printer implements Runnable {
 
     private String msg;
-
     private final int depth;
-
     private int curDepth;
-
     private long privateSize;
 
     Printer(String msg, int depth, long privateSize) {

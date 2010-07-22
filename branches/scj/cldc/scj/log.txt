@@ -14,11 +14,18 @@ Memo:
 - ObjectAssociation / Monitor allocation - two choices:
   1) allocate along with the object - space wasting
   2) allocate upon required at the scope where the object is allocated 
-     - overhead: search for and switch allocation context (chosen)
+     - overhead: search for and switch allocation context (done)
 
 - Class state allocation - two choices:
   1) pre-allocate in immortal memory before user program starts to run 
-  2) allocate upon required in immortal memory (chosen)
+  2) allocate upon required in immortal memory (done)
+  
+- Need to implement BackingStore.getBackingStore(Object) in a more efficient
+  way; for now it is done by simply line searching for the BS enclosing the 
+  address of the object. The search time can be decreased by:
+  1) add BS  pointer to object header
+  2) make BS organization support binary search. (done)     
+  
 
 TODO:
 
@@ -36,9 +43,3 @@ TODO:
   in the need of write barrier.
   
 - Monitor object allocations are triggered when printing. Check why??
-
-- Need to implement BackingStore.getBackingStore(Object) in a more efficient
-  way; for now it is done by simply line searching for the BS enclosing the 
-  address of the object. The search time can be decreased by:
-  1) add BS  pointer to object header
-  2) make BS organization support binary search. (plan to do)     

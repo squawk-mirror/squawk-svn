@@ -64,6 +64,7 @@ public abstract class MissionSequencer extends AsyncEventHandler {
             memory.reset();
             memory.enter(this);
         } while (!terminationRequestReceived);
+        memory.destroyBS();
     }
 
     /**
