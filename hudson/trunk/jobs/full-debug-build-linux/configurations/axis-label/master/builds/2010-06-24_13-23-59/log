@@ -1,0 +1,2634 @@
+Started by upstream project "full-debug-build-allnodes" build number 1
+Building on master
+Checking out a fresh workspace because /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk doesn't exist
+Checking out https://squawk.dev.java.net/svn/squawk/trunk
+A         platform-stubs
+AU        platform-stubs/noclasses-imp-1.0.jar
+AU        platform-stubs/squawk-imp-1.0.jar
+A         mapper
+AU        mapper/.classpath
+AU        mapper/builder.properties
+AU        mapper/.project
+A         mapper/nbproject
+AU        mapper/nbproject/project.properties
+AU        mapper/nbproject/project.xml
+AU        mapper/nbproject/genfiles.properties
+AU        mapper/nbproject/build-impl.xml
+AU        mapper/manifest.mf
+A         mapper/src
+A         mapper/src/java
+A         mapper/src/java/lang
+A         mapper/src/com
+A         mapper/src/com/sun
+A         mapper/src/com/sun/squawk
+AU        mapper/src/com/sun/squawk/ObjectMemoryFileEndianessConverter.java
+AU        mapper/src/com/sun/squawk/VM.java
+AU        mapper/src/com/sun/squawk/ObjectMemoryMapper.java
+A         mapper/src/com/sun/squawk/mapper
+AU        mapper/src/com/sun/squawk/mapper/ClassOwnerStats.java
+AU        mapper/src/com/sun/squawk/mapper/HistogramEntry.java
+AU        mapper/src/com/sun/squawk/mapper/BytecodeTracerEntry.java
+AU        mapper/src/com/sun/squawk/mapper/OwnerStats.java
+AU        mapper/src/com/sun/squawk/mapper/ObjectTableStat.java
+AU        mapper/src/com/sun/squawk/mapper/Histogram.java
+AU        mapper/src/com/sun/squawk/mapper/MapBytecodeTracer.java
+AU        mapper/src/com/sun/squawk/mapper/ObjectTable.java
+AU        mapper/src/com/sun/squawk/mapper/HistogramEntrySorter.java
+AU        mapper/build.xml
+A         debugger
+AU        debugger/.classpath
+AU        debugger/builder.properties
+AU        debugger/.project
+A         debugger/nbproject
+AU        debugger/nbproject/project.properties
+AU        debugger/nbproject/project.xml
+AU        debugger/nbproject/genfiles.properties
+AU        debugger/nbproject/build-impl.xml
+A         debugger/src
+A         debugger/src/java
+A         debugger/src/java/lang
+A         debugger/src/tests
+AU        debugger/src/tests/TestApp.java
+AU        debugger/src/tests/TestApp2.java
+A         debugger/src/com
+A         debugger/src/com/sun
+A         debugger/src/com/sun/squawk
+AU        debugger/src/com/sun/squawk/DebuggerSupport.java
+A         debugger/src/com/sun/squawk/debugger
+AU        debugger/src/com/sun/squawk/debugger/PacketInputStream.java
+AU        debugger/src/com/sun/squawk/debugger/JDWP.java
+AU        debugger/src/com/sun/squawk/debugger/PacketOutputStream.java
+AU        debugger/src/com/sun/squawk/debugger/CommandPacket.java
+AU        debugger/src/com/sun/squawk/debugger/Packet.java
+AU        debugger/src/com/sun/squawk/debugger/EventRequestModifier.java
+AU        debugger/src/com/sun/squawk/debugger/JDWPListener.java
+AU        debugger/src/com/sun/squawk/debugger/DataType.java
+AU        debugger/src/com/sun/squawk/debugger/EventManager.java
+AU        debugger/src/com/sun/squawk/debugger/SDWP.java
+AU        debugger/src/com/sun/squawk/debugger/Log.java
+AU        debugger/src/com/sun/squawk/debugger/EventNotifier.java
+AU        debugger/src/com/sun/squawk/debugger/ReplyPacket.java
+AU        debugger/src/com/sun/squawk/debugger/JDWPConnection.java
+A         debugger/src/com/sun/squawk/debugger/sda
+AU        debugger/src/com/sun/squawk/debugger/sda/ObjectManager.java
+AU        debugger/src/com/sun/squawk/debugger/sda/SDA.java
+AU        debugger/src/com/sun/squawk/debugger/sda/SDPListener.java
+AU        debugger/src/com/sun/squawk/debugger/sda/package.html
+AU        debugger/src/com/sun/squawk/debugger/sda/WeakIntHashtable.java
+AU        debugger/src/com/sun/squawk/debugger/EventRequest.java
+AU        debugger/src/com/sun/squawk/debugger/SDWPException.java
+AU        debugger/manifest.mf
+AU        debugger/build.xml
+A         www
+A         www/figures
+AU        www/figures/uc_bar61.gif
+AU        www/figures/Squawk-SplitVM.jpg
+AU        www/figures/SunSPOT.jpg
+AU        www/figures/java powered.png
+AU        www/figures/duke-squeak-transparent-anti-aliased.gif
+AU        www/figures/SuiteChain.jpg
+AU        www/figures/SquawkVM.jpg
+A         www/alm-process
+A         www/alm-process/snippets
+A         www/alm-process/snippets/page.xml
+AU        www/index-more.html
+AU        www/index.html
+AU        www/download.html
+AU        www/README.txt
+AU        www/template.html
+A         translator
+AU        translator/.classpath
+AU        translator/builder.properties
+AU        translator/.project
+A         translator/nbproject
+AU        translator/nbproject/project.properties
+AU        translator/nbproject/project.xml
+AU        translator/nbproject/genfiles.properties
+AU        translator/nbproject/build-impl.xml
+AU        translator/manifest.mf
+A         translator/src
+A         translator/src/com
+A         translator/src/com/sun
+A         translator/src/com/sun/squawk
+AU        translator/src/com/sun/squawk/MethodBodyTracer.java
+AU        translator/src/com/sun/squawk/BytecodeTracer.java
+A         translator/src/com/sun/squawk/test
+AU        translator/src/com/sun/squawk/test/VerifyUseOfInterface.java
+A         translator/src/com/sun/squawk/vm
+AU        translator/src/com/sun/squawk/vm/Mnemonics.java
+AU        translator/src/com/sun/squawk/vm/OperandStackEffect.java
+A         translator/src/com/sun/squawk/io
+A         translator/src/com/sun/squawk/io/j2me
+A         translator/src/com/sun/squawk/io/j2me/classpath
+AU        translator/src/com/sun/squawk/io/j2me/classpath/Protocol.java
+A         translator/src/com/sun/squawk/translator
+AU        translator/src/com/sun/squawk/translator/ClassFile.java
+AU        translator/src/com/sun/squawk/translator/IllegalAccessError.java
+AU        translator/src/com/sun/squawk/translator/DeadClassEliminator.java
+AU        translator/src/com/sun/squawk/translator/Arg.java
+AU        translator/src/com/sun/squawk/translator/NoSuchMethodError.java
+AU        translator/src/com/sun/squawk/translator/Code.java
+A         translator/src/com/sun/squawk/translator/ci
+AU        translator/src/com/sun/squawk/translator/ci/MethodSignature.java
+AU        translator/src/com/sun/squawk/translator/ci/StackMap.java
+AU        translator/src/com/sun/squawk/translator/ci/ConstantPool.java
+AU        translator/src/com/sun/squawk/translator/ci/Context.java
+AU        translator/src/com/sun/squawk/translator/ci/UninitializedObjectClass.java
+AU        translator/src/com/sun/squawk/translator/ci/CodeParser.java
+AU        translator/src/com/sun/squawk/translator/ci/ClassFileReader.java
+AU        translator/src/com/sun/squawk/translator/ci/Opcode.java
+AU        translator/src/com/sun/squawk/translator/ci/LocalVariableTableEntry.java
+AU        translator/src/com/sun/squawk/translator/ci/IndexedInputStream.java
+AU        translator/src/com/sun/squawk/translator/ci/ClassFileLoader.java
+AU        translator/src/com/sun/squawk/translator/ci/package.html
+AU        translator/src/com/sun/squawk/translator/IncompatibleClassChangeError.java
+AU        translator/src/com/sun/squawk/translator/NoSuchFieldError.java
+AU        translator/src/com/sun/squawk/translator/VerifyError.java
+AU        translator/src/com/sun/squawk/translator/AbstractMethodError.java
+AU        translator/src/com/sun/squawk/translator/DeadMethodEliminator.java
+AU        translator/src/com/sun/squawk/translator/LinkageError.java
+AU        translator/src/com/sun/squawk/translator/MethodDB.java
+AU        translator/src/com/sun/squawk/translator/ClassFormatError.java
+AU        translator/src/com/sun/squawk/translator/Translator.java
+AU        translator/src/com/sun/squawk/translator/ClassCircularityError.java
+A         translator/src/com/sun/squawk/translator/ir
+AU        translator/src/com/sun/squawk/translator/ir/InstructionVisitor.java
+AU        translator/src/com/sun/squawk/translator/ir/OperandVisitor.java
+AU        translator/src/com/sun/squawk/translator/ir/IR.java
+AU        translator/src/com/sun/squawk/translator/ir/ReferenceRecordingVisitor.java
+AU        translator/src/com/sun/squawk/translator/ir/InstructionEmitter.java
+A         translator/src/com/sun/squawk/translator/ir/instr
+AU        translator/src/com/sun/squawk/translator/ir/instr/NewDimension.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/PseudoInstruction.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/InvokeVirtual.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Throw.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/InvokeStatic.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Position.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ConstantInt.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/TryEnd.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ConstantLong.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/StackProducer.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Return.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ConstantFloat.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Phi.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/PutStatic.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Catch.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/FindSlot.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/GetField.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ConstantDouble.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/StackMerge.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/GetStatic.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/NewArray.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ArithmeticOp.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/New.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/InstanceOf.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Mutator.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ArrayStore.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/InstanceFieldAccessor.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/LookupSwitch.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Branch.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/InvokeSlot.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/LocalVariable.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/IncDecLocal.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Switch.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/TargetedInstruction.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/NegationOp.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/StackOp.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/IfCompare.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/FieldAccessor.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/StoreLocal.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/TableSwitch.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ComparisonOp.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/InvokeSuper.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/PutField.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ArrayLoad.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Try.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ArrayLength.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ConstantObject.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/MonitorExit.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/ConversionOp.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/MonitorEnter.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/CheckCast.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Constant.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/LoadLocal.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Invoke.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/If.java
+AU        translator/src/com/sun/squawk/translator/ir/instr/Pop.java
+AU        translator/src/com/sun/squawk/translator/ir/IRBuilder.java
+AU        translator/src/com/sun/squawk/translator/ir/Instruction.java
+AU        translator/src/com/sun/squawk/translator/ir/Slot.java
+AU        translator/src/com/sun/squawk/translator/ir/SlotAllocator.java
+AU        translator/src/com/sun/squawk/translator/ir/InstructionTracer.java
+AU        translator/src/com/sun/squawk/translator/ir/AbstractInstructionVisitor.java
+AU        translator/src/com/sun/squawk/translator/ir/Target.java
+AU        translator/src/com/sun/squawk/translator/ir/IRExceptionHandler.java
+AU        translator/src/com/sun/squawk/translator/ir/Frame.java
+AU        translator/src/com/sun/squawk/translator/ir/Local.java
+A         translator/src/com/sun/squawk/translator/ir/verifier
+AU        translator/src/com/sun/squawk/translator/ir/verifier/NativeVerifierHelper.java
+AU        translator/src/com/sun/squawk/translator/ir/verifier/VerifierBase.java
+AU        translator/src/com/sun/squawk/translator/ir/verifier/Frame.java
+AU        translator/src/com/sun/squawk/translator/ir/verifier/Verifier.java
+AU        translator/src/com/sun/squawk/translator/ir/verifier/VerifyError.java
+AU        translator/src/com/sun/squawk/translator/ir/IRTransformer.java
+AU        translator/src/com/sun/squawk/translator/InstantiationError.java
+AU        translator/src/com/sun/squawk/ClassSourcePrinter.java
+A         translator/.settings
+AU        translator/.settings/org.eclipse.jdt.core.prefs
+AU        translator/build.xml
+AU        build.properties
+A         phoneme
+AU        phoneme/.classpath
+AU        phoneme/.project
+A         phoneme/cldc
+A         phoneme/cldc/src
+A         phoneme/cldc/src/javaapi
+A         phoneme/cldc/src/javaapi/cldc1.1
+A         phoneme/cldc/src/javaapi/cldc1.1/java
+A         phoneme/cldc/src/javaapi/cldc1.1/java/lang
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ClassCastException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/StringBuffer.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ClassNotFoundException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/RuntimeException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/InstantiationException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/StringIndexOutOfBoundsException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/String.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Object.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Runnable.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Thread.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/IllegalAccessException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ArrayIndexOutOfBoundsException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Boolean.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/NumberFormatException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/IllegalThreadStateException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/FloatingDecimal.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/System.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/VirtualMachineError.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/NoClassDefFoundError.java
+A         phoneme/cldc/src/javaapi/cldc1.1/java/lang/ref
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ref/WeakReference.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ref/package.html
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ref/Reference.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Integer.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Exception.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Short.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/OutOfMemoryError.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Long.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/IllegalMonitorStateException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Byte.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Float.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Class.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ArithmeticException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/ArrayStoreException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Double.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/NegativeArraySizeException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/package.html
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/IndexOutOfBoundsException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Runtime.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/InterruptedException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/SecurityException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Throwable.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Error.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Math.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/NullPointerException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/IllegalArgumentException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/lang/Character.java
+A         phoneme/cldc/src/javaapi/cldc1.1/java/io
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/ByteArrayOutputStream.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/Reader.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/DataInputStream.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/DataOutputStream.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/PrintStream.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/OutputStreamWriter.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/InputStream.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/Writer.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/InterruptedIOException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/OutputStream.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/package.html
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/UnsupportedEncodingException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/UTFDataFormatException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/IOException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/EOFException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/DataInput.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/DataOutput.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/InputStreamReader.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/io/ByteArrayInputStream.java
+A         phoneme/cldc/src/javaapi/cldc1.1/java/util
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/Random.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/EmptyStackException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/NoSuchElementException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/Calendar.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/TimeZone.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/Hashtable.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/Date.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/java/util/package.html
+A         phoneme/cldc/src/javaapi/cldc1.1/javax
+A         phoneme/cldc/src/javaapi/cldc1.1/javax/microedition
+A         phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/InputConnection.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/Connection.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/Datagram.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/DatagramConnection.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/OutputConnection.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/Connector.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/ContentConnection.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/StreamConnection.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/ConnectionNotFoundException.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/StreamConnectionNotifier.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/javax/microedition/io/package.html
+A         phoneme/cldc/src/javaapi/cldc1.1/com
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/Helper.java
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/uclc
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/uclc/DefaultCaseConverter.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/uclc/package.html
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/StreamWriter.java
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/j2me
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/j2me/ISO8859_1_Writer.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/j2me/ISO8859_1_Reader.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/package.html
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/i18n/StreamReader.java
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/io
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/io/ConnectionBaseInterface.java
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/io/j2me
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/io/j2me/socket
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/io/j2me/socket/Protocol.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/io/package.html
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/util
+A         phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/util/j2me
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/util/j2me/CalendarImpl.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/util/j2me/TimeZoneImpl.java
+AU        phoneme/cldc/src/javaapi/cldc1.1/com/sun/cldc/util/j2me/package.html
+A         phoneme/Porting info.webloc
+A         phoneme/midp
+A         phoneme/midp/src
+A         phoneme/midp/src/ams
+A         phoneme/midp/src/ams/ams_api
+AU        phoneme/midp/src/ams/ams_api/lib.gmk
+AU        phoneme/midp/src/ams/ams_api/libexport.gmk
+AU        phoneme/midp/src/ams/ams_api/Makefile
+A         phoneme/midp/src/ams/ams_api/reference
+AU        phoneme/midp/src/ams/ams_api/reference/libinfo.gmk
+A         phoneme/midp/src/ams/ams_api/reference/classes
+A         phoneme/midp/src/ams/ams_api/reference/classes/javax
+A         phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition
+A         phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet
+AU        phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/MIDletStateChangeException.java
+A         phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/doc-files
+AU        phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/doc-files/Authorization.html
+AU        phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/doc-files/App-States.gif
+AU        phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/doc-files/PKITrust.html
+AU        phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/MIDletTunnelImpl.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/package.html
+AU        phoneme/midp/src/ams/ams_api/reference/classes/javax/microedition/midlet/MIDlet.java
+A         phoneme/midp/src/ams/ams_api/reference/classes/com
+A         phoneme/midp/src/ams/ams_api/reference/classes/com/sun
+A         phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp
+A         phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletEventProducer.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletTunnel.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletStateListener.java
+A         phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/doc-files
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/doc-files/midletstates.gif
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletLoader.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletEventListener.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletSuite.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletPeer.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletEventConsumer.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/PlatformRequest.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletSuiteExceptionListener.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/MIDletStateHandler.java
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/package.html
+AU        phoneme/midp/src/ams/ams_api/reference/classes/com/sun/midp/midlet/Scheduler.java
+A         phoneme/midp/src/rms
+A         phoneme/midp/src/rms/rms_exc
+AU        phoneme/midp/src/rms/rms_exc/lib.gmk
+AU        phoneme/midp/src/rms/rms_exc/libexport.gmk
+AU        phoneme/midp/src/rms/rms_exc/Makefile
+A         phoneme/midp/src/rms/rms_exc/reference
+AU        phoneme/midp/src/rms/rms_exc/reference/libinfo.gmk
+A         phoneme/midp/src/rms/rms_exc/reference/classes
+A         phoneme/midp/src/rms/rms_exc/reference/classes/javax
+A         phoneme/midp/src/rms/rms_exc/reference/classes/javax/microedition
+A         phoneme/midp/src/rms/rms_exc/reference/classes/javax/microedition/rms
+AU        phoneme/midp/src/rms/rms_exc/reference/classes/javax/microedition/rms/InvalidRecordIDException.java
+AU        phoneme/midp/src/rms/rms_exc/reference/classes/javax/microedition/rms/RecordStoreNotFoundException.java
+AU        phoneme/midp/src/rms/rms_exc/reference/classes/javax/microedition/rms/RecordStoreException.java
+AU        phoneme/midp/src/rms/rms_exc/reference/classes/javax/microedition/rms/RecordStoreNotOpenException.java
+AU        phoneme/midp/src/rms/rms_exc/reference/classes/javax/microedition/rms/RecordStoreFullException.java
+A         phoneme/midp/src/rms/rms_api
+AU        phoneme/midp/src/rms/rms_api/lib.gmk
+AU        phoneme/midp/src/rms/rms_api/libexport.gmk
+AU        phoneme/midp/src/rms/rms_api/Makefile
+A         phoneme/midp/src/rms/rms_api/classes
+A         phoneme/midp/src/rms/rms_api/classes/javax
+A         phoneme/midp/src/rms/rms_api/classes/javax/microedition
+A         phoneme/midp/src/rms/rms_api/classes/javax/microedition/rms
+AU        phoneme/midp/src/rms/rms_api/classes/javax/microedition/rms/package.html
+A         phoneme/midp/src/rms/rms_api/reference
+AU        phoneme/midp/src/rms/rms_api/reference/libinfo.gmk
+A         phoneme/midp/src/rms/rms_api/reference/native
+AU        phoneme/midp/src/rms/rms_api/reference/native/recordStoreFile.c
+A         phoneme/midp/src/rms/rms_api/reference/i3test
+A         phoneme/midp/src/rms/rms_api/reference/i3test/javax
+A         phoneme/midp/src/rms/rms_api/reference/i3test/javax/microedition
+A         phoneme/midp/src/rms/rms_api/reference/i3test/javax/microedition/rms
+AU        phoneme/midp/src/rms/rms_api/reference/i3test/javax/microedition/rms/TestRecordStore.java
+A         phoneme/midp/src/rms/rms_api/reference/i3test/com
+A         phoneme/midp/src/rms/rms_api/reference/i3test/com/sun
+A         phoneme/midp/src/rms/rms_api/reference/i3test/com/sun/midp
+A         phoneme/midp/src/rms/rms_api/reference/i3test/com/sun/midp/rms
+AU        phoneme/midp/src/rms/rms_api/reference/i3test/com/sun/midp/rms/TestFileRscLimit.java
+A         phoneme/midp/src/rms/rms_api/reference/classes
+A         phoneme/midp/src/rms/rms_api/reference/classes/javax
+A         phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition
+A         phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition/rms
+AU        phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition/rms/RecordFilter.java
+AU        phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition/rms/RecordListener.java
+AU        phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition/rms/RecordEnumeration.java
+AU        phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition/rms/RecordComparator.java
+AU        phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition/rms/RecordEnumerationImpl.java
+AU        phoneme/midp/src/rms/rms_api/reference/classes/javax/microedition/rms/RecordStore.java
+A         phoneme/midp/src/rms/rms_api/reference/classes/com
+A         phoneme/midp/src/rms/rms_api/reference/classes/com/sun
+A         phoneme/midp/src/rms/rms_api/reference/classes/com/sun/midp
+A         phoneme/midp/src/rms/rms_api/reference/classes/com/sun/midp/rms
+AU        phoneme/midp/src/rms/rms_api/reference/classes/com/sun/midp/rms/RecordStoreFile.jpp
+AU        phoneme/midp/src/rms/rms_api/reference/classes/com/sun/midp/rms/RecordStoreFactory.java
+AU        phoneme/midp/src/rms/rms_api/reference/classes/com/sun/midp/rms/RecordStoreImpl.java
+AU        phoneme/midp/src/rms/rms_api/reference/classes/com/sun/midp/rms/package.html
+A         phoneme/midp/src/protocol
+A         phoneme/midp/src/protocol/http
+AU        phoneme/midp/src/protocol/http/lib.gmk
+A         phoneme/midp/src/protocol/http/classes
+A         phoneme/midp/src/protocol/http/classes/javax
+A         phoneme/midp/src/protocol/http/classes/javax/microedition
+A         phoneme/midp/src/protocol/http/classes/javax/microedition/io
+AU        phoneme/midp/src/protocol/http/classes/javax/microedition/io/HttpConnection.java
+A         phoneme/midp/src/protocol/http/classes/com
+A         phoneme/midp/src/protocol/http/classes/com/sun
+A         phoneme/midp/src/protocol/http/classes/com/sun/midp
+A         phoneme/midp/src/protocol/http/classes/com/sun/midp/io
+A         phoneme/midp/src/protocol/http/classes/com/sun/midp/io/j2me
+A         phoneme/midp/src/protocol/http/classes/com/sun/midp/io/j2me/http
+AU        phoneme/midp/src/protocol/http/classes/com/sun/midp/io/j2me/http/package.html
+A         phoneme/midp/src/protocol/http/reference
+A         phoneme/midp/src/protocol/http/reference/i3test
+A         phoneme/midp/src/protocol/http/reference/i3test/com
+A         phoneme/midp/src/protocol/http/reference/i3test/com/sun
+A         phoneme/midp/src/protocol/http/reference/i3test/com/sun/midp
+A         phoneme/midp/src/protocol/http/reference/i3test/com/sun/midp/io
+A         phoneme/midp/src/protocol/http/reference/i3test/com/sun/midp/io/j2me
+A         phoneme/midp/src/protocol/http/reference/i3test/com/sun/midp/io/j2me/http
+AU        phoneme/midp/src/protocol/http/reference/i3test/com/sun/midp/io/j2me/http/TestHttpHeaders.java
+A         phoneme/midp/src/protocol/http/reference/classes
+A         phoneme/midp/src/protocol/http/reference/classes/com
+A         phoneme/midp/src/protocol/http/reference/classes/com/sun
+A         phoneme/midp/src/protocol/http/reference/classes/com/sun/midp
+A         phoneme/midp/src/protocol/http/reference/classes/com/sun/midp/io
+A         phoneme/midp/src/protocol/http/reference/classes/com/sun/midp/io/j2me
+A         phoneme/midp/src/protocol/http/reference/classes/com/sun/midp/io/j2me/http
+AU        phoneme/midp/src/protocol/http/reference/classes/com/sun/midp/io/j2me/http/Protocol.java
+AU        phoneme/midp/src/protocol/http/reference/classes/com/sun/midp/io/j2me/http/StreamConnectionPool.java
+AU        phoneme/midp/src/protocol/http/reference/classes/com/sun/midp/io/j2me/http/StreamConnectionElement.java
+A         phoneme/midp/src/core
+A         phoneme/midp/src/core/javautil
+AU        phoneme/midp/src/core/javautil/lib.gmk
+AU        phoneme/midp/src/core/javautil/libexport.gmk
+AU        phoneme/midp/src/core/javautil/Makefile
+A         phoneme/midp/src/core/javautil/classes
+A         phoneme/midp/src/core/javautil/classes/java
+A         phoneme/midp/src/core/javautil/classes/java/lang
+AU        phoneme/midp/src/core/javautil/classes/java/lang/package.html
+A         phoneme/midp/src/core/javautil/classes/java/util
+AU        phoneme/midp/src/core/javautil/classes/java/util/package.html
+A         phoneme/midp/src/core/javautil/reference
+AU        phoneme/midp/src/core/javautil/reference/libinfo.gmk
+A         phoneme/midp/src/core/javautil/reference/classes
+A         phoneme/midp/src/core/javautil/reference/classes/java
+A         phoneme/midp/src/core/javautil/reference/classes/java/lang
+AU        phoneme/midp/src/core/javautil/reference/classes/java/lang/IllegalStateException.java
+A         phoneme/midp/src/core/javautil/reference/classes/java/util
+AU        phoneme/midp/src/core/javautil/reference/classes/java/util/Timer.java
+AU        phoneme/midp/src/core/javautil/reference/classes/java/util/TimerTask.java
+A         phoneme/midp/src/core/javautil/reference/classes/com
+A         phoneme/midp/src/core/javautil/reference/classes/com/sun
+A         phoneme/midp/src/core/javautil/reference/classes/com/sun/midp
+A         phoneme/midp/src/core/javautil/reference/classes/com/sun/midp/util
+AU        phoneme/midp/src/core/javautil/reference/classes/com/sun/midp/util/DateParser.java
+AU        phoneme/midp/src/core/javautil/reference/classes/com/sun/midp/util/Properties.java
+AU        phoneme/midp/src/core/javautil/reference/classes/com/sun/midp/util/package.html
+AU        d.sh
+AU        build-prod-nofloat.properties
+AU        build-prod.properties
+AU        license.txt
+A         tools
+A         tools/linux-ppc
+AU        tools/linux-ppc/preverify
+AU        tools/retroweaver-all-squawk.jar
+AU        tools/.classpath
+A         tools/linux-x86
+AU        tools/linux-x86/preverify
+AU        tools/.project
+AU        tools/javamake.jar
+A         tools/macosx-ppc
+AU        tools/macosx-ppc/preverify
+A         tools/sunos-x86
+AU        tools/sunos-x86/preverify
+A         tools/windows-x86
+AU        tools/windows-x86/preverify.exe
+A         tools/sunos-sparc
+AU        tools/sunos-sparc/preverify
+A         tools/macosx-x86
+AU        tools/macosx-x86/preverify
+AU        tools/doccheck.jar
+A         hosted-support
+AU        hosted-support/squawk.jar.filelist
+AU        hosted-support/.classpath
+AU        hosted-support/builder.properties
+AU        hosted-support/.project
+A         hosted-support/nbproject
+AU        hosted-support/nbproject/project.properties
+AU        hosted-support/nbproject/project.xml
+AU        hosted-support/nbproject/genfiles.properties
+AU        hosted-support/nbproject/build-impl.xml
+A         hosted-support/src
+AU        hosted-support/src/jvmenv.java
+A         hosted-support/src/com
+A         hosted-support/src/com/sun
+A         hosted-support/src/com/sun/squawk
+A         hosted-support/src/com/sun/squawk/traceviewer
+A         hosted-support/src/com/sun/squawk/traces
+AU        hosted-support/src/com/sun/squawk/traces/InputFile.java
+AU        hosted-support/src/com/sun/squawk/traces/TraceViewer.java
+AU        hosted-support/src/com/sun/squawk/traces/AddressRelocator.java
+AU        hosted-support/src/com/sun/squawk/traces/ProfileViewer.java
+AU        hosted-support/src/com/sun/squawk/traces/ModifiedTreeExpansionAdapter.java
+AU        hosted-support/src/com/sun/squawk/traces/Symbols.java
+AU        hosted-support/src/com/sun/squawk/traces/OpCodeCounter.java
+AU        hosted-support/src/com/sun/squawk/traces/ExecutionPoint.java
+AU        hosted-support/src/com/sun/squawk/traces/GCTraceFilter.java
+AU        hosted-support/src/com/sun/squawk/traces/TraceTree.java
+A         hosted-support/src/com/sun/squawk/vm
+AU        hosted-support/src/com/sun/squawk/vm/ChannelIO.java
+AU        hosted-support/src/com/sun/squawk/vm/Main.java
+AU        hosted-support/src/com/sun/squawk/vm/GenericConnectionChannel.java
+AU        hosted-support/src/com/sun/squawk/vm/EventQueue.java
+AU        hosted-support/src/com/sun/squawk/vm/Channel.java
+AU        hosted-support/src/com/sun/squawk/vm/GUIInputChannel.java
+AU        hosted-support/src/com/sun/squawk/vm/GUIOutputChannel.java
+A         hosted-support/src/com/sun/squawk/ht2html
+AU        hosted-support/src/com/sun/squawk/ht2html/summary.html
+AU        hosted-support/src/com/sun/squawk/ht2html/heap.html
+AU        hosted-support/src/com/sun/squawk/ht2html/Main.java
+AU        hosted-support/src/com/sun/squawk/ht2html/console.html
+AU        hosted-support/src/com/sun/squawk/ht2html/heapindex.html
+AU        hosted-support/src/com/sun/squawk/ht2html/segments.html
+AU        hosted-support/src/com/sun/squawk/ht2html/index.html
+A         hosted-support/src/com/sun/squawk/profileviewer
+A         hosted-support/src/com/sun/squawk/suiteapi
+A         hosted-support/src/com/sun/squawk/io
+A         hosted-support/src/com/sun/squawk/io/j2se
+A         hosted-support/src/com/sun/squawk/io/j2se/serversocket
+AU        hosted-support/src/com/sun/squawk/io/j2se/serversocket/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/file
+AU        hosted-support/src/com/sun/squawk/io/j2se/file/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/http
+AU        hosted-support/src/com/sun/squawk/io/j2se/http/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/systemproperties
+AU        hosted-support/src/com/sun/squawk/io/j2se/systemproperties/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/zip
+AU        hosted-support/src/com/sun/squawk/io/j2se/zip/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/deletefiles
+AU        hosted-support/src/com/sun/squawk/io/j2se/deletefiles/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/msg
+AU        hosted-support/src/com/sun/squawk/io/j2se/msg/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/channel
+AU        hosted-support/src/com/sun/squawk/io/j2se/channel/Protocol.java
+A         hosted-support/src/com/sun/squawk/io/j2se/socket
+AU        hosted-support/src/com/sun/squawk/io/j2se/socket/Protocol.java
+AU        hosted-support/src/com/sun/squawk/io/j2se/UniversalFilterInputStream.java
+AU        hosted-support/src/com/sun/squawk/io/j2se/UniversalFilterOutputStream.java
+AU        hosted-support/src/com/sun/squawk/io/j2se/ParameterParser.java
+A         hosted-support/src/com/sun/squawk/io/j2se/msgserver
+AU        hosted-support/src/com/sun/squawk/io/j2se/msgserver/Protocol.java
+A         hosted-support/src/com/sun/squawk/util
+AU        hosted-support/src/com/sun/squawk/util/Find.java
+AU        hosted-support/src/com/sun/squawk/util/HexDump.java
+AU        hosted-support/src/com/sun/squawk/util/LongHashtable.java
+AU        hosted-support/src/com/sun/squawk/util/SerializableIntHashtable.java
+AU        hosted-support/manifest.mf
+AU        hosted-support/build.xml
+A         tests
+A         tests/HelloWorldMain
+AU        tests/HelloWorldMain/builder.properties
+A         tests/HelloWorldMain/nbproject
+AU        tests/HelloWorldMain/nbproject/project.properties
+AU        tests/HelloWorldMain/nbproject/project.xml
+AU        tests/HelloWorldMain/nbproject/genfiles.properties
+AU        tests/HelloWorldMain/nbproject/build-impl.xml
+AU        tests/HelloWorldMain/manifest.mf
+A         tests/HelloWorldMain/src
+A         tests/HelloWorldMain/src/tests
+AU        tests/HelloWorldMain/src/tests/HelloWorldMain.java
+A         tests/HelloWorldMain/res
+AU        tests/HelloWorldMain/build.xml
+A         tests/Simple
+AU        tests/Simple/builder.properties
+A         tests/Simple/nbproject
+AU        tests/Simple/nbproject/project.properties
+AU        tests/Simple/nbproject/project.xml
+AU        tests/Simple/nbproject/genfiles.properties
+AU        tests/Simple/nbproject/build-impl.xml
+A         tests/Simple/src
+A         tests/Simple/src/tests
+AU        tests/Simple/src/tests/TestSystemThreads.java
+AU        tests/Simple/src/tests/Test0.java
+AU        tests/Simple/src/tests/LifecycleTest.java
+AU        tests/Simple/src/tests/locked.txt
+AU        tests/Simple/src/tests/TestSystemProperties.java
+AU        tests/Simple/src/tests/Test2.java
+AU        tests/Simple/src/tests/TestMIDletNeverEnding.java
+AU        tests/Simple/src/tests/Test4.java
+AU        tests/Simple/src/tests/TestInstantiationException.java
+AU        tests/Simple/src/tests/TestStackTraceIsolate.java
+AU        tests/Simple/src/tests/TestMIDlet.java
+AU        tests/Simple/src/tests/SlowCode.java
+AU        tests/Simple/src/tests/DeadlocksOnDesktop.java
+AU        tests/Simple/src/tests/TestMailboxes.java
+AU        tests/Simple/src/tests/TestStackTrace.java
+AU        tests/Simple/src/tests/ThreadOverhead.java
+AU        tests/Simple/src/tests/TestUnicode.java
+AU        tests/Simple/src/tests/InvokeInterfaceBenchmark.java
+A         tests/Simple/src/tests/msgtests
+AU        tests/Simple/src/tests/msgtests/Main.java
+AU        tests/Simple/src/tests/Sub.java
+AU        tests/Simple/src/tests/TestIsolateLifecycleLocal.java
+AU        tests/Simple/src/tests/Test1.java
+AU        tests/Simple/src/tests/Test3.java
+A         tests/Simple/src/tests/foo
+AU        tests/Simple/src/tests/foo/Super.java
+AU        tests/Simple/src/tests/TestDouble.java
+AU        tests/Simple/src/tests/TestSync.java
+AU        tests/Simple/src/tests/TestExitHooks.java
+AU        tests/Simple/src/tests/TranslatorRegressions.java
+AU        tests/Simple/src/tests/TestUnsafe.java
+AU        tests/Simple/src/tests/SystemStreams.java
+AU        tests/Simple/src/tests/IsolateInitTest.java
+AU        tests/Simple/src/tests/ResourceTest.java
+AU        tests/Simple/src/tests/TestIsolateAndURLs.java
+AU        tests/Simple/src/tests/TestAlloc.java
+AU        tests/Simple/src/tests/TestDestroyApp.java
+AU        tests/Simple/src/tests/TestChannels.java
+AU        tests/Simple/src/tests/TestArgs.java
+AU        tests/Simple/manifest.mf
+A         tests/Simple/resources
+A         tests/Simple/resources/tests
+AU        tests/Simple/resources/tests/testResource
+AU        tests/Simple/build.xml
+A         tests/IsoTest
+AU        tests/IsoTest/builder.properties
+A         tests/IsoTest/src
+A         tests/IsoTest/src/org
+A         tests/IsoTest/src/org/sunspotworld
+AU        tests/IsoTest/src/org/sunspotworld/TestIsolate.java
+AU        tests/IsoTest/src/org/sunspotworld/IsolateMemoryTest.java
+A         tests/IsoTest/res
+A         tests/IsoTest/res/META-INF
+AU        tests/IsoTest/res/META-INF/manifest.mf
+A         tests/IsoTest/res/tests
+AU        tests/IsoTest/res/tests/testResource
+AU        tests/README.txt
+A         tests/HelloWorld
+AU        tests/HelloWorld/builder.properties
+A         tests/HelloWorld/nbproject
+AU        tests/HelloWorld/nbproject/project.properties
+AU        tests/HelloWorld/nbproject/project.xml
+AU        tests/HelloWorld/nbproject/genfiles.properties
+AU        tests/HelloWorld/nbproject/build-impl.xml
+AU        tests/HelloWorld/manifest.mf
+A         tests/HelloWorld/src
+A         tests/HelloWorld/src/tests
+AU        tests/HelloWorld/src/tests/HelloWorld.java
+A         tests/HelloWorld/res
+A         tests/HelloWorld/res/META-INF
+AU        tests/HelloWorld/res/META-INF/MANIFEST.MF
+AU        tests/HelloWorld/build.xml
+AU        squawk.exclude
+A         debugger-proxy
+AU        debugger-proxy/.classpath
+AU        debugger-proxy/builder.properties
+AU        debugger-proxy/.project
+A         debugger-proxy/nbproject
+AU        debugger-proxy/nbproject/project.properties
+AU        debugger-proxy/nbproject/project.xml
+AU        debugger-proxy/nbproject/genfiles.properties
+AU        debugger-proxy/nbproject/build-impl.xml
+AU        debugger-proxy/manifest.mf
+A         debugger-proxy/src
+A         debugger-proxy/src/java
+A         debugger-proxy/src/java/lang
+A         debugger-proxy/src/com
+A         debugger-proxy/src/com/sun
+A         debugger-proxy/src/com/sun/squawk
+A         debugger-proxy/src/com/sun/squawk/debugger
+A         debugger-proxy/src/com/sun/squawk/debugger/sdp
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/JDWPSniffer.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/SDPCommandSet.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/ProxyMethod.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/ProxyType.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/ProxyField.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/JDBListener.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/SDP.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/ProxyThread.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/SDAListener.java
+AU        debugger-proxy/src/com/sun/squawk/debugger/sdp/ProxyTypeManager.java
+AU        debugger-proxy/src/com/sun/squawk/ProxySupport.java
+AU        debugger-proxy/build.xml
+A         doc
+AU        doc/TheSquawkSystem-Sep02.pdf
+AU        doc/HowToBuildAndRunSquawk3G.html
+A         doc/Debugger
+AU        doc/Debugger/debugger-architecture.sxd
+AU        doc/Debugger/Debugger.html
+AU        doc/Debugger/debugger-architecture.gif
+AU        doc/synchronizationNotes.txt
+AU        doc/Preprocessor.html
+AU        doc/TheSquawkChannelArchitecture.html
+AU        doc/Mapper-TheSuiteFileDisassembler.html
+AU        build-commands.jar
+AU        .hgignore
+A         uei
+A         uei/launcher-hosted-support
+AU        uei/launcher-hosted-support/.classpath
+AU        uei/launcher-hosted-support/builder.properties
+AU        uei/launcher-hosted-support/.project
+A         uei/launcher-hosted-support/src
+A         uei/launcher-hosted-support/src/com
+A         uei/launcher-hosted-support/src/com/sun
+A         uei/launcher-hosted-support/src/com/sun/squawk
+A         uei/launcher-hosted-support/src/com/sun/squawk/uei
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/UeiOutputDisplayer.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/UeiCommandProcessor.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/UnimplementedUeiFeatureException.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/EmulatorOptions.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/EmulatorException.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/SquawkDeviceDescriptor.java
+A         uei/launcher-hosted-support/src/com/sun/squawk/uei/utilities
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/utilities/J2MEApplicationDescriptor.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/utilities/MidletEntryPoint.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/utilities/OutputDisplayer.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/uei/DeviceDescriptor.java
+A         uei/launcher-hosted-support/src/com/sun/squawk/io
+A         uei/launcher-hosted-support/src/com/sun/squawk/io/j2se
+A         uei/launcher-hosted-support/src/com/sun/squawk/io/j2se/uei
+AU        uei/launcher-hosted-support/src/com/sun/squawk/io/j2se/uei/ArgumentOutputStream.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/io/j2se/uei/Protocol.java
+AU        uei/launcher-hosted-support/src/com/sun/squawk/io/j2se/uei/ReturnCodeInputStream.java
+AU        uei/emulator-build.properties
+A         uei/launcher
+AU        uei/launcher/.classpath
+AU        uei/launcher/builder.properties
+AU        uei/launcher/.project
+A         uei/launcher/src
+A         uei/launcher/src/com
+A         uei/launcher/src/com/sun
+A         uei/launcher/src/com/sun/squawk
+A         uei/launcher/src/com/sun/squawk/uei
+A         uei/launcher/src/com/sun/squawk/uei/j2me
+AU        uei/launcher/src/com/sun/squawk/uei/j2me/Launcher.java
+AU        uei/readme.txt
+AU        d
+A         imp
+AU        imp/.classpath
+AU        imp/builder.properties
+AU        imp/.project
+A         imp/nbproject
+AU        imp/nbproject/project.properties
+AU        imp/nbproject/project.xml
+AU        imp/nbproject/genfiles.properties
+AU        imp/nbproject/build-impl.xml
+A         imp/test-desktop
+AU        imp/test-desktop/.classpath
+AU        imp/test-desktop/.project
+A         imp/test-desktop/lib
+AU        imp/test-desktop/lib/hamcrest-library-SNAPSHOT.jar
+AU        imp/test-desktop/lib/hamcrest-api-SNAPSHOT.jar
+AU        imp/test-desktop/lib/jmock2-junit3-SNAPSHOT.jar
+AU        imp/test-desktop/lib/jmock2-junit4-SNAPSHOT.jar
+AU        imp/test-desktop/lib/jmock2-SNAPSHOT.jar
+A         imp/test-desktop/src
+A         imp/test-desktop/src/test
+A         imp/test-desktop/src/test/rms
+AU        imp/test-desktop/src/test/rms/RecordStoreIntegrationTest.java
+AU        imp/test-desktop/src/test/rms/AllTests.java
+A         imp/test-desktop/src/com
+A         imp/test-desktop/src/com/sun
+A         imp/test-desktop/src/com/sun/squawk
+A         imp/test-desktop/src/com/sun/squawk/rms
+AU        imp/test-desktop/src/com/sun/squawk/rms/RecordEntryTest.java
+AU        imp/test-desktop/src/com/sun/squawk/rms/RmsEntryTest.java
+AU        imp/test-desktop/src/com/sun/squawk/rms/ApplicationDescriptorEntryTest.java
+AU        imp/test-desktop/src/com/sun/squawk/rms/RecordStoreManagerTest.java
+AU        imp/test-desktop/src/com/sun/squawk/rms/RecordStoreSequenceEntryTest.java
+AU        imp/test-desktop/src/com/sun/squawk/rms/AllTests.java
+AU        imp/test-desktop/src/com/sun/squawk/rms/RecordStoreManagerScanVisitorTest.java
+AU        imp/test-desktop/src/com/sun/squawk/rms/RecordStoreEntryTest.java
+AU        imp/test-desktop/src/com/sun/squawk/VM.java
+A         imp/test-desktop/src/com/sun/squawk/imp
+AU        imp/test-desktop/src/com/sun/squawk/imp/ImpGlobalTest.java
+AU        imp/test-desktop/src/com/sun/squawk/imp/AllTests.java
+AU        imp/test-desktop/src/com/sun/squawk/JMock2Test.java
+A         imp/test-desktop/src/com/sun/squawk/peripheral
+AU        imp/test-desktop/src/com/sun/squawk/peripheral/SimulatedNorFlashSectorTest.java
+AU        imp/test-desktop/src/com/sun/squawk/peripheral/AllTests.java
+A         imp/test-desktop/src/com/sun/squawk/flash
+AU        imp/test-desktop/src/com/sun/squawk/flash/MemoryHeapBlockTest.java
+AU        imp/test-desktop/src/com/sun/squawk/flash/NorFlashMemoryHeapTest.java
+AU        imp/test-desktop/src/com/sun/squawk/flash/NorFlashMemoryHeapWithNSectorsIntegrationTest.java
+AU        imp/test-desktop/src/com/sun/squawk/flash/NorFlashMemoryHeapWith1IntegrationTest.java
+AU        imp/test-desktop/src/com/sun/squawk/flash/NorFlashMemoryHeapWith2SectorsIntegrationTest.java
+AU        imp/test-desktop/src/com/sun/squawk/flash/NorFlashSectorStateListTest.java
+AU        imp/test-desktop/src/com/sun/squawk/flash/AllTests.java
+AU        imp/test-desktop/src/com/sun/squawk/flash/NorFlashSectorStateTest.java
+A         imp/test-desktop/.settings
+AU        imp/test-desktop/.settings/org.eclipse.jdt.ui.prefs
+A         imp/src
+A         imp/src/test
+A         imp/src/test/rms
+A         imp/src/java
+A         imp/src/java/util
+AU        imp/src/java/util/Timer.java
+A         imp/src/javax
+A         imp/src/javax/microedition
+A         imp/src/javax/microedition/rms
+AU        imp/src/javax/microedition/rms/RecordEnumerationImpl.java
+AU        imp/src/javax/microedition/rms/RecordStore.java
+A         imp/src/javax/microedition/midlet
+AU        imp/src/javax/microedition/midlet/MIDletTunnelImpl.java
+AU        imp/src/javax/microedition/midlet/MIDlet.java
+A         imp/src/com
+A         imp/src/com/sun
+A         imp/src/com/sun/midp
+A         imp/src/com/sun/midp/midlet
+AU        imp/src/com/sun/midp/midlet/MIDletPeer.java
+A         imp/src/com/sun/squawk
+A         imp/src/com/sun/squawk/rms
+AU        imp/src/com/sun/squawk/rms/IRecordStoreManager.java
+AU        imp/src/com/sun/squawk/rms/RecordEntry.java
+AU        imp/src/com/sun/squawk/rms/RecordStoreManagerReScanVisitor.java
+AU        imp/src/com/sun/squawk/rms/RecordStoreSequenceEntry.java
+AU        imp/src/com/sun/squawk/rms/IRecordEntry.java
+AU        imp/src/com/sun/squawk/rms/RecordStoreManagerScanVisitor.java
+AU        imp/src/com/sun/squawk/rms/IRmsEntryVisitor.java
+AU        imp/src/com/sun/squawk/rms/RecordStoreEntry.java
+AU        imp/src/com/sun/squawk/rms/IRecordStoreSequenceEntry.java
+AU        imp/src/com/sun/squawk/rms/UnknownEntry.java
+AU        imp/src/com/sun/squawk/rms/RmsEntry.java
+AU        imp/src/com/sun/squawk/rms/ApplicationDescriptorEntry.java
+AU        imp/src/com/sun/squawk/rms/IRecordStoreEntry.java
+AU        imp/src/com/sun/squawk/rms/RecordStoreManager.java
+AU        imp/src/com/sun/squawk/rms/IUnknownEntry.java
+AU        imp/src/com/sun/squawk/rms/IRmsEntry.java
+AU        imp/src/com/sun/squawk/rms/IApplicationDescriptorEntry.java
+A         imp/src/com/sun/squawk/imp
+AU        imp/src/com/sun/squawk/imp/MIDletMainWrapper.java
+AU        imp/src/com/sun/squawk/imp/ImpGlobal.java
+AU        imp/src/com/sun/squawk/imp/package.html
+A         imp/src/com/sun/squawk/io
+A         imp/src/com/sun/squawk/io/j2me
+A         imp/src/com/sun/squawk/io/j2me/http
+AU        imp/src/com/sun/squawk/io/j2me/http/Protocol.java
+A         imp/src/com/sun/squawk/flash
+AU        imp/src/com/sun/squawk/flash/MemoryHeapBlock.java
+AU        imp/src/com/sun/squawk/flash/INorFlashSectorStateList.java
+AU        imp/src/com/sun/squawk/flash/NorFlashMemoryHeap.java
+AU        imp/src/com/sun/squawk/flash/INorFlashMemoryHeapScanner.java
+AU        imp/src/com/sun/squawk/flash/INorFlashSectorState.java
+AU        imp/src/com/sun/squawk/flash/NorFlashSectorStateList.java
+AU        imp/src/com/sun/squawk/flash/IMemoryHeapBlock.java
+AU        imp/src/com/sun/squawk/flash/INorFlashMemoryHeap.java
+AU        imp/src/com/sun/squawk/flash/NorFlashSectorState.java
+A         imp/resources
+A         imp/resources/META-INF
+AU        imp/resources/META-INF/MANIFEST.MF
+AU        imp/build.xml
+A         builder
+AU        builder/.classpath
+AU        builder/build-commands-manifest.mf
+AU        builder/build-manifest.mf
+AU        builder/.project
+A         builder/nbld.bat
+A         builder/nbproject
+AU        builder/nbproject/project.properties
+AU        builder/nbproject/project.xml
+AU        builder/nbproject/genfiles.properties
+AU        builder/nbproject/build-impl.xml
+AU        builder/bld.bat
+AU        builder/manifest.mf
+A         builder/src
+A         builder/src/com
+A         builder/src/com/sun
+A         builder/src/com/sun/squawk
+A         builder/src/com/sun/squawk/builder
+AU        builder/src/com/sun/squawk/builder/Build.java
+AU        builder/src/com/sun/squawk/builder/StreamProducer.java
+A         builder/src/com/sun/squawk/builder/platform
+AU        builder/src/com/sun/squawk/builder/platform/Windows_X86.java
+AU        builder/src/com/sun/squawk/builder/platform/MacOSX_X86.java
+AU        builder/src/com/sun/squawk/builder/platform/SunOS_Sparc.java
+AU        builder/src/com/sun/squawk/builder/platform/Linux_PPC.java
+AU        builder/src/com/sun/squawk/builder/platform/Unix.java
+AU        builder/src/com/sun/squawk/builder/platform/Platform.java
+AU        builder/src/com/sun/squawk/builder/platform/Linux_X86.java
+AU        builder/src/com/sun/squawk/builder/platform/SunOS_X86.java
+AU        builder/src/com/sun/squawk/builder/platform/MacOSX_PPC.java
+AU        builder/src/com/sun/squawk/builder/SvnUtil.java
+AU        builder/src/com/sun/squawk/builder/ToDoTaglet.java
+AU        builder/src/com/sun/squawk/builder/JDK.java
+AU        builder/src/com/sun/squawk/builder/JavaCompiler.java
+AU        builder/src/com/sun/squawk/builder/BuildException.java
+AU        builder/src/com/sun/squawk/builder/Command.java
+AU        builder/src/com/sun/squawk/builder/JavaCommand.java
+A         builder/src/com/sun/squawk/builder/launcher
+AU        builder/src/com/sun/squawk/builder/launcher/Launcher.java
+A         builder/src/com/sun/squawk/builder/commands
+AU        builder/src/com/sun/squawk/builder/commands/ExportCommand.java
+AU        builder/src/com/sun/squawk/builder/commands/UEICommand.java
+AU        builder/src/com/sun/squawk/builder/commands/MakePlatformStubs.java
+AU        builder/src/com/sun/squawk/builder/commands/JamCommand.java
+AU        builder/src/com/sun/squawk/builder/commands/SppFilePreprocessCommand.java
+AU        builder/src/com/sun/squawk/builder/commands/Jam.java
+AU        builder/src/com/sun/squawk/builder/commands/MakeAPI.java
+AU        builder/src/com/sun/squawk/builder/commands/SuiteMetadata.java
+AU        builder/src/com/sun/squawk/builder/commands/RomCommand.java
+AU        builder/src/com/sun/squawk/builder/commands/DocumentorCommand.java
+AU        builder/src/com/sun/squawk/builder/Target.java
+AU        builder/src/com/sun/squawk/builder/Preprocessor.java
+AU        builder/src/com/sun/squawk/builder/StreamGobbler.java
+A         builder/src/com/sun/squawk/builder/gen
+AU        builder/src/com/sun/squawk/builder/gen/NativeGen.java
+AU        builder/src/com/sun/squawk/builder/gen/OPC.java
+AU        builder/src/com/sun/squawk/builder/gen/Instruction.java
+AU        builder/src/com/sun/squawk/builder/gen/JitterSwitch.java
+AU        builder/src/com/sun/squawk/builder/gen/InterpreterSwitch.java
+AU        builder/src/com/sun/squawk/builder/gen/AbstractSwitch.java
+AU        builder/src/com/sun/squawk/builder/gen/Generator.java
+AU        builder/src/com/sun/squawk/builder/gen/BytecodeRoutines.java
+AU        builder/src/com/sun/squawk/builder/gen/Mnemonics.java
+AU        builder/src/com/sun/squawk/builder/gen/SwitchDotC.java
+AU        builder/src/com/sun/squawk/builder/gen/OperandStackEffect.java
+AU        builder/src/com/sun/squawk/builder/gen/Verifier.java
+A         builder/src/com/sun/squawk/builder/bytecodespec
+AU        builder/src/com/sun/squawk/builder/bytecodespec/Instruction.java
+AU        builder/src/com/sun/squawk/builder/bytecodespec/sbdocgen.java
+AU        builder/src/com/sun/squawk/builder/bytecodespec/Instructions.java
+AU        builder/src/com/sun/squawk/builder/bytecodespec/AbstractInstruction.java
+AU        builder/src/com/sun/squawk/builder/Macroizer.java
+A         builder/src/com/sun/squawk/builder/ccompiler
+AU        builder/src/com/sun/squawk/builder/ccompiler/CcCompiler.java
+AU        builder/src/com/sun/squawk/builder/ccompiler/GccMacOSXCompiler.java
+AU        builder/src/com/sun/squawk/builder/ccompiler/GccCompiler.java
+AU        builder/src/com/sun/squawk/builder/ccompiler/GccMacOSXX86Compiler.java
+AU        builder/src/com/sun/squawk/builder/ccompiler/GccLinuxPPCCompiler.java
+AU        builder/src/com/sun/squawk/builder/ccompiler/MscCompiler.java
+AU        builder/src/com/sun/squawk/builder/ccompiler/CCompiler.java
+A         builder/src/com/sun/squawk/builder/util
+AU        builder/src/com/sun/squawk/builder/util/FileVisitor.java
+AU        builder/src/com/sun/squawk/builder/util/SubstitutionProperties.java
+AU        builder/src/com/sun/squawk/builder/util/DirSet.java
+AU        builder/src/com/sun/squawk/builder/util/LineReader.java
+AU        builder/src/com/sun/squawk/builder/util/HexEncoding.java
+AU        builder/src/com/sun/squawk/builder/util/FileSet.java
+AU        builder/nbld.sh
+AU        builder/bld.sh
+A         builder/.settings
+AU        builder/.settings/org.eclipse.jdt.ui.prefs
+AU        builder/build.xml
+AU        build-prod-nofloat-nonativegc.properties
+A         romizer
+AU        romizer/.classpath
+AU        romizer/builder.properties
+AU        romizer/.project
+A         romizer/nbproject
+AU        romizer/nbproject/project.properties
+AU        romizer/nbproject/project.xml
+AU        romizer/nbproject/genfiles.properties
+AU        romizer/nbproject/build-impl.xml
+A         romizer/src
+A         romizer/src/com
+A         romizer/src/com/sun
+A         romizer/src/com/sun/squawk
+AU        romizer/src/com/sun/squawk/ObjectGraphLoader.java
+AU        romizer/src/com/sun/squawk/ObjectGraphSerializer.java
+AU        romizer/src/com/sun/squawk/VM.java
+AU        romizer/src/com/sun/squawk/Romizer.java
+A         romizer/src/com/sun/squawk/romizer
+AU        romizer/src/com/sun/squawk/romizer/TestEmbeddedRomizer.java
+AU        romizer/src/com/sun/squawk/romizer/EmbeddedSquawkClassLoader.java
+AU        romizer/src/com/sun/squawk/romizer/ObjectGraphLoaderTranslator.java
+AU        romizer/src/com/sun/squawk/FieldReflector.java
+AU        romizer/src/com/sun/squawk/CHeaderFileCreator.java
+AU        romizer/manifest.mf
+AU        romizer/build.xml
+AU        build-prod-nonativegc.properties
+AU        d.bat
+A         vmcore
+AU        vmcore/.cdtproject
+AU        vmcore/.project
+A         vmcore/nbproject
+AU        vmcore/nbproject/project.properties
+AU        vmcore/nbproject/Makefile-impl.mk
+AU        vmcore/nbproject/project.xml
+AU        vmcore/nbproject/Makefile-Default.mk
+AU        vmcore/nbproject/configurations.xml
+AU        vmcore/.cproject
+A         vmcore/src
+A         vmcore/src/vm
+AU        vmcore/src/vm/ioserver.c
+AU        vmcore/src/vm/trace.c.spp
+AU        vmcore/src/vm/switch.c.spp
+AU        vmcore/src/vm/io.c
+AU        vmcore/src/vm/memory.c.spp
+AU        vmcore/src/vm/cio.c
+AU        vmcore/src/vm/squawk.c.spp
+AU        vmcore/src/vm/ioport.c
+AU        vmcore/src/vm/bytecodes.c.spp
+AU        vmcore/src/vm/devices.c
+AU        vmcore/src/vm/util.h.spp
+A         vmcore/src/vm/fp
+AU        vmcore/src/vm/fp/s_ceil.c
+AU        vmcore/src/vm/fp/k_cos.c
+AU        vmcore/src/vm/fp/s_floor.c
+AU        vmcore/src/vm/fp/k_sin.c
+AU        vmcore/src/vm/fp/s_tan.c
+AU        vmcore/src/vm/fp/global.h
+AU        vmcore/src/vm/fp/s_cos.c
+AU        vmcore/src/vm/fp/fp_bytecodes.c
+AU        vmcore/src/vm/fp/s_sin.c
+AU        vmcore/src/vm/fp/s_copysign.c
+AU        vmcore/src/vm/fp/w_sqrt.c
+AU        vmcore/src/vm/fp/e_rem_pio2.c
+AU        vmcore/src/vm/fp/s_scalbn.c
+AU        vmcore/src/vm/fp/k_rem_pio2.c
+AU        vmcore/src/vm/fp/k_tan.c
+AU        vmcore/src/vm/fp/s_fabs.c
+AU        vmcore/src/vm/fp/e_sqrt.c
+AU        vmcore/src/vm/debugger.c.spp
+AU        vmcore/src/vm/msg.c
+AU        vmcore/src/vm/address.c.spp
+AU        vmcore/src/vm/debug.c
+AU        vmcore/src/vm/globals.h
+AU        vmcore/src/vm/suite.c
+AU        vmcore/src/vm/platform.h.spp
+AU        vmcore/src/vm/lisp2.c.spp
+A         vmcore/src/vm/util
+AU        vmcore/src/vm/util/sha.h
+AU        vmcore/src/vm/util/sha.c
+A         vmcore/src/rts
+A         vmcore/src/rts/msc
+AU        vmcore/src/rts/msc/os.c
+AU        vmcore/src/rts/msc/os_devices.c
+AU        vmcore/src/rts/msc/os_devices.h
+A         vmcore/src/rts/gcc-9200
+AU        vmcore/src/rts/gcc-9200/9200-io.c
+AU        vmcore/src/rts/gcc-9200/link.dat.ram
+AU        vmcore/src/rts/gcc-9200/os.c
+AU        vmcore/src/rts/gcc-9200/link.dat
+A         vmcore/src/rts/gcc-9200/9200-io.h
+AU        vmcore/src/rts/gcc-9200/jni.h
+AU        vmcore/src/rts/gcc-9200/jni_md.h
+A         vmcore/src/rts/gcc-9200/mmu_fat.c
+AU        vmcore/src/rts/gcc-9200/java-irq-hndl.s
+A         vmcore/src/rts/gcc-macosx
+AU        vmcore/src/rts/gcc-macosx/os.c
+AU        vmcore/src/rts/gcc-macosx/os_devices.c
+AU        vmcore/src/rts/gcc-macosx/os_devices.h
+A         vmcore/src/rts/gcc-eb40a
+AU        vmcore/src/rts/gcc-eb40a/link-flash.dat
+AU        vmcore/src/rts/gcc-eb40a/eb40a-io.c
+AU        vmcore/src/rts/gcc-eb40a/link-ram.dat
+AU        vmcore/src/rts/gcc-eb40a/runcommand.txt
+AU        vmcore/src/rts/gcc-eb40a/os.c
+AU        vmcore/src/rts/gcc-eb40a/startup.s
+AU        vmcore/src/rts/gcc-eb40a/debugcommand.txt
+AU        vmcore/src/rts/gcc-eb40a/os_devices.c
+AU        vmcore/src/rts/gcc-eb40a/startup-flash.inc
+AU        vmcore/src/rts/gcc-eb40a/jni.h
+AU        vmcore/src/rts/gcc-eb40a/jni_md.h
+AU        vmcore/src/rts/gcc-eb40a/startup-ram.inc
+AU        vmcore/src/rts/gcc-eb40a/os_devices.h
+AU        vmcore/src/rts/gcc-eb40a/java-irq-hndl.s
+A         vmcore/src/rts/cc
+AU        vmcore/src/rts/cc/os.c
+AU        vmcore/src/rts/cc/os_devices.c
+AU        vmcore/src/rts/cc/os_devices.h
+A         vmcore/src/rts/gcc
+AU        vmcore/src/rts/gcc/os.c
+AU        vmcore/src/rts/gcc/os_devices.c
+AU        vmcore/src/rts/gcc/os_devices.h
+AU        vmcore/vmcore-Makefile.mk
+A         vmcore/.settings
+AU        vmcore/.settings/org.eclipse.cdt.core.prefs
+AU        dd.sh
+A         ssl
+AU        ssl/.classpath
+AU        ssl/builder.properties
+AU        ssl/.project
+A         ssl/src
+A         ssl/src/org
+A         ssl/src/org/sunspotworld
+A         ssl/src/org/sunspotworld/demo
+AU        ssl/src/org/sunspotworld/demo/HttpTest.java
+AU        ssl/src/org/sunspotworld/demo/StartApplication.java
+A         ssl/src/javax
+A         ssl/src/javax/microedition
+A         ssl/src/javax/microedition/pki
+AU        ssl/src/javax/microedition/pki/CertificateException.java
+AU        ssl/src/javax/microedition/pki/Certificate.java
+AU        ssl/src/javax/microedition/pki/package.html
+A         ssl/src/javax/microedition/io
+AU        ssl/src/javax/microedition/io/HttpsConnection.java
+AU        ssl/src/javax/microedition/io/SecurityInfo.java
+A         ssl/src/javax/microedition/io/doc-files
+AU        ssl/src/javax/microedition/io/doc-files/MIDP_Networking-4.gif
+AU        ssl/src/javax/microedition/io/SecureConnection.java
+AU        ssl/src/javax/microedition/io/package.html
+A         ssl/src/com
+A         ssl/src/com/sun
+A         ssl/src/com/sun/spot
+A         ssl/src/com/sun/spot/security
+AU        ssl/src/com/sun/spot/security/SignatureException.java
+AU        ssl/src/com/sun/spot/security/Signature.java
+AU        ssl/src/com/sun/spot/security/PrivateKey.java
+AU        ssl/src/com/sun/spot/security/MessageDigest.java
+AU        ssl/src/com/sun/spot/security/GeneralSecurityException.java
+A         ssl/src/com/sun/spot/security/implementation
+AU        ssl/src/com/sun/spot/security/implementation/ECDSASignature.java
+AU        ssl/src/com/sun/spot/security/implementation/ECDSAWithMD5Signature.java
+AU        ssl/src/com/sun/spot/security/implementation/PseudoRand.java
+AU        ssl/src/com/sun/spot/security/implementation/ECDSAWithSHA1Signature.java
+A         ssl/src/com/sun/spot/security/implementation/ecc
+AU        ssl/src/com/sun/spot/security/implementation/ecc/PrimeField.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/ECPoint.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/ECCurveFp.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/FiniteField.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/NIST160PrimeField.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/NIST192PrimeField.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/NIST256PrimeField.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/FFA.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/ECCurve.java
+AU        ssl/src/com/sun/spot/security/implementation/ecc/package.html
+AU        ssl/src/com/sun/spot/security/implementation/SHA.java
+AU        ssl/src/com/sun/spot/security/implementation/Util.java
+AU        ssl/src/com/sun/spot/security/implementation/ECPrivateKeyImpl.java
+AU        ssl/src/com/sun/spot/security/implementation/package.html
+AU        ssl/src/com/sun/spot/security/implementation/ECPublicKeyImpl.java
+AU        ssl/src/com/sun/spot/security/implementation/ECKeyImpl.java
+AU        ssl/src/com/sun/spot/security/implementation/ModuloExponentiation.java
+AU        ssl/src/com/sun/spot/security/implementation/RsaShaSig.java
+AU        ssl/src/com/sun/spot/security/implementation/MD5.java
+AU        ssl/src/com/sun/spot/security/implementation/SecureRandom.java
+AU        ssl/src/com/sun/spot/security/implementation/RSASig.java
+AU        ssl/src/com/sun/spot/security/implementation/RSAPrivateKey.java
+AU        ssl/src/com/sun/spot/security/implementation/RSAPublicKey.java
+AU        ssl/src/com/sun/spot/security/implementation/RSAKey.java
+AU        ssl/src/com/sun/spot/security/implementation/RsaMd5Sig.java
+AU        ssl/src/com/sun/spot/security/NoSuchAlgorithmException.java
+AU        ssl/src/com/sun/spot/security/KeyException.java
+AU        ssl/src/com/sun/spot/security/PublicKey.java
+AU        ssl/src/com/sun/spot/security/Key.java
+A         ssl/src/com/sun/spot/security/spec
+AU        ssl/src/com/sun/spot/security/spec/AlgorithmParameterSpec.java
+AU        ssl/src/com/sun/spot/security/spec/KeySpec.java
+AU        ssl/src/com/sun/spot/security/spec/InvalidKeySpecException.java
+AU        ssl/src/com/sun/spot/security/spec/package.html
+AU        ssl/src/com/sun/spot/security/InvalidAlgorithmParameterException.java
+AU        ssl/src/com/sun/spot/security/package.html
+AU        ssl/src/com/sun/spot/security/DigestException.java
+AU        ssl/src/com/sun/spot/security/InvalidKeyException.java
+A         ssl/src/com/sun/spot/peripheral
+AU        ssl/src/com/sun/spot/peripheral/TrustManager.java
+A         ssl/src/com/sun/spot/util
+AU        ssl/src/com/sun/spot/util/Utils.java
+AU        ssl/src/com/sun/spot/util/CRC.java
+A         ssl/src/com/sun/midp
+A         ssl/src/com/sun/midp/ssl
+AU        ssl/src/com/sun/midp/ssl/PrettyPrint.java
+AU        ssl/src/com/sun/midp/ssl/Handshake.java
+AU        ssl/src/com/sun/midp/ssl/In.java
+AU        ssl/src/com/sun/midp/ssl/Out.java
+AU        ssl/src/com/sun/midp/ssl/SSLStreamConnection.java
+AU        ssl/src/com/sun/midp/ssl/package.html
+AU        ssl/src/com/sun/midp/ssl/Record.java
+A         ssl/src/com/sun/midp/log
+AU        ssl/src/com/sun/midp/log/Logging.java
+AU        ssl/src/com/sun/midp/log/LogChannels.java
+AU        ssl/src/com/sun/midp/log/package.html
+A         ssl/src/com/sun/midp/configurator
+AU        ssl/src/com/sun/midp/configurator/Constants.java
+A         ssl/src/com/sun/midp/pki
+AU        ssl/src/com/sun/midp/pki/Utils.java
+AU        ssl/src/com/sun/midp/pki/SpotCertStore.java
+AU        ssl/src/com/sun/midp/pki/KeySerializer.java
+AU        ssl/src/com/sun/midp/pki/X509Certificate.java
+AU        ssl/src/com/sun/midp/pki/CertInfo.java
+AU        ssl/src/com/sun/midp/pki/CertStore.java
+AU        ssl/src/com/sun/midp/pki/package.html
+A         ssl/src/com/sun/squawk
+A         ssl/src/com/sun/squawk/io
+A         ssl/src/com/sun/squawk/io/j2me
+A         ssl/src/com/sun/squawk/io/j2me/https
+A         ssl/src/com/sun/squawk/io/j2me/https/httpsutil
+AU        ssl/src/com/sun/squawk/io/j2me/https/httpsutil/DateParser.java
+AU        ssl/src/com/sun/squawk/io/j2me/https/Protocol.java
+A         ssl/src/com/sun/squawk/io/j2me/sslsocket
+AU        ssl/src/com/sun/squawk/io/j2me/sslsocket/Protocol.java
+A         ssl/src/com/sun/spotx
+A         ssl/src/com/sun/spotx/crypto
+AU        ssl/src/com/sun/spotx/crypto/KeyAgreement.java
+AU        ssl/src/com/sun/spotx/crypto/NoSuchPaddingException.java
+A         ssl/src/com/sun/spotx/crypto/implementation
+AU        ssl/src/com/sun/spotx/crypto/implementation/ECDHKeyAgreement.java
+AU        ssl/src/com/sun/spotx/crypto/implementation/Alg1.java
+AU        ssl/src/com/sun/spotx/crypto/implementation/Alg2.java
+AU        ssl/src/com/sun/spotx/crypto/implementation/RSA.java
+AU        ssl/src/com/sun/spotx/crypto/implementation/package.html
+AU        ssl/src/com/sun/spotx/crypto/CipherSpi.java
+AU        ssl/src/com/sun/spotx/crypto/ShortBufferException.java
+AU        ssl/src/com/sun/spotx/crypto/Cipher.java
+A         ssl/src/com/sun/spotx/crypto/spec
+AU        ssl/src/com/sun/spotx/crypto/spec/SecretKeySpec.java
+AU        ssl/src/com/sun/spotx/crypto/spec/IvParameterSpec.java
+AU        ssl/src/com/sun/spotx/crypto/spec/package.html
+AU        ssl/src/com/sun/spotx/crypto/BadPaddingException.java
+AU        ssl/src/com/sun/spotx/crypto/package.html
+AU        ssl/src/com/sun/spotx/crypto/IllegalBlockSizeException.java
+A         ssl/resources
+AU        ssl/resources/Thawte Server CA.cer
+AU        ssl/resources/VeriSign Class 3 Public Primary Certification Authority - G5.cer
+A         ssl/resources/META-INF
+AU        ssl/resources/META-INF/MANIFEST.MF
+AU        ssl/resources/GTE CyberTrust Global Root.cer
+AU        ssl/resources/GeoTrust.cer
+AU        ssl/resources/Equifax Secure Global eBusiness CA-1.cer
+AU        ssl/resources/GlobalSign.cer
+AU        ssl/resources/VeriSign Secure Server Certification Authority.cer
+AU        ssl/resources/VeriSign Trust Network.cer
+AU        ssl/resources/Entrust.cer
+AU        ssl/resources/Thawte Premium Server CA.cer
+AU        ssl/resources/VeriSign Class 3 Public Primary CA.cer
+AU        ssl/readme.txt
+A         cldc
+AU        cldc/.classpath
+AU        cldc/builder.properties
+AU        cldc/.project
+A         cldc/retroweaver
+A         cldc/retroweaver/net
+A         cldc/retroweaver/net/sourceforge
+A         cldc/retroweaver/net/sourceforge/retroweaver
+A         cldc/retroweaver/net/sourceforge/retroweaver/runtime
+A         cldc/retroweaver/net/sourceforge/retroweaver/runtime/java
+A         cldc/retroweaver/net/sourceforge/retroweaver/runtime/java/lang
+AU        cldc/retroweaver/net/sourceforge/retroweaver/runtime/java/lang/Iterable_.java
+A         cldc/nbproject
+AU        cldc/nbproject/project.properties
+AU        cldc/nbproject/project.xml
+AU        cldc/nbproject/genfiles.properties
+AU        cldc/nbproject/build-impl.xml
+A         cldc/src
+A         cldc/src/java
+A         cldc/src/java/lang
+AU        cldc/src/java/lang/Long.java
+AU        cldc/src/java/lang/Short.java
+AU        cldc/src/java/lang/StringBuffer.java
+AU        cldc/src/java/lang/Void.java
+AU        cldc/src/java/lang/Byte.java
+AU        cldc/src/java/lang/Enum.java
+AU        cldc/src/java/lang/Class.java
+AU        cldc/src/java/lang/Float.java
+AU        cldc/src/java/lang/String.java
+AU        cldc/src/java/lang/Object.java
+AU        cldc/src/java/lang/Thread.java
+AU        cldc/src/java/lang/Double.java
+AU        cldc/src/java/lang/StringBuilder.java
+AU        cldc/src/java/lang/Override.java
+AU        cldc/src/java/lang/Boolean.java
+AU        cldc/src/java/lang/AssertionError.java
+AU        cldc/src/java/lang/FloatingDecimal.java
+AU        cldc/src/java/lang/Runtime.java
+AU        cldc/src/java/lang/System.java
+AU        cldc/src/java/lang/Throwable.java
+AU        cldc/src/java/lang/Iterable.java
+AU        cldc/src/java/lang/Math.java
+A         cldc/src/java/lang/annotation
+AU        cldc/src/java/lang/annotation/Target.java
+AU        cldc/src/java/lang/annotation/RetentionPolicy.java
+AU        cldc/src/java/lang/annotation/Retention.java
+AU        cldc/src/java/lang/annotation/Documented.java
+AU        cldc/src/java/lang/annotation/Annotation.java
+AU        cldc/src/java/lang/annotation/Inherited.java
+AU        cldc/src/java/lang/annotation/ElementType.java
+A         cldc/src/java/lang/ref
+AU        cldc/src/java/lang/ref/WeakReference.java
+AU        cldc/src/java/lang/ref/Reference.java
+AU        cldc/src/java/lang/Character.java
+AU        cldc/src/java/lang/Integer.java
+AU        cldc/src/java/lang/SuppressWarnings.java
+A         cldc/src/java/io
+AU        cldc/src/java/io/DataInputStream.java
+AU        cldc/src/java/io/DataOutputStream.java
+AU        cldc/src/java/io/PrintStream.java
+AU        cldc/src/java/io/DataInput.java
+AU        cldc/src/java/io/DataOutput.java
+A         cldc/src/java/util
+AU        cldc/src/java/util/Random.java
+AU        cldc/src/java/util/Vector.java
+AU        cldc/src/java/util/Stack.java
+AU        cldc/src/java/util/Enumeration.java
+AU        cldc/src/java/util/Iterator.java
+AU        cldc/src/java/util/Hashtable.java
+A         cldc/src/javax
+A         cldc/src/javax/microedition
+A         cldc/src/javax/microedition/io
+AU        cldc/src/javax/microedition/io/ServerSocketConnection.java
+AU        cldc/src/javax/microedition/io/MulticastConnection.java
+AU        cldc/src/javax/microedition/io/MulticastDatagram.java
+AU        cldc/src/javax/microedition/io/SocketConnection.java
+AU        cldc/src/javax/microedition/io/UDPDatagramConnection.java
+AU        cldc/src/javax/microedition/io/Connector.java
+A         cldc/src/com
+A         cldc/src/com/sun
+A         cldc/src/com/sun/cldc
+A         cldc/src/com/sun/cldc/i18n
+AU        cldc/src/com/sun/cldc/i18n/Helper.java
+A         cldc/src/com/sun/cldc/i18n/uclc
+AU        cldc/src/com/sun/cldc/i18n/uclc/DefaultCaseConverter.java
+AU        cldc/src/com/sun/cldc/i18n/StreamWriter.java
+A         cldc/src/com/sun/cldc/i18n/j2me
+AU        cldc/src/com/sun/cldc/i18n/j2me/ISO8859_1_Writer.java
+AU        cldc/src/com/sun/cldc/i18n/j2me/ISO8859_1_Reader.java
+AU        cldc/src/com/sun/cldc/i18n/StreamReader.java
+A         cldc/src/com/sun/cldc/io
+A         cldc/src/com/sun/cldc/io/connections
+AU        cldc/src/com/sun/cldc/io/connections/HttpConnection.java
+AU        cldc/src/com/sun/cldc/io/ConnectionBaseInterface.java
+A         cldc/src/com/sun/cldc/util
+AU        cldc/src/com/sun/cldc/util/TimeZoneImplementation.java
+A         cldc/src/com/sun/cldc/util/j2me
+AU        cldc/src/com/sun/cldc/util/j2me/CalendarImpl.java
+AU        cldc/src/com/sun/cldc/util/j2me/TimeZoneImpl.java
+A         cldc/src/com/sun/cldchi
+A         cldc/src/com/sun/cldchi/jvm
+AU        cldc/src/com/sun/cldchi/jvm/JVM.java
+A         cldc/src/com/sun/squawk
+AU        cldc/src/com/sun/squawk/VMBufferDecoder.java
+AU        cldc/src/com/sun/squawk/GeneralDecoder.java
+AU        cldc/src/com/sun/squawk/ObjectAssociation.java
+AU        cldc/src/com/sun/squawk/Member.java
+AU        cldc/src/com/sun/squawk/VMThread.java
+AU        cldc/src/com/sun/squawk/KlassMetadata.java
+AU        cldc/src/com/sun/squawk/Method.java
+AU        cldc/src/com/sun/squawk/SymbolParser.java
+AU        cldc/src/com/sun/squawk/ClassFileConstantField.java
+AU        cldc/src/com/sun/squawk/Field.java
+AU        cldc/src/com/sun/squawk/ObjectMemoryLoader.java
+AU        cldc/src/com/sun/squawk/CallbackManager.java
+AU        cldc/src/com/sun/squawk/Lisp2GenerationalCollector.java
+AU        cldc/src/com/sun/squawk/ObjectMemoryEndianessSwapper.java
+AU        cldc/src/com/sun/squawk/ByteBufferEncoder.java
+AU        cldc/src/com/sun/squawk/Lisp2Collector.java
+A         cldc/src/com/sun/squawk/vm
+AU        cldc/src/com/sun/squawk/vm/CID.java
+AU        cldc/src/com/sun/squawk/vm/Global.java
+AU        cldc/src/com/sun/squawk/vm/SC.java
+AU        cldc/src/com/sun/squawk/vm/FP.java
+AU        cldc/src/com/sun/squawk/vm/CS.java
+AU        cldc/src/com/sun/squawk/vm/ChannelConstants.java
+AU        cldc/src/com/sun/squawk/vm/MathOpcodes.java
+AU        cldc/src/com/sun/squawk/vm/MethodOffsets.java
+AU        cldc/src/com/sun/squawk/vm/FieldOffsets.java
+AU        cldc/src/com/sun/squawk/vm/HDR.java
+AU        cldc/src/com/sun/squawk/vm/MessageBuffer.java
+AU        cldc/src/com/sun/squawk/vm/package.html
+AU        cldc/src/com/sun/squawk/vm/OPC.java
+AU        cldc/src/com/sun/squawk/vm/Native.java
+AU        cldc/src/com/sun/squawk/vm/AddressType.java
+AU        cldc/src/com/sun/squawk/vm/MessageStruct.java
+A         cldc/src/com/sun/squawk/reflect
+AU        cldc/src/com/sun/squawk/Vm2c.java
+AU        cldc/src/com/sun/squawk/ClassFileField.java
+AU        cldc/src/com/sun/squawk/TranslatorInterface.java
+AU        cldc/src/com/sun/squawk/ManifestProperty.java
+A         cldc/src/com/sun/squawk/peripheral
+AU        cldc/src/com/sun/squawk/peripheral/PeripheralRegistry.java
+AU        cldc/src/com/sun/squawk/peripheral/IPeripheral.java
+AU        cldc/src/com/sun/squawk/peripheral/SimulatedNorFlashSector.java
+AU        cldc/src/com/sun/squawk/peripheral/SimulatedNorFlashSectorAllocator.java
+AU        cldc/src/com/sun/squawk/peripheral/INorFlashSector.java
+AU        cldc/src/com/sun/squawk/peripheral/INorFlashSectorAllocator.java
+AU        cldc/src/com/sun/squawk/peripheral/InsufficientFlashMemoryException.java
+AU        cldc/src/com/sun/squawk/package.html
+AU        cldc/src/com/sun/squawk/MethodMetadata.java
+AU        cldc/src/com/sun/squawk/Finalizer.java
+AU        cldc/src/com/sun/squawk/Address.java
+A         cldc/src/com/sun/squawk/pragma
+AU        cldc/src/com/sun/squawk/pragma/GlobalStaticFields.java
+AU        cldc/src/com/sun/squawk/pragma/PragmaException.java
+AU        cldc/src/com/sun/squawk/pragma/AllowInlinedPragma.java
+AU        cldc/src/com/sun/squawk/pragma/ForceInlinedPragma.java
+AU        cldc/src/com/sun/squawk/pragma/NotInlinedPragma.java
+AU        cldc/src/com/sun/squawk/pragma/InterpreterInvokedPragma.java
+AU        cldc/src/com/sun/squawk/pragma/ReplacementConstructorPragma.java
+AU        cldc/src/com/sun/squawk/pragma/HostedPragma.java
+AU        cldc/src/com/sun/squawk/pragma/NativePragma.java
+A         cldc/src/com/sun/squawk/security
+AU        cldc/src/com/sun/squawk/security/ECPublicKey.java
+AU        cldc/src/com/sun/squawk/security/CryptoException.java
+A         cldc/src/com/sun/squawk/security/ecc
+AU        cldc/src/com/sun/squawk/security/ecc/PrimeField.java
+AU        cldc/src/com/sun/squawk/security/ecc/ECPoint.java
+AU        cldc/src/com/sun/squawk/security/ecc/ECCurveFp.java
+AU        cldc/src/com/sun/squawk/security/ecc/NIST160PrimeField.java
+AU        cldc/src/com/sun/squawk/security/ecc/FFA.java
+A         cldc/src/com/sun/squawk/security/verifier
+AU        cldc/src/com/sun/squawk/security/verifier/SHA.java
+AU        cldc/src/com/sun/squawk/security/verifier/SignatureVerifierException.java
+AU        cldc/src/com/sun/squawk/security/verifier/SignatureVerifier.java
+AU        cldc/src/com/sun/squawk/security/verifier/package.html
+AU        cldc/src/com/sun/squawk/security/HexEncoding.java
+A         cldc/src/com/sun/squawk/security/util
+AU        cldc/src/com/sun/squawk/security/package.html
+AU        cldc/src/com/sun/squawk/NativeUnsafe.java
+AU        cldc/src/com/sun/squawk/ObjectMemorySerializer.java
+AU        cldc/src/com/sun/squawk/GC.java
+A         cldc/src/com/sun/squawk/util
+AU        cldc/src/com/sun/squawk/util/StructuredFileInputStream.java
+AU        cldc/src/com/sun/squawk/util/Arrays.java
+AU        cldc/src/com/sun/squawk/util/DataOutputUTF8Encoder.java
+AU        cldc/src/com/sun/squawk/util/Assert.java
+AU        cldc/src/com/sun/squawk/util/StringTokenizer.java
+AU        cldc/src/com/sun/squawk/util/ByteArrayOutputStreamWithGetBytes.java
+AU        cldc/src/com/sun/squawk/util/ComputationTimer.java
+AU        cldc/src/com/sun/squawk/util/IntHashtable.java
+AU        cldc/src/com/sun/squawk/util/Comparer.java
+AU        cldc/src/com/sun/squawk/util/MathUtils.java
+AU        cldc/src/com/sun/squawk/util/LineReader.java
+AU        cldc/src/com/sun/squawk/util/SimpleLinkedList.java
+AU        cldc/src/com/sun/squawk/util/ByteArrayInputStreamWithSetBytes.java
+AU        cldc/src/com/sun/squawk/util/package.html
+AU        cldc/src/com/sun/squawk/util/Tracer.java
+AU        cldc/src/com/sun/squawk/util/UnexpectedException.java
+AU        cldc/src/com/sun/squawk/util/NotImplementedYetException.java
+AU        cldc/src/com/sun/squawk/util/DataInputUTF8Decoder.java
+AU        cldc/src/com/sun/squawk/util/IntHashtableVisitor.java
+AU        cldc/src/com/sun/squawk/util/SquawkHashtable.java
+AU        cldc/src/com/sun/squawk/util/ArgsUtilities.java
+AU        cldc/src/com/sun/squawk/util/ArrayHashtable.java
+AU        cldc/src/com/sun/squawk/util/BitSet.java
+AU        cldc/src/com/sun/squawk/util/SquawkVector.java
+AU        cldc/src/com/sun/squawk/JavaApplicationManager.java
+AU        cldc/src/com/sun/squawk/UWord.java
+A         cldc/src/com/sun/squawk/os
+AU        cldc/src/com/sun/squawk/os/Parm.java
+AU        cldc/src/com/sun/squawk/os/CSystem.java
+AU        cldc/src/com/sun/squawk/Java5Marker.java
+AU        cldc/src/com/sun/squawk/Test.java
+AU        cldc/src/com/sun/squawk/ServiceOperation.java
+A         cldc/src/com/sun/squawk/realtime
+AU        cldc/src/com/sun/squawk/realtime/SizeOutOfBoundsException.java
+AU        cldc/src/com/sun/squawk/realtime/RawMemoryAccess.java
+AU        cldc/src/com/sun/squawk/realtime/RawMemoryFloatAccess.java
+AU        cldc/src/com/sun/squawk/realtime/UnsupportedPhysicalMemoryException.java
+AU        cldc/src/com/sun/squawk/realtime/OffsetOutOfBoundsException.java
+AU        cldc/src/com/sun/squawk/VM.java
+AU        cldc/src/com/sun/squawk/Debugger.java
+AU        cldc/src/com/sun/squawk/Lisp2Bitmap.java
+AU        cldc/src/com/sun/squawk/Offset.java
+AU        cldc/src/com/sun/squawk/Monitor.java
+A         cldc/src/com/sun/squawk/compiler
+AU        cldc/src/com/sun/squawk/compiler/Label.java
+AU        cldc/src/com/sun/squawk/compiler/Type.java
+A         cldc/src/com/sun/squawk/compiler/tests
+AU        cldc/src/com/sun/squawk/compiler/Types.java
+AU        cldc/src/com/sun/squawk/compiler/Linker.java
+AU        cldc/src/com/sun/squawk/compiler/AbstractX86Compiler.java
+AU        cldc/src/com/sun/squawk/compiler/BaseCompiler.java
+AU        cldc/src/com/sun/squawk/compiler/SymbolicFixupTable.java
+AU        cldc/src/com/sun/squawk/compiler/TargetArchitecture.java
+AU        cldc/src/com/sun/squawk/compiler/Compiler.java
+AU        cldc/src/com/sun/squawk/compiler/Local.java
+AU        cldc/src/com/sun/squawk/compiler/InterpCompiler.java
+AU        cldc/src/com/sun/squawk/compiler/MethodMap.java
+AU        cldc/src/com/sun/squawk/compiler/Compilation.java
+A         cldc/src/com/sun/squawk/ref
+AU        cldc/src/com/sun/squawk/ClassFileMember.java
+AU        cldc/src/com/sun/squawk/MethodBody.java
+AU        cldc/src/com/sun/squawk/Modifier.java
+AU        cldc/src/com/sun/squawk/ScopedLocalVariable.java
+AU        cldc/src/com/sun/squawk/ObjectMemoryFile.java
+AU        cldc/src/com/sun/squawk/GarbageCollector.java
+AU        cldc/src/com/sun/squawk/ObjectMemory.java
+A         cldc/src/com/sun/squawk/crypto
+A         cldc/src/com/sun/squawk/crypto/ecc
+AU        cldc/src/com/sun/squawk/Isolate.java
+AU        cldc/src/com/sun/squawk/StringOfBytes.java
+AU        cldc/src/com/sun/squawk/FullMethodMetadata.java
+AU        cldc/src/com/sun/squawk/FlashObjectMemoryLoader.java
+AU        cldc/src/com/sun/squawk/IllegalStoreException.java
+AU        cldc/src/com/sun/squawk/ClassFileMethod.java
+AU        cldc/src/com/sun/squawk/TestJava5.java
+AU        cldc/src/com/sun/squawk/Ref.java
+AU        cldc/src/com/sun/squawk/Klass.java
+AU        cldc/src/com/sun/squawk/ExecutionPoint.java
+AU        cldc/src/com/sun/squawk/DoBlock.java
+AU        cldc/src/com/sun/squawk/Unsafe.java
+AU        cldc/src/com/sun/squawk/CheneyCollector.java
+AU        cldc/src/com/sun/squawk/ByteBufferDecoder.java
+AU        cldc/src/com/sun/squawk/FinalizerTest.java
+A         cldc/src/com/sun/squawk/io
+AU        cldc/src/com/sun/squawk/io/BufferedWriter.java
+AU        cldc/src/com/sun/squawk/io/MulticastOutputStream.java
+A         cldc/src/com/sun/squawk/io/connections
+AU        cldc/src/com/sun/squawk/io/connections/ClasspathConnection.java
+A         cldc/src/com/sun/squawk/io/mailboxes
+AU        cldc/src/com/sun/squawk/io/mailboxes/ServerChannel.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/ByteArrayEnvelope.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/MailboxAddress.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/ObjectEnvelope.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/MailboxClosedException.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/Channel.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/Envelope.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/MailboxInUseException.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/package.html
+AU        cldc/src/com/sun/squawk/io/mailboxes/SharedMailboxHandler.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/ICopiable.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/MailboxHandler.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/NoSuchMailboxException.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/Mailbox.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/ByteArrayInputStreamEnvelope.java
+AU        cldc/src/com/sun/squawk/io/mailboxes/AddressClosedException.java
+AU        cldc/src/com/sun/squawk/io/ServerConnectionHandler.java
+AU        cldc/src/com/sun/squawk/io/BufferedReader.java
+AU        cldc/src/com/sun/squawk/io/ConnectionBase.java
+A         cldc/src/com/sun/squawk/io/j2me
+A         cldc/src/com/sun/squawk/io/j2me/spotsuite
+AU        cldc/src/com/sun/squawk/io/j2me/spotsuite/Pointer.java
+AU        cldc/src/com/sun/squawk/io/j2me/spotsuite/Protocol.java
+A         cldc/src/com/sun/squawk/io/j2me/multicastoutput
+AU        cldc/src/com/sun/squawk/io/j2me/multicastoutput/Protocol.java
+A         cldc/src/com/sun/squawk/io/j2me/debug
+AU        cldc/src/com/sun/squawk/io/j2me/debug/Protocol.java
+A         cldc/src/com/sun/squawk/io/j2me/msg
+AU        cldc/src/com/sun/squawk/io/j2me/msg/MessageInputStream.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/ClientProtocol.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/NotifierProtocol.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/MessageOutputStream.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/Protocol.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/Database.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/Message.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/MessageResourceManager.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/ServerProtocol.java
+AU        cldc/src/com/sun/squawk/io/j2me/msg/MessageStreamCallback.java
+A         cldc/src/com/sun/squawk/io/j2me/resource
+AU        cldc/src/com/sun/squawk/io/j2me/resource/Protocol.java
+A         cldc/src/com/sun/squawk/io/j2me/channel
+AU        cldc/src/com/sun/squawk/io/j2me/channel/Protocol.java
+AU        cldc/src/com/sun/squawk/io/j2me/channel/ChannelInputStream.java
+AU        cldc/src/com/sun/squawk/io/j2me/channel/ChannelOutputStream.java
+AU        cldc/src/com/sun/squawk/io/j2me/channel/BufferedInputStream.java
+A         cldc/src/com/sun/squawk/io/j2me/msgserver
+AU        cldc/src/com/sun/squawk/io/j2me/msgserver/Protocol.java
+AU        cldc/src/com/sun/squawk/io/package.html
+AU        cldc/src/com/sun/squawk/ResourceFile.java
+AU        cldc/src/com/sun/squawk/JavaDriverManager.java
+AU        cldc/src/com/sun/squawk/Suite.java
+AU        cldc/src/com/sun/squawk/ClassTunnel.java
+AU        cldc/src/com/sun/squawk/Driver.java
+AU        cldc/src/com/sun/squawk/ExceptionHandler.java
+A         cldc/resources
+A         cldc/resources/META-INF
+AU        cldc/resources/META-INF/MANIFEST.MF
+AU        cldc/build.xml
+AU        build-prod-nofloat-nonativegc-nodebugger.properties
+A         vm2c
+AU        vm2c/.classpath
+A         vm2c/builder.properties
+AU        vm2c/.project
+A         vm2c/lib
+AU        vm2c/lib/openjdk-javac-6-b12.jar
+A         vm2c/nbproject
+AU        vm2c/nbproject/project.properties
+AU        vm2c/nbproject/project.xml
+AU        vm2c/nbproject/genfiles.properties
+AU        vm2c/nbproject/build-impl.xml
+AU        vm2c/manifest.mf
+A         vm2c/src
+A         vm2c/src/com
+A         vm2c/src/com/sun
+A         vm2c/src/com/sun/squawk
+A         vm2c/src/com/sun/squawk/vm2c
+AU        vm2c/src/com/sun/squawk/vm2c/Main.java
+AU        vm2c/src/com/sun/squawk/vm2c/LocalVarDeclScanner.java
+AU        vm2c/src/com/sun/squawk/vm2c/Converter.java
+AU        vm2c/src/com/sun/squawk/vm2c/CCodeBuffer.java
+AU        vm2c/src/com/sun/squawk/vm2c/AnnotationParser.java
+AU        vm2c/src/com/sun/squawk/vm2c/ProcessedMethod.java
+AU        vm2c/src/com/sun/squawk/vm2c/LineNumberTable.java
+AU        vm2c/src/com/sun/squawk/vm2c/InconvertibleNodeException.java
+AU        vm2c/src/com/sun/squawk/vm2c/MethodConverter.java
+AU        vm2c/src/com/sun/squawk/vm2c/CallGraphVisitor.java
+AU        vm2c/build.xml
+AU        squawk.library.properties
+AU        build.jar
+A         javatest-device
+AU        javatest-device/.classpath
+AU        javatest-device/builder.properties
+AU        javatest-device/.project
+A         javatest-device/lib
+AU        javatest-device/lib/client.jar
+AU        javatest-device/lib/agent.jar
+A         javatest-device/src
+A         javatest-device/src/com
+A         javatest-device/src/com/sun
+A         javatest-device/src/com/sun/tck
+A         javatest-device/src/com/sun/tck/cldc
+A         javatest-device/src/com/sun/tck/cldc/javatest
+A         javatest-device/src/com/sun/tck/cldc/javatest/agent
+AU        javatest-device/src/com/sun/tck/cldc/javatest/agent/CldcAgent.java
+ U        .
+At revision 554
+[master] $ /bin/bash /var/folders/OA/OAHho61DEeCcABEH5FsNbk+++TM/-Tmp-/hudson8062546706229539751.sh
+mac
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running clean...]
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running copyphoneme...]
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running copyphoneme...]
+[building cldc...]
+[building debugger...]
+[building translator...]
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+[building hosted-support...]
+Note: ./hosted-support/preprocessed/com/sun/squawk/vm/GUIOutputChannel.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+[running squawk.jar...]
+[building debugger-proxy...]
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+[building imp...]
+[building javatest-device...]
+[building mapper...]
+[building romizer...]
+[building ssl...]
+[building vm2c...]
+Total time: 9s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running rom...]
+SUITEMETADATA:squawk.suite.suitemetadata
+[running romize...]
+excluding: com.sun.squawk.compiler.*
+excluding: com.sun.squawk.os.*
+excluding: com.sun.squawk.BytecodeTracer
+excluding: com.sun.squawk.CheneyCollector*
+excluding: com.sun.squawk.Lisp2Collector*
+excluding: com.sun.cldc.io.connections.HttpConnection
+excluding: com.sun.squawk.ClassTunnel
+[translating suite squawk [closed: false, parent: null] ...]
+### Excluding compile: com.sun.squawk.Method::getParameterTypes
+### Excluding compile: com.sun.squawk.SymbolParser::getSignatureTypeAt
+[Including resource: META-INF/MANIFEST.MF]
+[Including resource: META-INF/MANIFEST.MF]
+Romizer processed 529 classes and generated these files:
+  /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk/squawk.sym
+  /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk/squawk.suite
+  /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk/squawk.suite.metadata
+  /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk/squawk_classes.jar
+  /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk/squawk_java5.jar
+  /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk/vmcore/src/vm/rom.h
+  /Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk/squawk.suite.api
+[preprocessing with forced JAVA5SYNTAX for vm2c]
+[running runvm2c...]
+[compiling floating point sources in vmcore/src/vm/fp ...]
+[compiling native verification sources in vmcore/src/vm/util ...]
+[compiling 'vmcore/src/vm/squawk.c' ...]
+In file included from vmcore/src/vm/squawk.c:531:
+vmcore/src/vm/vm2c.c:163: warning: ‘Lisp2GenerationalCollector_markOop_AI’ declared inline after being called
+vmcore/src/vm/vm2c.c:163: warning: previous declaration of ‘Lisp2GenerationalCollector_markOop_AI’ was here
+vmcore/src/vm/vm2c.c:200: warning: ‘Lisp2GenerationalCollector_visitOop_IAI’ declared inline after being called
+vmcore/src/vm/vm2c.c:200: warning: previous declaration of ‘Lisp2GenerationalCollector_visitOop_IAI’ was here
+vmcore/src/vm/squawk.c: In function ‘printCacheStats’:
+vmcore/src/vm/squawk.c:713: warning: format ‘%d’ expects type ‘int’, but argument 3 has type ‘jlong’
+vmcore/src/vm/squawk.c:713: warning: format ‘%d’ expects type ‘int’, but argument 4 has type ‘jlong’
+[linking 'squawk' ...]
+[running squawk.jar...]
+Total time: 17s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running map...]
+### Excluding compile: com.sun.squawk.SymbolParser::getSignatureTypeAt
+Total time: 5s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running genspec...]
+missing opcode: 255
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running jvmenv...]
+
+There is no need to configure the environment for Squawk on Mac OS X/X86
+as the location of the JavaVM framework is built into the executable.
+
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running systemproperties...]
+awt.nativeDoubleBuffering=true
+awt.toolkit=apple.awt.CToolkit
+file.encoding=MacRoman
+file.encoding.pkg=sun.io
+file.separator=/
+ftp.nonProxyHosts=local|*.local|169.254/16|*.169.254/16
+gopherProxySet=false
+http.nonProxyHosts=local|*.local|169.254/16|*.169.254/16
+java.awt.graphicsenv=apple.awt.CGraphicsEnvironment
+java.awt.printerjob=apple.awt.CPrinterJob
+java.class.path=build.jar
+java.class.version=50.0
+java.endorsed.dirs=/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Home/lib/endorsed
+java.ext.dirs=/Library/Java/Extensions:/System/Library/Java/Extensions:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Home/lib/ext
+java.home=/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Home
+java.io.tmpdir=/var/folders/OA/OAHho61DEeCcABEH5FsNbk+++TM/-Tmp-/
+java.library.path=.:/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java
+java.runtime.name=Java(TM) SE Runtime Environment
+java.runtime.version=1.6.0_20-b02-279-10M3065
+java.specification.name=Java Platform API Specification
+java.specification.vendor=Sun Microsystems Inc.
+java.specification.version=1.6
+java.vendor=Apple Inc.
+java.vendor.url=http://www.apple.com/
+java.vendor.url.bug=http://bugreport.apple.com/
+java.version=1.6.0_20
+java.vm.info=mixed mode
+java.vm.name=Java HotSpot(TM) 64-Bit Server VM
+java.vm.specification.name=Java Virtual Machine Specification
+java.vm.specification.vendor=Sun Microsystems Inc.
+java.vm.specification.version=1.0
+java.vm.vendor=Apple Inc.
+java.vm.version=16.3-b01-279
+line.separator=
+
+mrj.build=10M3065
+mrj.version=1060.1.6.0_20-279
+net.localhost.address=129.148.173.116
+net.localhost.name=dhcp-ubur02-173-116.east.sun.com
+os.arch=x86_64
+os.name=Mac OS X
+os.version=10.6.3
+path.separator=:
+socksNonProxyHosts=local|*.local|169.254/16|*.169.254/16
+sun.arch.data.model=64
+sun.boot.class.path=/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/jsfd.jar:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/classes.jar:/System/Library/Frameworks/JavaVM.framework/Frameworks/JavaRuntimeSupport.framework/Resources/Java/JavaRuntimeSupport.jar:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/ui.jar:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/laf.jar:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/sunrsasign.jar:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/jsse.jar:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/jce.jar:/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Classes/charsets.jar
+sun.boot.library.path=/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Libraries
+sun.cpu.endian=little
+sun.cpu.isalist=
+sun.io.unicode.encoding=UnicodeLittle
+sun.java.launcher=SUN_STANDARD
+sun.jnu.encoding=MacRoman
+sun.management.compiler=HotSpot 64-Bit Server Compiler
+sun.os.patch.level=unknown
+user.country=US
+user.dir=/Users/ricky/Hudson-Squawk/hudson/trunk/jobs/full-debug-build-allnodes/workspace/label/master/trunk
+user.home=/Users/ricky
+user.language=en
+user.name=ricky
+user.timezone=
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+Total time: 0s
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+Total time: 0s
+*************** Tracing version ***************
+
+Usage: squawk [-options] class [args...] | [-MIDlet-x]
+
+if there is no class specified, then try MIDlet-1 property to find a MIDlet
+where options include:
+    -cp:<directories and jar/zip files separated by ':' (Unix) or ';' (Windows)>
+                          paths where classes, suites and sources can be found
+    -suite:<name>         suite name (without ".suite") to load
+    -suitepath:<path>   host path to look for suite's in
+    -isolateinit:<class>  class whose main will be invoked on Isolate start, single arg "true" if first Isolate being initialized
+    -MIDlet-x             which MIDlet-x property to use from META-INF/MANIFEST.MF
+    -testMIDlet:<class>   specify MIDlet class name directly
+    -sampleStatData:url   poll VM.Stats every 500ms and send samples to url
+    -version              print product version and exit
+    -verbose              report when a class is loaded
+    -veryverbose          report when a class is initialized or looked up and
+                          various other output
+    -testoms              continually serialize, deserialize and restart the application if it hibernates itself
+    -traceoms             trace object memory serialization
+    -traceswapper         trace endianess swapping
+    -young:<n>            young space size as % of heap (default=20%)
+    -nativegc             use native version of collector (default)
+    -interpgc             use interpreted version of collector
+    -usecgctimer          use microsecond (not millisecond) timer for GC
+    -egc                  enable excessive garbage collection
+    -nogc                 disable application calls to Runtime.gc()
+    -stats                display execution statistics before exiting
+    -D<name>=<value>      set a system property
+    -h                    display this help message
+    -X                    display help on native VM options
+
+
+---------------------------------- 0.020 M Branches ----------------------------------
+Totals -   Class:0.98%  Monitor:4.25%  Exit:0.08%  New:4.25%
+Hits   -   Class:93.73%  Monitor:97.89%  Exit:100.00%  New:96.16%
+Extends: 168955 (slots as % of extends = 12.33%)
+GCs: 0 full, 0 partial
+** VM stopped after 53693 branches: exit code = 0 ** 
+*************** Tracing version ***************
+32 bit squawk:
+    debug code enabled
+    assertions enabled
+    tracing enabled
+    floating point supported
+    bootstrap suite: 
+        symbols not stripped
+native VM build flags: -DTRACE -DASSUME -DTYPEMAP -DNATIVE_VERIFICATION=true   -ffunction-sections -fdata-sections -D_GNU_SOURCE -g -DSQUAWK_64=false -m32  -ffloat-store -DPLATFORM_BIG_ENDIAN=false -DPLATFORM_UNALIGNED_LOADS=true  -DWRITE_BARRIER -DLISP2_BITMAP -arch i386 -mdynamic-no-pic -fvisibility=hidden -isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5 -march=prescott
+
+
+---------------------------------- 0.020 M Branches ----------------------------------
+Totals -   Class:1.46%  Monitor:1.45%  Exit:0.18%  New:1.45%
+Hits   -   Class:90.99%  Monitor:87.05%  Exit:100.00%  New:94.51%
+Extends: 52116 (slots as % of extends = 14.82%)
+GCs: 0 full, 0 partial
+** VM stopped after 21271 branches: exit code = 0 ** 
+*************** Tracing version ***************
+Running: com.sun.squawk.Test
+x39 count = 1
+x40 recursion level = 114664
+x42 printStackTrace - this should be a java.lang.NullPointerException
+java.lang.NullPointerException
+    at java.lang.Throwable.<init>(Throwable.java:88)
+    at java.lang.Exception.<init>(Exception.java:44)
+    at java.lang.RuntimeException.<init>(RuntimeException.java:48)
+    at java.lang.NullPointerException.<init>(NullPointerException.java:54)
+    at com.sun.squawk.VM.nullPointerException(VM.java:390)
+    at com.sun.squawk.Test$FOO.toString(Test.java:421)
+    at com.sun.squawk.Test$FOO$1.run(Test.java:413)
+    at com.sun.squawk.Test$FOO.foo(Test.java:411)
+    at com.sun.squawk.Test.x42(Test.java:387)
+    at com.sun.squawk.Test.runXTests(Test.java:97)
+    at com.sun.squawk.Test.main(Test.java:48)
+    at com.sun.squawk.Klass.main(Klass.java:3017)
+    at com.sun.squawk.Isolate.run(Isolate.java:1536)
+    at java.lang.Thread.run(Thread.java:231)
+    at com.sun.squawk.VMThread.callRun(VMThread.java:1468)
+    at com.sun.squawk.VM.callRun(VM.java:304)
+Date: Thu Jun 24 10:27:14 PST 2010
+Empty loop timings per 16000000 = 41702ms
+Empty loop timings(2) per 16000000 = 36615ms
+Empty simple call per 1000000 = 4994ms
+Empty long call per 1000000 = 5211ms
+Empty exception calls per 1000000 = 5999ms
+random time test (91125 empty loop iterations)... 190ms
+Finished tests
+
+
+---------------------------------- 40.020 M Branches ----------------------------------
+Totals -   Class:8.37%  Monitor:0.01%  Exit:0.00%  New:0.01%
+Hits   -   Class:99.99%  Monitor:98.05%  Exit:100.00%  New:89.58%
+Extends: 7469437 (slots as % of extends = 28.44%)
+GCs: 15 full, 16 partial
+** VM stopped after 40003191 branches: exit code = 12345 ** 
+good 57
+*************** Tracing version ***************
+ROM relocated to 310378496
+Memory start    = 310378496
+Memory end      = 328843264
+Type map start  = 328843264
+Type map end    = 347308032
+ROM start       = 310378496
+ROM end         = 311194800
+NVM start       = 311197696
+NVM end         = 319586304
+RAM start       = 319586304
+RAM end         = 327974912
+serviceStack    = 327974920
+Bootstrap suite = 310378500
+Lisp2GenerationalCollector variables
+    permanentMemoryStart = 319586304
+    memoryStart = 319587056
+    memoryEnd = 327974912
+    memorySize = 8387856 [7.9M]
+    bitmap = 327690020
+    bitmapEnd = 327943260
+    bitmapSize = 253240 [247.3K]
+    bitmapBase = 317702948
+    sliceTable = 327943260
+    sliceTableEnd = 327974912
+    sliceTableSize = 31652 [30.9K]
+    sliceOffsetShift = 24
+    sliceOffsetBits = 8
+    sliceSize = 1024
+    sliceCount = 7913 [7.7K]
+    markingStack.size = 41
+    markingStack.base = 327689856
+    markingStack.index = 0
+    markingStack.overflowed = 0
+    heapStart = 319587072
+    heapEnd = 327689856
+    heapSize = 8102784 [7.7M]
+    youngGenerationStart = 319587072
+    youngGenerationEnd = 321207612
+    youngGenerationSize = 1620540 [1.5M]
+    collectionStart = 0
+    collectionEnd = 0
+    collectionSize = 0
+    bitmappedStart = 319586304
+    bitmappedEnd = 327689984
+    overhead(%) = 4
+*** Extending stack *** (stack size=168, remaining stack=4, bcount=12080)
+GC::stackCopy - srcChunk = 319588540 dstChunk = 319589348
+*** Extending stack *** (stack size=168, remaining stack=4, bcount=21139)
+GC::stackCopy - srcChunk = 319596036 dstChunk = 319597168
+Running: com.sun.squawk.Test
+** Collecting garbage ** (collection count: 0, free memory:8084236 bytes)
+** Full collection finished ** (free memory:8094568 bytes [99%], reclaimed 10332 bytes, backward branch count:42877, time:324ms)
+** Collecting garbage ** (collection count: 1, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:53545, time:188ms)
+** Collecting garbage ** (collection count: 2, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:64213, time:187ms)
+** Collecting garbage ** (collection count: 3, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:74881, time:187ms)
+** Collecting garbage ** (collection count: 4, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:85549, time:187ms)
+** Collecting garbage ** (collection count: 5, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:96217, time:188ms)
+** Collecting garbage ** (collection count: 6, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:106885, time:188ms)
+** Collecting garbage ** (collection count: 7, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:117553, time:188ms)
+** Collecting garbage ** (collection count: 8, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:128221, time:188ms)
+** Collecting garbage ** (collection count: 9, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:138889, time:188ms)
+** Collecting garbage ** (collection count: 10, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:149649, time:191ms)
+** Collecting garbage ** (collection count: 11, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:160426, time:191ms)
+** Collecting garbage ** (collection count: 12, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:171203, time:192ms)
+** Collecting garbage ** (collection count: 13, free memory:8094568 bytes)
+** Partial collection finished ** (free memory:8094568 bytes [99%], reclaimed 0 bytes, backward branch count:181980, time:192ms)
+** Collecting garbage ** (collection count: 14, free memory:8093868 bytes)
+** Full collection finished ** (free memory:8094640 bytes [99%], reclaimed 772 bytes, backward branch count:195600, time:335ms)
+[Failed allocation of 4047328 bytes, klass = [java.lang.Object (bytes free: -2426788 in alloc space, 4047312 in total)]
+** Collecting garbage ** (collection count: 15, free memory:4047312 bytes)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.09%  Monitor:0.52%  Exit:0.01%  New:0.52%
+Hits   -   Class:89.91%  Monitor:98.02%  Exit:100.00%  New:0.00%
+Extends: 1471038 (slots as % of extends = 5.02%)
+GCs: 2 full, 13 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 4830503 (slots as % of extends = 1.58%)
+GCs: 2 full, 13 partial
+** Partial collection finished ** (free memory:4047312 bytes [49%], reclaimed 0 bytes, backward branch count:2230100, time:29212ms)
+[Failed allocation of 4047328 bytes, klass = [java.lang.Object (bytes free: 1620540 in alloc space, 4047312 in total)]
+** Collecting garbage ** (collection count: 16, free memory:4047312 bytes)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 6522867 (slots as % of extends = 1.17%)
+GCs: 2 full, 14 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 9788870 (slots as % of extends = 0.82%)
+GCs: 2 full, 14 partial
+** Full collection finished ** (free memory:4047312 bytes [49%], reclaimed 0 bytes, backward branch count:4264751, time:29235ms)
+[Failed allocation of 4047328 bytes, klass = [java.lang.Object (bytes free: 1620540 in alloc space, 4047312 in total)]
+x39 count = 1
+*** Extending stack *** (stack size=336, remaining stack=5, bcount=4264976)
+GC::stackCopy - srcChunk = 319591952 dstChunk = 323642768
+*** Extending stack *** (stack size=672, remaining stack=5, bcount=4265095)
+GC::stackCopy - srcChunk = 323642768 dstChunk = 323645464
+*** Extending stack *** (stack size=1344, remaining stack=5, bcount=4265326)
+GC::stackCopy - srcChunk = 323645464 dstChunk = 323650848
+*** Extending stack *** (stack size=2688, remaining stack=5, bcount=4265781)
+GC::stackCopy - srcChunk = 323650848 dstChunk = 323661608
+*** Extending stack *** (stack size=5376, remaining stack=5, bcount=4266684)
+GC::stackCopy - srcChunk = 323661608 dstChunk = 323683120
+*** Extending stack *** (stack size=10752, remaining stack=5, bcount=4268483)
+GC::stackCopy - srcChunk = 323683120 dstChunk = 323726136
+*** Extending stack *** (stack size=21504, remaining stack=5, bcount=4272074)
+GC::stackCopy - srcChunk = 323726136 dstChunk = 323812160
+*** Extending stack *** (stack size=43008, remaining stack=5, bcount=4279249)
+GC::stackCopy - srcChunk = 323812160 dstChunk = 323984200
+*** Extending stack *** (stack size=86016, remaining stack=5, bcount=4293592)
+GC::stackCopy - srcChunk = 323984200 dstChunk = 324328272
+*** Extending stack *** (stack size=172032, remaining stack=5, bcount=4322271)
+GC::stackCopy - srcChunk = 324328272 dstChunk = 325016408
+*** Extending stack *** (stack size=344064, remaining stack=5, bcount=4379622)
+[Failed allocation of 2752520 bytes, klass = [-local- (bytes free: -1129580 in alloc space, 1297192 in total)]
+** Collecting garbage ** (collection count: 17, free memory:1297192 bytes)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:34.40%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:99.99%  Monitor:100.00%  Exit:0%  New:0.00%
+Extends: 13680902 (slots as % of extends = 0.60%)
+GCs: 3 full, 14 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 19275577 (slots as % of extends = 2.00%)
+GCs: 3 full, 14 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 26018306 (slots as % of extends = 2.73%)
+GCs: 3 full, 14 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 30481683 (slots as % of extends = 2.53%)
+GCs: 3 full, 14 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 38937179 (slots as % of extends = 3.00%)
+GCs: 3 full, 14 partial
+** Partial collection finished ** (free memory:2671048 bytes [32%], reclaimed 1373856 bytes, backward branch count:9280940, time:152704ms)
+[Failed allocation of 2752520 bytes, klass = [-local- (bytes free: 1620540 in alloc space, 2671048 in total)]
+x40 recursion level = 114664
+x42 printStackTrace - this should be a java.lang.NullPointerException
+java.lang.NullPointerException
+    at java.lang.Throwable.<init>(Throwable.java:88)
+    at java.lang.Exception.<init>(Exception.java:44)
+    at java.lang.RuntimeException.<init>(RuntimeException.java:48)
+    at java.lang.NullPointerException.<init>(NullPointerException.java:54)
+    at com.sun.squawk.VM.nullPointerException(VM.java:390)
+    at com.sun.squawk.Test$FOO.toString(Test.java:421)
+    at com.sun.squawk.Test$FOO$1.run(Test.java:413)
+    at com.sun.squawk.Test$FOO.foo(Test.java:411)
+    at com.sun.squawk.Test.x42(Test.java:387)
+    at com.sun.squawk.Test.runXTests(Test.java:97)
+    at com.sun.squawk.Test.main(Test.java:48)
+    at com.sun.squawk.Klass.main(Klass.java:3017)
+    at com.sun.squawk.Isolate.run(Isolate.java:1536)
+    at java.lang.Thread.run(Thread.java:231)
+    at com.sun.squawk.VMThread.callRun(VMThread.java:1468)
+    at com.sun.squawk.VM.callRun(VM.java:304)
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9984737)
+GC::stackCopy - srcChunk = 325028620 dstChunk = 325028980
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9984875)
+GC::stackCopy - srcChunk = 325029860 dstChunk = 325030220
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9985021)
+GC::stackCopy - srcChunk = 325031100 dstChunk = 325031460
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9985175)
+GC::stackCopy - srcChunk = 325032340 dstChunk = 325032700
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9985337)
+GC::stackCopy - srcChunk = 325033580 dstChunk = 325033940
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9985507)
+GC::stackCopy - srcChunk = 325034820 dstChunk = 325035180
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9985685)
+GC::stackCopy - srcChunk = 325036060 dstChunk = 325036420
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9985877)
+GC::stackCopy - srcChunk = 325037308 dstChunk = 325037668
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9986077)
+GC::stackCopy - srcChunk = 325038556 dstChunk = 325038916
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9986285)
+GC::stackCopy - srcChunk = 325039804 dstChunk = 325040164
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9986503)
+GC::stackCopy - srcChunk = 325041052 dstChunk = 325041412
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9986727)
+GC::stackCopy - srcChunk = 325042300 dstChunk = 325042660
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9986959)
+GC::stackCopy - srcChunk = 325043548 dstChunk = 325043908
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9987199)
+GC::stackCopy - srcChunk = 325044796 dstChunk = 325045156
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9987447)
+GC::stackCopy - srcChunk = 325046044 dstChunk = 325046404
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9987703)
+GC::stackCopy - srcChunk = 325047292 dstChunk = 325047652
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9987967)
+GC::stackCopy - srcChunk = 325048540 dstChunk = 325048900
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9988239)
+GC::stackCopy - srcChunk = 325049788 dstChunk = 325050148
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9988519)
+GC::stackCopy - srcChunk = 325051036 dstChunk = 325051396
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9988807)
+GC::stackCopy - srcChunk = 325052284 dstChunk = 325052644
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9989103)
+GC::stackCopy - srcChunk = 325053532 dstChunk = 325053892
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9989409)
+GC::stackCopy - srcChunk = 325054780 dstChunk = 325055140
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9989721)
+GC::stackCopy - srcChunk = 325056028 dstChunk = 325056388
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9990041)
+GC::stackCopy - srcChunk = 325057276 dstChunk = 325057636
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9990369)
+GC::stackCopy - srcChunk = 325058524 dstChunk = 325058884
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9990705)
+GC::stackCopy - srcChunk = 325059772 dstChunk = 325060132
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9991049)
+GC::stackCopy - srcChunk = 325061020 dstChunk = 325061380
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9991401)
+GC::stackCopy - srcChunk = 325062268 dstChunk = 325062628
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9991761)
+GC::stackCopy - srcChunk = 325063516 dstChunk = 325063876
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9992129)
+GC::stackCopy - srcChunk = 325064764 dstChunk = 325065124
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9992505)
+GC::stackCopy - srcChunk = 325066012 dstChunk = 325066372
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9992889)
+GC::stackCopy - srcChunk = 325067260 dstChunk = 325067620
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9993283)
+GC::stackCopy - srcChunk = 325068508 dstChunk = 325068868
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9993683)
+GC::stackCopy - srcChunk = 325069756 dstChunk = 325070116
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9994091)
+GC::stackCopy - srcChunk = 325071004 dstChunk = 325071364
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9994507)
+GC::stackCopy - srcChunk = 325072252 dstChunk = 325072612
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9994931)
+GC::stackCopy - srcChunk = 325073500 dstChunk = 325073860
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9995363)
+GC::stackCopy - srcChunk = 325074748 dstChunk = 325075108
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9995803)
+GC::stackCopy - srcChunk = 325075996 dstChunk = 325076356
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9996251)
+GC::stackCopy - srcChunk = 325077244 dstChunk = 325077604
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9996707)
+GC::stackCopy - srcChunk = 325078492 dstChunk = 325078852
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9997171)
+GC::stackCopy - srcChunk = 325079740 dstChunk = 325080100
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9997643)
+GC::stackCopy - srcChunk = 325080988 dstChunk = 325081348
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9998125)
+GC::stackCopy - srcChunk = 325082236 dstChunk = 325082596
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9998613)
+GC::stackCopy - srcChunk = 325083484 dstChunk = 325083844
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9999109)
+GC::stackCopy - srcChunk = 325084732 dstChunk = 325085092
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=9999613)
+GC::stackCopy - srcChunk = 325085980 dstChunk = 325086340
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.24%  Monitor:0.15%  Exit:0.00%  New:0.15%
+Hits   -   Class:99.59%  Monitor:99.74%  Exit:100.00%  New:0.00%
+Extends: 45428746 (slots as % of extends = 3.04%)
+GCs: 3 full, 15 partial
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10000125)
+GC::stackCopy - srcChunk = 325087228 dstChunk = 325087588
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10000645)
+GC::stackCopy - srcChunk = 325088476 dstChunk = 325088836
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10001173)
+GC::stackCopy - srcChunk = 325089724 dstChunk = 325090084
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10001709)
+GC::stackCopy - srcChunk = 325090972 dstChunk = 325091332
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10002253)
+GC::stackCopy - srcChunk = 325092220 dstChunk = 325092580
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10002805)
+GC::stackCopy - srcChunk = 325093468 dstChunk = 325093828
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10003365)
+GC::stackCopy - srcChunk = 325094716 dstChunk = 325095076
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10003935)
+GC::stackCopy - srcChunk = 325095964 dstChunk = 325096324
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10004511)
+GC::stackCopy - srcChunk = 325097212 dstChunk = 325097572
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10005095)
+GC::stackCopy - srcChunk = 325098460 dstChunk = 325098820
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10005687)
+GC::stackCopy - srcChunk = 325099708 dstChunk = 325100068
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10006287)
+GC::stackCopy - srcChunk = 325100956 dstChunk = 325101316
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10006895)
+GC::stackCopy - srcChunk = 325102204 dstChunk = 325102564
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10007511)
+GC::stackCopy - srcChunk = 325103452 dstChunk = 325103812
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10008135)
+GC::stackCopy - srcChunk = 325104700 dstChunk = 325105060
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10008767)
+GC::stackCopy - srcChunk = 325105948 dstChunk = 325106308
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10009407)
+GC::stackCopy - srcChunk = 325107196 dstChunk = 325107556
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10010055)
+GC::stackCopy - srcChunk = 325108444 dstChunk = 325108804
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10010713)
+GC::stackCopy - srcChunk = 325109692 dstChunk = 325110052
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10011377)
+GC::stackCopy - srcChunk = 325110940 dstChunk = 325111300
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10012049)
+GC::stackCopy - srcChunk = 325112188 dstChunk = 325112548
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10012729)
+GC::stackCopy - srcChunk = 325113436 dstChunk = 325113796
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10013417)
+GC::stackCopy - srcChunk = 325114684 dstChunk = 325115044
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10014113)
+GC::stackCopy - srcChunk = 325115932 dstChunk = 325116292
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10014817)
+GC::stackCopy - srcChunk = 325117180 dstChunk = 325117540
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10015529)
+GC::stackCopy - srcChunk = 325118428 dstChunk = 325118788
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10016249)
+GC::stackCopy - srcChunk = 325119676 dstChunk = 325120036
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10016977)
+GC::stackCopy - srcChunk = 325120924 dstChunk = 325121284
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10017713)
+GC::stackCopy - srcChunk = 325122172 dstChunk = 325122532
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10018459)
+GC::stackCopy - srcChunk = 325123420 dstChunk = 325123780
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10019211)
+GC::stackCopy - srcChunk = 325124668 dstChunk = 325125028
+*** Extending stack *** (stack size=78, remaining stack=6, bcount=10019971)
+GC::stackCopy - srcChunk = 325125916 dstChunk = 325126276
+*** Extending stack *** (stack size=79, remaining stack=7, bcount=10020739)
+GC::stackCopy - srcChunk = 325127164 dstChunk = 325127528
+*** Extending stack *** (stack size=80, remaining stack=8, bcount=10021515)
+GC::stackCopy - srcChunk = 325128424 dstChunk = 325128792
+*** Extending stack *** (stack size=81, remaining stack=4, bcount=10022299)
+GC::stackCopy - srcChunk = 325129696 dstChunk = 325130068
+*** Extending stack *** (stack size=82, remaining stack=5, bcount=10023092)
+GC::stackCopy - srcChunk = 325130980 dstChunk = 325131356
+*** Extending stack *** (stack size=83, remaining stack=9, bcount=10023893)
+GC::stackCopy - srcChunk = 325132276 dstChunk = 325132656
+*** Extending stack *** (stack size=84, remaining stack=13, bcount=10024703)
+GC::stackCopy - srcChunk = 325133584 dstChunk = 325133968
+*** Extending stack *** (stack size=85, remaining stack=3, bcount=10025518)
+GC::stackCopy - srcChunk = 325134904 dstChunk = 325135292
+*** Extending stack *** (stack size=86, remaining stack=4, bcount=10026342)
+GC::stackCopy - srcChunk = 325136236 dstChunk = 325136628
+*** Extending stack *** (stack size=87, remaining stack=5, bcount=10027176)
+GC::stackCopy - srcChunk = 325137580 dstChunk = 325137976
+*** Extending stack *** (stack size=88, remaining stack=6, bcount=10028016)
+GC::stackCopy - srcChunk = 325138936 dstChunk = 325139336
+*** Extending stack *** (stack size=89, remaining stack=7, bcount=10028864)
+GC::stackCopy - srcChunk = 325140304 dstChunk = 325140708
+*** Extending stack *** (stack size=90, remaining stack=8, bcount=10029720)
+GC::stackCopy - srcChunk = 325141684 dstChunk = 325142092
+*** Extending stack *** (stack size=91, remaining stack=9, bcount=10030584)
+GC::stackCopy - srcChunk = 325143076 dstChunk = 325143488
+** Collecting garbage ** (collection count: 18, free memory:2449928 bytes)
+** Full collection finished ** (free memory:6719472 bytes [82%], reclaimed 4269544 bytes, backward branch count:10102942, time:336ms)
+** Collecting garbage ** (collection count: 19, free memory:6719304 bytes)
+** Full collection finished ** (free memory:6719328 bytes [82%], reclaimed 24 bytes, backward branch count:10115548, time:289ms)
+** Collecting garbage ** (collection count: 20, free memory:6719312 bytes)
+** Full collection finished ** (free memory:6719392 bytes [82%], reclaimed 80 bytes, backward branch count:10128008, time:277ms)
+** Collecting garbage ** (collection count: 21, free memory:6719392 bytes)
+** Full collection finished ** (free memory:6719448 bytes [82%], reclaimed 56 bytes, backward branch count:10140403, time:270ms)
+** Collecting garbage ** (collection count: 22, free memory:6719448 bytes)
+** Full collection finished ** (free memory:6719472 bytes [82%], reclaimed 24 bytes, backward branch count:10151354, time:218ms)
+[Failed allocation of 4 bytes, klass = java.lang.Object (bytes free: -5098916 in alloc space, 16 in total)]
+** Collecting garbage ** (collection count: 23, free memory:16 bytes)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.19%  Monitor:0.01%  Exit:0.00%  New:0.01%
+Hits   -   Class:99.23%  Monitor:100.00%  Exit:0%  New:0.00%
+Extends: 47197883 (slots as % of extends = 3.15%)
+GCs: 8 full, 15 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 48686471 (slots as % of extends = 3.06%)
+GCs: 8 full, 15 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 52686471 (slots as % of extends = 2.82%)
+GCs: 8 full, 15 partial
+** Partial collection finished ** (free memory:16 bytes [0%], reclaimed 0 bytes, backward branch count:13521909, time:48522ms)
+[Failed allocation of 16 bytes, klass = java.lang.StringBuffer (bytes free: 4 in alloc space, 4 in total)]
+** Collecting garbage ** (collection count: 24, free memory:4 bytes)
+** Full collection finished ** (free memory:6719472 bytes [82%], reclaimed 6719468 bytes, backward branch count:13532904, time:245ms)
+Date: Thu Jun 24 10:33:39 PST 2010
+** Collecting garbage ** (collection count: 25, free memory:6715516 bytes)
+** Full collection finished ** (free memory:6718428 bytes [82%], reclaimed 2912 bytes, backward branch count:13548717, time:303ms)
+** Collecting garbage ** (collection count: 26, free memory:6718428 bytes)
+** Full collection finished ** (free memory:6718428 bytes [82%], reclaimed 0 bytes, backward branch count:13559913, time:236ms)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.03%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:86.55%  Monitor:62.88%  Exit:100.00%  New:0.00%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54933591 (slots as % of extends = 2.75%)
+GCs: 11 full, 16 partial
+Empty loop timings per 16000000 = 41873ms
+** Collecting garbage ** (collection count: 27, free memory:6717868 bytes)
+** Full collection finished ** (free memory:6718264 bytes [82%], reclaimed 396 bytes, backward branch count:31573070, time:293ms)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:70.00%  Monitor:100.00%  Exit:0%  New:0.00%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 54990578 (slots as % of extends = 2.76%)
+GCs: 12 full, 16 partial
+Empty loop timings(2) per 16000000 = 36828ms
+** Collecting garbage ** (collection count: 28, free memory:6717684 bytes)
+** Full collection finished ** (free memory:6718252 bytes [82%], reclaimed 568 bytes, backward branch count:49586259, time:294ms)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:41.37%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:99.99%  Monitor:100.00%  Exit:0%  New:0.00%
+Extends: 55461469 (slots as % of extends = 2.74%)
+GCs: 13 full, 16 partial
+Empty simple call per 1000000 = 4989ms
+** Collecting garbage ** (collection count: 29, free memory:6717700 bytes)
+** Full collection finished ** (free memory:6718264 bytes [82%], reclaimed 564 bytes, backward branch count:50599404, time:293ms)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:98.68%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:99.99%  Monitor:100.00%  Exit:0%  New:0.00%
+Extends: 56505332 (slots as % of extends = 2.71%)
+GCs: 14 full, 16 partial
+Empty long call per 1000000 = 5205ms
+** Collecting garbage ** (collection count: 30, free memory:6717716 bytes)
+** Full collection finished ** (free memory:6718264 bytes [82%], reclaimed 548 bytes, backward branch count:51612535, time:294ms)
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:98.68%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:99.99%  Monitor:100.00%  Exit:0%  New:0.00%
+Extends: 57549157 (slots as % of extends = 4.01%)
+GCs: 15 full, 16 partial
+Empty exception calls per 1000000 = 5993ms
+random time test (7529536 empty loop iterations)... ---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:61.25%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:99.99%  Monitor:100.00%  Exit:0%  New:0.00%
+Extends: 58165147 (slots as % of extends = 6.08%)
+GCs: 15 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 58165147 (slots as % of extends = 6.08%)
+GCs: 15 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 58165147 (slots as % of extends = 6.08%)
+GCs: 15 full, 16 partial
+---------------------------------- 1.020 M Branches ----------------------------------
+Totals -   Class:0.00%  Monitor:0.00%  Exit:0.00%  New:0.00%
+Hits   -   Class:0%  Monitor:0%  Exit:0%  New:0%
+Extends: 58165147 (slots as % of extends = 6.08%)
+GCs: 15 full, 16 partial
+15339ms
+Finished tests
+
+=============================
+Squawk VM exiting with code 12345
+16 partial collections
+15 full collections
+Full collections: [average = 2216ms, min = 218ms, max = 29235ms]
+    collection count: 15
+    total time:       33242ms
+    setup:            17ms	[0%]
+    mark:             7711ms	[23%]
+    computeAddresses: 1033ms	[3%]
+    updatePointers:   630ms	[1%]
+    compactObjects:   89ms	[0%]
+    fixupOopmaps:     0ms	[0%]
+    post:             2ms	[0%]
+    finalize:         23760ms	[71%]
+    unforward:        0ms	[0%]
+Partial collections: [average = 14555ms, min = 187ms, max = 152704ms]
+    collection count: 16
+    total time:       232892ms
+    setup:            24687ms	[10%]
+    mark:             47317ms	[20%]
+    computeAddresses: 698ms	[0%]
+    updatePointers:   32945ms	[14%]
+    compactObjects:   5ms	[0%]
+    fixupOopmaps:     0ms	[0%]
+    post:             5ms	[0%]
+    finalize:         127235ms	[54%]
+    unforward:        0ms	[0%]
+Object graph copying:
+    total time:       0ms
+Execution time was 401491 ms
+=============================
+
+
+
+---------------------------------- 0.020 M Branches ----------------------------------
+Totals -   Class:0.14%  Monitor:0.38%  Exit:0.00%  New:0.38%
+Hits   -   Class:98.60%  Monitor:99.80%  Exit:100.00%  New:0.00%
+Extends: 58244034 (slots as % of extends = 6.09%)
+GCs: 15 full, 16 partial
+** VM stopped after 56390180 branches: exit code = 12345 ** 
+good 57
+CompilerOracle: exclude com/sun/squawk/Method.getParameterTypes
+CompilerOracle: exclude com/sun/squawk/SymbolParser.getSignatureTypeAt
+CompilerOracle: exclude com/sun/squawk/SymbolParser.stripMethods
+Platform: Mac OS X-x86_64
+[running clean...]
+Total time: 0s
+Archiving artifacts
+Finished: SUCCESS
