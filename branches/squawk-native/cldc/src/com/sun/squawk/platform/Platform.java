@@ -50,9 +50,16 @@ public class Platform {
     private static GCFSockets gcfSockets;
     private static GCFFile gcfFile;
 
-    public final static String NATIVE_PLATFORM_NAME = com.sun.cldc.jna.Platform.getPlatform().getPlatformPackageName();
+    private static String NATIVE_PLATFORM_NAME;
     
     private Platform() { }
+
+    public static String getPlatformName() {
+        if (NATIVE_PLATFORM_NAME == null) {
+            NATIVE_PLATFORM_NAME = com.sun.cldc.jna.Platform.getPlatform().getPlatformPackageName();
+        }
+        return NATIVE_PLATFORM_NAME;
+    }
 
     /**
      * Create an instance of the class named NATIVE_PLATFORM_NAME . name.
@@ -62,7 +69,7 @@ public class Platform {
      */
     private static Object getPlatformInstance(String name) {
         Exception e = null;
-        String fullname = NATIVE_PLATFORM_NAME + "." + name;
+        String fullname = getPlatformName() + "." + name;
         if (DEBUG) { VM.println("looking for class " + fullname); }
         Klass klass = Klass.lookupKlass(fullname);
         if (klass != null) {
