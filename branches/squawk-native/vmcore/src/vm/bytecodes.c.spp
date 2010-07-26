@@ -6093,9 +6093,27 @@ if (l != 0 && r > (java_lang_Long_MAX_VALUE/l)) {
          * Java Stack: KEY, ARRAY -> VALUE
          * <p>
          */
-/*MAC*/ void do_lookup_b() { call(com_sun_squawk_VM_lookup_b); }
-/*MAC*/ void do_lookup_s() { call(com_sun_squawk_VM_lookup_s); }
-/*MAC*/ void do_lookup_i() { call(com_sun_squawk_VM_lookup_i); }
+/*if[VM2C]*/
+/*MAC*/ void do_lookup_b() {
+            Address barray = popAddress();
+            int  key = popInt();
+            pushInt(lookup_b(key, barray));
+        }
+/*MAC*/ void do_lookup_s() {
+            Address barray = popAddress();
+            int  key = popInt();
+            pushInt(lookup_s(key, barray));
+        }
+/*MAC*/ void do_lookup_i() {
+            Address barray = popAddress();
+            int  key = popInt();
+            pushInt(lookup_i(key, barray));
+        }
+/*else[VM2C]*/
+///*MAC*/ void do_lookup_b() { call(com_sun_squawk_VM_lookup_b); }
+///*MAC*/ void do_lookup_s() { call(com_sun_squawk_VM_lookup_s); }
+///*MAC*/ void do_lookup_i() { call(com_sun_squawk_VM_lookup_i); }
+/*end[VM2C]*/
 
         /**
          * Reserved.

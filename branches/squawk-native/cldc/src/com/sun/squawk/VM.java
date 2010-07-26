@@ -547,6 +547,9 @@ public class VM implements GlobalStaticFields {
         return obj;
     }
 
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="lookup_b")
+/*end[JAVA5SYNTAX]*/
     /**
      * Lookup the position of a value in a sorted array of numbers.
      *
@@ -554,7 +557,13 @@ public class VM implements GlobalStaticFields {
      * @param array the array
      * @return the index or -1 if the lookup fails
      */
-    static int lookup_b(int key, byte[] array) throws InterpreterInvokedPragma {
+    static int lookup_b(int key, byte[] array)
+/*if[VM2C]*/
+                    throws NotInlinedPragma
+/*else[VM2C]*/
+//                  throws InterpreterInvokedPragma
+/*end[VM2C]*/
+                    {
         int low = 0;
         int high = array.length - 1;
         while (low <= high) {
@@ -571,6 +580,9 @@ public class VM implements GlobalStaticFields {
         return -1;
     }
 
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="lookup_s")
+/*end[JAVA5SYNTAX]*/
     /**
      * Lookup the position of a value in a sorted array of numbers.
      *
@@ -578,7 +590,13 @@ public class VM implements GlobalStaticFields {
      * @param array the array
      * @return the index or -1 if the lookup fails
      */
-    static int lookup_s(int key, short[] array) throws InterpreterInvokedPragma {
+    static int lookup_s(int key, short[] array)
+/*if[VM2C]*/
+                    throws NotInlinedPragma
+/*else[VM2C]*/
+//                  throws InterpreterInvokedPragma
+/*end[VM2C]*/
+                    {
         int low = 0;
         int high = array.length - 1;
         while (low <= high) {
@@ -595,6 +613,9 @@ public class VM implements GlobalStaticFields {
         return -1;
     }
 
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="lookup_i")
+/*end[JAVA5SYNTAX]*/
     /**
      * Lookup the position of a value in a sorted array of numbers.
      *
@@ -602,7 +623,13 @@ public class VM implements GlobalStaticFields {
      * @param array the array
      * @return the index or -1 if the lookup fails
      */
-    static int lookup_i(int key, int[] array) throws InterpreterInvokedPragma {
+    static int lookup_i(int key, int[] array)
+/*if[VM2C]*/
+                    throws NotInlinedPragma
+/*else[VM2C]*/
+//                  throws InterpreterInvokedPragma
+/*end[VM2C]*/
+                    {
         int low = 0;
         int high = array.length - 1;
         while (low <= high) {
