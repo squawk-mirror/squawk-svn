@@ -2727,20 +2727,6 @@ public class Build {
             properties.setProperty("LISP2_BITMAP", "false");
         }
 
-        if (getPlatform() instanceof Windows_X86) {
-            if (!getProperty("PLATFORM_TYPE").equals(Options.DELEGATING)) {
-                properties.setProperty("PLATFORM_TYPE", Options.DELEGATING);
-                log(true, "[Forcing PLATFORM_TYPE to DELEGATING on Windows]");
-            }
-        }
-        tryPlatformType(cOptions, Options.BARE_METAL);
-        tryPlatformType(cOptions, Options.DELEGATING);
-        tryPlatformType(cOptions, Options.NATIVE);
-        tryPlatformType(cOptions, Options.SOCKET);
-        if (cOptions.platformType == null) {
-            throw new BuildException("PLATFORM_TYPE build property not specified");
-        }
-
         if (cOptions.is64 != getBooleanProperty("SQUAWK_64")) {
             cOptions.is64 |= getBooleanProperty("SQUAWK_64");
         }
@@ -2774,6 +2760,22 @@ public class Build {
             updateCCompiler(compName);
         }
         ccompiler.options = cOptions;
+
+        // Natve IO is not implemented yet for windows, so force to delegating...
+        if (getPlatform() instanceof Windows_X86 && !ccompiler.isCrossPlatform()) {
+            if (!getProperty("PLATFORM_TYPE").equals(Options.DELEGATING)) {
+                properties.setProperty("PLATFORM_TYPE", Options.DELEGATING);
+                log(true, "[Forcing PLATFORM_TYPE to DELEGATING on Windows]");
+            }
+        }
+        
+        tryPlatformType(cOptions, Options.BARE_METAL);
+        tryPlatformType(cOptions, Options.DELEGATING);
+        tryPlatformType(cOptions, Options.NATIVE);
+        tryPlatformType(cOptions, Options.SOCKET);
+        if (cOptions.platformType == null) {
+            throw new BuildException("PLATFORM_TYPE build property not specified");
+        }
         
         // If no arguments were supplied, then
         if (argc == args.length) {
