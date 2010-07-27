@@ -165,7 +165,8 @@ public class GccVxWorksPPCCompiler extends GccCompiler {
 
     @Override
     protected int getDefaultSizeofPointer() {
-        throw new RuntimeException("not used in this config.");
+        return 4;
+		//throw new RuntimeException("not used in this config.");
     }
 
     
