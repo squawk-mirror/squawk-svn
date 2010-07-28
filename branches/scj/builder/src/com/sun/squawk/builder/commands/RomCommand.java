@@ -370,6 +370,7 @@ public class RomCommand extends Command {
             args.add("-o:" + VM2C_SRC_FILE);
             args.add("-cp:");
             args.add("-sp:." + File.pathSeparator + preDir.getPath());
+            args.add("-root:com.sun.squawk.VM");
             args.add("-root:" + env.getProperty("GC"));
             args.addAll(new FileSet(preDir, Build.JAVA_SOURCE_SELECTOR).listStrings());
 

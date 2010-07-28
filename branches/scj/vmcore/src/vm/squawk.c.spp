@@ -701,12 +701,12 @@ static void printCacheStats() {
     fprintf(stderr, "----------------------------------");
 #ifdef PROFILING
     count = instructionCount-lastStatCount;
-    fprintf(stderr, " %d.%02d M Instructions ", count/1000000, (count % 1000000) / 10000);
+    fprintf(stderr, " %lld.%02lld M Instructions ", count/1000000, (count % 1000000) / 10000);
     lastStatCount = instructionCount;
 #else
 #if TRACE
     count = getBranchCount()-lastStatCount;
-    fprintf(stderr, " %d.02%d M Branches ", count/1000000, (count % 1000000) / 10000);
+    fprintf(stderr, " %lld.02%lld M Branches ", count/1000000, (count % 1000000) / 10000);
     lastStatCount = getBranchCount();
 #endif /* TRACE */
 #endif /* PROFILING */

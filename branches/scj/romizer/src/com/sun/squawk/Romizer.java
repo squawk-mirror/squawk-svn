@@ -159,7 +159,7 @@ public class Romizer {
     /**
      * Specifies if the .suite.metadata file will be created.
      */
-    private boolean createMetadata;
+    private boolean createMetadata = true;
     
     /**
      * Specifies if the timing information should be displayed.
@@ -231,7 +231,8 @@ public class Romizer {
         out.println("    -o:<name>           name of suite to generate (required)");
         out.println("    -boot:<name>        name of suite to to use for references to " + ObjectMemory.BOOTSTRAP_URI + " suite URL (default=file://squawk.suite)");
         out.println("    -parent:<name>      name of suite to use as the parent of the suite being built");
-        out.println("    -metadata           create matching metadata suite");
+        out.println("    -metadata           create matching metadata suite (default)");
+        out.println("    -nometadata         do not create matching metadata suite");
         out.println("    -jars               create <suite_name>_classes.jar which contains the class files");
         out.println("                        from which the suite was built");
         out.println("    -exclude:<file>     excludes classes that match the class names or packages");
@@ -495,6 +496,8 @@ public class Romizer {
                 createJars = true;
             } else if (arg.equals("-metadata")) {
                 createMetadata = true;
+            } else if (arg.equals("-nometadata")) {
+                createMetadata = false;
             } else if (arg.startsWith("-endian:")) {
                 String value = arg.substring("-endian:".length());
                 if (value.equals("big")) {
@@ -745,7 +748,8 @@ public class Romizer {
         }
 
         // Ensure no classes that were meant to be excluded have been included
-        verifyExclusions(suite);
+        // do later on stripped suite...
+        //verifyExclusions(suite);
 
     }
 
@@ -792,6 +796,8 @@ public class Romizer {
         // Strip the symbols in the suite and close it.
         Suite strippedSuite = suite.strip(suiteType, suite.getName(), suite.getParent());
         strippedSuite.close();
+        // Ensure no classes that were meant to be excluded have been included
+        verifyExclusions(strippedSuite);
 
         String suiteFileName =  suiteName + Suite.FILE_EXTENSION;
         String url = "file://" + suiteFileName;
@@ -904,7 +910,7 @@ public class Romizer {
             ClasspathConnection classPath = (ClasspathConnection)Connector.open("classpath://" + (doJava5? this.java5ClassPath:this.classPath));
             for (int i = 0; i < suite.getClassCount(); i++) {
                 Klass klass = suite.getKlass(i);
-                if (klass.isSynthetic()) {
+                if (klass == null || klass.isSynthetic()) {
                     continue;
                 }
 

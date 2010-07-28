@@ -324,6 +324,7 @@ public class Klass<T> {
         ClassNotFoundException cnfe = null;
         Isolate isolate = VM.getCurrentIsolate();
         if (klass == null) {
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
             if (isolate.getLeafSuite().isClosed()) {
                 cnfe = new ClassNotFoundException(className + " [The current isolate has no class path]");
             } else if ((className.startsWith("java.") ||
@@ -348,6 +349,7 @@ public class Klass<T> {
                     }
                 }
             }
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         }
 
 

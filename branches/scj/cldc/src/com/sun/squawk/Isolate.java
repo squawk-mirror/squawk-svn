@@ -306,8 +306,8 @@ public final class Isolate implements Runnable {
     /**
      * Table of all MailboxAddresses that this Isolate uses to refer to other Isolates.
      * This is a table of all outward links.
-     * (Note that an isolate mighte use mailboxes internally, so some mailboxes
-     * refered to by a MailboxAddress may in fact be local to the isolate.)
+     * (Note that an isolate might use mailboxes internally, so some mailboxes
+     * referred to by a MailboxAddress may in fact be local to the isolate.)
      */
     private SquawkHashtable mailboxAddresses;
 
@@ -322,11 +322,6 @@ public final class Isolate implements Runnable {
      * Registered to run at VM.exit() time.
      */
     private Runnable shutdownHook;
-
-    /**
-     * is this an isoalte created to run a midlet?
-     */
-    private boolean isMidlet;
 
     /**
      * name for isolate

@@ -26,7 +26,6 @@ package com.sun.squawk.io.j2me.serversocket;
 
 import java.io.*;
 import javax.microedition.io.*;
-//import com.sun.squawk.microedition.io.*;
 import com.sun.squawk.io.*;
 import com.sun.squawk.platform.*;
 
