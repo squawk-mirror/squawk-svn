@@ -280,7 +280,11 @@ public class VM implements GlobalStaticFields {
          */
         VMThread.initializeThreading();
         synchronizationEnabled = true;
-
+        
+/*if[REAL_TIME]*/
+        startTimer();
+/*end[REAL_TIME]*/
+        
         /*
          * Fill in the args array with the C command line arguments.
          */
@@ -730,6 +734,21 @@ public class VM implements GlobalStaticFields {
 /*end[ENABLE_SDA_DEBUGGER]*/
     }
 
+/*if[REAL_TIME]*/
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="updateTimerQueue")
+/*end[JAVA5SYNTAX]*/
+    static void updateTimerQueue() {
+        VMThread.updateTimerQueue();
+    }
+
+    native static void startTimer();
+/*end[REAL_TIME]*/
+    
+/*if[SCJ]*/
+    static void writeBarrierSlow(Address base, Address value) throws InterpreterInvokedPragma {
+    }
+/*end[SCJ]*/
     /**
      * Called when current thread hits a breakpoint. The breakpoint is reported to
      * the event manager in the debugger. This thread is then suspended
@@ -769,7 +788,7 @@ public class VM implements GlobalStaticFields {
 //      Assert.shouldNotReachHere();
 /*end[ENABLE_SDA_DEBUGGER]*/
     }
-
+    
     /**
      * Allocate and add a new dimension to an array.
      *
@@ -793,6 +812,7 @@ public class VM implements GlobalStaticFields {
         }
         return array;
     }
+
 
     /*-----------------------------------------------------------------------*\
      *                       Global isolate management                       *

@@ -56,7 +56,7 @@ public final class VMThread implements GlobalStaticFields {
     /**
      * The initial size (in words) of a thread's stack.
      */
-    private final static int INITIAL_STACK_SIZE = 16800; // TODO: SCJ temp
+    private final static int INITIAL_STACK_SIZE = 168000; // TODO: SCJ temp
 
     /**
      * The minimum size (in words) of a thread's stack. This constant accounts for the
@@ -243,58 +243,6 @@ public final class VMThread implements GlobalStaticFields {
         }
     }
     
-/*if[SCJ]*/
-    /**
-     * 
-     */
-    public VMThread(Thread apiThread, String name, int stackSize) {
-        Assert.always(apiThread != null);
-        this.apiThread    = apiThread;
-        this.threadNumber = nextThreadNumber++;
-        this.state        = NEW;
-        this.stackSize    = stackSize;
-        Object target = NativeUnsafe.getObject(apiThread, (int)FieldOffsets.java_lang_Thread$target);
-        if (target instanceof Isolate) {
-            if (apiThread instanceof RealtimeThread) {
-                this.isolate  = (Isolate)target;
-            } else {
-                throw new SecurityException("No permision to create a realtime thread");
-            }
-        } else {
-            this.isolate  = VM.getCurrentIsolate();
-        }
-        if (currentThread != null) {
-            priority = (byte)currentThread.getPriority();
-            if (priority > MAX_PRIORITY) {
-                // don't inherit system priority
-                priority = NORM_PRIORITY;
-            }
-        } else { // initialize the primordial thread
-            priority = NORM_PRIORITY;
-        }
-        
-        if (name != null) {
-            this.name = name;
-        } else {
-            if (threadNumber == 0) {
-                this.name = "SCJThread-0";
-            } else {
-                this.name = "SCJThread-".concat(String.valueOf(threadNumber));
-            }
-        }
-    }
-    
-    public BackingStore saveAllocationContext(BackingStore bs){
-    	BackingStore old = savedAllocCtx;
-    	savedAllocCtx = bs;
-    	return old;
-    }
-    
-    public BackingStore getSavedAllocationContext(){
-    	return savedAllocCtx;
-    }
-/*end[SCJ]*/    
-
    /**
      * Allocates a new <code>VMThread</code> object to support a given API Thread instance.
      * <p>
@@ -2624,12 +2572,84 @@ VM.println("creating stack:");
 		return result;
 	}
 	
-/*if[SCJ]*/    
+/*if[SCJ]*/
 	/**
 	 * The current allocate context
 	 */
 	private BackingStore savedAllocCtx;
+	
+    /**
+     * 
+     */
+    public VMThread(Thread apiThread, String name, int stackSize) {
+        Assert.always(apiThread != null);
+        this.apiThread    = apiThread;
+        this.threadNumber = nextThreadNumber++;
+        this.state        = NEW;
+        this.stackSize    = stackSize;
+        Object target = NativeUnsafe.getObject(apiThread, (int)FieldOffsets.java_lang_Thread$target);
+        if (target instanceof Isolate) {
+            if (apiThread instanceof RealtimeThread) {
+                this.isolate  = (Isolate)target;
+            } else {
+                throw new SecurityException("No permision to create a realtime thread");
+            }
+        } else {
+            this.isolate  = VM.getCurrentIsolate();
+        }
+        if (currentThread != null) {
+            priority = (byte)currentThread.getPriority();
+            if (priority > MAX_PRIORITY) {
+                // don't inherit system priority
+                priority = NORM_PRIORITY;
+            }
+        } else { // initialize the primordial thread
+            priority = NORM_PRIORITY;
+        }
+        
+        if (name != null) {
+            this.name = name;
+        } else {
+            if (threadNumber == 0) {
+                this.name = "SCJThread-0";
+            } else {
+                this.name = "SCJThread-".concat(String.valueOf(threadNumber));
+            }
+        }
+    }
+    
+    public BackingStore saveAllocationContext(BackingStore bs){
+        BackingStore old = savedAllocCtx;
+        savedAllocCtx = bs;
+        return old;
+    }
+    
+    public BackingStore getSavedAllocationContext(){
+        return savedAllocCtx;
+    }
+	
 /*end[SCJ]*/    
+
+/*if[REAL_TIME]*/
+    private volatile static int pollWord;
+    
+    public final static int SIG_SLEEP_TIMEOUT = 0x1;
+    public final static int POLL_DISABLE = 0x40000000;
+    
+    /**
+     * The reschedule granularity in nano second.
+     */
+    final static int TICK = 1000000;
+    
+    static void updateTimerQueue() {
+        Assert.always(timerQueue != null, "Timer started before timer queue created");
+        if(timerQueue.first != null) {
+            timerQueue.first.time -= 1;
+            if(timerQueue.first.time <= 0)
+                pollWord |= SIG_SLEEP_TIMEOUT;
+        }
+    }
+/*end[REAL_TIME]*/
     
 //    /** debug code */
 //    public static void main(String[] args) {
@@ -3065,39 +3085,41 @@ final class TimerQueue {
      * The first thread in the queue.
      */
     VMThread first;
-
+    
+/*if[REAL_TIME]*/
     /**
-     * Add a thread to the queue.
-     *
-     * @param thread the thread to add
-     * @param delta the time period
+     * delta in ms
      */
     void add(VMThread thread, long delta) {
         Assert.that(thread.nextTimerThread == null);
-        long time = VM.getTimeMillis() + delta;
-        if (time < 0) {
+        if (delta < 0) {
 
            /*
             * If delta is so huge that the time went negative then just make
             * it a very large value. The universe will end before the error
             * can be detected.
             */
-            time = Long.MAX_VALUE;
+            delta = Long.MAX_VALUE;
         }
-        thread.time = time;
+        thread.time = delta * 100000 / VMThread.TICK;
         if (first == null) {
             first = thread;
         } else {
-            if (first.time > time) {
+            if (first.time > delta) {
+                first.time -= delta;
                 thread.nextTimerThread = first;
                 first = thread;
             } else {
                 VMThread last = first;
-                while (last.nextTimerThread != null && last.nextTimerThread.time < time) {
+                while (last.nextTimerThread != null && last.nextTimerThread.time < delta) {
+                    delta -= last.nextTimerThread.time;
                     last = last.nextTimerThread;
                 }
+                thread.time = delta;
                 thread.nextTimerThread = last.nextTimerThread;
                 last.nextTimerThread = thread;
+                if(thread.nextTimerThread != null)
+                    thread.nextTimerThread.time -= delta;
             }
         }
     }
@@ -3109,12 +3131,15 @@ final class TimerQueue {
      */
     VMThread next() {
         VMThread thread = first;
-        if (thread == null || thread.time > VM.getTimeMillis()) {
+        if (thread == null || thread.time > 0) {
             return null;
         }
         first = first.nextTimerThread;
+        // the head delta might be negative because of the deadline miss.
+        // propagate the effect to the following detlas.
+        if(first != null)
+            first.time += thread.time;
         thread.nextTimerThread = null;
-        Assert.that(thread.time != 0);
         thread.time = 0;
         return thread;
     }
@@ -3156,16 +3181,7 @@ final class TimerQueue {
      * @return the time
      */
     long nextDelta() {
-        if (first != null) {
-            long now = VM.getTimeMillis();
-            if (now >= first.time) {
-                return 0;
-            }
-            long res = first.time - now;
-            return res;
-        } else {
-            return Long.MAX_VALUE;
-        }
+        return first == null ? Long.MAX_VALUE : first.time;
     }
 
 
@@ -3175,7 +3191,7 @@ final class TimerQueue {
      *
      * @param isolate  the isolate whose timer-blocked threads are to be removed
      */
-    void prune(Isolate isolate) {
+    void prune(Isolate isolate) {//TODO:
         start:
         while (true) {
             VMThread t = first;
@@ -3192,7 +3208,134 @@ final class TimerQueue {
             break;
         }
     }
-
+/*else[REAL_TIME]*/
+//    /**
+//     * Add a thread to the queue.
+//     *
+//     * @param thread the thread to add
+//     * @param delta the time period
+//     */
+//    void add(VMThread thread, long delta) {
+//        Assert.that(thread.nextTimerThread == null);
+//        long time = VM.getTimeMillis() + delta;
+//        if (time < 0) {
+//
+//           /*
+//            * If delta is so huge that the time went negative then just make
+//            * it a very large value. The universe will end before the error
+//            * can be detected.
+//            */
+//            time = Long.MAX_VALUE;
+//        }
+//        thread.time = time;
+//        if (first == null) {
+//            first = thread;
+//        } else {
+//            if (first.time > time) {
+//                thread.nextTimerThread = first;
+//                first = thread;
+//            } else {
+//                VMThread last = first;
+//                while (last.nextTimerThread != null && last.nextTimerThread.time < time) {
+//                    last = last.nextTimerThread;
+//                }
+//                thread.nextTimerThread = last.nextTimerThread;
+//                last.nextTimerThread = thread;
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Get the next thread in the queue that has reached its time.
+//     *
+//     * @return a thread or null if there is none
+//     */
+//    VMThread next() {
+//        VMThread thread = first;
+//        if (thread == null || thread.time > VM.getTimeMillis()) {
+//            return null;
+//        }
+//        first = first.nextTimerThread;
+//        thread.nextTimerThread = null;
+//        Assert.that(thread.time != 0);
+//        thread.time = 0;
+//        return thread;
+//    }
+//
+//    /**
+//     * Remove a specific thread from the queue.
+//     *
+//     * @param thread the thread
+//     */
+//    void remove(VMThread thread) {
+//        if (first == null) {
+//            Assert.that(thread.time == 0);
+//            return;
+//        }
+//        if (thread.time == 0) {
+//            return;
+//        }
+//        thread.time = 0;
+//        if (thread == first) {
+//            first = thread.nextTimerThread;
+//            thread.nextTimerThread = null;
+//            return;
+//        }
+//        VMThread p = first;
+//        while (p.nextTimerThread != null) {
+//            if (p.nextTimerThread == thread) {
+//                p.nextTimerThread = thread.nextTimerThread;
+//                thread.nextTimerThread = null;
+//                return;
+//            }
+//            p = p.nextTimerThread;
+//        }
+//        VM.fatalVMError();
+//    }
+//
+//    /**
+//     * Get the time delta to the next event in the queue.
+//     *
+//     * @return the time
+//     */
+//    long nextDelta() {
+//        if (first != null) {
+//            long now = VM.getTimeMillis();
+//            if (now >= first.time) {
+//                return 0;
+//            }
+//            long res = first.time - now;
+//            return res;
+//        } else {
+//            return Long.MAX_VALUE;
+//        }
+//    }
+//
+//
+//    /**
+//     * Remove all the threads in this queue that are owned by <code>isolate</code>
+//     * and add them to the queue of hibernated timer-blocked threads in the isolate.
+//     *
+//     * @param isolate  the isolate whose timer-blocked threads are to be removed
+//     */
+//    void prune(Isolate isolate) {
+//        start:
+//        while (true) {
+//            VMThread t = first;
+//            while (t != null) {
+//                if (t.getIsolate() == isolate) {
+//                    long time = t.time - VM.getTimeMillis();
+//                    remove(t);
+//                    t.time = time;
+//                    isolate.addToHibernatedTimerThread(t);
+//                    continue start;
+//                }
+//                t = t.nextTimerThread;
+//            }
+//            break;
+//        }
+//    }
+/*end[REAL_TIME]*/
 }
 
 /**

@@ -46,7 +46,7 @@ public class GccMacOSXCompiler extends GccCompiler {
      * {@inheritDoc}
      */
     public String getLinkSuffix() {
-        String suffix = " " + get64BitOption() + " -framework CoreFoundation -dead-strip " + getArchOptions() + " ";
+        String suffix = " " + get64BitOption() + " -framework CoreFoundation -framework CoreServices -dead-strip " + getArchOptions() + " ";
         if (options.isPlatformType(Options.DELEGATING)) {
             suffix = suffix + " -framework JavaVM";
         }

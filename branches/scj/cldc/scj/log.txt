@@ -26,6 +26,25 @@ Memo:
   1) add BS  pointer to object header
   2) make BS organization support binary search. (done)     
   
+- A timer super thread is added for improving the reschedule granularity on 
+  Mac OS platform. The timer periodically decreases the slept time of the
+  TimerQueue by one tick until it reaches zero, which denotes at least
+  one thread needs to be waken up. At that point, poll word is set, which
+  will be checked at next call to pollCheck function. If the poll word is set,
+  reschedule is performed.
+  
+  The "tick" can be adjusted but not set too small due to the overhead. So the
+  reschedule granularity largely depends on how frequent the pollCheck is 
+  called. The ideal way is to insert pollCheck at back branch and function
+  entry point. However, doing pollCheck during VM kernel execution often
+  leads to crash. 
+  
+  [[!!
+    Unless we get a way to disable pollCheck when running in kernel, our 
+  	approach does NOT work. 
+  !!]]
+  
+  
 
 TODO:
 
@@ -37,9 +56,27 @@ TODO:
 
 - Need to check what data structures have been allocated dynamically. On 
   high level, we must make sure those data structures are of proper life 
-  time and allocated in the proper scope ...  
+  time and allocated in the proper scope, otherwise we have memory leak.  
   
 - Add scope check for making sure no dangling pointer happened. This results 
   in the need of write barrier.
   
 - Monitor object allocations are triggered when printing. Check why??
+
+- Scheduling performance improvement:
+  - separated priority queue?
+  - delta timer queue?
+  - RTC interrupted rescheduling?
+  - more papers?
+  
+  Solution:
+    - the sleeping thread queue is maintained as a delta queue (dQ); the unit of 
+      delta is "tick"
+    - a timer (ISR or supervisor thread) decrease the dQ.head by one tick. If 
+      dQ.head == 0, set reschedule word
+    - at poll check,
+        if reschedule word set, do reschedule
+  
+- Priority Ceiling Emulation implementation
+
+- Priority level: >=28 level, do we need system level priorities?

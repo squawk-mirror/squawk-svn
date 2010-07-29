@@ -188,6 +188,10 @@ char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) {
     return NULL;
 }
 
+#ifdef REAL_TIME
+void startTimer();
+#endif
+
 /**
  * Apple specific initialization of the IO subsystem. This function creates a new thread in which to run Squawk
  * and the embedded JVM and leaves the initial thread in an empty main loop.
@@ -233,11 +237,9 @@ int os_main(int argc, char *argv[]) {
     if (stack_size > 0) {
         pthread_attr_setstacksize(&thread_attr, stack_size);
     }
-
     /* Start the thread that will execute the Squawk VM. */
     pthread_create(&squawkThread, &thread_attr, Squawk_startup, launchOptions);
     pthread_attr_destroy(&thread_attr);
-
     /* Create a a sourceContext to be used by our source that makes */
     /* sure the CFRunLoop doesn't exit right away */
     sourceContext.version = 0;
@@ -263,3 +265,53 @@ int os_main(int argc, char *argv[]) {
 
     return 0;
 }
+
+/* ----------------------- Timer-based Rescheduling ------------------------*/
+#ifdef REAL_TIME
+
+void timerLogic(){
+	uint64_t     time;
+	Nanoseconds  tick;
+	Nanoseconds  nano;
+	AbsoluteTime next;
+
+	tick.hi = 0;
+	tick.lo = com_sun_squawk_VMThread_TICK;
+	time = mach_absolute_time();
+	next = *(AbsoluteTime*) &time;
+
+	//fprintf(stderr, "[RT] timer thread starts ...\n");
+	//fprintf(stderr, "[RT] tick %u:%010u ns\n", tick.hi, tick.lo);
+
+	while(!shutdownVM) {
+		next = AddNanosecondsToAbsolute(tick, next);
+		mach_wait_until(*(uint64_t*) &next);
+
+		// debug
+//		time = mach_absolute_time();
+//		nano = AbsoluteToNanoseconds(*(AbsoluteTime*) &time);
+//		fprintf(stderr, "[RT] time %u:%010u ns\n", nano.hi, nano.lo);
+		// debug
+
+		updateTimerQueue();
+	}
+}
+
+/*
+ * the priority should be higher than that of the VM thread
+ */
+void startTimer() {
+	int policy;
+	pthread_t id;
+	pthread_attr_t attr;
+	struct sched_param param;
+
+	pthread_getschedparam(pthread_self(), &policy, &param);
+	fprintf(stderr, "[RT] current priority: %d\n", param.sched_priority);
+	fprintf(stderr, "[RT] current policy: %d\n", policy);
+	param.sched_priority ++;
+	pthread_attr_init(&attr);
+	pthread_attr_setschedparam (&attr, &param);
+	pthread_create(&id, &attr, (pthread_func_t)timerLogic, NULL);
+}
+#endif

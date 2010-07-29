@@ -1285,6 +1285,11 @@ class NativeVerifierHelper {
             return;
         }
 
+        case Native.com_sun_squawk_VM$startTimer: {
+            Assert.that(frame.isStackEmpty());
+            return;
+        }
+
         case Native.com_sun_squawk_VM$threadSwitch: {
             Assert.that(frame.isStackEmpty());
             return;

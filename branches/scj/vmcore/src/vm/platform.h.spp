@@ -45,6 +45,10 @@
 #endif
 
 #ifdef __APPLE__
+#ifdef REAL_TIME
+#	 include <CoreServices/CoreServices.h>
+#	 include <mach/mach_time.h>
+#endif
 #    include <CoreFoundation/CoreFoundation.h>
 #    include <pthread.h>
 /*if[KERNEL_SQUAWK]*/

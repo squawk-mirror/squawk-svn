@@ -155,6 +155,7 @@ Address     messageEvents;              /* The list of message events that are r
 #endif /* OLD_IIC_MESSAGES */
 
 int         interruptsDisabled;         /* Depth-count:  for correct interrupt state changes */
+volatile    boolean     shutdownVM;
 
 #if KERNEL_SQUAWK
 boolean     kernelMode;                 /* If true, kernel support for interrupts is enabled */
@@ -397,5 +398,7 @@ typedef int (*funcPtr7)(int, int, int, int, int, int, int);
 typedef int (*funcPtr8)(int, int, int, int, int, int, int, int);
 typedef int (*funcPtr9)(int, int, int, int, int, int, int, int, int);
 typedef int (*funcPtr10)(int, int, int, int, int, int, int, int, int, int);
+
+#define NSEC_PER_SEC 1000000000
 
 

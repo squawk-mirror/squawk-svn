@@ -1180,10 +1180,10 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
             UWord   ipOffset   = ((UWord)ip) - oldMP;
             Address newThread  = com_sun_squawk_VMThread_otherThread;
             Address newStack   = (Address)com_sun_squawk_VMThread_stack(newThread);
-#ifdef SCJ
+/*if[SCJ]*/
             Address oldAllocCtx = com_sun_squawk_BackingStore_currentAllocContext;
             Address newAllocCtx = (Address)com_sun_squawk_VMThread_savedAllocCtx(newThread);
-#endif
+/*end[SCJ]*/
             assume(newStack != null);
             assume(!com_sun_squawk_GC_collecting);
 
@@ -1199,9 +1199,9 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
                 assume(oldStack == (Address)ss);
                 setObject(oldStack, SC_lastFP, fp);
                 setUWord(oldStack, SC_lastBCI, ipOffset);
-#ifdef SCJ
+/*if[SCJ]*/
                 set_com_sun_squawk_VMThread_savedAllocCtx(oldThread, oldAllocCtx);
-#endif
+/*end[SCJ]*/
             }
 
             /*
@@ -1285,9 +1285,9 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
 /*fprintf(stderr, format("fp = %d newMP = %d ipoffset = %d ip=%d tid=%d returnFP=%A\n"), fp, newMP, ipOffset, ip, com_sun_squawk_VMThread_threadNumber(newThread), getObject(fp, FP_returnFP));*/
                 }
             }
-#ifdef SCJ
+/*if[SCJ]*/
             set_com_sun_squawk_VMThread_savedAllocCtx(newThread, newAllocCtx);
-#endif
+/*end[SCJ]*/
         }
 
         /**
@@ -2064,6 +2064,25 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
             checkReferenceSlots();
         }
 
+#ifdef REAL_TIME
+		/*
+		 * So far, preempting the kernel will lead to crashes. We need an effective way to disable
+		 * poll check during kernel execution. Following code just does not work well now.
+		 */
+/*MAC*/ void pollCheck() {
+            if(unlikely(com_sun_squawk_VMThread_pollWord > com_sun_squawk_VMThread_POLL_DISABLE)) {
+                if(!usingServiceStack()){
+                    //uint64_t     time;
+                    //Nanoseconds  nano;
+                    //time = mach_absolute_time();
+                    //nano = AbsoluteToNanoseconds(*(AbsoluteTime*) &time);
+                    //fprintf(stderr, "[RT] reschedule @ %u:%010u ns\n", nano.hi, nano.lo);
+                    com_sun_squawk_VMThread_pollWord = 0;
+                    call(com_sun_squawk_VM_yield);
+                }
+             }
+        }
+#endif
         /**
          * Backward branch target in applicaton code.
          *
@@ -2072,11 +2091,15 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
          * <p>
          */
 /*MAC*/ void do_bbtarget_app() {
+#ifdef REAL_TIME
+            pollCheck();
+#else
             do_bbtarget_sys();
-            if (unlikely(bc++ >= 0)) {
-                bc = -TIMEQUANTA;
-                call(com_sun_squawk_VM_yield);
+            if (unlikely(bc++ >= 0)) {                                                                                                             
+                bc = -TIMEQUANTA;                                                                                                                  
+                call(com_sun_squawk_VM_yield);                                                                                                     
             }
+#endif
         }
 
 #ifdef FLASH_MEMORY
@@ -4954,6 +4977,13 @@ foundSlot:
 
 /*end[KERNEL_SQUAWK_HOSTED]*/
 /*end[KERNEL_SQUAWK]*/
+
+/*if[REAL_TIME]*/
+                case Native_com_sun_squawk_VM_startTimer: {
+                    startTimer();
+                    break;
+                }
+/*end[REAL_TIME]*/
 
                 default: {
 /*                   fprintf(stderr, "*** Undefined native method: *** %d\n", iparm); */

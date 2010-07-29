@@ -11,17 +11,17 @@ public abstract class HighResolutionTime implements Comparable {
 
     // @SCJAllowed
     public Clock getClock() {
-        return null;
+        return clock;
     }
 
     // @SCJAllowed
     public final long getMilliseconds() {
-        return -1L;
+        return milli;
     }
 
     // @SCJAllowed
     public final int getNanoseconds() {
-        return -1;
+        return nano;
     }
 
     // @SCJAllowed
@@ -58,7 +58,7 @@ public abstract class HighResolutionTime implements Comparable {
     }
 
     // @SCJAllowed(LEVEL_2)
-    public static void waitForObject(java.lang.Object target,
-            HighResolutionTime time) throws java.lang.InterruptedException {
+    public static void waitForObject(java.lang.Object target, HighResolutionTime time)
+            throws java.lang.InterruptedException {
     }
 }

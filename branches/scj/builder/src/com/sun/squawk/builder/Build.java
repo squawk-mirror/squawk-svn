@@ -3373,7 +3373,7 @@ public class Build {
             throw new BuildException("Process.exec("+cmd+") was interuppted ", ie);
         } finally {
             if (process != null) {
-                process.destroyBS();
+                process.destroy();
                 process = null;
             }
         }

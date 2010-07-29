@@ -387,6 +387,14 @@ public class BackingStore implements GlobalStaticFields {
         return parent == null;
     }
 
+    private boolean isTopBS(BackingStore bs) {
+        return topTable.top() == bs;
+    }
+
+    private BackingStore getTopBS() {
+        return topTable == null ? null : topTable.top();
+    }
+
     /**
      * 
      * @return the current BS
@@ -580,7 +588,7 @@ public class BackingStore implements GlobalStaticFields {
         parent.increaseAllocTop(incr);
         VM.zeroWords(startZero, allocTop);
 
-//        printBSTree(true);
+        // printBSTree(true);
     }
 
     public void destroyAllAbove() {
@@ -590,10 +598,6 @@ public class BackingStore implements GlobalStaticFields {
             while (!(parent.getTopBS() == this))
                 parent.getTopBS().destroy();
         }
-    }
-
-    private BackingStore getTopBS() {
-        return topTable == null ? null : topTable.top();
     }
 
     /**
@@ -642,7 +646,7 @@ public class BackingStore implements GlobalStaticFields {
             bs.printInfo();
         }
 
-//        printBSTree(true);
+        // printBSTree(true);
 
         return bs;
     }
@@ -847,10 +851,6 @@ public class BackingStore implements GlobalStaticFields {
         VM.print("[SCJ] ");
         for (int i = 0; i < indent; i++)
             VM.print("    ");
-    }
-
-    private boolean isTopBS(BackingStore bs) {
-        return topTable.top() == bs;
     }
 
     static void test() {

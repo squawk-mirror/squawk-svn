@@ -762,6 +762,7 @@ NORETURN void stopVM(int exitCode) {
  * @param exitCode the exit code
  */
 NORETURN void stopVM0(int exitCode, boolean cleanup) {
+    shutdownVM = true;
     static boolean inStop = false;
 
 /*
@@ -1030,9 +1031,12 @@ static char* getAlternateBootstrapSuiteLocation(char* bootstrapSuiteName);
  */
 Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *bootstrapSuiteFile) {
 
+#ifdef SCJ
     // TODO: temporarily set immortal and scoped sizes statically                                                                                  
     int immortalSize = 1024 * 1024 * 8;
     int scopedSize = 1024 * 1024 * 8;
+#endif
+
     int pageSize = sysGetPageSize();
 
     int serviceChunkSize = SERVICE_CHUNK_SIZE;
@@ -1061,8 +1065,10 @@ Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *boot
     }
     memorySize = roundUp(memorySize + ramSize, pageSize);
     memorySize = roundUp(memorySize + nvmSize, pageSize);
+#ifdef SCJ
     memorySize = roundUp(memorySize + immortalSize, pageSize); 
     memorySize = roundUp(memorySize + scopedSize, pageSize); 
+#endif 
     memorySize = roundUp(memorySize + serviceChunkSize, pageSize);
     memorySize = roundUp(memorySize + argvTotalSize, pageSize);
 #endif /* FLASH_MEMORY */
@@ -1099,6 +1105,7 @@ Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *boot
     com_sun_squawk_GC_ramStart = (Address)roundUp((UWord)com_sun_squawk_GC_nvmEnd, pageSize);
     com_sun_squawk_GC_ramEnd = Address_add(com_sun_squawk_GC_ramStart, ramSize);
 
+#ifdef SCJ
     // IMM starts on the next page after the end of RAM
     com_sun_squawk_BackingStore_immortalStart = (Address)roundUp((UWord)com_sun_squawk_GC_ramEnd, pageSize);
     com_sun_squawk_BackingStore_immortalEnd = Address_add(com_sun_squawk_BackingStore_immortalStart, immortalSize);
@@ -1106,6 +1113,7 @@ Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *boot
     // SCP starts on the next page after the end of IMM
     com_sun_squawk_BackingStore_scopedStart = (Address)roundUp((UWord)com_sun_squawk_BackingStore_immortalEnd, pageSize);
     com_sun_squawk_BackingStore_scopedEnd = Address_add(com_sun_squawk_BackingStore_scopedStart, scopedSize);
+#endif
 
 /*setUnalignedLong(com_sun_squawk_GC_ramStart, 0, 0x1122334455667788LL);
 jlong val = getUnalignedLong(com_sun_squawk_GC_ramStart, 0);
@@ -1127,7 +1135,11 @@ fprintf(stderr, "&&&& Special int val2 = %lx\n", val2);
     // The length of the stack in logical slots is written into the first word of the
     // block allocate for the stack. This length is later used in Thread.initializeThreading()
     // to format the stack as a Java object of type Klass.LOCAL_ARRAY
+#ifdef SCJ
     com_sun_squawk_VMThread_serviceStack = Address_add(roundUp((UWord)com_sun_squawk_BackingStore_scopedEnd, pageSize), TWOWORDS);
+#else
+    com_sun_squawk_VMThread_serviceStack = Address_add(roundUp((UWord)com_sun_squawk_GC_ramEnd, pageSize), TWOWORDS);
+#endif
     setUWord(com_sun_squawk_VMThread_serviceStack, HDR_length, SERVICE_CHUNK_SIZE_MINUS2WORDS / HDR_BYTES_PER_WORD);
     setUWord(com_sun_squawk_VMThread_serviceStack, SC_guard, 0);
     setObject(com_sun_squawk_VMThread_serviceStack, SC_owner, 0);
@@ -1146,8 +1158,10 @@ fprintf(stderr, "&&&& Special int val2 = %lx\n", val2);
     assume(isWordAligned((UWord)com_sun_squawk_VM_romStart));
     assume(isWordAligned((UWord)com_sun_squawk_GC_nvmStart));
     assume(isWordAligned((UWord)com_sun_squawk_GC_ramStart));
+#ifdef SCJ    
     assume(isWordAligned((UWord)com_sun_squawk_BackingStore_immortalStart));
     assume(isWordAligned((UWord)com_sun_squawk_BackingStore_scopedStart));
+#endif
     assume(isWordAligned((UWord)com_sun_squawk_VMThread_serviceStack));
 
     if (com_sun_squawk_GC_traceFlags != 0) {
@@ -1164,10 +1178,12 @@ fprintf(stderr, "&&&& Special int val2 = %lx\n", val2);
         fprintf(stderr, format("NVM end         = %A\n"), com_sun_squawk_GC_nvmEnd);
         fprintf(stderr, format("RAM start       = %A\n"), com_sun_squawk_GC_ramStart);
         fprintf(stderr, format("RAM end         = %A\n"), com_sun_squawk_GC_ramEnd);
+#ifdef SCJ
         fprintf(stderr, format("IMM start       = %A\n"), com_sun_squawk_BackingStore_immortalStart);
         fprintf(stderr, format("IMM end         = %A\n"), com_sun_squawk_BackingStore_immortalEnd);
         fprintf(stderr, format("SCP start       = %A\n"), com_sun_squawk_BackingStore_scopedStart);
         fprintf(stderr, format("SCP end         = %A\n"), com_sun_squawk_BackingStore_scopedEnd);
+#endif
         fprintf(stderr, format("serviceStack    = %A\n"), com_sun_squawk_VMThread_serviceStack);
         fprintf(stderr, format("Bootstrap suite = %A\n"), suite);
     }
