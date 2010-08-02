@@ -35,7 +35,6 @@
       <name>label</name>
       <values>
         <string>Ubuntu</string>
-        <string>master</string>
       </values>
     </axis>
   </axes>
