@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Do a &quot;normal&quot; build from SVN. Do more testing than the matrix builds.</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>2</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <local>trunk</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <useUpdate>true</useUpdate>
+    <doRevert>false</doRevert>
+    <browser class="hudson.scm.browsers.FishEyeSVN">
+      <url>http://fisheye4.atlassian.com/browse/squawk/</url>
+      <rootModule></rootModule>
+    </browser>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+  </scm>
+  <assignedNode>WindowsXP32</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <jdk>(Default)</jdk>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>5 * * * *&#xd;
+</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!bash
+LD_LIBRARY_PATH=/cygdrive/c/Progra~1/Java/jdk1.6.0_21/lib/tools.jar:/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+
+
+cd trunk
+
+
+
+
+#$HUDSON_HOME/bin/verifyBuildJars2
+        hudsondir=$HUDSON_DIR
+        echo HUDsonDIr = $HUDSON_DIR
+        
+       # ./d.bat builder
+	./d.bat clean
+	./d.bat 
+        ./d.bat mapper
+	./d.bat copyphoneme
+	./d.bat -prod -mac -o2 rom -metadata cldc imp debugger
+	ls -l &gt; sizereport.txt
+	./d.bat map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+	./d.bat genspec
+	./d.bat jvmenv
+	./d.bat systemproperties
+	./d.bat Mnemonics
+	./d.bat OPC
+	./d.bat OperandStackEffect
+	./d.bat Verifier
+	./squawk -h
+	./squawk -version
+
+
+
+$hudsondir/bin/runsmoketest.sh DELEGATING
+ls  $hudsondir/bin/
+rm -rf tempdoc
+
+echo MAKEAPI DISABLED FOR NOW!
+#java -jar build.jar -verbose makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc -verbose -docletpath build.jar
+
+java -jar $hudsondir/findbugs/lib/findbugs.jar -textui -project $hudsondir/bin/findbugs-bootstrap.fbp -exclude $hudsondir/bin/findbugs-filter.xml -output findbugs.xml
+
+mkdir tmp
+cp squawk squawk.suite squawk.suite.metadata tmp
+./d.bat clean 
+mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
+rmdir tmp
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
+  </publishers>
+  <buildWrappers/>
+</project>
