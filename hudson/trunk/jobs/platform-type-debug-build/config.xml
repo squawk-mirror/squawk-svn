@@ -38,19 +38,19 @@
 cd squawk-native
 
 pwd
-java -jar build.jar clean
-java -jar build.jar copyphoneme
-java -jar build.jar -DPLATFORM_TYPE=DELEGATING -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
-java -jar build.jar -DPLATFORM_TYPE=DELEGATING -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt -metadata cldc imp debugger
+./d.sh clean
+./d.sh copyphoneme
+./d.sh -DPLATFORM_TYPE=DELEGATING -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
+./d.sh -DPLATFORM_TYPE=DELEGATING -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt -metadata cldc imp debugger
 
-java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-java -jar build.jar genspec
-java -jar build.jar jvmenv
-java -jar build.jar systemproperties
-java -jar build.jar Mnemonics
-java -jar build.jar OPC
-java -jar build.jar OperandStackEffect
-java -jar build.jar Verifier
+./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+./d.sh genspec
+./d.sh jvmenv
+./d.sh systemproperties
+./d.sh Mnemonics
+./d.sh OPC
+./d.sh OperandStackEffect
+./d.sh Verifier
 ./squawk -h
 ./squawk -version
 $HUDSON_HOME/bin/runsmoketest.sh DELEGATING
