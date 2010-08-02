@@ -401,13 +401,9 @@ public final class Isolate implements Runnable {
         currentIsolate.addIsolate(this);
         bootstrapSuite = parentIsolate.bootstrapSuite;
 
-        // Initialize the leafSuite to be the bootstrap suite for now in case it
-        // is required sometime between now and 'updateLeafSuite'.
-        //leafSuite = bootstrapSuite;
-
         /*
          * Copy in command line properties and passed in properties now.
-         * Do this eagerly instead of at getProeprty() time to preserve
+         * Do this eagerly instead of at getProperty() time to preserve
          * isolate hygene - we need to create copies of "external" strings that are
          * in RAM. We can safely share Strings in ROM though.
          */
@@ -415,7 +411,6 @@ public final class Isolate implements Runnable {
         addProperties(VM.getCommandLineProperties());
         // now add in specified properties (may override the command line properties)
         addProperties(properties);
-
 
         try {
            updateLeafSuite(true); // TO DO: Also updated in run, but that is too late to find the main class
@@ -1383,15 +1378,14 @@ public final class Isolate implements Runnable {
             Suite parent = (parentSuiteSourceURI == null ? bootstrapSuite : Suite.getSuite(parentSuiteSourceURI));
             Assert.that(parent != null);
 
-            String leafSuiteName = getProperty("leaf.suite.name");
-            if (leafSuiteName == null) {
-                leafSuiteName = "-leaf" + VM.getNextHashcode() + "-";
-            }
-
             // Don't create a suite for loading new classes if the class path is null
             if (classPath == null) {
                 leafSuite = parent;
             } else {
+                String leafSuiteName = getProperty("leaf.suite.name");
+                if (leafSuiteName == null) {
+                    leafSuiteName = "-leaf" + VM.getNextHashcode() + "-";
+                }
                 leafSuite = new Suite(leafSuiteName, parent);
             }
 
@@ -1462,18 +1456,11 @@ public final class Isolate implements Runnable {
 
         // Verbose trace.
         if (VM.isVeryVerbose()) {
-            System.out.print("[Starting isolate for '" + mainClassName);
+            System.out.print("[Starting " + isolateInfoStr() + " with args");
             if (args != null) {
                 for (int i = 0; i != args.length; ++i) {
                     System.out.print(" " + args[i]);
                 }
-            }
-            System.out.print("' with class path set to '" + classPath +"'");
-            if (parentSuiteSourceURI != null) {
-                System.out.print(" and parent suite URI set to '" + parentSuiteSourceURI + "'");
-            }
-            if (leafSuite != null) {
-                System.out.print(" and leaf suite '" + leafSuite + "'");
             }
 
             if (initializerClassName != null) {
@@ -1837,14 +1824,7 @@ public final class Isolate implements Runnable {
      */
     private void hibernate(boolean hibernateIO, int newState, boolean doHooks) throws java.io.IOException {
         if (hibernateIO && VM.isVeryVerbose()) {
-            System.out.print("[Hibernating isolate for '" +mainClassName + "' with class path set to '" + classPath +"'");
-            if (parentSuiteSourceURI != null) {
-                System.out.print(" and parent suite URI set to '" + parentSuiteSourceURI + "'");
-            }
-            if (leafSuite != null) {
-                System.out.print(" and leaf suite '" + leafSuite + "'");
-            }
-            System.out.println("]");
+            System.out.println("[Hibernating " + isolateInfoStr() + "]");
         }
 
         if ((state != newState) && (newState > transitioningState)) {
@@ -2101,6 +2081,21 @@ public final class Isolate implements Runnable {
             res = res.concat(" (NEW)");
         }
         return res;
+    }
+
+    private String isolateInfoStr() {
+        StringBuffer sb = new StringBuffer();
+        sb.append("isolate for '").append(mainClassName).append("'");
+        if (classPath != null) {
+            sb.append(" with class path set to '").append(classPath).append("'");
+        }
+        if (parentSuiteSourceURI != null) {
+            sb.append(" with parent suite URI set to '").append(parentSuiteSourceURI).append("'");
+        }
+        if (!leafSuite.isClosed()) {
+            sb.append(" and leaf suite '").append(leafSuite).append("'");
+        }
+        return sb.toString();
     }
 
     /*---------------------------------------------------------------------------*\

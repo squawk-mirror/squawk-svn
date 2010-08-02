@@ -813,9 +813,6 @@ void* sysdlsym(void* handle, char* name) {
     return (void*)dlsym(handle, name);
 }
 
-
-
-
 /**
  * Executes an operation on a given channel for an isolate.
  *
@@ -833,18 +830,9 @@ void* sysdlsym(void* handle, char* name) {
  * @return the operation result
  */
  static void ioExecute(void) {
-    int     context = com_sun_squawk_ServiceOperation_context;
     int     op      = com_sun_squawk_ServiceOperation_op;
-    int     channel = com_sun_squawk_ServiceOperation_channel;
     int     i1      = com_sun_squawk_ServiceOperation_i1;
     int     i2      = com_sun_squawk_ServiceOperation_i2;
-/*  int     i3      = com_sun_squawk_ServiceOperation_i3;
-    int     i4      = com_sun_squawk_ServiceOperation_i4;
-    int     i5      = com_sun_squawk_ServiceOperation_i5;
-    int     i6      = com_sun_squawk_ServiceOperation_i6;
-    Address send    = com_sun_squawk_ServiceOperation_o1;
-    Address receive = com_sun_squawk_ServiceOperation_o2;
-*/
 
     int res = ChannelConstants_RESULT_OK;
     switch (op) {
@@ -858,9 +846,9 @@ void* sysdlsym(void* handle, char* name) {
     	case ChannelConstants_GLOBAL_GETEVENT: {
             res = getEvent();
             // improve fairness of thread scheduling - see bugzilla #568
-// @TODO: Check that bare-metal version is OK: It unconditionally resets the bc.
-//        This can give current thread more time, if there was no event.
-//        better idea is to give new thread new quanta in threadswitch?
+            // @TODO: Check that bare-metal version is OK: It unconditionally resets the bc.
+            //        This can give current thread more time, if there was no event.
+            //        better idea is to give new thread new quanta in threadswitch?
             if (res) {
                 bc = -TIMEQUANTA;
             }
@@ -901,16 +889,6 @@ void* sysdlsym(void* handle, char* name) {
             break;
         }
 
-        case ChannelConstants_CONTEXT_GETCHANNEL: {
-            res = ChannelConstants_RESULT_BADPARAMETER;
-            break;
-        }
-
-        case ChannelConstants_CONTEXT_FREECHANNEL: {
-            res = ChannelConstants_RESULT_BADPARAMETER;
-            break;
-        }
-
     	case ChannelConstants_CONTEXT_GETRESULT: {
             res = (int)retValue;
             break;
@@ -923,14 +901,6 @@ void* sysdlsym(void* handle, char* name) {
         }
 
         /*--------------------------- POSIX NATIVE OPS ---------------------------*/
-
-/* WARNING! NONE OF THIS IS 64-bit safe! */
-/*
-        case ChannelConstants_INTERNAL_NATIVE_PLATFORM_NAME: {
-            res = (int)sysPlatformName();
-            break;
-        }
-*/
 
         case ChannelConstants_DLOPEN: {
             res = (int)sysdlopen((char*)i1);

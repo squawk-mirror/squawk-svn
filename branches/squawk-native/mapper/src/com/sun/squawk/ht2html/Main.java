@@ -414,7 +414,7 @@ public class Main {
         if (path == null) {
             path = Main.class.getName().replace('.', File.separatorChar);
             path = path.substring(0, path.indexOf("Main"));
-            path = "hosted-support/src/" + path + name;
+            path = "mapper/src/" + path + name;
             if (File.separatorChar != '/') {
                 path = path.replace('/', File.separatorChar);
             }

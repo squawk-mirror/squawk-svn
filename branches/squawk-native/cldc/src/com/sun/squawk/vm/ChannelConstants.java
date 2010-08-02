@@ -192,7 +192,7 @@ public final class ChannelConstants {
         INTERNAL_PRINTCONFIGURATION             = 1016,
         INTERNAL_PRINTGLOBALOOPNAME             = 1017,
         INTERNAL_PRINTGLOBALS                   = 1018,
-        INTERNAL_MATH                           = 1019,
+        /*INTERNAL_MATH                           = 1019,*/
         INTERNAL_GETPATHSEPARATORCHAR           = 1020,
         INTERNAL_GETFILESEPARATORCHAR           = 1021,
 

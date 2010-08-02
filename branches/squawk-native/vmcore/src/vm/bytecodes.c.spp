@@ -788,6 +788,10 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
 //    return getByte(base, offset);
 //}
 //
+//static int NativeUnsafe_getUByte_LI(Address base, int offset) {
+//    return getUByte(base, offset);
+//}
+//
 //static int MethodBody_minfoValue1_L(Address oop) {
 //    int p;
 //    int val;
@@ -6100,19 +6104,20 @@ if (l != 0 && r > (java_lang_Long_MAX_VALUE/l)) {
             pushInt(lookup_b(key, barray));
         }
 /*MAC*/ void do_lookup_s() {
-            Address barray = popAddress();
+            Address sarray = popAddress();
             int  key = popInt();
-            pushInt(lookup_s(key, barray));
+            pushInt(lookup_s(key, sarray));
         }
 /*MAC*/ void do_lookup_i() {
-            Address barray = popAddress();
+            Address iarray = popAddress();
             int  key = popInt();
-            pushInt(lookup_i(key, barray));
+            pushInt(lookup_i(key, iarray));
         }
-/*else[VM2C]*/
-///*MAC*/ void do_lookup_b() { call(com_sun_squawk_VM_lookup_b); }
-///*MAC*/ void do_lookup_s() { call(com_sun_squawk_VM_lookup_s); }
-///*MAC*/ void do_lookup_i() { call(com_sun_squawk_VM_lookup_i); }
+/*end[VM2C]*/
+/*if[!VM2C]*/
+/*MAC*/ void do_lookup_b() { call(com_sun_squawk_VM_lookup_b); }
+/*MAC*/ void do_lookup_s() { call(com_sun_squawk_VM_lookup_s); }
+/*MAC*/ void do_lookup_i() { call(com_sun_squawk_VM_lookup_i); }
 /*end[VM2C]*/
 
         /**

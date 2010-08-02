@@ -81,17 +81,18 @@ INLINE void returnAddressResult(Address value) {
  * Execute a channel operation.
  */
 void cioExecute(void) {
-    int     context = com_sun_squawk_ServiceOperation_context;
+/*  int     context = com_sun_squawk_ServiceOperation_context; */
     int     op      = com_sun_squawk_ServiceOperation_op;
-    int     channel = com_sun_squawk_ServiceOperation_channel;
+/*  int     channel = com_sun_squawk_ServiceOperation_channel; */
     int     i1      = com_sun_squawk_ServiceOperation_i1;
     int     i2      = com_sun_squawk_ServiceOperation_i2;
-    int     i3      = com_sun_squawk_ServiceOperation_i3;
+ /* int     i3      = com_sun_squawk_ServiceOperation_i3;
     int     i4      = com_sun_squawk_ServiceOperation_i4;
     int     i5      = com_sun_squawk_ServiceOperation_i5;
     int     i6      = com_sun_squawk_ServiceOperation_i6;
+  */
     Address o1      = com_sun_squawk_ServiceOperation_o1;
-    Address o2      = com_sun_squawk_ServiceOperation_o2;
+/*  Address o2      = com_sun_squawk_ServiceOperation_o2; */
     FILE   *vmOut   = streams[currentStream];
 
     switch (op) {
@@ -202,13 +203,6 @@ void cioExecute(void) {
             break;
         }
 
-/*      Moved to native method:
- *        case ChannelConstants_INTERNAL_COPYBYTES:  {
- *            copyBytes(o1, i2, o2, i3, i1, i4 != 0);
- *            break;
- *        }
- */
-
         case ChannelConstants_INTERNAL_GETTIMEMICROS_HIGH: {
             returnLongResult(sysTimeMicros());
             break;
@@ -229,16 +223,11 @@ void cioExecute(void) {
             break;
         }
 
-        case ChannelConstants_INTERNAL_MATH: {
-            fatalVMError("Unimplemented internal channel I/O operation");
-        }
-
 #ifdef OLD_IIC_MESSAGES
         case ChannelConstants_INTERNAL_ALLOCATE_MESSAGE_BUFFER: {
             deferInterruptsAndDo(
                 allocateMessageBuffer();
             );
-//printf("ALLOCATE_MESSAGE_BUFFER result = %d\n", com_sun_squawk_ServiceOperation_addressResult);
             break;
         }
 
@@ -246,14 +235,11 @@ void cioExecute(void) {
             deferInterruptsAndDo(
                 freeMessageBuffer(o2);
             );
-//printf("FREE_MESSAGE_BUFFER %d\n", o2);
             break;
         }
 
         case ChannelConstants_INTERNAL_SEND_MESSAGE_TO_SERVER: {
             sendMessage(o1, o2, i1, &toServerMessages, &toServerWaiters);
-//printf("SEND_MESSAGE_TO_SERVER key = %d addr = %d result = %d\n", o1, o2, com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
 #if KERNEL_SQUAWK
             /*
              * We could use a special _TO_KERNEL type for messages
@@ -269,22 +255,16 @@ void cioExecute(void) {
 
         case ChannelConstants_INTERNAL_RECEIVE_MESSAGE_FROM_CLIENT: {
             receiveMessage(o1, &toServerMessages, &toServerWaiters);
-//printf("RECEIVE_MESSAGE_FROM_CLIENT result = %d\n", com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
             break;
         }
 
         case ChannelConstants_INTERNAL_SEND_MESSAGE_TO_CLIENT: {
             sendMessage(o1, o2, i1, &toClientMessages, &toClientWaiters);
-//printf("SEND_MESSAGE_TO_CLIENT key = %d addr = %d result = %d\n", o1, o2, com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
             break;
         }
 
         case ChannelConstants_INTERNAL_RECEIVE_MESSAGE_FROM_SERVER: {
             receiveMessage(o1, &toClientMessages, &toClientWaiters);
-//printf("RECEIVE_MESSAGE_FROM_SERVER result = %d\n", com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
             break;
         }
 
@@ -306,17 +286,14 @@ void cioExecute(void) {
             }
             break;
         }
-
 #else /* OLD_IIC_MESSAGES */
-
 	 /* case ChannelConstants_GLOBAL_WAITFOREVENT:
         case ChannelConstants_GLOBAL_GETEVENT:
 		 ... handled by default case below
 	 */
-
 #endif /* OLD_IIC_MESSAGES */
 
-/* WARNING! NOT 64-bit safe! */
+        /* WARNING! NOT 64-bit safe! */
         case ChannelConstants_INTERNAL_NATIVE_PLATFORM_NAME: {
             com_sun_squawk_ServiceOperation_result = (int)sysPlatformName();
             break;
@@ -327,8 +304,6 @@ void cioExecute(void) {
             int address=i1;
             int numberOfBytes=i2;
             unsigned char* buffer_to_write_sha_hash_into = o1;
-//printf("In cio.c.ioexecute\r\n");
-//printf("ChannelConstants_COMPUTE_SHA_FOR_MEMORY_REGION:\n address: %x\nbuffer_to-write_sha_hash_into %x\nnumberofbyte: %d\r\n",address,buffer_to_write_sha_hash_into,numberOfBytes);
             sha_for_memory_region(buffer_to_write_sha_hash_into,address,numberOfBytes);
             break;
         }
