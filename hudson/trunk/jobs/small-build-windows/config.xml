@@ -44,15 +44,18 @@
       <command>#!bash
 LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 cd trunk
-./d.bat clean
-./d.bat copyphoneme
-./d.bat -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
-./d.bat -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -strip:a cldc
+dos2unix.exe d.sh
+./d.sh clean
+./d.sh
+./d.sh copyphoneme
+./d.sh -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
+./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -strip:a cldc
 ./squawk -h
 ./squawk -version
 
 ls -l &gt; sizereport.txt
-$HUDSON_HOME/bin/runsmoketest.sh DELEGATING</command>
+dos2unix.exe $HUDSON_DIR/bin/runsmoketest.sh
+$HUDSON_DIR/bin/runsmoketest.sh DELEGATING</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
