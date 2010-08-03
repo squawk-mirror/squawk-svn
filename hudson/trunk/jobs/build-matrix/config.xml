@@ -82,13 +82,14 @@
   </axes>
   <builders>
     <hudson.tasks.Shell>
-      <command>#!/bin/bash
+      <command>#!bash
 LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 cd trunk
 
-hudsondir=$HUDSON_HOME
+hudsondir=$HUDSON_DIR
 
 echo huddir $hudsondir
+dos2unix.exe d.sh
 ./d.sh clean 
 ./d.sh copyphoneme
 ./d.sh -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING
