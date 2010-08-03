@@ -48,46 +48,44 @@ LD_LIBRARY_PATH=/cygdrive/c/Progra~1/Java/jdk1.6.0_21/lib/tools.jar:/usr/jdk/ins
 
 
 cd trunk
+pwd
 
-
-
+ls -l
 
 #$HUDSON_HOME/bin/verifyBuildJars2
-        hudsondir=$HUDSON_DIR
-        echo HUDsonDIr = $HUDSON_DIR
-        
-       # ./d.bat builder
-	./d.bat clean
-	./d.bat 
-        ./d.bat mapper
-	./d.bat copyphoneme
-	./d.bat -prod -mac -o2 rom -metadata cldc imp debugger
+      
+        dos2unix.exe d.sh
+	./d.sh clean
+	./d.sh 
+        ./d.sh mapper
+	./d.sh copyphoneme
+	./d.sh -prod -mac -o2 rom -metadata cldc imp debugger
 	ls -l &gt; sizereport.txt
-	./d.bat map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-	./d.bat genspec
-	./d.bat jvmenv
-	./d.bat systemproperties
-	./d.bat Mnemonics
-	./d.bat OPC
-	./d.bat OperandStackEffect
-	./d.bat Verifier
+	./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+	./d.sh genspec
+	./d.sh jvmenv
+	./d.sh systemproperties
+	./d.sh Mnemonics
+	./d.sh OPC
+	./d.sh OperandStackEffect
+	./d.sh Verifier
 	./squawk -h
 	./squawk -version
 
 
-
-$hudsondir/bin/runsmoketest.sh DELEGATING
-ls  $hudsondir/bin/
+dos2unix.exe $HUDSON_DIR/bin/runsmoketest.sh
+$HUDSON_DIR/bin/runsmoketest.sh DELEGATING
+ls  $HUDSON_DIR/bin/
 rm -rf tempdoc
 
 echo MAKEAPI DISABLED FOR NOW!
 #java -jar build.jar -verbose makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc -verbose -docletpath build.jar
 
-java -jar $hudsondir/findbugs/lib/findbugs.jar -textui -project $hudsondir/bin/findbugs-bootstrap.fbp -exclude $hudsondir/bin/findbugs-filter.xml -output findbugs.xml
+java -jar $HUDSON_DIR/findbugs/lib/findbugs.jar -textui -project $hudsondir/bin/findbugs-bootstrap.fbp -exclude $hudsondir/bin/findbugs-filter.xml -output findbugs.xml
 
 mkdir tmp
 cp squawk squawk.suite squawk.suite.metadata tmp
-./d.bat clean 
+./d.sh clean 
 mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
 rmdir tmp
 </command>
