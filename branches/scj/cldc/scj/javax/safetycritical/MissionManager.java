@@ -2,8 +2,6 @@ package javax.safetycritical;
 
 import javax.safetycritical.util.SCJLinkedList;
 
-import com.sun.squawk.BackingStore;
-
 /**
  * This interface marked those objects that are managed by some mission and
  * provides a means to obtain the manager for that mission.

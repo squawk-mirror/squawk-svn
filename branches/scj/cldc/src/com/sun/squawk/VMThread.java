@@ -1269,6 +1269,8 @@ VM.println();
      * Prepare a thread for execution.
      */
     private void baptiseThread() {
+        BackingStore.disableScopeCheck();
+        
         Assert.that(currentThread != null);
         Assert.always(state == NEW);
         stack = newStack(stackSize, this, true);
@@ -1291,6 +1293,8 @@ VM.println("creating stack:");
         isolate.addThread(this);
         addToRunnableThreadsQueue(this);
 
+        BackingStore.enableScopeCheck();
+        
 /*if[ENABLE_SDA_DEBUGGER]*/        
         if (VM.isThreadingInitialized()) {
             Debugger debugger = VM.getCurrentIsolate().getDebugger();

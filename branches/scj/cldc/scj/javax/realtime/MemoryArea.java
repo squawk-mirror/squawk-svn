@@ -5,6 +5,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 import com.sun.squawk.BackingStore;
+import com.sun.squawk.util.Assert;
 
 /**
  * allocate backing store at construction
@@ -13,33 +14,33 @@ import com.sun.squawk.BackingStore;
 public abstract class MemoryArea implements AllocationContext {
 
     /**
-     * The backing store of this memory area
-     */
-    private BackingStore bs;
-
-    /**
      * TODO: the size of BS is in "int" instead of "long"
      */
     private long size;
 
     /**
-     * for ImmortalMemory use only.
+     * The backing store of this memory area
      */
-    MemoryArea(BackingStore immortal) {
+    private BackingStore bs;
+
+    /**
+     * Only and must only called in ImmortalMemory constructor.
+     */
+    protected MemoryArea(BackingStore immortal) {
         bs = immortal;
         bs.setMirror(this);
         size = immortal.getSize();
     }
 
     /**
-     * allocate BS from specified BS
+     * Allocate my BS from specified parent BS
      * 
      * @param size
      * @param container
      */
     public MemoryArea(long size, RealtimeThread from) {
-        this.allocBS(size, from);
-        this.bs.setMirror(this);
+        allocBS(size, from);
+        bs.setMirror(this);
     }
 
     /**
@@ -73,9 +74,7 @@ public abstract class MemoryArea implements AllocationContext {
 
     // @SCJAllowed
     public void enter(Runnable logic) {
-        if (bs == null)
-            throw new Error("Backing store is null");
-
+        Assert.always(bs != null, "Backing store is null");
         BackingStore old = BackingStore.setCurrentContext(bs);
         try {
             logic.run();
@@ -86,6 +85,7 @@ public abstract class MemoryArea implements AllocationContext {
 
     // @SCJAllowed
     public void executeInArea(Runnable logic) throws InaccessibleAreaException {
+        Assert.always(bs != null, "Backing store is null");
         BackingStore old = BackingStore.setCurrentContext(bs);
         try {
             logic.run();
@@ -97,27 +97,25 @@ public abstract class MemoryArea implements AllocationContext {
     // @SCJAllowed
     public Object newInstance(Class type) throws IllegalArgumentException, InstantiationException,
             OutOfMemoryError, InaccessibleAreaException, IllegalAccessException {
-        Object ret = null;
+        Assert.always(bs != null, "Backing store is null");
         BackingStore old = BackingStore.setCurrentContext(bs);
         try {
-            ret = type.newInstance();
+            return type.newInstance();
         } finally {
             BackingStore.setCurrentContext(old);
         }
-        return ret;
     }
 
     // @SCJAllowed
     public Object newInstance(Constructor c, Object[] args) throws IllegalAccessException,
             InstantiationException, OutOfMemoryError, InvocationTargetException {
-        Object ret = null;
+        Assert.always(bs != null, "Backing store is null");
         BackingStore old = BackingStore.setCurrentContext(bs);
         try {
-            ret = c.newInstance(args);
+            return c.newInstance(args);
         } finally {
             BackingStore.setCurrentContext(old);
         }
-        return ret;
     }
 
     // @SCJAllowed
@@ -129,14 +127,13 @@ public abstract class MemoryArea implements AllocationContext {
 
     // @SCJAllowed
     public Object newArray(Class type, int size) {
-        Object ret = null;
+        Assert.always(bs != null, "Backing store is null");
         BackingStore old = BackingStore.setCurrentContext(bs);
         try {
-            ret = Array.newInstance(type, size);
+            return Array.newInstance(type, size);
         } finally {
             BackingStore.setCurrentContext(old);
         }
-        return ret;
     }
 
     // @SCJAllowed
@@ -146,11 +143,13 @@ public abstract class MemoryArea implements AllocationContext {
 
     // @SCJAllowed
     public long memoryConsumed() {
+        Assert.always(bs != null, "Backing store is null");
         return bs.bsConsumed();
     }
 
     // @SCJAllowed
     public long memoryRemaining() {
+        Assert.always(bs != null, "Backing store is null");
         return bs.bsRemaining();
     }
 
@@ -160,6 +159,7 @@ public abstract class MemoryArea implements AllocationContext {
     }
 
     public void destroyBS() {
+        Assert.always(bs != null, "Backing store is null");
         if (this != ImmortalMemory.instance()) {
             bs.destroy();
             bs = null;
@@ -172,10 +172,15 @@ public abstract class MemoryArea implements AllocationContext {
         this.size = size;
         if (from == null)
             throw new Error("resource thread is null");
+
+        BackingStore.disableScopeCheck();
         this.bs = from.getBackingStore().excavate((int) size);
+        BackingStore.enableScopeCheck();
+        Assert.always(bs != null, "Backing store is null");
     }
 
     public void destroyAllAboveBS() {
+        Assert.always(bs != null, "Backing store is null");
         bs.destroyAllAbove();
     }
 }

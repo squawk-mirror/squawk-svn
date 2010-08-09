@@ -3,8 +3,6 @@ package javax.safetycritical;
 import javax.realtime.AsyncEventHandler;
 import javax.realtime.PriorityParameters;
 
-import com.sun.squawk.BackingStore;
-
 /**
  * A MissionSequencer runs a sequence of independent Missions interleaved with
  * repeated execution of certain Missions.
@@ -32,6 +30,7 @@ public abstract class MissionSequencer extends AsyncEventHandler {
     // @SCJAllowed
     // @SCJRestricted( { INITIALIZATION })
     public MissionSequencer(PriorityParameters priority, StorageParameters storage) {
+        super();
     }
 
     // run in mission memory

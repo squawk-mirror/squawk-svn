@@ -115,7 +115,7 @@ public class Klass<T> {
      *
      * @see   #getInternalName()
      */
-    private final String name;
+    final String name;
 
     /**
      * The class representing the component type of an array.  If this class

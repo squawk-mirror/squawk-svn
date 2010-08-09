@@ -7,19 +7,10 @@ import javax.realtime.RealtimeThread;
 //@SCJAllowed(LEVEL_2)
 public class ManagedThread extends RealtimeThread implements ManagedSchedulable {
 
-    /**
-     * Does not allow this to escape local variables. Creates a link from the
-     * constructed object to the scheduling, memory, and logic parameters .
-     * Thus, all of these parameters must reside in a scope that enclose "this".
-     * <p>
-     * The priority represented by scheduling parameter is consulted only once,
-     * at construction time. If scheduling.getPriority() returns different
-     * values at different times, only the initial value is honored.
-     */
     // @SCJAllowed(LEVEL_2)
-    public ManagedThread(PriorityParameters priority, StorageParameters storage, long initSize,
+    public ManagedThread(PriorityParameters priority, StorageParameters storage, long initMemSize,
             Runnable logic) {
-        super(priority, storage, initSize, logic);
+        super(priority, storage, initMemSize, logic);
         ((ManagedMemory) getInitArea()).setOwner(this);
     }
 

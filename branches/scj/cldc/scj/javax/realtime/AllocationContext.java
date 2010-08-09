@@ -19,17 +19,16 @@ public interface AllocationContext {
     public long memoryRemaining();
 
     // @SCJAllowed
-    public Object newArray(Class type, int number)
-            throws IllegalArgumentException, OutOfMemoryError;
+    public Object newArray(Class type, int number) throws IllegalArgumentException,
+            OutOfMemoryError;
 
     // @SCJAllowed
-    public Object newInstance(Class type) throws IllegalAccessException,
-            InstantiationException, OutOfMemoryError;
+    public Object newInstance(Class type) throws IllegalAccessException, InstantiationException,
+            OutOfMemoryError;
 
     // @SCJAllowed
-    public Object newInstance(Constructor c, Object[] args)
-            throws IllegalAccessException, InstantiationException,
-            OutOfMemoryError, InvocationTargetException;
+    public Object newInstance(Constructor c, Object[] args) throws IllegalAccessException,
+            InstantiationException, OutOfMemoryError, InvocationTargetException;
 
     // @SCJAllowed
     public long size();

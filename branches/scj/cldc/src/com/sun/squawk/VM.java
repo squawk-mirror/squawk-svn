@@ -746,7 +746,11 @@ public class VM implements GlobalStaticFields {
 /*end[REAL_TIME]*/
     
 /*if[SCJ]*/
-    static void writeBarrierSlow(Address base, Address value) throws InterpreterInvokedPragma {
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="scopeCheckSlow")
+/*end[JAVA5SYNTAX]*/
+    static void scopeCheckSlow(Address base, Address value) {
+        BackingStore.scopeCheckSlow(base, value);
     }
 /*end[SCJ]*/
     /**

@@ -5,33 +5,33 @@ import com.sun.squawk.pragma.GlobalStaticFields;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.vm.HDR;
 
-public class BackingStore implements GlobalStaticFields {
+public final class BackingStore implements GlobalStaticFields {
 
-    private class SearchTable {
+    private final class SearchTable {
         private int counter;
         private SearchTable prev;
         private SearchTable next;
-        private BackingStore[] array;
+        private BackingStore[] bsArray;
 
         private SearchTable() {
             // VM.println("[SCJ] new search table created");
-            array = new BackingStore[SEARCHTABLE_CAPACITY];
+            bsArray = new BackingStore[SEARCHTABLE_CAPACITY];
         }
 
         private BackingStore top() {
             Assert.always(counter <= SEARCHTABLE_CAPACITY, "Search table is over full");
-            return array[counter - 1];
+            return bsArray[counter - 1];
         }
 
         private void pop() {
             Assert.always(counter != 0, "Attempt to pop empty table");
-            array[--counter] = null;
+            bsArray[--counter] = null;
         }
 
         private void put(BackingStore bs) {
             Assert.always(counter != SEARCHTABLE_CAPACITY,
                     "Attempt to put item in a full searching table ");
-            array[counter++] = bs;
+            bsArray[counter++] = bs;
         }
 
         /**
@@ -48,7 +48,7 @@ public class BackingStore implements GlobalStaticFields {
                 return prev.search(addr);
             } else if (isEmpty()) {
                 Assert.always(false, "Unable to locate the BS for an address while it should be");
-            } else if (array[counter - 1].allocEnd.loeq(addr)) {
+            } else if (bsArray[counter - 1].allocEnd.loeq(addr)) {
                 Assert.always(next != null,
                         "Unable to locate the BS for an address while it should be");
                 return next.search(addr);
@@ -60,13 +60,9 @@ public class BackingStore implements GlobalStaticFields {
             while (true) {
                 Assert.always(l <= h);
                 int m = (h + l) / 2;
-                if (array[m].containAddr(addr)) {
-                    if (array[m].isLeaf())
-                        return array[m];
-                    else
-                        return array[m].search(addr);
-                }
-                if (addr.lo(array[m].allocStart))
+                if (bsArray[m].containAddr(addr))
+                    return bsArray[m].search(addr);
+                if (addr.lo(bsArray[m].allocStart))
                     h = m - 1;
                 else
                     l = m + 1;
@@ -148,6 +144,19 @@ public class BackingStore implements GlobalStaticFields {
      * The number of backing stores that have ever been created
      */
     private static int bsCounter;
+
+    /**
+     * Whether the scope check is enabled. For most part of the program, scope
+     * check should keep enabled. Only in particular kernel code which has to
+     * violate the scope rule for making things work and we know what we are
+     * doing to it, we can disable the check. e.g. BackingStore.excavate(). Note
+     * that disable and enable should appear in pair and do not span functions.
+     * 
+     * ATTENTION: For now, the flag is shared by all threads. Therefore, to be
+     * safe, we must make sure there is no context switch occurs between
+     * disable/enable pair.
+     */
+    private static volatile int scopeCheckEnabled;
 
     /**
      * Start of this backing store
@@ -235,6 +244,11 @@ public class BackingStore implements GlobalStaticFields {
 
         currentAllocContext = immortal;
 
+        leftBrackets = "[";
+        atBS_ = " @ BS-";
+        ROM = "ROM";
+        scopeCheckEnabled = 1;
+
         if (SCJ_DEBUG_ENABLED) {
             VM.println("[SCJ] Initialize immortal and scoped backingStore ");
             immortal.printInfo();
@@ -264,6 +278,14 @@ public class BackingStore implements GlobalStaticFields {
      */
     /* private */static void setHeaderLength(Address oop, int length) throws ForceInlinedPragma {
         NativeUnsafe.setUWord(oop, HDR.length, encodeLengthWord(length));
+    }
+
+    public static void enableScopeCheck() {
+        scopeCheckEnabled++;
+    }
+
+    public static void disableScopeCheck() {
+        scopeCheckEnabled--;
     }
 
     /**
@@ -388,11 +410,11 @@ public class BackingStore implements GlobalStaticFields {
     }
 
     private boolean isTopBS(BackingStore bs) {
-        return topTable.top() == bs;
+        return !isLeaf() && topTable.top() == bs;
     }
 
     private BackingStore getTopBS() {
-        return topTable == null ? null : topTable.top();
+        return isLeaf() ? null : topTable.top();
     }
 
     /**
@@ -410,17 +432,17 @@ public class BackingStore implements GlobalStaticFields {
      * @return the old BS
      */
     public static BackingStore setCurrentContext(BackingStore bs) {
-        BackingStore old = currentAllocContext;
-        currentAllocContext = bs;
-
         if (SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] Set current allocation context from [");
-            VM.print(old.id);
-            VM.print("] to [");
             VM.print(currentAllocContext.id);
+            VM.print("] to [");
+            VM.print(bs.id);
             VM.println("]");
         }
-
+        enableScopeCheck();
+        BackingStore old = currentAllocContext;
+        currentAllocContext = bs;
+        disableScopeCheck();
         return old;
     }
 
@@ -440,11 +462,9 @@ public class BackingStore implements GlobalStaticFields {
         return scoped;
     }
 
-    // TODO: a better effective implementation will require to add BS
-    // information to the object header
     public static BackingStore getBackingStore(Object obj) {
         Address addr = Address.fromObject(obj);
-        BackingStore res = null;
+        BackingStore ret = null;
 
         if (SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] search BS for address ");
@@ -455,20 +475,61 @@ public class BackingStore implements GlobalStaticFields {
         if (immortal.containAddr(addr))
             return immortal;
         if (scoped.containAddr(addr))
-            res = scoped.search(addr);
+            ret = scoped.search(addr);
 
         // TODO: res should not be null because in SCJ the memory area
         // is either immortal or scoped. This is not true for Squawk since we
         // have ROM. So if we get here, there might be something wrong;
-        Assert.that(res != null,
-                "Are you looking for the BS for an object that is allocated in ROM???");
+        // Assert.that(ret != null,
+        // "Are you looking for the BS for an object that is allocated in ROM? \n");
+        if (ret == null)
+            VM.println("Attempt to search the BS for an object allocated in ROM. \n");
 
         if (SCJ_DEBUG_ENABLED) {
             VM.println("[SCJ] find in BS");
-            res.printInfo();
+            ret.printInfo();
         }
 
-        return res;
+        return ret;
+    }
+
+    private static String leftBrackets;
+    private static String atBS_;
+    private static String ROM;
+
+    static void scopeCheckSlow(Address base, Address value) {
+        if (scopeCheckEnabled > 0 && !getBackingStore(base.toObject()).containAddr(value)) {
+            // TODO: scope check failed
+
+            if (SCJ_DEBUG_ENABLED) {
+                Klass baseKlass = GC.getKlass(base.toObject());
+                Klass valueKlass = GC.getKlass(value.toObject());
+                BackingStore baseBS = getBackingStore(base.toObject());
+                BackingStore valueBS = getBackingStore(value.toObject());
+
+                while (baseKlass.isArray()) {
+                    VM.print(leftBrackets);
+                    baseKlass = baseKlass.getComponentType();
+                }
+                VM.print(baseKlass.name);
+                VM.print(atBS_);
+                if (baseBS == null)
+                    VM.println(ROM);
+                else
+                    VM.println(baseBS.id);
+
+                while (valueKlass.isArray()) {
+                    VM.print(leftBrackets);
+                    valueKlass = valueKlass.getComponentType();
+                }
+                VM.print(valueKlass.name);
+                VM.print(atBS_);
+                if (valueBS == null)
+                    VM.println(ROM);
+                else
+                    VM.println(valueBS.id);
+            }
+        }
     }
 
     private BackingStore search(Address addr) {
@@ -477,7 +538,7 @@ public class BackingStore implements GlobalStaticFields {
             VM.println(id);
         }
         Assert.always(containAddr(addr));
-        return topTable.search(addr);
+        return isLeaf() ? this : topTable.search(addr);
     }
 
     private static int roundUpToWord(int value) {
@@ -565,11 +626,13 @@ public class BackingStore implements GlobalStaticFields {
      * "this" is erased at the same time).
      */
     public void destroy() {
-        if (isRoot()) {
+        if (isRoot())
             throw new Error("Immortal or Scoped cannot be destroyed");
-        } else if (!(parent.getTopBS() == this)) {
+        else if (!(parent.getTopBS() == this))
             throw new Error("Only topBS in a container can be destroyed");
-        }
+
+        disableScopeCheck();
+
         Address startZero;
 
         // If i'm the last one in topTable. The table can be reclaimed along
@@ -589,6 +652,8 @@ public class BackingStore implements GlobalStaticFields {
         VM.zeroWords(startZero, allocTop);
 
         // printBSTree(true);
+
+        enableScopeCheck();
     }
 
     public void destroyAllAbove() {
@@ -613,6 +678,8 @@ public class BackingStore implements GlobalStaticFields {
      * @return the new backing store instance
      */
     public BackingStore excavate(int size) {
+        disableScopeCheck();
+
         Assert.that(size >= 0);
 
         BackingStore oldBS = currentAllocContext;
@@ -647,6 +714,8 @@ public class BackingStore implements GlobalStaticFields {
         }
 
         // printBSTree(true);
+
+        enableScopeCheck();
 
         return bs;
     }
@@ -695,9 +764,7 @@ public class BackingStore implements GlobalStaticFields {
 
         topTable = null;
 
-        /*
-         * if this the top, take all parent's available space as mine.
-         */
+        /* if this the top, take all parent's available space as mine. */
         if (!isRoot() && parent.getTopBS() == this) {
             int freeSpace = parent.spaceRemaining;
             parent.increaseAllocTop(freeSpace);
@@ -710,8 +777,10 @@ public class BackingStore implements GlobalStaticFields {
         }
     }
 
-    public void setMirror(Object mirror) {
-        this.mirror = mirror;
+    public void setMirror(Object obj) {
+        disableScopeCheck();
+        mirror = obj;
+        enableScopeCheck();
     }
 
     /**
@@ -842,7 +911,7 @@ public class BackingStore implements GlobalStaticFields {
             table = table.prev;
         while (table != null) {
             for (int i = 0; i < table.counter; i++)
-                table.array[i].printBSTreeRecursive(detailed, indent + 1);
+                table.bsArray[i].printBSTreeRecursive(detailed, indent + 1);
             table = table.next;
         }
     }

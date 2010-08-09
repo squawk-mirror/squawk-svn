@@ -653,6 +653,9 @@ INLINE boolean setArrayLength(Address _oop, int _size);
             setAssume($value == getObject($base, $offset));
         }
 
+/*if[SCJ]*/
+         static void scopeCheckSlow(Address, Address);
+/*end[SCJ]*/
         /**
          * Sets a pointer value in memory and updates write barrier bit for the pointer if
          * a write barrier is being maintained.
@@ -662,6 +665,14 @@ INLINE boolean setArrayLength(Address _oop, int _size);
          */
 /*MAC*/ void setObjectAndUpdateWriteBarrier(Address $base, Offset $offset, Address $value) {
             setObject($base, $offset, $value);
+/*if[SCJ]*/
+            {
+            	if(lt($base, $value)) {
+            	    /* fprintf(stderr, "[SCJ] scope rule might be violated: %p <- %p\n", $base, $value); */
+            		scopeCheckSlow($base, $value);
+            	}
+            }
+/*end[SCJ]*/
 /*if[WRITE_BARRIER]*/
             {
 /*if[MACROIZE]*/

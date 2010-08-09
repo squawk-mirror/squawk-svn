@@ -3,14 +3,19 @@ package javax.realtime;
 //@SCJAllowed(LEVEL_1)
 public class AsyncEvent {
 
-    /**
-     * fire this event, i.e., releases the execution of all handlers that were
-     * added to this event.
-     * 
-     * @memory Does not allocate memory. Does not allow this to escape local
-     *         variables.
+    /*
+     * TODO: Multiple handlers per event should be supported. Currently only
+     * one.
      */
+    private AsyncEventHandler handler;
+
+    protected void setHandler(AsyncEventHandler handler) {
+        this.handler = handler;
+    }
+
     // @SCJAllowed(LEVEL_1)
     public void fire() {
+        if (handler != null)
+            handler.release();
     }
 }

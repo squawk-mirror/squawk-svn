@@ -20,10 +20,10 @@ Memo:
   1) pre-allocate in immortal memory before user program starts to run 
   2) allocate upon required in immortal memory (done)
   
-- Need to implement BackingStore.getBackingStore(Object) in a more efficient
-  way; for now it is done by simply line searching for the BS enclosing the 
+- Implementing BackingStore.getBackingStore(Object) in an efficient
+  way; for now it is done by simply searching for the BS enclosing the 
   address of the object. The search time can be decreased by:
-  1) add BS  pointer to object header
+  1) add BS pointer to object header
   2) make BS organization support binary search. (done)     
   
 - A timer super thread is added for improving the reschedule granularity on 
@@ -44,9 +44,52 @@ Memo:
   	approach does NOT work. 
   !!]]
   
+- Scope checks: we need to do scope check when assigning one object to another's
+  field for making sure no object references objects located in shorter living BSs.
+  The scope check for (obj1.f = obj2) is done in this way:
+    - fast path: if addressOf(obj1) > addressOf(obj2), OK; 
+                 else slow path
+    - slow path: if BSof(obj1) == BSof(obj2), OK; 
+                 else FAIL.
+
+  The scope check is done as a write barrier along with updating reference 
+  operation. For now, all reference updates are checked. However, we want
+  a way to disable scope check for some updates, because sometimes scope
+  rule has to be violated in implementation. e.g. when manipulating BS 
+  pointers must not be check as the BS structures is in an inconsistent status
+  during then. And, to implementing portal for scoped memory will definitely 
+  violate scope rule.
   
+  The current way to disable scope check is simple, inefficient, and not
+  thread safe: a static field, BackingStore.scopeCheckEnabled, is used as
+  a switch, so for every assignment which is not supposed to be checked, one
+  needs to surround it with BackingStore.disableScopeCheck()/enableScopeCheck()
+  pair(, which is kind of ugly). 
+  
+  An ideal way would be to have a new annotation denoting whether a method or
+  assignment expression should be checked or not. This causes the unnecessary
+  check removed statically, which is still simple, no harm to performance, and
+  not related to threading issue.   
+
+- A limitation of SCJ Timer: simply ignores the clock field; assumes all time 
+  are according to the realtime clock (get by calling Clock.getRealtimeClock()).
+  This compromise simplifies the implementation: only one timer queue needs to 
+  be maintained. The queue is sorted based on the target time of the timers. 
+  For supporting other user defined clocks, one queue per clock is needed.
+
+
 
 TODO:
+
+  [[!!
+    IMPORTANT: we must fully know what a method does if we need to call them in 
+    scoped memory, because a method can potentially:
+      1) allocating (which means leaking memory under GC-absent environment)
+      2) doing illegal assignments  
+    For 1), we must make sure the allocation is necessary and user-awared;
+    For 2), make sure no dangling pointer will actually occur and annotate it.
+  !!]]
+
 
 - For now, we start the SCJ instead of Midlet launcher simply by replacing 
   the original value of Isolate.MIDLET_WRAPPER_CLASS with 
@@ -54,12 +97,11 @@ TODO:
   hard coded in SafeletLauncher. We may want to do the SCJ startup process 
   more elegantly by extending the builder ...
 
+- there should be a lot of methods leaking memory if no GC. Who are they?
+
 - Need to check what data structures have been allocated dynamically. On 
   high level, we must make sure those data structures are of proper life 
   time and allocated in the proper scope, otherwise we have memory leak.  
-  
-- Add scope check for making sure no dangling pointer happened. This results 
-  in the need of write barrier.
   
 - Monitor object allocations are triggered when printing. Check why??
 
@@ -79,4 +121,12 @@ TODO:
   
 - Priority Ceiling Emulation implementation
 
-- Priority level: >=28 level, do we need system level priorities?
+- Need to have priority levels >= 28
+
+- the exception object is still allocated in the scope where the exception
+  happens. SCJ instead requires to allocate in a dedicated thread local 
+  space, which we do not have yet for now.
+  
+- A way to sleep until certain absolute time is needed. In order RealtimeThread.sleep(HighResolutionTime)
+
+ 

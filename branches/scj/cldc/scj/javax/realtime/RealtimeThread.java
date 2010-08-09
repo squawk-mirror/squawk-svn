@@ -22,12 +22,15 @@ public class RealtimeThread extends Thread {
     /**
 	 * 
 	 */
-    private StorageParameters sPara;
+    private StorageParameters storage;
 
     /**
 	 * 
 	 */
-    private PriorityParameters pPara;
+    private PriorityParameters priority;
+
+    RealtimeThread() {
+    }
 
     /**
      * 
@@ -37,7 +40,11 @@ public class RealtimeThread extends Thread {
     // @SCJAllowed(INFRASTRUCTURE)
     public RealtimeThread(String string, int stackSize, Runnable logic) {
         super(logic, string, stackSize);
+
+        BackingStore.disableScopeCheck();
         bs = BackingStore.getScoped();
+        BackingStore.enableScopeCheck();
+
         initArea = ImmortalMemory.instance();
         // TODO: default sPara and pPara??
 
@@ -47,30 +54,37 @@ public class RealtimeThread extends Thread {
         }
     }
 
-    public RealtimeThread(PriorityParameters pPara, StorageParameters sPara, long initSize,
+    public RealtimeThread(PriorityParameters priority, StorageParameters storage, long initMemSize,
             Runnable logic) {
         // TODO: check parameters and set priority
-        super(logic, null, (int) checkStorageParameters(sPara).getJavaStackSize());
-        this.pPara = checkPriorityParameters(pPara);
-        this.sPara = sPara;
-        this.bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
-                (int) sPara.getTotalBackingStoreSize());
-        this.initArea = new PrivateMemory(initSize, this);
+        super(logic, null, (int) checkStorageParameters(storage).getJavaStackSize());
+        this.priority = checkPriorityParameters(priority);
+        this.storage = storage;
 
+        BackingStore.disableScopeCheck();
+        this.bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
+                (int) storage.getTotalBackingStoreSize());
+        BackingStore.enableScopeCheck();
+
+        this.initArea = new PrivateMemory(initMemSize, this);
         if (BackingStore.SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] Create RealtimeThread ");
             VM.println(getName());
         }
     }
 
-    public RealtimeThread(PriorityParameters pPara, StorageParameters sPara, long initSize,
+    public RealtimeThread(PriorityParameters priority, StorageParameters storage, long initMemSize,
             Runnable logic, BackingStore bs) {
         // TODO: check parameters and set priority
-        super(logic, null, (int) checkStorageParameters(sPara).getJavaStackSize());
-        this.pPara = checkPriorityParameters(pPara);
-        this.sPara = sPara;
+        super(logic, null, (int) checkStorageParameters(storage).getJavaStackSize());
+        this.priority = checkPriorityParameters(priority);
+        this.storage = storage;
+
+        BackingStore.disableScopeCheck();
         this.bs = bs;
-        this.initArea = new PrivateMemory(initSize, this);
+        BackingStore.enableScopeCheck();
+
+        this.initArea = new PrivateMemory(initMemSize, this);
 
         if (BackingStore.SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] Create RealtimeThread ");
@@ -83,7 +97,7 @@ public class RealtimeThread extends Thread {
     }
 
     protected StorageParameters getStorageParameters() {
-        return sPara;
+        return storage;
     }
 
     public BackingStore getBackingStore() {
@@ -121,7 +135,7 @@ public class RealtimeThread extends Thread {
      * No allocation because SchedulingParameters are immutable.
      */
     public SchedulingParameters getSchedulingParameters() {
-        return pPara;
+        return priority;
     }
 
     // public void setBackingStore(BackingStore bs) {
@@ -176,7 +190,17 @@ public class RealtimeThread extends Thread {
 
     // @SCJAllowed(LEVEL_2)
     public static void sleep(HighResolutionTime time) throws InterruptedException {
-
+        // FIXME: this is an temporary implementation. Not real-time at all!!
+        long millisToSleep = 0;
+        if (time instanceof AbsoluteTime) {
+            millisToSleep = time.getMilliseconds() - VM.getTimeMillis();
+        } else {
+            millisToSleep = time.getMilliseconds();
+        }
+        if (millisToSleep > 0) {
+//            VM.println("[SCJ] timer thread is going to sleep " + millisToSleep + "ms");
+            Thread.sleep(millisToSleep);
+        }
     }
 
     public static boolean waitForNextRelease() {

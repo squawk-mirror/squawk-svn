@@ -6,9 +6,7 @@ package javax.safetycritical;
  */
 // @SCJAllowed
 public interface ManagedSchedulable {
-    /**
-     * Register the task with its Mission.
-     */
+
     // @SCJAllowed
     public void register();
 

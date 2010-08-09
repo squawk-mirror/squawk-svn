@@ -70,10 +70,14 @@ public abstract class ManagedMemory extends ScopedMemory {
     // @SCJAllowed
     public void enterPrivateMemory(long size, Runnable logic) {
         RealtimeThread current = RealtimeThread.currentRealtimeThread();
-        if (current != getOwner())
-            throw new IllegalStateException();
+//        if (current != getOwner())
+//            throw new IllegalStateException("Cannot enter private memory not owned. Current:["
+//                    + current + "] Owner:[" + getOwner() + "]");
         if (nested == null) {
+            BackingStore.disableScopeCheck();
             nested = new PrivateMemory(size, current);
+            BackingStore.enableScopeCheck();
+
             nested.setOwner(getOwner());
         } else {
             nested.allocBS(size, current);
@@ -106,7 +110,9 @@ public abstract class ManagedMemory extends ScopedMemory {
      */
     // @SCJAllowed(INFRASTRUCTURE)
     void setManager(MissionManager manager) {
+        BackingStore.disableScopeCheck();
         this.manager = manager;
+        BackingStore.enableScopeCheck();
     }
 
     /**

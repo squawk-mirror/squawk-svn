@@ -37,6 +37,6 @@ public abstract class Mission {
 
     // @SCJAllowed
     public static Mission getCurrentMission() {
-        return null;
+        return ManagedMemory.getCurrentManageMemory().getManager().getMission();
     }
 }

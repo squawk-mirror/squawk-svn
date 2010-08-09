@@ -3,16 +3,16 @@ package javax.realtime;
 //@SCJAllowed
 public class AbsoluteTime extends HighResolutionTime {
 
+    static AbsoluteTime ZERO = new AbsoluteTime(0, 0);
+
+    // @SCJAllowed
+    public AbsoluteTime() {
+        this(0, 0, null);
+    }
+
     // @SCJAllowed
     public AbsoluteTime(long millis, int nanos) {
-    }
-
-    // @SCJAllowed
-    public AbsoluteTime(AbsoluteTime time) {
-    }
-
-    // @SCJAllowed
-    public AbsoluteTime(long millis, int nanos, Clock clock) {
+        this(millis, nanos, null);
     }
 
     // @SCJAllowed
@@ -21,42 +21,64 @@ public class AbsoluteTime extends HighResolutionTime {
     }
 
     // @SCJAllowed
+    public AbsoluteTime(long millis, int nanos, Clock clock) {
+        super(millis, nanos, clock);
+    }
+
+    // @SCJAllowed
+    public AbsoluteTime(AbsoluteTime time) {
+        this();
+        set(time);
+    }
+
+    // @SCJAllowed
     public AbsoluteTime add(long millis, int nanos) {
         return add(millis, nanos, null);
-    }
+    } // @SCJAllowed
 
-    // @SCJAllowed
-    public AbsoluteTime add(long millis, int nanos, AbsoluteTime dest) {
-        return null;
-    }
-
-    // @SCJAllowed
     public AbsoluteTime add(RelativeTime time) {
-        return add(time);
+        return add(time, null);
     }
 
     // @SCJAllowed
     public AbsoluteTime add(RelativeTime time, AbsoluteTime dest) {
-        return null;
+        if (time == null)
+            throw new IllegalArgumentException("Time parameter cannot be null!");
+        return add(time.millis, time.nanos, dest);
+    }
+
+    // @SCJAllowed
+    public AbsoluteTime add(long millis, int nanos, AbsoluteTime dest) {
+        if (dest == null)
+            dest = new AbsoluteTime(clock);
+        return (AbsoluteTime) super.add(millis, nanos, dest);
     }
 
     // @SCJAllowed
     public RelativeTime subtract(AbsoluteTime time) {
-        return subtract(time);
+        return subtract(time, null);
     }
 
     // @SCJAllowed
     public RelativeTime subtract(AbsoluteTime time, RelativeTime dest) {
-        return null;
+        if (time == null)
+            throw new IllegalArgumentException("Time parameter cannot be null!");
+        if (dest == null)
+            dest = new RelativeTime(clock);
+        return (RelativeTime) super.add(-time.millis, -time.nanos, dest);
     }
 
     // @SCJAllowed
     public AbsoluteTime subtract(RelativeTime time) {
-        return subtract(time);
+        return subtract(time, null);
     }
 
     // @SCJAllowed
     public AbsoluteTime subtract(RelativeTime time, AbsoluteTime dest) {
-        return null;
+        if (time == null)
+            throw new IllegalArgumentException("Time parameter cannot be null!");
+        if (dest == null)
+            dest = new AbsoluteTime(clock);
+        return (AbsoluteTime) super.add(-time.millis, -time.nanos, dest);
     }
 }

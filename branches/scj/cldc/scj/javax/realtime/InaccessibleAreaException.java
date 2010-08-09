@@ -9,8 +9,7 @@ import java.io.Serializable;
  * determination.
  */
 // @SCJAllowed
-public class InaccessibleAreaException extends RuntimeException implements
-        Serializable {
+public class InaccessibleAreaException extends RuntimeException implements Serializable {
 
     /**
      * Shall not copy "this" to any instance or static field.

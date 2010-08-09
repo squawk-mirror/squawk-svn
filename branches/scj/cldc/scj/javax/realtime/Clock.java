@@ -1,5 +1,8 @@
 package javax.realtime;
 
+import com.sun.squawk.VM;
+import com.sun.squawk.util.Assert;
+
 /**
  * A clock marks the passing of time. It has a concept of now that can be
  * queried through Clock.getTime(), and it can have events queued on it which
@@ -19,6 +22,56 @@ package javax.realtime;
 // @SCJAllowed
 public abstract class Clock {
 
+    private static class RealtimeClock extends Clock {
+
+        private RelativeTime resolution;
+
+        protected boolean drivesEvents() {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        public RelativeTime getEpochOffset() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        public RelativeTime getResolution() {
+            return resolution;
+        }
+
+        public RelativeTime getResolution(RelativeTime dest) {
+            dest.set(resolution.getMilliseconds(), resolution.getNanoseconds());
+            return dest;
+        }
+
+        public AbsoluteTime getTime() {
+            return getTime(new AbsoluteTime());
+        }
+
+        public AbsoluteTime getTime(AbsoluteTime dest) {
+            // FIXME:
+            dest.set(VM.getTimeMillis(), 0);
+            return dest;
+        }
+
+        protected void registerCallBack(AbsoluteTime time, ClockCallBack clockEvent) {
+            // TODO Auto-generated method stub
+
+        }
+
+        protected boolean resetTargetTime(AbsoluteTime time) {
+            // TODO Auto-generated method stub
+            return false;
+        }
+
+        protected void setResolution(RelativeTime resolution) {
+            resolution.set(resolution);
+        }
+    }
+
+    private static RealtimeClock rtc = new RealtimeClock();
+
     /**
      * There is always at least one clock object available: the system real-time
      * clock. This is the default Clock.
@@ -28,7 +81,8 @@ public abstract class Clock {
 
     // @SCJAllowed
     public static Clock getRealtimeClock() {
-        return null;
+        Assert.that(rtc != null);
+        return rtc;
     }
 
     /**
@@ -152,8 +206,7 @@ public abstract class Clock {
      */
 
     // @SCJAllowed(LEVEL_1)
-    protected abstract void registerCallBack(AbsoluteTime time,
-            ClockCallBack clockEvent);
+    protected abstract void registerCallBack(AbsoluteTime time, ClockCallBack clockEvent);
 
     /**
      * Replace the target time being used by the ClockCallBack registered by

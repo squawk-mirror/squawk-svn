@@ -1,6 +1,7 @@
 package com.sun.squawk.scj;
 
 import javax.realtime.RealtimeThread;
+import javax.realtime.Timer;
 import javax.safetycritical.Safelet;
 
 import com.sun.squawk.Isolate;
@@ -57,6 +58,7 @@ public class SafeletLauncher {
             }
         };
 
+        Timer.startTimerThread();
         RealtimeThread thread = new RealtimeThread("SCJ-init", 500000, runner);
         thread.start();
         thread.join();
