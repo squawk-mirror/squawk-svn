@@ -138,7 +138,7 @@ public final class BackingStore implements GlobalStaticFields {
      * The global current allocate context. The thread getting rescheduled in
      * must set this field with its saved context.
      */
-    private static BackingStore currentAllocContext;
+    private static volatile BackingStore currentAllocContext;
 
     /**
      * The number of backing stores that have ever been created
@@ -237,6 +237,7 @@ public final class BackingStore implements GlobalStaticFields {
         immortal = convertToBackingStore(immortalStart, immortalEnd);
         immortal.size = immortal.realSize - INSTANCE_SIZE;
         immortal.spaceRemaining = immortal.size;
+        GC.getKlass(immortal);
 
         scoped = convertToBackingStore(scopedStart, scopedEnd);
         scoped.size = scoped.realSize - INSTANCE_SIZE;
@@ -244,9 +245,13 @@ public final class BackingStore implements GlobalStaticFields {
 
         currentAllocContext = immortal;
 
+        // for debug
+        illegalAssignment = "[SCJ] Illegal assignment: ";
         leftBrackets = "[";
         atBS_ = " @ BS-";
         ROM = "ROM";
+        ASSIGN = "  <-   ";
+        // for debug
         scopeCheckEnabled = 1;
 
         if (SCJ_DEBUG_ENABLED) {
@@ -296,6 +301,7 @@ public final class BackingStore implements GlobalStaticFields {
      * @return
      */
     public static Object allocate(int size, Object klass, int arrayLength) {
+        Assert.always(currentAllocContext != null, "Current allocation context cannot be null!");
         return currentAllocContext.allocate0(size, klass, arrayLength);
     }
 
@@ -320,35 +326,11 @@ public final class BackingStore implements GlobalStaticFields {
         Klass type;
         // for debug end
 
-        if (SCJ_DEBUG_ALLOC) {
-
-            VM.print("[SCJ] allocate ");
-            VM.print(size);
-            VM.print("B {");
-            if (arrayLength == -1) {
-                VM.print(klass0.getName());
-            } else {
-                VM.print("[");
-                type = klass0.getComponentType();
-                while (type.isArray()) {
-                    VM.print("[");
-                    type = type.getComponentType();
-                }
-                VM.print(type.getName());
-            }
-            VM.print("} in {");
-            VM.print(id);
-            VM.print("} - allocTop: ");
-            VM.printAddress(theTop);
-            VM.print(" --> ");
-            VM.printAddress(allocTop);
-            VM.println();
-        }
-
         Assert.that(size >= 0);
 
         if (spaceRemaining < size) {
             VM.println("[SCJ] !!!!!!!!!!!!!!!!!!! Out of Memory !!!!!!!!!!!!!!!!!!!!!!!");
+            printBSTree(true);
             printInfo();
             throw VM.getOutOfMemoryError();
         }
@@ -366,6 +348,30 @@ public final class BackingStore implements GlobalStaticFields {
 
         // don't zero at allocation; zero at destroy instead
         increaseAllocTop(size);
+
+        if (SCJ_DEBUG_ALLOC) {
+            VM.print("[SCJ] allocate ");
+            VM.print(size);
+            VM.print("B ");
+            if (arrayLength == -1) {
+                VM.print(klass0.getName());
+            } else {
+                VM.print("[");
+                type = klass0.getComponentType();
+                while (type.isArray()) {
+                    VM.print("[");
+                    type = type.getComponentType();
+                }
+                VM.print(Klass.getInternalName(type));
+            }
+            VM.print(" in BS-");
+            VM.print(id);
+            VM.print(" - allocTop: ");
+            VM.printAddress(theTop);
+            VM.print(" --> ");
+            VM.printAddress(allocTop);
+            VM.println();
+        }
 
         Assert.always(theStart.eq(allocStart));
         Assert.always(allocTop.diff(theTop).toInt() == size);
@@ -409,11 +415,22 @@ public final class BackingStore implements GlobalStaticFields {
         return parent == null;
     }
 
-    private boolean isTopBS(BackingStore bs) {
+    /**
+     * If bs is the top child of this
+     * 
+     * @param bs
+     * @return
+     */
+    private boolean topChildIs(BackingStore bs) {
         return !isLeaf() && topTable.top() == bs;
     }
 
-    private BackingStore getTopBS() {
+    /**
+     * Get the top child if there is one. Return null otherwise.
+     * 
+     * @return
+     */
+    private BackingStore getTopChild() {
         return isLeaf() ? null : topTable.top();
     }
 
@@ -439,10 +456,10 @@ public final class BackingStore implements GlobalStaticFields {
             VM.print(bs.id);
             VM.println("]");
         }
-        enableScopeCheck();
+        disableScopeCheck();
         BackingStore old = currentAllocContext;
         currentAllocContext = bs;
-        disableScopeCheck();
+        enableScopeCheck();
         return old;
     }
 
@@ -478,12 +495,14 @@ public final class BackingStore implements GlobalStaticFields {
             ret = scoped.search(addr);
 
         // TODO: res should not be null because in SCJ the memory area
-        // is either immortal or scoped. This is not true for Squawk since we
-        // have ROM. So if we get here, there might be something wrong;
-        // Assert.that(ret != null,
-        // "Are you looking for the BS for an object that is allocated in ROM? \n");
-        if (ret == null)
-            VM.println("Attempt to search the BS for an object allocated in ROM. \n");
+        // is either immortal or scoped. This is not true for Squawk since it
+        // has ROM. So if we are getting here, simply return immortal as ROM is
+        // treated as immortal as well.
+        if (ret == null) {
+            VM.print("[SCJ] Attempt to search the BS for an in ROM object of type ");
+            VM.println(Klass.getInternalName(GC.getKlass(obj)));
+            ret = immortal;
+        }
 
         if (SCJ_DEBUG_ENABLED) {
             VM.println("[SCJ] find in BS");
@@ -493,42 +512,50 @@ public final class BackingStore implements GlobalStaticFields {
         return ret;
     }
 
+    // for debug
+    private static String illegalAssignment;
     private static String leftBrackets;
     private static String atBS_;
     private static String ROM;
+    private static String ASSIGN;
+
+    // for debug
 
     static void scopeCheckSlow(Address base, Address value) {
         if (scopeCheckEnabled > 0 && !getBackingStore(base.toObject()).containAddr(value)) {
             // TODO: scope check failed
 
-            if (SCJ_DEBUG_ENABLED) {
-                Klass baseKlass = GC.getKlass(base.toObject());
-                Klass valueKlass = GC.getKlass(value.toObject());
-                BackingStore baseBS = getBackingStore(base.toObject());
-                BackingStore valueBS = getBackingStore(value.toObject());
+            // if (SCJ_DEBUG_ENABLED) {
+            Klass baseKlass = GC.getKlass(base.toObject());
+            Klass valueKlass = GC.getKlass(value.toObject());
+            BackingStore baseBS = getBackingStore(base.toObject());
+            BackingStore valueBS = getBackingStore(value.toObject());
 
-                while (baseKlass.isArray()) {
-                    VM.print(leftBrackets);
-                    baseKlass = baseKlass.getComponentType();
-                }
-                VM.print(baseKlass.name);
-                VM.print(atBS_);
-                if (baseBS == null)
-                    VM.println(ROM);
-                else
-                    VM.println(baseBS.id);
-
-                while (valueKlass.isArray()) {
-                    VM.print(leftBrackets);
-                    valueKlass = valueKlass.getComponentType();
-                }
-                VM.print(valueKlass.name);
-                VM.print(atBS_);
-                if (valueBS == null)
-                    VM.println(ROM);
-                else
-                    VM.println(valueBS.id);
+            VM.print(illegalAssignment);
+            while (baseKlass.isArray()) {
+                VM.print(leftBrackets);
+                baseKlass = baseKlass.getComponentType();
             }
+            VM.print(Klass.getInternalName(baseKlass));
+            VM.print(atBS_);
+            if (baseBS == null)
+                VM.print(ROM);
+            else
+                VM.print(baseBS.id);
+
+            VM.print(ASSIGN);
+
+            while (valueKlass.isArray()) {
+                VM.print(leftBrackets);
+                valueKlass = valueKlass.getComponentType();
+            }
+            VM.print(Klass.getInternalName(valueKlass));
+            VM.print(atBS_);
+            if (valueBS == null)
+                VM.println(ROM);
+            else
+                VM.println(valueBS.id);
+            // }
         }
     }
 
@@ -541,7 +568,7 @@ public final class BackingStore implements GlobalStaticFields {
         return isLeaf() ? this : topTable.search(addr);
     }
 
-    private static int roundUpToWord(int value) {
+    static int roundUpToWord(int value) {
         return (value + HDR.BYTES_PER_WORD - 1) & ~(HDR.BYTES_PER_WORD - 1);
     }
 
@@ -628,8 +655,10 @@ public final class BackingStore implements GlobalStaticFields {
     public void destroy() {
         if (isRoot())
             throw new Error("Immortal or Scoped cannot be destroyed");
-        else if (!(parent.getTopBS() == this))
-            throw new Error("Only topBS in a container can be destroyed");
+        else if (!(parent.topChildIs(this))) {
+            printBSTree(true);
+            throw new Error("Only top child can be destroyed. Current is BS-" + this.id);
+        }
 
         disableScopeCheck();
 
@@ -656,12 +685,15 @@ public final class BackingStore implements GlobalStaticFields {
         enableScopeCheck();
     }
 
-    public void destroyAllAbove() {
+    /**
+     * Destroy all backing stores above me (excluded).
+     */
+    public void destroyAllAboves() {
         // TODO: more efficient way: decrease top pointer and zero memory at
         // once
         if (!isRoot()) {
-            while (!(parent.getTopBS() == this))
-                parent.getTopBS().destroy();
+            while (!parent.topChildIs(this))
+                parent.getTopChild().destroy();
         }
     }
 
@@ -749,8 +781,11 @@ public final class BackingStore implements GlobalStaticFields {
     }
 
     /**
-	 * 
-	 */
+     * Empty and zero currently owned memory space. Restore the allocating top
+     * pointer to its original value. If this is the top child of the parent,
+     * takes all available space of its parent (which usually means the size
+     * will grow).
+     */
     public void reset() {
         if (SCJ_DEBUG_ENABLED) {
             VM.println("[SCJ] BackingStore.reset ... ");
@@ -765,7 +800,7 @@ public final class BackingStore implements GlobalStaticFields {
         topTable = null;
 
         /* if this the top, take all parent's available space as mine. */
-        if (!isRoot() && parent.getTopBS() == this) {
+        if (!isRoot() && parent.getTopChild() == this) {
             int freeSpace = parent.spaceRemaining;
             parent.increaseAllocTop(freeSpace);
             increaseAllocEnd(freeSpace);
@@ -816,7 +851,7 @@ public final class BackingStore implements GlobalStaticFields {
         }
 
         Assert.always(!isRoot(), "Immortal or Scoped is not allowed to shrink");
-        if (!(parent.getTopBS() == this))
+        if (!(parent.getTopChild() == this))
             throw new Error("Only top scope is allowed to shrink");
 
         parent.increaseAllocTop(-decr);
@@ -892,7 +927,7 @@ public final class BackingStore implements GlobalStaticFields {
         printSpace(indent);
         VM.print("BS-");
         VM.print(id);
-        if (!isRoot() && parent.getTopBS() == this)
+        if (!isRoot() && parent.getTopChild() == this)
             VM.print("*");
         if (detailed) {
             VM.print("    [ ");
@@ -901,9 +936,12 @@ public final class BackingStore implements GlobalStaticFields {
             VM.printAddress(allocTop);
             VM.print(" - ");
             VM.printAddress(allocEnd);
-            VM.print(" ] remains: ");
+            VM.print(" ]   SIZE: ");
+            VM.print(realSize);
+            VM.print("   USED: ");
+            VM.print(realSize - spaceRemaining);
+            VM.print("   REMAINS: ");
             VM.print(spaceRemaining);
-            VM.print("B");
         }
         VM.println();
         SearchTable table = topTable;
@@ -988,5 +1026,13 @@ public final class BackingStore implements GlobalStaticFields {
         boolean _boolean = true;
         double _double = 3.1415926;
         long _long = 948472349;
+    }
+
+    public static void printCurrentBSStats() {
+        VM.print(" **************** Instance in BS-");
+        VM.print(currentAllocContext.id);
+        VM.println(" ****************");
+        GC.printHeapStats(currentAllocContext, true);
+        VM.println(" ************************************************");
     }
 }

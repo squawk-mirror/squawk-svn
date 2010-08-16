@@ -5,7 +5,7 @@ public class AsyncEvent {
 
     /*
      * TODO: Multiple handlers per event should be supported. Currently only
-     * one.
+     * support one for simplicity.
      */
     private AsyncEventHandler handler;
 
@@ -17,5 +17,13 @@ public class AsyncEvent {
     public void fire() {
         if (handler != null)
             handler.release();
+    }
+
+    public void addHandler(AsyncEventHandler handler) {
+        // TODO:
+    }
+
+    public void removeHandler(AsyncEventHandler handler) {
+        // TODO:
     }
 }

@@ -1,5 +1,6 @@
 package com.sun.squawk.test;
 
+import javax.realtime.AsyncEventHandler;
 import javax.realtime.PeriodicParameters;
 import javax.realtime.PriorityParameters;
 import javax.realtime.RelativeTime;
@@ -11,32 +12,43 @@ import com.sun.squawk.VM;
 
 public class MyMission extends Mission {
 
-    int turn;
-    static long B = 1;
-    static long KB = 1024 * B;
-    static long MB = 1024 * KB;
+    public int turn;
+    private static long B = 1;
+    private static long KB = 1024 * B;
+    private static long MB = 1024 * KB;
 
-    PriorityParameters priority = new PriorityParameters(42);
-    PeriodicParameters period = new PeriodicParameters(null, new RelativeTime(100, 0), null,
-            null);
-    StorageParameters storage = new StorageParameters(1 * MB, -1, 5 * KB);
-    long privateSize = 5 * KB;
-    long initSize = 50 * KB;
-    int privateDepth = 2;
+    private long innerPrivateSize = 5 * MB;
+    private long initPrivateSize = 50 * KB;
+    private int privateDepth = 2;
+    private int iterations = 1;
 
     protected void initialize() {
-        System.out.println("[SCJ Hello] mission " + turn + " initialize ... @" + VM.getTimeMillis());
-        // ManagedThread hello = new ManagedThread(priority, storage, initSize,
-        // new Printer("Hello", privateDepth,
-        // privateSize));
-        // ManagedThread world = new ManagedThread(priority, storage, initSize,
-        // new Printer("World", privateDepth,
-        // privateSize));
-        ManagedSchedulable hello = new MyPEH(priority, period, storage, initSize, new Printer(
-                "Hello", privateDepth, privateSize));
-        ManagedSchedulable world = new MyPEH(priority, period, storage, initSize, new Printer(
-                "World", privateDepth, privateSize));
-        hello.register();
+        System.out
+                .println("[SCJ Hello] mission " + turn + " initialize ... @" + VM.getTimeMillis());
+
+        PriorityParameters priority = new PriorityParameters(Thread.NORM_PRIORITY);
+
+        RelativeTime startHello = new RelativeTime(0, 0);
+        RelativeTime startWorld = new RelativeTime(50, 0);
+        RelativeTime interval = new RelativeTime(100, 0);
+        RelativeTime deadline = null;
+        AsyncEventHandler deadlineMisshandler = null;
+        PeriodicParameters periodHello = new PeriodicParameters(startHello, interval, deadline,
+                deadlineMisshandler);
+        PeriodicParameters periodWorld = new PeriodicParameters(startWorld, interval, deadline,
+                deadlineMisshandler);
+
+        long totalBS = 6 * MB;
+        long nativeStack = -1;
+        long javaStack = 5 * KB;
+        StorageParameters storage = new StorageParameters(totalBS, nativeStack, javaStack);
+
+//        ManagedSchedulable hello = new MyPEH(priority, periodHello, storage, initPrivateSize,
+//                new GarbageGenerator("Hello", privateDepth, innerPrivateSize, iterations));
+        ManagedSchedulable world = new MyPEH(priority, periodWorld, storage, initPrivateSize,
+                new GarbageGenerator("World", privateDepth, innerPrivateSize, iterations));
+
+//        hello.register();
         world.register();
     }
 

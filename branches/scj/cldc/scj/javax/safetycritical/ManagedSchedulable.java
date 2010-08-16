@@ -12,5 +12,13 @@ public interface ManagedSchedulable {
 
     public void start();
 
+    public void stop();
+
     public void join() throws InterruptedException;
+
+    public void cleanUp();
+
+    // Schedulables can be linked together
+    public ManagedSchedulable getNext();
+    public void setNext(ManagedSchedulable next);
 }

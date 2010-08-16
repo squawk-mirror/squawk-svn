@@ -14,11 +14,11 @@ public class MyMissionSequencer extends MissionSequencer {
     }
 
     protected Mission getNextMission() {
-        if (counter++ < 3) {
+        if (counter++ < 1) {
             System.out.println("[SCJ Hello] Safelet get next mission ... ");
             mission.turn = counter - 1;
             return mission;
-        }
+        } 
         return null;
     }
 }

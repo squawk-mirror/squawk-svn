@@ -1,6 +1,5 @@
 package javax.realtime;
 
-import com.sun.squawk.VM;
 import com.sun.squawk.util.Assert;
 
 //@SCJAllowed
@@ -103,7 +102,9 @@ public abstract class HighResolutionTime implements Comparable {
 
     /**
      * ALERT: Current implementation may incur memory allocation for an
-     * AbsoluteTime object.
+     * AbsoluteTime object and a RelativeTime object. Buffer may be used to
+     * avoid this, but then synchronization will be needed during using the
+     * buffer.
      * 
      * @param target
      * @param time
@@ -123,6 +124,9 @@ public abstract class HighResolutionTime implements Comparable {
                 waitNanos = time.nanos;
             }
         } else if (time != null) {
+            /*
+             * the use currentTimeBuf is thread safe as long as waitForObject()
+             */
             time = ((AbsoluteTime) time).subtract(time.clock.getTime());
             if (time.compareTo(RelativeTime.ZERO) > 0) {
                 waitMillis = time.millis;
@@ -130,7 +134,7 @@ public abstract class HighResolutionTime implements Comparable {
             } else
                 return;
         }
-        target.wait(time.millis, time.nanos);
+        target.wait(waitMillis, waitNanos);
     }
 
     protected HighResolutionTime add(long millis, int nanos, HighResolutionTime dest) {
@@ -140,7 +144,7 @@ public abstract class HighResolutionTime implements Comparable {
 
         if ((this.millis > 0 && millis > 0 && newMillis < 0)
                 || (this.millis < 0 && millis < 0 && newMillis > 0))
-            throw new IllegalArgumentException("Overflow while adding");
+            throw new ArithmeticException("Overflow while adding");
 
         dest.millis = newMillis;
         // impossible to overflow for nanos field of normalized time
@@ -156,7 +160,7 @@ public abstract class HighResolutionTime implements Comparable {
 
         if ((millis > 0 && msDelta > 0 && newMillis < 0)
                 || (millis < 0 && msDelta < 0 && newMillis > 0))
-            throw new IllegalArgumentException("Overflow while normalizing");
+            throw new ArithmeticException("Overflow while normalizing");
 
         millis = newMillis;
         nanos -= msDelta * NANOS_PER_MILLI;

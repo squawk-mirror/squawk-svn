@@ -1,73 +1,75 @@
 package javax.realtime;
 
-import javax.safetycritical.StorageParameters;
-
-import com.sun.squawk.VM;
 
 //@SCJAllowed
 public class AsyncEventHandler implements Schedulable {
 
-    private long toDos = 0;
+    private int fireCount = 0;
 
-    private RealtimeThread thread;
+    private Object lock = new Object();
 
     private volatile boolean stop = false;
 
-    public AsyncEventHandler() {
-        thread = RealtimeThread.currentRealtimeThread();
-    }
-
-    public AsyncEventHandler(PriorityParameters priority, StorageParameters storage,
-            long initMemSize) {
-        thread = new RealtimeThread(priority, storage, initMemSize, this);
-        thread.start();
-    }
+    // public AsyncEventHandler() {
+    // }
 
     public void run() {
         while (!stop) {
             try {
-                while (true) {
-                    synchronized (thread) {
-                        if (toDos == 0)
-                            break;
-                        toDos--;
+                synchronized (lock) {
+                    if (fireCount == 0) {
+//                        VM.println("[SCJ] " + this + " is going to wait ...");
+                        lock.wait();
                     }
+                }
+                while (getAndDecrementPendingFireCount() > 0)
                     handleAsyncEvent();
-                }
-                // toDos++ can happen here and a thread.notify() will be missed.
-                // So need to check toDos again in following synchronized block.
-                synchronized (thread) {
-                    if (toDos == 0) {
-                        // VM.println("[SCJ] " + this +
-                        // " is going to wait ...");
-                        thread.wait();
-                    }
-                }
             } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
     }
 
     void release() {
-        synchronized (thread) {
-            if (toDos++ == 0) {
-                // VM.println("[SCJ] " + this + " notified ...");
-                thread.notify();
+        synchronized (lock) {
+            if (fireCount++ == 0) {
+//                VM.println("[SCJ] " + this + " notified ...");
+                lock.notify();
             }
         }
     }
 
     protected void stop() {
-        stop = true;
+        synchronized (lock) {
+            fireCount = 0;
+            stop = true;
+            lock.notify();
+        }
     }
 
-    protected void join() throws InterruptedException {
-        thread.join();
+    protected int getAndClearPendingFireCount() {
+        synchronized (lock) {
+            int fc = fireCount;
+            fireCount = 0;
+            return fc;
+        }
     }
 
-    protected MemoryArea getInitArea() {
-        return thread.getInitArea();
+    protected int getAndDecrementPendingFireCount() {
+        synchronized (lock) {
+            if (fireCount == 0)
+                return 0;
+            int fc = fireCount;
+            fireCount--;
+            return fc;
+        }
+    }
+
+    protected int getAndIncrementPendingFireCount() {
+        synchronized (lock) {
+            int fc = fireCount;
+            fireCount++;
+            return fc;
+        }
     }
 
     // @SCJAllowed

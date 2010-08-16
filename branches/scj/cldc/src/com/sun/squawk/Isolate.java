@@ -2089,8 +2089,14 @@ public final class Isolate implements Runnable {
      * @param thread the thread
      */
     void addJoiner(VMThread thread) {
+/*if[SCJ]*/
+        BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         thread.nextThread = joiners;
         joiners = thread;
+/*if[SCJ]*/
+        BackingStore.enableScopeCheck();
+/*end[SCJ]*/
     }
 
     /**

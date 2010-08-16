@@ -1653,17 +1653,7 @@ public class GC implements GlobalStaticFields {
      */
     public static int getHashCode(Object object) {
         if (GC.inRam(object)) {
-/*if[SCJ]*/
-            BackingStore newBS = BackingStore.getBackingStore(object);
-            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
-            try{
-/*end[SCJ]*/
-                return getObjectAssociation(object).getHashCode();
-/*if[SCJ]*/
-            }finally{
-                BackingStore.setCurrentContext(oldBS);
-            }
-/*end[SCJ]*/
+            return getObjectAssociation(object).getHashCode();
         } else {
             return VM.hashcode(object);
         }
@@ -1678,49 +1668,49 @@ public class GC implements GlobalStaticFields {
     static Monitor getMonitor(Object object) {
                
         if (GC.inRam(object)) {
+            /*
+             * Objects in RAM have their monitors attached to ObjectAssociation
+             * that sits between the object and its class.
+             */
+            ObjectAssociation assn = getObjectAssociation(object);
+            Monitor monitor = assn.getMonitor();
+            if (monitor == null) {
 /*if[SCJ]*/
-            BackingStore newBS = BackingStore.getBackingStore(object);
-            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
-            try {
-/*end[SCJ]*/
-                /*
-                 * Objects in RAM have their monitors attached to ObjectAssociation
-                 * that sits between the object and its class.
-                 */
-                ObjectAssociation assn = getObjectAssociation(object);
-                Monitor monitor = assn.getMonitor();
-                if (monitor == null) {
+                BackingStore newBS = BackingStore.getBackingStore(object);
+                BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+                try {
                     monitor = new Monitor(object);
-                    assn.setMonitor(monitor);
+                } finally {
+                    BackingStore.setCurrentContext(oldBS);
                 }
-                return monitor;
-/*if[SCJ]*/
-            } finally {
-                BackingStore.setCurrentContext(oldBS);
-            }
+/*else[SCJ]*/
+//                    monitor = new Monitor(object);
 /*end[SCJ]*/
+                assn.setMonitor(monitor);
+            }
+            return monitor;
         } else {
+            /*
+             * Objects in ROM or NVM have their monitors in a hashtable that is
+             * maintained by the isolate.
+             */
+            SquawkHashtable monitorTable = VM.getCurrentIsolate().getMonitorHashtable();
+            Monitor monitor = (Monitor)monitorTable.get(object);
+            if (monitor == null) {
 /*if[SCJ]*/
-            BackingStore newBS = BackingStore.getImmortal();
-            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
-            try {
-/*end[SCJ]*/
-                /*
-                 * Objects in ROM or NVM have their monitors in a hashtable that is
-                 * maintained by the isolate.
-                 */
-                SquawkHashtable monitorTable = VM.getCurrentIsolate().getMonitorHashtable();
-                Monitor monitor = (Monitor)monitorTable.get(object);
-                if (monitor == null) {
+                BackingStore newBS = BackingStore.getBackingStore(object);
+                BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+                try {
                     monitor = new Monitor(object);
-                    monitorTable.put(object, monitor);
+                } finally {
+                    BackingStore.setCurrentContext(oldBS);
                 }
-                return monitor;
-/*if[SCJ]*/
-            } finally{      
-                BackingStore.setCurrentContext(oldBS);
-            }
+/*else[SCJ]*/
+//               monitor = new Monitor(object);
 /*end[SCJ]*/
+                monitorTable.put(object, monitor);
+            }
+            return monitor;
         }
     }
 
@@ -1796,8 +1786,18 @@ public class GC implements GlobalStaticFields {
     }
     
     private static ObjectAssociation createObjectAssociation(Object object, Klass klass) {
-        ObjectAssociation assn = new ObjectAssociation(klass);
-        
+/*if[SCJ]*/
+        BackingStore newBS = BackingStore.getBackingStore(object);
+        BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+        ObjectAssociation assn = null;
+        try{
+            assn = new ObjectAssociation(klass);
+        }finally{
+            BackingStore.setCurrentContext(oldBS);
+        }
+/*else[SCJ]*/
+//        ObjectAssociation assn = new ObjectAssociation(klass);
+/*end[SCJ]*/
         // The Lisp2Collector relies on ObjectAssociations always being at a higher address
         // than the object with which they are associated        
         Assert.that(VM.isHosted() || Address.fromObject(object).lo(Address.fromObject(assn)));
@@ -2253,7 +2253,11 @@ public class GC implements GlobalStaticFields {
         Address start;
         Address end;
         if (startObj == null) {
-            start = heapStart;
+/*if[SCJ]*/
+            start = Address.fromObject(BackingStore.getImmortal()).sub(HDR.basicHeaderSize);
+/*else[SCJ]*/
+//            start = heapStart;
+/*end[SCJ]*/
         } else {
             if (!inRam(startObj)) {
                 throw new IllegalArgumentException();

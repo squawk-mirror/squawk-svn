@@ -24,7 +24,7 @@ public final class MissionMemory extends ManagedMemory {
     }
 
     protected void reset() {
-        destroyAllAboveBS();
+        super.destroyAllAboveBS();
         super.reset();
     }
 }

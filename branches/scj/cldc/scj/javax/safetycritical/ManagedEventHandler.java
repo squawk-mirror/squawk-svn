@@ -2,6 +2,7 @@ package javax.safetycritical;
 
 import javax.realtime.AsyncEventHandler;
 import javax.realtime.PriorityParameters;
+import javax.realtime.RealtimeThread;
 import javax.realtime.ReleaseParameters;
 
 //@SCJAllowed
@@ -9,11 +10,19 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
 
     private String name;
 
+    private RealtimeThread thread;
+
+    private ManagedSchedulable next;
+
     ManagedEventHandler(PriorityParameters priority, ReleaseParameters release,
             StorageParameters storage, long initMemSize, String name) {
-        super(priority, storage, initMemSize);
-        ((ManagedMemory)getInitArea()).setOwner(this);
+        thread = new RealtimeThread(priority, storage, initMemSize, this);
+        thread.setManagedSchedulable(this);
+        ManagedMemory initPrivate = (ManagedMemory) thread.getMemoryArea();
+        initPrivate.setOwner(this);
+        initPrivate.setManager(ManagedMemory.getCurrentManageMemory().getManager());
         this.name = name;
+        thread.start();
     }
 
     // @SCJAllowed
@@ -26,8 +35,11 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
         ManagedMemory.getCurrentManageMemory().getManager().addScheduble(this);
     }
 
+    public void start() {
+    }
+
     public void join() throws InterruptedException {
-        super.join();
+        thread.join();
     }
 
     public void stop() {
@@ -35,7 +47,15 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
     }
 
     // @SCJAllowed
-    protected void cleanUp() {
+    public void cleanUp() {
+    }
+
+    public ManagedSchedulable getNext() {
+        return next;
+    }
+
+    public void setNext(ManagedSchedulable next) {
+        this.next = next;
     }
 
     // @SCJAllowed

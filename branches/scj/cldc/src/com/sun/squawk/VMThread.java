@@ -56,7 +56,7 @@ public final class VMThread implements GlobalStaticFields {
     /**
      * The initial size (in words) of a thread's stack.
      */
-    private final static int INITIAL_STACK_SIZE = 168000; // TODO: SCJ temp
+    private final static int INITIAL_STACK_SIZE = 5120; // TODO: SCJ temp
 
     /**
      * The minimum size (in words) of a thread's stack. This constant accounts for the
@@ -505,6 +505,9 @@ public final class VMThread implements GlobalStaticFields {
             currentThread.handlePendingInterrupt();
 
             Assert.that(currentThread.nextThread == null);
+/*if[SCJ]*/
+            BackingStore.disableScopeCheck();
+/*end[SCJ]*/
             currentThread.nextThread = this.joiners;
             this.joiners = currentThread;
 // if (currentThread.isolate != this.isolate) {
@@ -512,6 +515,9 @@ public final class VMThread implements GlobalStaticFields {
 // }
             Assert.that(currentThread.waitingToJoin == null);
             currentThread.waitingToJoin = this;
+/*if[SCJ]*/
+            BackingStore.enableScopeCheck();
+/*end[SCJ]*/
             currentThread.setInQueue(VMThread.Q_JOIN);
             reschedule();
 
@@ -1268,9 +1274,7 @@ VM.println();
     /**
      * Prepare a thread for execution.
      */
-    private void baptiseThread() {
-        BackingStore.disableScopeCheck();
-        
+    private void baptiseThread() {        
         Assert.that(currentThread != null);
         Assert.always(state == NEW);
         stack = newStack(stackSize, this, true);
@@ -1292,8 +1296,6 @@ VM.println("creating stack:");
 
         isolate.addThread(this);
         addToRunnableThreadsQueue(this);
-
-        BackingStore.enableScopeCheck();
         
 /*if[ENABLE_SDA_DEBUGGER]*/        
         if (VM.isThreadingInitialized()) {
@@ -2081,7 +2083,13 @@ VM.println("creating stack:");
 
                 Assert.that(monitor.depth == 0);
                 monitor.depth = 1;
+/*if[SCJ]*/
+                BackingStore.disableScopeCheck();
+/*end[SCJ]*/
                 monitor.owner = currentThread;
+/*if[SCJ]*/
+                BackingStore.enableScopeCheck();
+/*end[SCJ]*/
             } else {
 //traceMonitor("fixupPendingMonitors re-locked: ", monitor, object);
 
@@ -2139,7 +2147,13 @@ VM.println("creating stack:");
        /*
         * Set the monitor's ownership and nesting depth.
         */
+/*if[SCJ]*/
+        BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         monitor.owner = currentThread;
+/*if[SCJ]*/
+        BackingStore.enableScopeCheck();
+/*end[SCJ]*/
         monitor.depth = currentThread.monitorDepth;
         Assert.that(currentThread.monitorDepth > 0);
         
@@ -2161,7 +2175,13 @@ VM.println("creating stack:");
             /*
              * Unowned monitor, make the current thread the owner.
              */
+/*if[SCJ]*/
+            BackingStore.disableScopeCheck();
+/*end[SCJ]*/
             monitor.owner = currentThread;
+/*if[SCJ]*/
+            BackingStore.enableScopeCheck();
+/*end[SCJ]*/
             monitor.depth = 1;
 
         } else if (monitor.owner == currentThread) {
@@ -2507,6 +2527,9 @@ VM.println("creating stack:");
             if (waitingToJoin != null) {
 
                 // Remove this thread from the list of joiners
+/*if[SCJ]*/
+                BackingStore.disableScopeCheck();
+/*end[SCJ]*/
                 if (waitingToJoin.joiners == this) {
                     waitingToJoin.joiners = this.nextThread;
                 } else {
@@ -2517,6 +2540,9 @@ VM.println("creating stack:");
                     }
                     prev.nextThread = this.nextThread;
                 }
+/*if[SCJ]*/
+                BackingStore.enableScopeCheck();
+/*end[SCJ]*/
 
                 // Move this thread to the runnable thread queue
                 waitingToJoin = null;
@@ -2580,17 +2606,18 @@ VM.println("creating stack:");
 	/**
 	 * The current allocate context
 	 */
-	private BackingStore savedAllocCtx;
+	private BackingStore savedAllocCtx = BackingStore.getCurrentContext();
 	
     /**
      * 
      */
     public VMThread(Thread apiThread, String name, int stackSize) {
         Assert.always(apiThread != null);
-        this.apiThread    = apiThread;
-        this.threadNumber = nextThreadNumber++;
-        this.state        = NEW;
-        this.stackSize    = stackSize;
+        this.apiThread     = apiThread;
+        this.threadNumber  = nextThreadNumber++;
+        this.state         = NEW;
+        this.stackSize     = BackingStore.roundUpToWord(stackSize) / HDR.BYTES_PER_WORD;
+        
         Object target = NativeUnsafe.getObject(apiThread, (int)FieldOffsets.java_lang_Thread$target);
         if (target instanceof Isolate) {
             if (apiThread instanceof RealtimeThread) {
@@ -2993,6 +3020,9 @@ final class ThreadQueue {
         Assert.that(thread.isAlive());
         thread.setInQueue(VMThread.Q_RUN);
         count++;
+/*if[SCJ]*/
+        BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         if (first == null) {
             first = thread;
         } else {
@@ -3009,6 +3039,9 @@ final class ThreadQueue {
                 last.nextThread = thread;
             }
         }
+/*if[SCJ]*/
+        BackingStore.enableScopeCheck();
+/*end[SCJ]*/
     }
 
     /**
@@ -3039,7 +3072,9 @@ final class ThreadQueue {
             skipped = thread;
             thread = thread.nextThread;
         }
-
+/*if[SCJ]*/
+        BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         if (thread != null) {
             thread.setNotInQueue(VMThread.Q_RUN);
             if (skipped == null) {
@@ -3050,6 +3085,9 @@ final class ThreadQueue {
             thread.nextThread = null;
             count--;
         }
+/*if[SCJ]*/
+        BackingStore.enableScopeCheck();
+/*end[SCJ]*/
         return thread;
     }
 

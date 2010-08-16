@@ -1286,7 +1286,7 @@ static int             MethodBody_getOffsetToLastMinfoByte0_LII(Address oop, int
                 }
             }
 /*if[SCJ]*/
-            set_com_sun_squawk_VMThread_savedAllocCtx(newThread, newAllocCtx);
+            com_sun_squawk_BackingStore_currentAllocContext = newAllocCtx;
 /*end[SCJ]*/
         }
 

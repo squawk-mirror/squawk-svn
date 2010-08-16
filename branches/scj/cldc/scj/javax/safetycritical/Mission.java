@@ -1,7 +1,11 @@
 package javax.safetycritical;
 
+import com.sun.squawk.BackingStore;
+
 //@SCJAllowed
 public abstract class Mission {
+
+    MissionManager manager;
 
     // @SCJAllowed(LEVEL_1)
     public Mission() {
@@ -15,28 +19,36 @@ public abstract class Mission {
     protected abstract void initialize();
 
     // @SCJAllowed
+    public abstract long missionMemorySize();
+
+    // @SCJAllowed
     public void requestTermination() {
+        manager.requestTermination();
     }
 
     // @SCJAllowed
     public final void requestSequenceTermination() {
+        manager.requestSequenceTermination();
     }
 
     // @SCJAllowed
     public final boolean terminationPending() {
-        return false;
+        return manager.terminationPending();
     }
 
     // @SCJAllowed
     public final boolean sequenceTerminationPending() {
-        return false;
+        return manager.sequenceTerminationPending();
     }
-
-    // @SCJAllowed
-    abstract public long missionMemorySize();
 
     // @SCJAllowed
     public static Mission getCurrentMission() {
         return ManagedMemory.getCurrentManageMemory().getManager().getMission();
+    }
+
+    void setManager(MissionManager manager) {
+        BackingStore.disableScopeCheck();
+        this.manager = manager;
+        BackingStore.enableScopeCheck();
     }
 }

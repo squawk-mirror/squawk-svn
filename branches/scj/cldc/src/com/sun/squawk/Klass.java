@@ -115,7 +115,7 @@ public class Klass<T> {
      *
      * @see   #getInternalName()
      */
-    final String name;
+    private final String name;
 
     /**
      * The class representing the component type of an array.  If this class
@@ -278,15 +278,37 @@ public class Klass<T> {
      */
     public static Class asClass(Klass klass) {
         if (klassToClass == null) {
-            klassToClass = new SquawkHashtable();
+/*if[SCJ]*/
+            BackingStore newBS = BackingStore.getImmortal();
+            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+            try{
+                klassToClass = new SquawkHashtable();
+            }finally{
+                BackingStore.setCurrentContext(oldBS);
+            }
+/*else[SCJ]*/
+//            klassToClass = new SquawkHashtable();
+/*end[SCJ]*/
             klassClass = VM.getCurrentIsolate().getBootstrapSuite().lookup("java.lang.Class");
             Assert.always(klassClass != null);
         }
         Class c = (Class)klassToClass.get(klass);
         if (c == null) {
-            c = (Class)GC.newInstance(klassClass);
-            NativeUnsafe.setObject(c, (int)FieldOffsets.java_lang_Class$klass, klass);
-            klassToClass.put(klass, c);
+/*if[SCJ]*/
+            BackingStore newBS = BackingStore.getImmortal();
+            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+            try{
+                c = (Class)GC.newInstance(klassClass);
+                NativeUnsafe.setObject(c, (int)FieldOffsets.java_lang_Class$klass, klass);
+                klassToClass.put(klass, c);
+            }finally{
+                BackingStore.setCurrentContext(oldBS);
+            }
+/*else[SCJ]*/
+//            c = (Class)GC.newInstance(klassClass);
+//            NativeUnsafe.setObject(c, (int)FieldOffsets.java_lang_Class$klass, klass);
+//            klassToClass.put(klass, c);
+/*end[SCJ]*/
 //VM.print("created Class instance for ");
 //VM.println(klass.getInternalName());
         }

@@ -2,6 +2,10 @@ package javax.safetycritical;
 
 import javax.realtime.AsyncEventHandler;
 import javax.realtime.PriorityParameters;
+import javax.safetycritical.util.Utils;
+
+import com.sun.squawk.BackingStore;
+import com.sun.squawk.GC;
 
 /**
  * A MissionSequencer runs a sequence of independent Missions interleaved with
@@ -10,9 +14,9 @@ import javax.realtime.PriorityParameters;
 // @SCJAllowed
 public abstract class MissionSequencer extends AsyncEventHandler {
 
-    private volatile boolean terminationRequestReceived = false;
-
     private MissionMemory memory;
+
+    private volatile boolean terminationRequestReceived = false;
 
     /**
      * Construct a MissionSequencer to run at the priority and with the memory
@@ -30,7 +34,6 @@ public abstract class MissionSequencer extends AsyncEventHandler {
     // @SCJAllowed
     // @SCJRestricted( { INITIALIZATION })
     public MissionSequencer(PriorityParameters priority, StorageParameters storage) {
-        super();
     }
 
     // run in mission memory
@@ -38,12 +41,17 @@ public abstract class MissionSequencer extends AsyncEventHandler {
         Mission mission = getNextMission();
         if (mission == null) {
             terminationRequestReceived = true;
-            return;
+        } else {
+            MissionManager manager = new MissionManager(mission);
+            mission.setManager(manager);
+            memory.resize(mission.missionMemorySize());
+            memory.setManager(manager);
+            manager.go();
+            terminationRequestReceived = mission.sequenceTerminationPending();
+            // The manager instance will be gone soon along with the mission
+            // memory. So nulling the pointer.
+            mission.setManager(null);
         }
-        MissionManager manager = new MissionManager(mission);
-        memory.resize(mission.missionMemorySize());
-        memory.setManager(manager);
-        manager.go();
     }
 
     /**
@@ -59,10 +67,15 @@ public abstract class MissionSequencer extends AsyncEventHandler {
 
     public void exec() {
         memory = new MissionMemory(0);
+        
+        if (Utils.DEBUG)
+            BackingStore.printCurrentBSStats();
+        
         do {
             memory.reset();
             memory.enter(this);
         } while (!terminationRequestReceived);
+        memory.destroyAllAboveBS();
         memory.destroyBS();
     }
 
@@ -84,6 +97,7 @@ public abstract class MissionSequencer extends AsyncEventHandler {
     // @SCJAllowed(LEVEL_2)
     public final void requestSequenceTermination() {
         terminationRequestReceived = true;
+        Mission.getCurrentMission().requestTermination();
     }
 
     /**

@@ -25,4 +25,11 @@ public abstract class PeriodicEventHandler extends ManagedEventHandler {
     public void start() {
         timer.start();
     }
+
+    public void stop() {
+        timer.destroy();
+        timer.removeHandler(this);
+        timer = null;
+        super.stop();
+    }
 }

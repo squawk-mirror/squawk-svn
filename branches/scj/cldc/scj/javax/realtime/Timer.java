@@ -1,5 +1,6 @@
 package javax.realtime;
 
+import com.sun.squawk.BackingStore;
 import com.sun.squawk.VM;
 
 public abstract class Timer extends AsyncEvent {
@@ -28,6 +29,7 @@ public abstract class Timer extends AsyncEvent {
 
         private Timer head;
         private Object lock;
+        private volatile boolean stop = false;
 
         private TimerThread() {
             lock = new Object();
@@ -42,7 +44,7 @@ public abstract class Timer extends AsyncEvent {
             Clock rtc = Clock.getRealtimeClock();
             AbsoluteTime currentTime = new AbsoluteTime();
             AbsoluteTime nextWakeupTime = new AbsoluteTime();
-            while (true) {
+            while (!stop) {
                 rtc.getTime(currentTime);
                 // VM.println();
                 // VM.println("[SCJ] timer thread checks fire @ currentTime: " +
@@ -66,6 +68,9 @@ public abstract class Timer extends AsyncEvent {
         private void add(Timer timer) {
             synchronized (lock) {
                 Timer next = head;
+                /* if[SCJ] */
+                BackingStore.disableScopeCheck();
+                /* end[SCJ] */
                 while (timer.targetTime.compareTo(next.targetTime) > 0)
                     next = next.next;
                 timer.next = next;
@@ -77,6 +82,9 @@ public abstract class Timer extends AsyncEvent {
                     // VM.println("[SCJ] interrupt timer thread ...");
                     interrupt();
                 }
+                /* if[SCJ] */
+                BackingStore.enableScopeCheck();
+                /* end[SCJ] */
                 // VM.println("[SCJ] " + timer + " added ");
                 // printQueue();
             }
@@ -90,10 +98,16 @@ public abstract class Timer extends AsyncEvent {
         private Timer remove(Timer timer) {
             synchronized (lock) {
                 if (timer.next != null) {
+                    /* if[SCJ] */
+                    BackingStore.disableScopeCheck();
+                    /* end[SCJ] */
                     timer.prev.next = timer.next;
                     timer.next.prev = timer.prev;
                     if (timer == head)
                         head = timer.next;
+                    /* if[SCJ] */
+                    BackingStore.enableScopeCheck();
+                    /* end[SCJ] */
                     timer.prev = null;
                     timer.next = null;
                 }
@@ -120,6 +134,11 @@ public abstract class Timer extends AsyncEvent {
                 } while (current != head);
                 VM.print("\n");
             }
+        }
+
+        private void stop() {
+            stop = true;
+            interrupt();
         }
     }
 
@@ -283,7 +302,12 @@ public abstract class Timer extends AsyncEvent {
             // done,reschedule for
             // the next shot
             firstShotDone = true;
-            targetTime = targetTime.add(period, targetTime);
+            try {
+                targetTime = targetTime.add(period, targetTime);
+            } catch (ArithmeticException e) {
+                // overflow happened. Schedule next shot at forever
+                targetTime.set(Long.MAX_VALUE, 0);
+            }
             thread.add(this);
         } else {
             // if one shot timer, inactivate and disable it
@@ -292,6 +316,7 @@ public abstract class Timer extends AsyncEvent {
     }
 
     public void start() {
+        // VM.println("[SCJ] " + this + " started ");
         start(false);
     }
 
@@ -325,5 +350,9 @@ public abstract class Timer extends AsyncEvent {
 
     public static void startTimerThread() {
         thread.start();
+    }
+
+    public static void stopTimerThread() {
+        thread.stop();
     }
 }

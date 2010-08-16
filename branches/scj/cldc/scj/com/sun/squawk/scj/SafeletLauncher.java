@@ -59,8 +59,9 @@ public class SafeletLauncher {
         };
 
         Timer.startTimerThread();
-        RealtimeThread thread = new RealtimeThread("SCJ-init", 500000, runner);
+        RealtimeThread thread = new RealtimeThread("SCJ-init", 2048, runner);
         thread.start();
         thread.join();
+        Timer.stopTimerThread();
     }
 }

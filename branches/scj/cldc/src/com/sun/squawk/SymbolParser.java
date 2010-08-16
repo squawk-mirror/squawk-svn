@@ -127,7 +127,17 @@ final class SymbolParser extends ByteBufferDecoder {
             return p1;
         }
         if (p2 == null) {
-            p2 = new SymbolParser(symbols, classTable);
+/*if[SCJ]*/
+            BackingStore newBS = BackingStore.getImmortal();
+            BackingStore oldBS = BackingStore.setCurrentContext(newBS);
+            try{
+                p2 = new SymbolParser(symbols, classTable);
+            }finally{                
+                BackingStore.setCurrentContext(oldBS);
+            }
+/*else[SCJ]*/
+//            p2 = new SymbolParser(symbols, classTable);
+/*end[SCJ]*/
         }
         if (p2.buf != symbols) {
 /*if[DEBUG_CODE_ENABLED]*/

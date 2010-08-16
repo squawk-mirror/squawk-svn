@@ -86,6 +86,9 @@ final class Monitor {
         thread.setInQueue(VMThread.Q_MONITOR);
         Assert.that(thread.nextThread == null);
         VMThread next = monitorQueue;
+/*if[SCJ]*/
+        BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         if (next == null) {
             monitorQueue = thread;
         } else {
@@ -94,6 +97,9 @@ final class Monitor {
             }
             next.nextThread = thread;
         }
+/*if[SCJ]*/
+        BackingStore.enableScopeCheck();
+/*end[SCJ]*/
     }
     
     /**
@@ -105,8 +111,14 @@ final class Monitor {
     void addMonitorWaitHead(VMThread thread) {
         thread.setInQueue(VMThread.Q_MONITOR);
         Assert.that(thread.nextThread == null);
+/*if[SCJ]*/
+        BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         thread.nextThread = monitorQueue;
         monitorQueue = thread;
+/*if[SCJ]*/
+        BackingStore.enableScopeCheck();
+/*end[SCJ]*/
     }
 
     /**
@@ -117,7 +129,13 @@ final class Monitor {
     VMThread removeMonitorWait() {
         VMThread thread = monitorQueue;
         if (thread != null) {
+/*if[SCJ]*/
+            BackingStore.disableScopeCheck();
+/*end[SCJ]*/
             monitorQueue = thread.nextThread;
+/*if[SCJ]*/
+            BackingStore.enableScopeCheck();
+/*end[SCJ]*/
             thread.setNotInQueue(VMThread.Q_MONITOR);
             thread.nextThread = null;
         }
@@ -134,6 +152,9 @@ final class Monitor {
         thread.monitor = this;
         Assert.that(thread.nextThread == null);
         VMThread next = condvarQueue;
+/*if[SCJ]*/
+        BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         if (next == null) {
             condvarQueue = thread;
         } else {
@@ -142,6 +163,9 @@ final class Monitor {
             }
             next.nextThread = thread;
         }
+/*if[SCJ]*/
+        BackingStore.enableScopeCheck();
+/*end[SCJ]*/
     }
 
     /**
@@ -152,7 +176,13 @@ final class Monitor {
     VMThread removeCondvarWait() {
         VMThread thread = condvarQueue;
         if (thread != null) {
+/*if[SCJ]*/
+            BackingStore.disableScopeCheck();
+/*end[SCJ]*/
             condvarQueue = thread.nextThread;
+/*if[SCJ]*/
+            BackingStore.enableScopeCheck();
+/*end[SCJ]*/
             thread.setNotInQueue(VMThread.Q_CONDVAR);
             thread.monitor = null;
             thread.nextThread = null;
@@ -169,6 +199,9 @@ final class Monitor {
         if (thread.inQueue(VMThread.Q_CONDVAR)) {
             VMThread next = condvarQueue;
             Assert.that(next != null);
+/*if[SCJ]*/
+            BackingStore.disableScopeCheck();
+/*end[SCJ]*/
             if (next == thread) {
                 condvarQueue = thread.nextThread;
             } else {
@@ -180,6 +213,9 @@ final class Monitor {
                     next.nextThread = thread.nextThread;
                 }
             }
+/*if[SCJ]*/
+            BackingStore.enableScopeCheck();
+/*end[SCJ]*/
             thread.setNotInQueue(VMThread.Q_CONDVAR);
             thread.monitor = null;
             thread.nextThread = null;

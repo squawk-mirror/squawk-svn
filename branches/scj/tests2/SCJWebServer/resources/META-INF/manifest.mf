@@ -1,0 +1,7 @@
+MIDlet-Name: eWebserver
+MIDlet-Version: 1.0.4
+MIDlet-Vendor: Sun Microsystems Inc
+MIDlet-1: , , com.sun.squawk.test.MySafelet
+MicroEdition-Profile: IMP-1.0
+MicroEdition-Configuration: CLDC-1.1
+BaseStationAddress: 0014.4F01.0000.01C7

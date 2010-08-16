@@ -1,10 +1,12 @@
 package javax.realtime;
 
+import javax.safetycritical.ManagedSchedulable;
 import javax.safetycritical.PrivateMemory;
 import javax.safetycritical.StorageParameters;
 
 import com.sun.squawk.BackingStore;
 import com.sun.squawk.VM;
+import com.sun.squawk.util.Assert;
 
 //@SCJAllowed(LEVEL_1)
 public class RealtimeThread extends Thread {
@@ -29,8 +31,10 @@ public class RealtimeThread extends Thread {
 	 */
     private PriorityParameters priority;
 
-    RealtimeThread() {
-    }
+    /**
+     * 
+     */
+    private ManagedSchedulable schedulable;
 
     /**
      * 
@@ -41,9 +45,13 @@ public class RealtimeThread extends Thread {
     public RealtimeThread(String string, int stackSize, Runnable logic) {
         super(logic, string, stackSize);
 
+/*if[SCJ]*/
         BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         bs = BackingStore.getScoped();
+/*if[SCJ]*/
         BackingStore.enableScopeCheck();
+/*end[SCJ]*/
 
         initArea = ImmortalMemory.instance();
         // TODO: default sPara and pPara??
@@ -58,15 +66,21 @@ public class RealtimeThread extends Thread {
             Runnable logic) {
         // TODO: check parameters and set priority
         super(logic, null, (int) checkStorageParameters(storage).getJavaStackSize());
-        this.priority = checkPriorityParameters(priority);
         this.storage = storage;
+        this.priority = checkPriorityParameters(priority);
+        this.setPriority(priority.getPriority());
 
+/*if[SCJ]*/
         BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         this.bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
                 (int) storage.getTotalBackingStoreSize());
+/*if[SCJ]*/
         BackingStore.enableScopeCheck();
+/*end[SCJ]*/
 
         this.initArea = new PrivateMemory(initMemSize, this);
+
         if (BackingStore.SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] Create RealtimeThread ");
             VM.println(getName());
@@ -77,12 +91,17 @@ public class RealtimeThread extends Thread {
             Runnable logic, BackingStore bs) {
         // TODO: check parameters and set priority
         super(logic, null, (int) checkStorageParameters(storage).getJavaStackSize());
-        this.priority = checkPriorityParameters(priority);
         this.storage = storage;
+        this.priority = checkPriorityParameters(priority);
+        this.setPriority(priority.getPriority());
 
+/*if[SCJ]*/
         BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         this.bs = bs;
+/*if[SCJ]*/
         BackingStore.enableScopeCheck();
+/*end[SCJ]*/
 
         this.initArea = new PrivateMemory(initMemSize, this);
 
@@ -90,10 +109,6 @@ public class RealtimeThread extends Thread {
             VM.print("[SCJ] Create RealtimeThread ");
             VM.println(getName());
         }
-    }
-
-    public MemoryArea getInitArea() {
-        return initArea;
     }
 
     protected StorageParameters getStorageParameters() {
@@ -111,7 +126,7 @@ public class RealtimeThread extends Thread {
      */
     // @SCJAllowed(LEVEL_2)
     public MemoryArea getMemoryArea() {
-        return getInitArea();
+        return initArea;
     }
 
     /**
@@ -179,13 +194,21 @@ public class RealtimeThread extends Thread {
     }
 
     public static int getMemoryAreaStackDepth() {
-        // TODO:
-        return -1;
+        return getCurrentMemoryArea().indexOnStack + 1;
     }
 
-    public static MemoryArea getOuterMemoryArea(int delta) {
-        // TODO:
-        return null;
+    public static MemoryArea getOuterMemoryArea(int index) {
+        MemoryArea area = getCurrentMemoryArea();
+        if (index < 0 || area.indexOnStack < index)
+            return null;
+        while (true) {
+            if (area.indexOnStack == index)
+                return area;
+            area = area.immediateOuter;
+            // The index must fall in the stack range. If not, something goes
+            // wrong.
+            Assert.always(area != null);
+        }
     }
 
     // @SCJAllowed(LEVEL_2)
@@ -198,23 +221,27 @@ public class RealtimeThread extends Thread {
             millisToSleep = time.getMilliseconds();
         }
         if (millisToSleep > 0) {
-//            VM.println("[SCJ] timer thread is going to sleep " + millisToSleep + "ms");
+            // VM.println("[SCJ] timer thread is going to sleep " +
+            // millisToSleep + "ms");
             Thread.sleep(millisToSleep);
         }
     }
 
-    public static boolean waitForNextRelease() {
-        // TODO:
-        return false;
-    }
-
     private static PriorityParameters checkPriorityParameters(PriorityParameters priority) {
-        // TODO:
+        // TODO: revise the check
+        if (priority == null)
+            throw new IllegalArgumentException(
+                    "Priority parameter cannot be null; No default for now!");
+        int prio = priority.getPriority();
+        if (prio < Thread.MIN_PRIORITY || prio > Thread.MAX_PRIORITY)
+            throw new IllegalArgumentException("Priority must fall in the range of "
+                    + Thread.MIN_PRIORITY + " - " + Thread.MAX_PRIORITY + ". Current priority: "
+                    + prio);
         return priority;
     }
 
     private static StorageParameters checkStorageParameters(StorageParameters storage) {
-        // TODO:
+        // TODO: what to do?
         return storage;
     }
 
@@ -222,5 +249,13 @@ public class RealtimeThread extends Thread {
         initArea.enter(this);
         initArea.destroyBS();
         initArea = null;
+    }
+
+    public ManagedSchedulable getManagedSchedulable() {
+        return schedulable;
+    }
+
+    public void setManagedSchedulable(ManagedSchedulable schedulable) {
+        this.schedulable = schedulable;
     }
 }

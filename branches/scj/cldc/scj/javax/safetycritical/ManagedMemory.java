@@ -70,17 +70,17 @@ public abstract class ManagedMemory extends ScopedMemory {
     // @SCJAllowed
     public void enterPrivateMemory(long size, Runnable logic) {
         RealtimeThread current = RealtimeThread.currentRealtimeThread();
-//        if (current != getOwner())
-//            throw new IllegalStateException("Cannot enter private memory not owned. Current:["
-//                    + current + "] Owner:[" + getOwner() + "]");
+        if (current.getManagedSchedulable() != getOwner())
+            throw new IllegalStateException("Cannot enter private memory not owned. Current:["
+                    + current.getManagedSchedulable() + "] Owner:[" + getOwner() + "]");
         if (nested == null) {
             BackingStore.disableScopeCheck();
             nested = new PrivateMemory(size, current);
             BackingStore.enableScopeCheck();
-
+            nested.setManager(getManager());
             nested.setOwner(getOwner());
         } else {
-            nested.allocBS(size, current);
+            nested.reserveBackingStore(size, current);
         }
         nested.enter(logic);
         nested.destroyBS();
@@ -92,6 +92,7 @@ public abstract class ManagedMemory extends ScopedMemory {
      */
     // @SCJAllowed
     public ManagedSchedulable getOwner() {
+//        Assert.always(owner != null, "Owner of " + this + " is null!");
         return owner;
     }
 
@@ -110,9 +111,13 @@ public abstract class ManagedMemory extends ScopedMemory {
      */
     // @SCJAllowed(INFRASTRUCTURE)
     void setManager(MissionManager manager) {
+/*if[SCJ]*/
         BackingStore.disableScopeCheck();
+/*end[SCJ]*/
         this.manager = manager;
+/*if[SCJ]*/
         BackingStore.enableScopeCheck();
+/*end[SCJ]*/
     }
 
     /**
@@ -121,6 +126,7 @@ public abstract class ManagedMemory extends ScopedMemory {
      */
     // @SCJAllowed(INFRASTRUCTURE)
     MissionManager getManager() {
+        Assert.always(manager != null, "Manager of " + this + " is null!");
         return manager;
     }
 }
