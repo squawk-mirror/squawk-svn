@@ -1,7 +1,8 @@
 package javax.safetycritical;
 
-import javax.realtime.RealtimeThread;
 import javax.realtime.SizeEstimator;
+
+import com.sun.squawk.BackingStore;
 
 //@SCJAllowed
 public final class PrivateMemory extends ManagedMemory {
@@ -30,7 +31,7 @@ public final class PrivateMemory extends ManagedMemory {
      * @param size
      * @param container
      */
-    public PrivateMemory(long size, RealtimeThread thread) {
-        super(size, thread);
+    public PrivateMemory(long size, BackingStore from) {
+        super(size, from);
     }
 }

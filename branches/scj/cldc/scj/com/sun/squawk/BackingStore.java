@@ -92,7 +92,7 @@ public final class BackingStore implements GlobalStaticFields {
     /**
      * The size of BS instance rounded up to word
      */
-    private static int INSTANCE_SIZE;
+    private static int SIZE_OF_BackingStore;
 
     /**
      * The size of BS instance rounded up to word
@@ -132,7 +132,7 @@ public final class BackingStore implements GlobalStaticFields {
     /**
      * The Klass instance of BackingStore
      */
-    private static Klass BS_KLASS;
+    private static Klass KLASS_OF_BackingStore;
 
     /**
      * The global current allocate context. The thread getting rescheduled in
@@ -227,20 +227,29 @@ public final class BackingStore implements GlobalStaticFields {
         SCJ_DEBUG_ENABLED = Klass.DEBUG_CODE_ENABLED;
         SCJ_DEBUG_ALLOC = false;
 
-        BS_KLASS = bootstrapSuite.lookup("com.sun.squawk.BackingStore");
-        INSTANCE_SIZE = roundUpToWord(HDR.basicHeaderSize + BS_KLASS.getInstanceSize()
-                * HDR.BYTES_PER_WORD);
+        KLASS_OF_BackingStore = bootstrapSuite.lookup("com.sun.squawk.BackingStore");
+        SIZE_OF_BackingStore = HDR.basicHeaderSize + KLASS_OF_BackingStore.getInstanceSize()
+                * HDR.BYTES_PER_WORD;
+
+        Klass KLASS_OF_Monitor = bootstrapSuite.lookup("com.sun.squawk.Monitor");
+        Klass KLASS_OF_ObjectAssociation = bootstrapSuite
+                .lookup("com.sun.squawk.ObjectAssociation");
+        SIZE_OF_Monitor = HDR.basicHeaderSize + KLASS_OF_Monitor.getInstanceSize()
+                * HDR.BYTES_PER_WORD;
+        SIZE_OF_ObjectAssociation = HDR.basicHeaderSize
+                + KLASS_OF_ObjectAssociation.getInstanceSize() * HDR.BYTES_PER_WORD;
+
         SEARCHTABLE_CAPACITY = 2;
 
         bsCounter = 0;
 
         immortal = convertToBackingStore(immortalStart, immortalEnd);
-        immortal.size = immortal.realSize - INSTANCE_SIZE;
+        immortal.size = immortal.realSize - SIZE_OF_BackingStore;
         immortal.spaceRemaining = immortal.size;
         GC.getKlass(immortal);
 
         scoped = convertToBackingStore(scopedStart, scopedEnd);
-        scoped.size = scoped.realSize - INSTANCE_SIZE;
+        scoped.size = scoped.realSize - SIZE_OF_BackingStore;
         scoped.spaceRemaining = scoped.size;
 
         currentAllocContext = immortal;
@@ -383,13 +392,13 @@ public final class BackingStore implements GlobalStaticFields {
     private void increaseAllocTop(int offset) {
         allocTop = allocTop.add(offset);
         Assert.always(allocTop.loeq(allocEnd), "allocTop > allocEnd");
-        Assert.always(allocTop.hieq(allocStart.add(INSTANCE_SIZE)), "allocTop < BS Header");
+        Assert.always(allocTop.hieq(allocStart.add(SIZE_OF_BackingStore)), "allocTop < BS Header");
         spaceRemaining -= offset;
     }
 
     private void increaseAllocEnd(int offset) {
         allocEnd = allocEnd.add(offset);
-        Assert.always(allocEnd.hieq(allocStart.add(INSTANCE_SIZE)), "allocEnd < BS Header");
+        Assert.always(allocEnd.hieq(allocStart.add(SIZE_OF_BackingStore)), "allocEnd < BS Header");
         size += offset;
         realSize += offset;
         spaceRemaining += offset;
@@ -512,6 +521,34 @@ public final class BackingStore implements GlobalStaticFields {
         return ret;
     }
 
+    private static int SIZE_OF_Monitor;
+    private static int SIZE_OF_ObjectAssociation;
+
+    /**
+     * Get the upper bound of size of memory consumed for the object being
+     * existing. This includes header, body, monitor, object association ...
+     * TODO: what else??
+     * 
+     * @param clazz
+     *            the object class if arrayLength == -1; the component class if
+     *            arrayLength > -1
+     * @param arrayLength
+     *            the array length; -1 if not an array.
+     * @return
+     */
+    public static int getConsumedMemorySize(Class clazz, int arrayLength) {
+        int size;
+        Klass klass = Klass.asKlass(clazz);
+        if (arrayLength == -1) {
+            size = (klass.getInstanceSize() * HDR.BYTES_PER_WORD) + HDR.basicHeaderSize;
+        } else {
+            size = GC.roundUpToWord(klass.getDataSize() * arrayLength + HDR.arrayHeaderSize);
+        }
+        size += SIZE_OF_Monitor;
+        size += SIZE_OF_ObjectAssociation;
+        return size;
+    }
+
     // for debug
     private static String illegalAssignment;
     private static String leftBrackets;
@@ -568,10 +605,6 @@ public final class BackingStore implements GlobalStaticFields {
         return isLeaf() ? this : topTable.search(addr);
     }
 
-    static int roundUpToWord(int value) {
-        return (value + HDR.BYTES_PER_WORD - 1) & ~(HDR.BYTES_PER_WORD - 1);
-    }
-
     /**
      * Convert a block of memory to backing store, where the BS instance locates
      * at the front of the block. Following fields will be set:
@@ -583,16 +616,16 @@ public final class BackingStore implements GlobalStaticFields {
      */
     private static BackingStore convertToBackingStore(Address start, Address end) {
         int allocSize = end.diff(start).toInt();
-        Assert.that(allocSize >= INSTANCE_SIZE,
+        Assert.that(allocSize >= SIZE_OF_BackingStore,
                 "Memory too small to contain BackingStore instance itself!");
 
         Address oop = start.add(HDR.basicHeaderSize);
 
-        NativeUnsafe.setObject(oop, HDR.klass, BS_KLASS);
+        NativeUnsafe.setObject(oop, HDR.klass, KLASS_OF_BackingStore);
         BackingStore bs = (BackingStore) oop.toObject();
 
         bs.allocStart = start;
-        bs.allocTop = start.add(INSTANCE_SIZE);
+        bs.allocTop = start.add(SIZE_OF_BackingStore);
         bs.allocEnd = end;
         bs.realSize = allocSize;
         bs.id = bsCounter++;
@@ -722,7 +755,7 @@ public final class BackingStore implements GlobalStaticFields {
             topTable.extendIfNeed();
         currentAllocContext = oldBS;
 
-        int allocSize = size + INSTANCE_SIZE;
+        int allocSize = size + SIZE_OF_BackingStore;
         if (spaceRemaining < allocSize) {
             throw VM.getOutOfMemoryError();
         }
@@ -794,7 +827,7 @@ public final class BackingStore implements GlobalStaticFields {
         }
 
         Address oldTop = allocTop;
-        increaseAllocTop(-oldTop.diff(allocStart.add(INSTANCE_SIZE)).toInt());
+        increaseAllocTop(-oldTop.diff(allocStart.add(SIZE_OF_BackingStore)).toInt());
         VM.zeroWords(allocTop, oldTop);
 
         topTable = null;

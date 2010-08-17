@@ -17,4 +17,11 @@ public abstract class AperiodicEventHandler extends ManagedEventHandler {
             StorageParameters storage, long initMemSize, String name) {
         super(priority, aperiod, storage, initMemSize, name);
     }
+
+    public void start() {
+    }
+
+    public void stop() {
+        super.stop();
+    }
 }

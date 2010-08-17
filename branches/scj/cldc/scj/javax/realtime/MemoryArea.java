@@ -23,8 +23,14 @@ public abstract class MemoryArea implements AllocationContext {
      */
     private BackingStore bs;
 
+    /**
+     * Immortal's index is 0
+     */
     int indexOnStack;
 
+    /**
+     * The immediate out memory area on the scope stack
+     */
     MemoryArea immediateOuter;
 
     /**
@@ -44,7 +50,7 @@ public abstract class MemoryArea implements AllocationContext {
      * @param size
      * @param container
      */
-    public MemoryArea(long size, RealtimeThread from) {
+    public MemoryArea(long size, BackingStore from) {
         reserveBackingStore(size, from);
         immediateOuter = RealtimeThread.getCurrentMemoryArea();
         indexOnStack = immediateOuter.indexOnStack + 1;
@@ -184,22 +190,22 @@ public abstract class MemoryArea implements AllocationContext {
         }
     }
 
-    public void reserveBackingStore(long size, RealtimeThread from) {
+    public void reserveBackingStore(long size) {
+        reserveBackingStore(size, RealtimeThread.currentRealtimeThread().getBackingStore());
+    }
+
+    public void reserveBackingStore(long size, BackingStore from) {
         Assert.always(bs == null,
                 "MemoryArea: cannot allocate new backing store without destroying the old one.");
         if (size < 0)
             throw new IllegalArgumentException("Memory size cannot be negative.");
         this.size = size;
         if (from == null)
-            throw new Error("Resource thread cannot be null.");
+            throw new Error("Resource backing store cannot be null.");
 
-        /* if[SCJ] */
         BackingStore.disableScopeCheck();
-        /* end[SCJ] */
-        bs = from.getBackingStore().excavate((int) size);
-        /* if[SCJ] */
+        bs = from.excavate((int) size);
         BackingStore.enableScopeCheck();
-        /* end[SCJ] */
         bs.setMirror(this);
         Assert.always(bs != null, "MemoryArea: failed to allocate new backing store.");
     }
@@ -213,6 +219,6 @@ public abstract class MemoryArea implements AllocationContext {
 
     // just for debug
     public BackingStore getBS() {
-        return this.bs;
+        return bs;
     }
 }

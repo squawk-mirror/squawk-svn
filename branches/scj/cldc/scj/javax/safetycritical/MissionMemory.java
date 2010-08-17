@@ -1,6 +1,5 @@
 package javax.safetycritical;
 
-import javax.realtime.RealtimeThread;
 
 public final class MissionMemory extends ManagedMemory {
 
@@ -8,15 +7,15 @@ public final class MissionMemory extends ManagedMemory {
         super(size);
     }
 
-    /**
-     * allocate BS from specified BS
-     * 
-     * @param size
-     * @param container
-     */
-    public MissionMemory(long size, RealtimeThread thread) {
-        super(size, thread);
-    }
+//    /**
+//     * allocate BS from specified BS
+//     * 
+//     * @param size
+//     * @param container
+//     */
+//    public MissionMemory(long size, BackingStore from) {
+//        super(size, from);
+//    }
 
     // @SCJAllowed
     public String toString() {

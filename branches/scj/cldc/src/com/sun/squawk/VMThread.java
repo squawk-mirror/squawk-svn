@@ -2616,7 +2616,7 @@ VM.println("creating stack:");
         this.apiThread     = apiThread;
         this.threadNumber  = nextThreadNumber++;
         this.state         = NEW;
-        this.stackSize     = BackingStore.roundUpToWord(stackSize) / HDR.BYTES_PER_WORD;
+        this.stackSize     = GC.roundUpToWord(stackSize) / HDR.BYTES_PER_WORD;
         
         Object target = NativeUnsafe.getObject(apiThread, (int)FieldOffsets.java_lang_Thread$target);
         if (target instanceof Isolate) {

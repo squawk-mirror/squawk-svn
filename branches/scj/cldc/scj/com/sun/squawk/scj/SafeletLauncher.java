@@ -1,7 +1,8 @@
 package com.sun.squawk.scj;
 
-import javax.realtime.RealtimeThread;
+import javax.realtime.ImmortalMemory;
 import javax.realtime.Timer;
+import javax.safetycritical.MissionSequencer;
 import javax.safetycritical.Safelet;
 
 import com.sun.squawk.Isolate;
@@ -21,6 +22,8 @@ public class SafeletLauncher {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
+        preInitialization();
+        
         String className = "com.sun.squawk.test.MySafelet";
         Isolate iso = Isolate.currentIsolate();
 
@@ -29,13 +32,6 @@ public class SafeletLauncher {
         // Give the Isolate and thread sensible names...
         iso.setName(className);
         VMThread.currentThread().setName(className + " - main");
-
-        // initialize all classes in all suites
-        // Suite suite = iso.getLeafSuite();
-        // while (suite != null) {
-        // BackingStore.preInitializeClassInSuite(suite);
-        // suite = suite.getParent();
-        // }
 
         try {
             klass = Klass.forName(className);
@@ -49,19 +45,22 @@ public class SafeletLauncher {
         }
         final Safelet safelet = (Safelet) klass.newInstance();
 
-        Runnable runner = new Runnable() {
-
-            public void run() {
-                safelet.setUp();
-                safelet.getSequencer().exec();
-                safelet.tearDown();
-            }
-        };
-
         Timer.startTimerThread();
-        RealtimeThread thread = new RealtimeThread("SCJ-init", 2048, runner);
-        thread.start();
-        thread.join();
+        safelet.setUp();
+        MissionSequencer seq = safelet.getSequencer();
+        seq.start();
+        seq.join();
+        safelet.tearDown();
         Timer.stopTimerThread();
+    }
+
+    public static void preInitialization() {
+        ImmortalMemory.instance();
+        // initialize all classes in all suites
+        // Suite suite = iso.getLeafSuite();
+        // while (suite != null) {
+        // BackingStore.preInitializeClassInSuite(suite);
+        // suite = suite.getParent();
+        // }
     }
 }

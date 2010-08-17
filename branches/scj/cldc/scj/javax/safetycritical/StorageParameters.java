@@ -1,6 +1,5 @@
 package javax.safetycritical;
 
-import com.sun.squawk.VM;
 
 //@SCJAllowed
 public class StorageParameters {

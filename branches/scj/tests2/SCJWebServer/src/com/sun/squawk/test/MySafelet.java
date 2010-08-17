@@ -36,12 +36,6 @@ import javax.safetycritical.Safelet;
 
 import org.sunspotworld.demo.Config;
 
-/**
- * Sample webserver running on an eSPOT which allows users to control and/or
- * monitor the SPOT using a web browser.
- * 
- * @author Vipul Gupta
- */
 public class MySafelet implements Safelet {
 
     public MissionSequencer getSequencer() {

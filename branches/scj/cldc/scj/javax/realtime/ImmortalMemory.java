@@ -5,7 +5,7 @@ import com.sun.squawk.BackingStore;
 //@SCJAllowed
 public final class ImmortalMemory extends MemoryArea {
 
-    private static ImmortalMemory instance;
+    private static ImmortalMemory instance = new ImmortalMemory();
 
     private ImmortalMemory() {
         super(BackingStore.getImmortal());
@@ -13,8 +13,8 @@ public final class ImmortalMemory extends MemoryArea {
 
     // @SCJAllowed
     public static ImmortalMemory instance() {
-        if (instance == null)
-            instance = new ImmortalMemory();
+//        if (instance == null)
+//            instance = new ImmortalMemory();
         return instance;
     }
 }

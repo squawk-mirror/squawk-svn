@@ -35,15 +35,8 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
         ManagedMemory.getCurrentManageMemory().getManager().addScheduble(this);
     }
 
-    public void start() {
-    }
-
     public void join() throws InterruptedException {
         thread.join();
-    }
-
-    public void stop() {
-        super.stop();
     }
 
     // @SCJAllowed

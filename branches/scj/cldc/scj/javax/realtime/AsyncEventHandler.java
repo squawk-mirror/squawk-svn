@@ -29,7 +29,7 @@ public class AsyncEventHandler implements Schedulable {
         }
     }
 
-    void release() {
+    public void release() {
         synchronized (lock) {
             if (fireCount++ == 0) {
 //                VM.println("[SCJ] " + this + " notified ...");
@@ -38,7 +38,7 @@ public class AsyncEventHandler implements Schedulable {
         }
     }
 
-    protected void stop() {
+    public void stop() {
         synchronized (lock) {
             fireCount = 0;
             stop = true;

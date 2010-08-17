@@ -12,103 +12,140 @@ import com.sun.squawk.util.Assert;
 public class RealtimeThread extends Thread {
 
     /**
-     * The total backing store space for this thread
+     * The backing store this thread owns
      */
     private BackingStore bs;
 
     /**
-     * 
+     * The initial memory area which this thread will be running in after
+     * started
      */
     private MemoryArea initArea;
 
     /**
-	 * 
-	 */
+     * The storage configuration parameter
+     */
     private StorageParameters storage;
 
     /**
-	 * 
-	 */
+     * The priority parameter
+     */
     private PriorityParameters priority;
 
     /**
-     * 
+     * The managed schedulable that this thread is dedicated to
      */
     private ManagedSchedulable schedulable;
 
     /**
-     * 
-     * @param isolate
-     * @param string
+     * The number of realtime threads created
      */
-    // @SCJAllowed(INFRASTRUCTURE)
-    public RealtimeThread(String string, int stackSize, Runnable logic) {
-        super(logic, string, stackSize);
+    private static int counter = 0;
 
-/*if[SCJ]*/
-        BackingStore.disableScopeCheck();
-/*end[SCJ]*/
-        bs = BackingStore.getScoped();
-/*if[SCJ]*/
-        BackingStore.enableScopeCheck();
-/*end[SCJ]*/
+    // /**
+    // * Only used in creating the initial real-time thread.
+    // *
+    // * @param isolate
+    // * @param string
+    // */
+    // // @SCJAllowed(INFRASTRUCTURE)
+    // public RealtimeThread(String string, int stackSize, Runnable logic) {
+    // super(logic, forgeName(), stackSize);
+    //
+    // BackingStore.disableScopeCheck();
+    // bs = BackingStore.getScoped();
+    // BackingStore.enableScopeCheck();
+    //
+    // initArea = ImmortalMemory.instance();
+    // // TODO: default sPara and pPara??
+    //
+    // if (BackingStore.SCJ_DEBUG_ENABLED) {
+    // VM.println("[SCJ] Create primordial realtime thread ");
+    // bs.printInfo();
+    // }
+    // }
 
-        initArea = ImmortalMemory.instance();
-        // TODO: default sPara and pPara??
-
-        if (BackingStore.SCJ_DEBUG_ENABLED) {
-            VM.println("[SCJ] Create primordial realtime thread ");
-            bs.printInfo();
-        }
-    }
-
+    /**
+     * This constructor takes all the listed parameters which are clear enough
+     * by reading the name. The backing store is taken from the parent real-time
+     * thread's backing store. Then the initial private memory takes its backing
+     * store from "this".
+     * 
+     * @param priority
+     * @param storage
+     * @param initMemSize
+     * @param logic
+     */
     public RealtimeThread(PriorityParameters priority, StorageParameters storage, long initMemSize,
             Runnable logic) {
-        // TODO: check parameters and set priority
-        super(logic, null, (int) checkStorageParameters(storage).getJavaStackSize());
-        this.storage = storage;
-        this.priority = checkPriorityParameters(priority);
-        this.setPriority(priority.getPriority());
-
-/*if[SCJ]*/
-        BackingStore.disableScopeCheck();
-/*end[SCJ]*/
-        this.bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
-                (int) storage.getTotalBackingStoreSize());
-/*if[SCJ]*/
-        BackingStore.enableScopeCheck();
-/*end[SCJ]*/
-
-        this.initArea = new PrivateMemory(initMemSize, this);
+        this(priority, storage, initMemSize, null, null, logic);
 
         if (BackingStore.SCJ_DEBUG_ENABLED) {
-            VM.print("[SCJ] Create RealtimeThread ");
+            VM.print("[SCJ] Created realtime thread: ");
             VM.println(getName());
         }
     }
 
-    public RealtimeThread(PriorityParameters priority, StorageParameters storage, long initMemSize,
-            Runnable logic, BackingStore bs) {
-        // TODO: check parameters and set priority
-        super(logic, null, (int) checkStorageParameters(storage).getJavaStackSize());
-        this.storage = storage;
-        this.priority = checkPriorityParameters(priority);
-        this.setPriority(priority.getPriority());
+    // /**
+    // * Only used in creating the initial real-time thread.
+    // *
+    // * @param priority
+    // * @param storage
+    // * @param initMemSize
+    // * @param logic
+    // * @param bs
+    // */
+    // public RealtimeThread(PriorityParameters priority, StorageParameters
+    // storage, Runnable logic) {
+    // this(checkPriorityParameters(priority), checkStorageParameters(storage),
+    // ImmortalMemory
+    // .instance(), BackingStore.getScoped(), logic);
+    //
+    // if (BackingStore.SCJ_DEBUG_ENABLED) {
+    // VM.println("[SCJ] Created initial realtime thread: ");
+    // VM.println(getName());
+    // }
+    // }
 
-/*if[SCJ]*/
-        BackingStore.disableScopeCheck();
-/*end[SCJ]*/
-        this.bs = bs;
-/*if[SCJ]*/
-        BackingStore.enableScopeCheck();
-/*end[SCJ]*/
-
-        this.initArea = new PrivateMemory(initMemSize, this);
+    /**
+     * Only used in creating mission sequencer thread since such thread does not
+     * initialize its run in private memory.
+     * 
+     * @param priority
+     * @param storage
+     * @param initMemSize
+     * @param logic
+     * @param bs
+     */
+    public RealtimeThread(PriorityParameters priority, StorageParameters storage,
+            MemoryArea initArea, Runnable logic) {
+        // if initArea is immortal, this is the primordial real time, so take
+        // the entire scoped backing store as my backing store
+        this(priority, storage, -1, initArea, initArea == ImmortalMemory.instance() ? BackingStore
+                .getScoped() : null, logic);
 
         if (BackingStore.SCJ_DEBUG_ENABLED) {
-            VM.print("[SCJ] Create RealtimeThread ");
+            VM.print("[SCJ] Created mission sequencer thread: ");
             VM.println(getName());
         }
+    }
+
+    private RealtimeThread(PriorityParameters priority, StorageParameters storage,
+            long initMemSize, MemoryArea initArea, BackingStore bs, Runnable logic) {
+        super(logic, forgeName(), (int) checkStorageParameters(storage).getJavaStackSize());
+        this.storage = storage;
+        this.priority = checkPriorityParameters(priority);
+        if (bs == null)
+            bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
+                    (int) storage.getTotalBackingStoreSize());
+        BackingStore.disableScopeCheck();
+        this.bs = bs;
+        BackingStore.enableScopeCheck();
+        if (initArea == null)
+            initArea = new PrivateMemory(initMemSize, bs);
+        this.initArea = initArea;
+
+        this.setPriority(priority.getPriority());
     }
 
     protected StorageParameters getStorageParameters() {
@@ -241,11 +278,16 @@ public class RealtimeThread extends Thread {
     }
 
     private static StorageParameters checkStorageParameters(StorageParameters storage) {
-        // TODO: what to do?
+        if (storage == null)
+            throw new IllegalArgumentException(
+                    "Storage parameter cannot be null; No default for now!");
         return storage;
     }
 
-    public void startRun() {
+    /**
+     * Called in VMThread.callRun() for entering the initial area.
+     */
+    public final void startRun() {
         initArea.enter(this);
         initArea.destroyBS();
         initArea = null;
@@ -257,5 +299,9 @@ public class RealtimeThread extends Thread {
 
     public void setManagedSchedulable(ManagedSchedulable schedulable) {
         this.schedulable = schedulable;
+    }
+
+    private synchronized static String forgeName() {
+        return "SCJ-Thread-" + counter++;
     }
 }

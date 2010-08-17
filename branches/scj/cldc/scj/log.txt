@@ -71,7 +71,20 @@ Memo:
   check removed statically, which is still simple, no harm to performance, and
   not related to threading issue.   
   
-  The currently known illegal assignment:
+  [[!!
+    We MUST: 
+      1) disable all illegal assignments that are known to be safe. An illegal
+         assignment is safe if all the references to a short live object will
+         be explicitly nulled before the object dies. One example includes the
+         hash tables used in Squawk. When an item becomes is dying, the entry
+         will be removed explicitly so no dangling pointer will come up. We must
+         be really careful to disable a check. We cannot disable it unless we
+         are sure the assignment is safe in any cases.
+      2) throw IllegalAssignmentError for the rests 
+  !!]]  
+  
+  The currently known illegal assignments (just some of them have been disabled
+  check.):
   
     * All of the static fields
         If the value is globally needed, should switch to immortal when allocating. 

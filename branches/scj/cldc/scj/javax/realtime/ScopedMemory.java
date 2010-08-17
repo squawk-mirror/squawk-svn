@@ -1,13 +1,12 @@
 package javax.realtime;
 
-public abstract class ScopedMemory extends MemoryArea implements
-        ScopedAllocationContext {
+import com.sun.squawk.BackingStore;
+
+public abstract class ScopedMemory extends MemoryArea implements ScopedAllocationContext {
 
     protected Object portal;
 
     protected ScopedMemory parent;
-
-    private static ScopedMemory primordialScope;
 
     /**
      * allocate BS from specified BS
@@ -15,8 +14,8 @@ public abstract class ScopedMemory extends MemoryArea implements
      * @param size
      * @param container
      */
-    public ScopedMemory(long size, RealtimeThread thread) {
-        super(size, thread);
+    public ScopedMemory(long size, BackingStore from) {
+        super(size, from);
     }
 
     public Object getPortal() throws MemoryAccessError, IllegalAssignmentError {
