@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import javax.safetycritical.Mission;
 
-import org.sunspotworld.demo.Config;
 import org.sunspotworld.demo.WebServer;
 
 public class MyMission extends Mission {

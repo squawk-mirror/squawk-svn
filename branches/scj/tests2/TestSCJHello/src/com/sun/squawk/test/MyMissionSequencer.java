@@ -10,15 +10,15 @@ public class MyMissionSequencer extends MissionSequencer {
     private MyMission mission = new MyMission();
 
     public MyMissionSequencer() {
-        super(null, null);
+        super(Config.priority, Config.storage);
     }
 
     protected Mission getNextMission() {
-        if (counter++ < 1) {
+        if (counter++ < Config.nMissions) {
             System.out.println("[SCJ Hello] Safelet get next mission ... ");
             mission.turn = counter - 1;
             return mission;
-        } 
+        }
         return null;
     }
 }

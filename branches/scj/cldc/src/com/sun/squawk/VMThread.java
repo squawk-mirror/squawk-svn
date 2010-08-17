@@ -337,6 +337,14 @@ public final class VMThread implements GlobalStaticFields {
         timerQueue.add(thread, millis);
     }
 
+/*if[SCJ]*/
+    private static void addToTimerQueueAbsolute(VMThread thread, long millis) {
+        Assert.that(thread != null);
+        thread.setInQueue(Q_TIMER);
+        timerQueue.addAbsolute(thread, millis);
+    }
+/*end[SCJ]*/
+
     /**
      * Causes the currently executing thread to sleep (temporarily cease
      * execution) for the specified number of milliseconds. The thread
@@ -367,6 +375,28 @@ public final class VMThread implements GlobalStaticFields {
             currentThread.handlePendingInterrupt();
         }
     }
+
+/*if[SCJ]*/
+    public static void sleepAbsolute(long millis) throws InterruptedException {
+        if (millis < 0) {
+            throw new IllegalArgumentException("negative sleep time");
+        }
+
+        // Was the thread interrupted?
+        currentThread.handlePendingInterrupt();
+
+        if (millis > 0) {
+/*if[FINALIZATION]*/
+            startFinalizers();
+/*end[FINALIZATION]*/
+            addToTimerQueueAbsolute(currentThread, millis);
+            reschedule();
+
+            // Was the thread interrupted?
+            currentThread.handlePendingInterrupt();
+        }
+    }
+/*end[SCJ]*/
 
     /**
      * Adds a given thread to the queue of runnable threads.
@@ -2382,6 +2412,62 @@ VM.println("creating stack:");
         theCurrentThread.checkInvarients();
         Assert.that(monitor.owner == theCurrentThread);
     }
+    
+/*if[SCJ]*/
+    public static void monitorWaitAbsolute(Object object, long millis) throws InterruptedException {
+        VMThread theCurrentThread = VMThread.currentThread;
+        theCurrentThread.checkInvarients();
+        Monitor monitor = getMonitor(object);
+
+        // Throw an exception if things look bad
+        if (monitor.owner != theCurrentThread) {
+            throwIllegalMonitorStateException(monitor, object);
+        }
+
+        // Was the thread interrupted?
+        theCurrentThread.handlePendingInterrupt();
+
+/*if[SMARTMONITORS]*/
+        // Record that the monitor was waited upon.
+        monitor.hasHadWaiter = true;
+/*end[SMARTMONITORS]*/
+
+        // Add to timer queue if time is > 0
+        timerQueue.addAbsolute(theCurrentThread, millis);
+
+        // Save the nesting depth so it can be restored when it regains the monitor.
+        theCurrentThread.monitorDepth = monitor.depth;
+
+        // Add to the wait queue
+        monitor.addCondvarWait(theCurrentThread);
+
+        // Having relinquished the monitor, get the next thread off its wait queue.
+        releaseMonitor(monitor);
+//traceMonitor("monitorWait: released monitor: ", monitor, object);
+
+        // Wait for a notify or a timeout.
+        Assert.that(monitor.condvarQueue != null);
+        Assert.that(theCurrentThread.monitor == monitor);
+        reschedule();
+        
+        // OK, wait has been notified or timed out.
+        // Can we actually get the monitor? Try and try again.
+        // Note that the Monitor may have been replaced while we were rescheduled
+        monitor = retryMonitor(object);
+        
+        
+ // TODO: Why need an explicit monitor? If monitorDepth==1, and we could get a virtual monitor now, that would be fine.
+        
+//traceMonitor("monitorWait: woke up and re-locked: ", monitor, object);
+
+        // Was the thread interrupted?
+        theCurrentThread.handlePendingInterrupt();
+
+        // Safety...
+        theCurrentThread.checkInvarients();
+        Assert.that(monitor.owner == theCurrentThread);
+    }
+/*end[SCJ]*/
 
     /**
      * Notify an object.
@@ -3128,43 +3214,64 @@ final class TimerQueue {
      */
     VMThread first;
     
-/*if[REAL_TIME]*/
+/*if[!REAL_TIME]*/
     /**
-     * delta in ms
+     * Add a thread to the queue.
+     *
+     * @param thread the thread to add
+     * @param delta the time period
      */
     void add(VMThread thread, long delta) {
         Assert.that(thread.nextTimerThread == null);
-        if (delta < 0) {
+        long time = VM.getTimeMillis() + delta;
+        if (time < 0) {
 
            /*
             * If delta is so huge that the time went negative then just make
             * it a very large value. The universe will end before the error
             * can be detected.
             */
-            delta = Long.MAX_VALUE;
+            time = Long.MAX_VALUE;
         }
-        thread.time = delta * 100000 / VMThread.TICK;
+        thread.time = time;
         if (first == null) {
             first = thread;
         } else {
-            if (first.time > delta) {
-                first.time -= delta;
+            if (first.time > time) {
                 thread.nextTimerThread = first;
                 first = thread;
             } else {
                 VMThread last = first;
-                while (last.nextTimerThread != null && last.nextTimerThread.time < delta) {
-                    delta -= last.nextTimerThread.time;
+                while (last.nextTimerThread != null && last.nextTimerThread.time < time) {
                     last = last.nextTimerThread;
                 }
-                thread.time = delta;
                 thread.nextTimerThread = last.nextTimerThread;
                 last.nextTimerThread = thread;
-                if(thread.nextTimerThread != null)
-                    thread.nextTimerThread.time -= delta;
             }
         }
     }
+
+/*if[SCJ]*/
+    void addAbsolute(VMThread thread, long time) {
+        Assert.that(thread.nextTimerThread == null);
+        thread.time = time;
+        if (first == null) {
+            first = thread;
+        } else {
+            if (first.time > time) {
+                thread.nextTimerThread = first;
+                first = thread;
+            } else {
+                VMThread last = first;
+                while (last.nextTimerThread != null && last.nextTimerThread.time < time) {
+                    last = last.nextTimerThread;
+                }
+                thread.nextTimerThread = last.nextTimerThread;
+                last.nextTimerThread = thread;
+            }
+        }
+    }
+/*end[SCJ]*/
 
     /**
      * Get the next thread in the queue that has reached its time.
@@ -3173,15 +3280,12 @@ final class TimerQueue {
      */
     VMThread next() {
         VMThread thread = first;
-        if (thread == null || thread.time > 0) {
+        if (thread == null || thread.time > VM.getTimeMillis()) {
             return null;
         }
         first = first.nextTimerThread;
-        // the head delta might be negative because of the deadline miss.
-        // propagate the effect to the following detlas.
-        if(first != null)
-            first.time += thread.time;
         thread.nextTimerThread = null;
+        Assert.that(thread.time != 0);
         thread.time = 0;
         return thread;
     }
@@ -3223,7 +3327,16 @@ final class TimerQueue {
      * @return the time
      */
     long nextDelta() {
-        return first == null ? Long.MAX_VALUE : first.time;
+        if (first != null) {
+            long now = VM.getTimeMillis();
+            if (now >= first.time) {
+                return 0;
+            }
+            long res = first.time - now;
+            return res;
+        } else {
+            return Long.MAX_VALUE;
+        }
     }
 
 
@@ -3233,7 +3346,7 @@ final class TimerQueue {
      *
      * @param isolate  the isolate whose timer-blocked threads are to be removed
      */
-    void prune(Isolate isolate) {//TODO:
+    void prune(Isolate isolate) {
         start:
         while (true) {
             VMThread t = first;
@@ -3252,37 +3365,38 @@ final class TimerQueue {
     }
 /*else[REAL_TIME]*/
 //    /**
-//     * Add a thread to the queue.
-//     *
-//     * @param thread the thread to add
-//     * @param delta the time period
+//     * delta in ms
 //     */
 //    void add(VMThread thread, long delta) {
 //        Assert.that(thread.nextTimerThread == null);
-//        long time = VM.getTimeMillis() + delta;
-//        if (time < 0) {
+//        if (delta < 0) {
 //
 //           /*
 //            * If delta is so huge that the time went negative then just make
 //            * it a very large value. The universe will end before the error
 //            * can be detected.
 //            */
-//            time = Long.MAX_VALUE;
+//            delta = Long.MAX_VALUE;
 //        }
-//        thread.time = time;
+//        thread.time = delta * 100000 / VMThread.TICK;
 //        if (first == null) {
 //            first = thread;
 //        } else {
-//            if (first.time > time) {
+//            if (first.time > delta) {
+//                first.time -= delta;
 //                thread.nextTimerThread = first;
 //                first = thread;
 //            } else {
 //                VMThread last = first;
-//                while (last.nextTimerThread != null && last.nextTimerThread.time < time) {
+//                while (last.nextTimerThread != null && last.nextTimerThread.time < delta) {
+//                    delta -= last.nextTimerThread.time;
 //                    last = last.nextTimerThread;
 //                }
+//                thread.time = delta;
 //                thread.nextTimerThread = last.nextTimerThread;
 //                last.nextTimerThread = thread;
+//                if(thread.nextTimerThread != null)
+//                    thread.nextTimerThread.time -= delta;
 //            }
 //        }
 //    }
@@ -3294,12 +3408,15 @@ final class TimerQueue {
 //     */
 //    VMThread next() {
 //        VMThread thread = first;
-//        if (thread == null || thread.time > VM.getTimeMillis()) {
+//        if (thread == null || thread.time > 0) {
 //            return null;
 //        }
 //        first = first.nextTimerThread;
+//        // the head delta might be negative because of the deadline miss.
+//        // propagate the effect to the following detlas.
+//        if(first != null)
+//            first.time += thread.time;
 //        thread.nextTimerThread = null;
-//        Assert.that(thread.time != 0);
 //        thread.time = 0;
 //        return thread;
 //    }
@@ -3341,16 +3458,7 @@ final class TimerQueue {
 //     * @return the time
 //     */
 //    long nextDelta() {
-//        if (first != null) {
-//            long now = VM.getTimeMillis();
-//            if (now >= first.time) {
-//                return 0;
-//            }
-//            long res = first.time - now;
-//            return res;
-//        } else {
-//            return Long.MAX_VALUE;
-//        }
+//        return first == null ? Long.MAX_VALUE : first.time;
 //    }
 //
 //
@@ -3360,7 +3468,7 @@ final class TimerQueue {
 //     *
 //     * @param isolate  the isolate whose timer-blocked threads are to be removed
 //     */
-//    void prune(Isolate isolate) {
+//    void prune(Isolate isolate) {//TODO:
 //        start:
 //        while (true) {
 //            VMThread t = first;

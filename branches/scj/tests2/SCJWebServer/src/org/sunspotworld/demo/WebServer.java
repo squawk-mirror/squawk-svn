@@ -13,6 +13,8 @@ import java.io.IOException;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnectionNotifier;
 
+import com.sun.squawk.test.Config;
+
 public class WebServer {
 
     NanoHTTP server;

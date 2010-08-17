@@ -6,6 +6,7 @@ import javax.safetycritical.StorageParameters;
 
 import com.sun.squawk.BackingStore;
 import com.sun.squawk.VM;
+import com.sun.squawk.VMThread;
 import com.sun.squawk.util.Assert;
 
 //@SCJAllowed(LEVEL_1)
@@ -250,17 +251,11 @@ public class RealtimeThread extends Thread {
 
     // @SCJAllowed(LEVEL_2)
     public static void sleep(HighResolutionTime time) throws InterruptedException {
-        // FIXME: this is an temporary implementation. Not real-time at all!!
-        long millisToSleep = 0;
+        // FIXME: Nanos are simply ignored for now. 
         if (time instanceof AbsoluteTime) {
-            millisToSleep = time.getMilliseconds() - VM.getTimeMillis();
+            VMThread.sleepAbsolute(time.getMilliseconds());
         } else {
-            millisToSleep = time.getMilliseconds();
-        }
-        if (millisToSleep > 0) {
-            // VM.println("[SCJ] timer thread is going to sleep " +
-            // millisToSleep + "ms");
-            Thread.sleep(millisToSleep);
+            VMThread.sleep(time.getMilliseconds());
         }
     }
 

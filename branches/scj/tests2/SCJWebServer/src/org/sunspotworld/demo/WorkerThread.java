@@ -10,6 +10,7 @@ import javax.safetycritical.ManagedMemory;
 import javax.safetycritical.PeriodicEventHandler;
 
 import com.sun.squawk.BackingStore;
+import com.sun.squawk.test.Config;
 
 public class WorkerThread extends PeriodicEventHandler {
 

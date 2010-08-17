@@ -1,5 +1,6 @@
 package javax.realtime;
 
+import com.sun.squawk.VMThread;
 import com.sun.squawk.util.Assert;
 
 //@SCJAllowed
@@ -113,28 +114,12 @@ public abstract class HighResolutionTime implements Comparable {
     // @SCJAllowed(LEVEL_2)
     public static void waitForObject(java.lang.Object target, HighResolutionTime time)
             throws java.lang.InterruptedException {
-        long waitMillis = Long.MAX_VALUE;
-        int waitNanos = 0;
-        if (time instanceof RelativeTime) {
-            int res = ((RelativeTime) time).compareTo(RelativeTime.ZERO);
-            if (res < 0)
-                throw new IllegalArgumentException("Timeout cannot be negative!");
-            if (res > 0) {
-                waitMillis = time.millis;
-                waitNanos = time.nanos;
-            }
-        } else if (time != null) {
-            /*
-             * the use currentTimeBuf is thread safe as long as waitForObject()
-             */
-            time = ((AbsoluteTime) time).subtract(time.clock.getTime());
-            if (time.compareTo(RelativeTime.ZERO) > 0) {
-                waitMillis = time.millis;
-                waitNanos = time.nanos;
-            } else
-                return;
+        // FIXME: Nanos are simply ignored for now. 
+        if (time instanceof AbsoluteTime) {
+            VMThread.monitorWaitAbsolute(target, time.getMilliseconds());
+        } else {
+            VMThread.monitorWait(target, time.getMilliseconds());
         }
-        target.wait(waitMillis, waitNanos);
     }
 
     protected HighResolutionTime add(long millis, int nanos, HighResolutionTime dest) {

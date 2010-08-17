@@ -34,7 +34,6 @@ package com.sun.squawk.test;
 import javax.safetycritical.MissionSequencer;
 import javax.safetycritical.Safelet;
 
-import org.sunspotworld.demo.Config;
 
 public class MySafelet implements Safelet {
 
