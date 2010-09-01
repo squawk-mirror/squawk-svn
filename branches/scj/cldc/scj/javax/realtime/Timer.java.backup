@@ -1,0 +1,212 @@
+package javax.realtime;
+
+
+public abstract class TimerBackup1 extends AsyncEvent {
+
+    private static class TimerThread extends Thread {
+        public void run() {
+
+        }
+
+        void add(TimerBackup1 timer) {
+        }
+    }
+
+    private static TimerThread thread;
+
+    private TimerBackup1 prev;
+    private TimerBackup1 next;
+    private Clock clock;
+    private AsyncEventHandler handler;
+    private boolean last_rescheduled_with_AbsoluteTime;
+    private boolean fired_or_skipped_in_current_activation;
+    private Object lock = new Object();
+
+    private AbsoluteTime targetTime = new AbsoluteTime();
+    private AbsoluteTime nextTargetTime = new AbsoluteTime();
+    private RelativeTime durationTime = new RelativeTime();
+    private RelativeTime nextDurationTime = new RelativeTime();
+    private RelativeTime countingTime = new RelativeTime();
+    private AbsoluteTime fireTime = new AbsoluteTime();
+    private AbsoluteTime currentTime = new AbsoluteTime();
+    /*
+     * The timer is periodic if period != null. This field is supposed to set in
+     * PeriodicTimer constructor.
+     */
+    protected RelativeTime period;
+
+    /* 8 bit bitmap with format 0000 | destroyed | active | enabled | relative | */
+    private char currentState;
+    private static final char INACTIVE_DISABLED_ABSOLUTE = 0;
+    private static final char INACTIVE_DISABLED_RELATIVE = 1;
+    private static final char ACTIVE_ENABLED_ABSOLUTE = 6;
+    private static final char ACTIVE_ENABLED_RELATIVE = 7;
+    private static final char ACTIVE_DISABLED_ABSOLUTE = 4;
+    private static final char ACTIVE_DISABLED_RELATIVE = 5;
+
+    private static final char RELATIVE = 1;
+    private static final char ENABLED = 2;
+    private static final char ACTIVE = 4;
+    private static final char DESTROYED = 8;
+
+    protected TimerBackup1(HighResolutionTime time, Clock clock, AsyncEventHandler handler) {
+        if (time instanceof AbsoluteTime) {
+            nextTargetTime.set(time);
+            last_rescheduled_with_AbsoluteTime = true;
+            currentState = INACTIVE_DISABLED_ABSOLUTE;
+        } else {
+            nextDurationTime.set(time);
+            last_rescheduled_with_AbsoluteTime = false;
+            currentState = INACTIVE_DISABLED_RELATIVE;
+        }
+    }
+
+    public void start() {
+        start(false);
+    }
+
+    private void gotoState(char targetState) {
+        currentState = targetState;
+        boolean active = (currentState & ACTIVE) > 0;
+        boolean enabled = (currentState & ENABLED) > 0;
+        boolean relative = (currentState & RELATIVE) > 0;
+        if (active) {
+            // is current schedule relative or absolute
+            boolean needFire;
+            if (relative)
+                needFire = countingTime.compareTo(durationTime) >= 0;
+            else
+                needFire = clock.getTime(currentTime).compareTo(targetTime) >= 0;
+            if (needFire) {
+                if (enabled)
+                    fire();
+                if (period != null) {
+                    // if periodic timer, reschedule for the next shot with
+                    // state unchanged
+                    fired_or_skipped_in_current_activation = true;
+                    if (relative)
+                        durationTime = durationTime.add(period, durationTime);
+                    else
+                        targetTime = targetTime.add(period, targetTime);
+                    gotoState(currentState);
+                } else {
+                    // if one shot timer, goto INACTIVE | DISABLED | unchanged
+                    gotoState((char) (currentState & INACTIVE_DISABLED_RELATIVE));
+                }
+            }
+        } else if (period != null)
+            fired_or_skipped_in_current_activation = false;
+    }
+
+    public ReleaseParameters createReleaseParameters() {
+        return null;
+    }
+
+    public void enable() {
+        if ((currentState & DESTROYED) > 0)
+            throw new IllegalStateException();
+        // if active and disabled, enable it. Otherwise, do nothing.
+        if (currentState == ACTIVE_DISABLED_ABSOLUTE || currentState == ACTIVE_DISABLED_RELATIVE)
+            gotoState((char) (currentState | ENABLED));
+    }
+
+    public void disable() {
+        if ((currentState & DESTROYED) > 0)
+            throw new IllegalStateException();
+        // if active and enabled, disable it. Otherwise, do nothing.
+        if (currentState == ACTIVE_ENABLED_ABSOLUTE || currentState == ACTIVE_ENABLED_RELATIVE)
+            gotoState((char) (currentState & ACTIVE_DISABLED_RELATIVE));
+    }
+
+    public boolean stop() {
+        if ((currentState & DESTROYED) > 0)
+            throw new IllegalStateException();
+        if ((currentState & ACTIVE) == 0)
+            return false;
+        // if active, goto INACTIVE | DISABLED | unchanged
+        gotoState((char) (currentState & INACTIVE_DISABLED_RELATIVE));
+        return true;
+    }
+
+    public void start(boolean disabled) {
+        if ((currentState & DESTROYED) > 0)
+            throw new IllegalStateException();
+        if ((currentState & ACTIVE) > 0)
+            throw new IllegalStateException();
+        if (last_rescheduled_with_AbsoluteTime) {
+            targetTime.set(nextTargetTime);
+            clock.getTime(currentTime);
+            if (targetTime.compareTo(currentTime) < 0)
+                targetTime.set(currentTime);
+            gotoState(disabled ? ACTIVE_DISABLED_ABSOLUTE : ACTIVE_ENABLED_ABSOLUTE);
+        } else {
+            countingTime.set(RelativeTime.ZERO);
+            durationTime.set(nextDurationTime);
+            gotoState(disabled ? ACTIVE_DISABLED_RELATIVE : ACTIVE_ENABLED_RELATIVE);
+        }
+    }
+
+    public boolean isRunning() {
+        if ((currentState & DESTROYED) > 0)
+            throw new IllegalStateException();
+        return (currentState & ENABLED) > 0;
+    }
+
+    public void reschedule(HighResolutionTime time) {
+        if ((currentState & DESTROYED) > 0)
+            throw new IllegalStateException();
+        boolean useAbs = time instanceof AbsoluteTime;
+        boolean active = (currentState & ACTIVE) > 0;
+        if (!active || fired_or_skipped_in_current_activation) {
+            if (useAbs) {
+                nextTargetTime.set(time);
+                last_rescheduled_with_AbsoluteTime = true;
+                if (currentState == INACTIVE_DISABLED_RELATIVE)
+                    gotoState(INACTIVE_DISABLED_ABSOLUTE);
+            } else {
+                nextDurationTime.set(time);
+                last_rescheduled_with_AbsoluteTime = false;
+                if (currentState == INACTIVE_DISABLED_ABSOLUTE)
+                    gotoState(INACTIVE_DISABLED_RELATIVE);
+            }
+        } else {
+            if (useAbs) {
+                targetTime.set(time);
+                gotoState((char) (currentState & ACTIVE_ENABLED_ABSOLUTE));
+            } else {
+                durationTime.set(time);
+                countingTime.set(RelativeTime.ZERO);
+                gotoState((char) (currentState | INACTIVE_DISABLED_RELATIVE));
+            }
+        }
+    }
+
+    public AbsoluteTime getFireTime() {
+        if ((currentState & DESTROYED) > 0)
+            throw new IllegalStateException();
+        if ((currentState & ACTIVE) == 0)
+            throw new IllegalStateException();
+        if ((currentState & RELATIVE) > 0) {
+            clock.getTime(fireTime);
+            fireTime = fireTime.add(durationTime, fireTime);
+            fireTime = fireTime.subtract(countingTime, fireTime);
+        } else {
+            fireTime.set(targetTime);
+        }
+        return fireTime;
+    }
+
+    public void destroy() {
+        if (currentState == DESTROYED)
+            throw new IllegalStateException();
+        gotoState(DESTROYED);
+    }
+
+    public void fire() {
+        handler.release();
+    }
+
+    public Clock getClock() {
+        return clock;
+    }
+}
