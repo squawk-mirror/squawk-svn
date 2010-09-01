@@ -33,7 +33,7 @@ public class ManagedThread extends RealtimeThread implements ManagedSchedulable 
 
     // @SCJAllowed
     public void register() {
-        ManagedMemory.getCurrentManageMemory().getManager().addScheduble(this);
+        ManagedMemory.getCurrentManageMemory().getManager().regSchedulable(this);
     }
 
     public void stop() {

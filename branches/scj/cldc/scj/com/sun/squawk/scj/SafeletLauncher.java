@@ -7,6 +7,7 @@ import javax.safetycritical.Safelet;
 
 import com.sun.squawk.Isolate;
 import com.sun.squawk.Klass;
+import com.sun.squawk.VMHappening;
 import com.sun.squawk.VMThread;
 
 public class SafeletLauncher {
@@ -23,7 +24,7 @@ public class SafeletLauncher {
      */
     public static void main(String[] args) throws Exception {
         preInitialization();
-        
+
         String className = "com.sun.squawk.test.MySafelet";
         Isolate iso = Isolate.currentIsolate();
 
@@ -46,11 +47,13 @@ public class SafeletLauncher {
         final Safelet safelet = (Safelet) klass.newInstance();
 
         Timer.startTimerThread();
+        VMHappening.startHappening();
         safelet.setUp();
         MissionSequencer seq = safelet.getSequencer();
         seq.start();
         seq.join();
         safelet.tearDown();
+        VMHappening.stopHappening();
         Timer.stopTimerThread();
     }
 

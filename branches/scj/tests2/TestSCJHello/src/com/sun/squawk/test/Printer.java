@@ -9,29 +9,54 @@ import javax.safetycritical.Mission;
 public class Printer implements Runnable {
 
     private String msg;
-    private int curDepth;
-    private int iterations;
-    private int counter;
+    private int depth = 0;
+    private int iters = 0;
+    private static volatile boolean allowed = true;
 
     Printer(String msg) {
         this.msg = msg;
     }
 
     public void run() {
-        if (curDepth == 0 && iterations++ == Config.iterations) {
-            System.out.println("[" + msg + "] requests termination ...");
+        try {
+            if (checkForTermination())
+                return;
+            if (allowed)
+                doPrint();
+            ManagedMemory mm = (ManagedMemory) RealtimeThread.getCurrentMemoryArea();
+            if (++depth < Config.privateDepth)
+                mm.enterPrivateMemory(Config.privateSize, this);
+            depth--;
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+    }
+
+    private boolean checkForTermination() {
+        if (depth == 0 && iters++ >= Config.iterations) {
+            System.err.println("[HelloWorld] All iterations finished. Requests mission termination ...");
             Mission.getCurrentMission().requestTermination();
-            return;
+            return true;
         }
-        ManagedMemory mm = (ManagedMemory) RealtimeThread.getCurrentMemoryArea();
-        if (curDepth < Config.privateDepth) {
-            AbsoluteTime now = Clock.getRealtimeClock().getTime();
-            System.out.println("[" + counter++ + "] " + msg + " @ private memory level "
-                    + (Config.privateDepth - curDepth) + " - " + mm + " - " + now.getMilliseconds()
-                    + ":" + now.getNanoseconds());
-        }
-        if (curDepth++ >= Config.privateDepth)
-            mm.enterPrivateMemory(Config.privateSize, this);
-        curDepth--;
+        return false;
+    }
+
+    private void doPrint() {
+        AbsoluteTime now = Clock.getRealtimeClock().getTime();
+        System.err.print("[");
+        System.err.print(iters);
+        System.err.print("] \t");
+        System.err.print(msg);
+        System.err.print(" @ PM Level ");
+        System.err.print(depth);
+        System.err.print(" \t - ");
+        System.err.print(now.getMilliseconds());
+        System.err.print(":");
+        System.err.println(now.getNanoseconds());
+    }
+
+    public static void silence() {
+        allowed = false;
+        System.err.println("[HelloWorld] Printers silenced!");
     }
 }

@@ -227,7 +227,6 @@ public abstract class Clock {
      * 
      * @param resolution
      */
-    //	
-    // //@SCJAllowed(LEVEL_1)
+    // @SCJAllowed(LEVEL_1)
     protected abstract void setResolution(javax.realtime.RelativeTime resolution);
 }

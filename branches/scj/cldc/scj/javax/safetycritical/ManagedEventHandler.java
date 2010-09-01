@@ -32,7 +32,7 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
 
     // @SCJAllowed
     public void register() {
-        ManagedMemory.getCurrentManageMemory().getManager().addScheduble(this);
+        ManagedMemory.getCurrentManageMemory().getManager().regSchedulable(this);
     }
 
     public void join() throws InterruptedException {

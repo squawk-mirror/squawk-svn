@@ -1,5 +1,7 @@
 package com.sun.squawk;
 
+import javax.realtime.IllegalAssignmentError;
+
 import com.sun.squawk.pragma.ForceInlinedPragma;
 import com.sun.squawk.pragma.GlobalStaticFields;
 import com.sun.squawk.util.Assert;
@@ -562,37 +564,44 @@ public final class BackingStore implements GlobalStaticFields {
         if (scopeCheckEnabled > 0 && !getBackingStore(base.toObject()).containAddr(value)) {
             // TODO: scope check failed
 
-            // if (SCJ_DEBUG_ENABLED) {
-            Klass baseKlass = GC.getKlass(base.toObject());
-            Klass valueKlass = GC.getKlass(value.toObject());
-            BackingStore baseBS = getBackingStore(base.toObject());
-            BackingStore valueBS = getBackingStore(value.toObject());
+            /*
+             * Illegal assignment should lead to an error thrown. For debugging,
+             * just prints and lets the program continue.
+             */
+            boolean throwException = false;
+            if (throwException) {
+                throw new IllegalAssignmentError();
+            } else {
+                Klass baseKlass = GC.getKlass(base.toObject());
+                Klass valueKlass = GC.getKlass(value.toObject());
+                BackingStore baseBS = getBackingStore(base.toObject());
+                BackingStore valueBS = getBackingStore(value.toObject());
 
-            VM.print(illegalAssignment);
-            while (baseKlass.isArray()) {
-                VM.print(leftBrackets);
-                baseKlass = baseKlass.getComponentType();
+                VM.print(illegalAssignment);
+                while (baseKlass.isArray()) {
+                    VM.print(leftBrackets);
+                    baseKlass = baseKlass.getComponentType();
+                }
+                VM.print(Klass.getInternalName(baseKlass));
+                VM.print(atBS_);
+                if (baseBS == null)
+                    VM.print(ROM);
+                else
+                    VM.print(baseBS.id);
+
+                VM.print(ASSIGN);
+
+                while (valueKlass.isArray()) {
+                    VM.print(leftBrackets);
+                    valueKlass = valueKlass.getComponentType();
+                }
+                VM.print(Klass.getInternalName(valueKlass));
+                VM.print(atBS_);
+                if (valueBS == null)
+                    VM.println(ROM);
+                else
+                    VM.println(valueBS.id);
             }
-            VM.print(Klass.getInternalName(baseKlass));
-            VM.print(atBS_);
-            if (baseBS == null)
-                VM.print(ROM);
-            else
-                VM.print(baseBS.id);
-
-            VM.print(ASSIGN);
-
-            while (valueKlass.isArray()) {
-                VM.print(leftBrackets);
-                valueKlass = valueKlass.getComponentType();
-            }
-            VM.print(Klass.getInternalName(valueKlass));
-            VM.print(atBS_);
-            if (valueBS == null)
-                VM.println(ROM);
-            else
-                VM.println(valueBS.id);
-            // }
         }
     }
 

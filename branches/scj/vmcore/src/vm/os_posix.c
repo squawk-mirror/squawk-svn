@@ -498,3 +498,58 @@ INLINE void* sysValloc(size_t size) {
 INLINE void sysVallocFree(void* ptr) {
     free(ptr);
 }
+
+#ifdef SCJ
+/* ----------------------- External Events Support ------------------------*/
+
+
+#define NUM_EVENTS 1       // total number of external event kinds supported
+#define ID2INDEX(id) -id-1 // map ID to index in SCJEventBuffer[]
+
+// All supported IDs. This should be documented and provided to programmers.
+#define SIGQUIT_ID -1
+// --------- End -----------
+
+EventRequest* SCJEventBuffer[NUM_EVENTS] = { NULL };
+
+void eventHandler(int signum, siginfo_t * pInfo, void * pContext) {
+	int id, index;
+	EventRequest *evt;
+	switch(signum) {
+	case SIGQUIT:
+		id = SIGQUIT_ID;
+		break;
+	default:
+    	perror("eventHandler");
+    	exit(0);
+	}
+	index = ID2INDEX(id);
+	evt = SCJEventBuffer[index];
+	if(evt == NULL) {
+		evt = (EventRequest*) malloc(sizeof(EventRequest));
+		evt->next = NULL;
+		evt->eventNumber = id;
+		evt->eventStatus = EVENT_REQUEST_STATUS_DONE;
+		evt->eventKind = EVENT_REQUEST_KIND_NATIVE_TASK;
+		SCJEventBuffer[index] = evt;
+	}
+
+	// if not in queue, add it; otherwise, there is pending event, discard the
+	// subsequent ones. To buffer all certain event happenings while there is
+	// pending, add a counter to EventRequest. While getEvent()ing, simply
+	// decrease the counter.
+	if(evt->next == NULL)
+		signalEvent(evt);
+}
+
+void setupEventHandlers() {
+    struct sigaction sa;
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = eventHandler;
+    if(sigaction(SIGQUIT, &sa, NULL)) {
+    	perror("sigaction");
+    	exit(0);
+    }
+}
+
+#endif

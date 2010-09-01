@@ -6,15 +6,15 @@ import javax.safetycritical.Safelet;
 public class MySafelet implements Safelet {
 
     public MissionSequencer getSequencer() {
-        System.out.println("[SCJ Hello] Safelet getSequencer ... ");        
+        System.err.println("[HelloWorld] Safelet getSequencer ... ");
         return new MyMissionSequencer();
     }
 
     public void setUp() {
-        System.out.println("[SCJ Hello] Safelet set up ... ");
+        System.err.println("[HelloWorld] Safelet setUp ... ");
     }
 
     public void tearDown() {
-        System.out.println("[SCJ Hello] Safelet tear down ... ");
+        System.err.println("[HelloWorld] Safelet tearDown ... ");
     }
 }

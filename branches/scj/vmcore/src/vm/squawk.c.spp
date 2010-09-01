@@ -1466,6 +1466,9 @@ Address processArgs(char *argv[], const int argc) {
 #ifndef FLASH_MEMORY
     if (!notrap) {
         setupSignals();
+#ifdef SCJ
+        setupEventHandlers();
+#endif
     } else {
         printf("Trap handling disabled\n");
     }

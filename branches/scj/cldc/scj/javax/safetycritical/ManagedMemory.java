@@ -107,17 +107,13 @@ public abstract class ManagedMemory extends ScopedMemory {
 
     /**
      * 
-     * @param manager
+     * @param mngr
      */
     // @SCJAllowed(INFRASTRUCTURE)
-    void setManager(MissionManager manager) {
-        /* if[SCJ] */
+    void setManager(MissionManager mngr) {
         BackingStore.disableScopeCheck();
-        /* end[SCJ] */
-        this.manager = manager;
-        /* if[SCJ] */
+        manager = mngr;
         BackingStore.enableScopeCheck();
-        /* end[SCJ] */
     }
 
     /**
@@ -125,8 +121,13 @@ public abstract class ManagedMemory extends ScopedMemory {
      * @return
      */
     // @SCJAllowed(INFRASTRUCTURE)
-    MissionManager getManager() {
+    public MissionManager getManager() {
         Assert.always(manager != null, "Manager of " + this + " is null!");
         return manager;
+    }
+
+    public void destroyBS() {
+        super.destroyBS();
+        nested = null;
     }
 }

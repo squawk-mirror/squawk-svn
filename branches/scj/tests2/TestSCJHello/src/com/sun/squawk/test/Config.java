@@ -24,9 +24,11 @@ public class Config {
 
     public static long missionMemSize = 50 * KB;
 
-    public static int iterations = 10;
+    public static int iterations = 5;
     public static int privateDepth = 3;
     public static int nMissions = 3;
 
     public static boolean DEBUG = false;
+
+    public static int SIGQUIT = -1;
 }

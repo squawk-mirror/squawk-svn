@@ -34,6 +34,7 @@ import com.sun.squawk.platform.SystemEvents;
 import java.util.Enumeration;
 
 /*if[SCJ]*/
+import javax.realtime.Happening;
 import javax.realtime.RealtimeThread;
 /*end[SCJ]*/
 
@@ -1631,7 +1632,14 @@ VM.println("creating stack:");
              */
             int event;
             while ((event = VM.getEvent()) != 0) {
-                signalEvent(event);
+/*if[SCJ]*/
+                if(event > 0)
+                    signalEvent(event);
+                else
+                    signalHappening(event);
+/*else[SCJ]*/
+//              signalEvent(event);
+/*end[SCJ]*/
             }
 
             /*
@@ -2466,6 +2474,10 @@ VM.println("creating stack:");
         // Safety...
         theCurrentThread.checkInvarients();
         Assert.that(monitor.owner == theCurrentThread);
+    }
+    
+    private static void signalHappening(int id) {
+        VMHappening.trigger(id);
     }
 /*end[SCJ]*/
 

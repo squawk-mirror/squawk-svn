@@ -1,5 +1,6 @@
 
-Memo:
+
+       ===========          Memo          ===============
 
 - Allocating process: new -> GC.allocatePrim() -> BackingStore.allocate()
 
@@ -167,11 +168,27 @@ Memo:
   
   KlassInitializationState
   entry of SquawkHashtable Isolate.childThreads
-  
-  
 
 
-TODO:
+- Support to sleep until certain absolute time 
+    
+  RealtimeThread.sleep(HighResolutionTime) and HighResolutionTime.wait(Object, 
+  HighResolutionTime) will do absolute sleep / wait, when getting an AbsoluteTime
+  as parameter. We don't want to compute the delta to the current time by ourself 
+  and call Thread.sleep(delta) since the error may accumulate. Just tell the VM
+  when we want to wake up and let it do the math in an efficient way, e.g in native
+  code or by utilizing some OS/hardware support if there are some.
+  
+  Partially done: VMThread.sleepAbsolute() and VMThread.monitorWaitAbsolute() are 
+  added. They are used in RealtimeThread.sleep() and HighResolutionTime.waitForObject()
+  respectively. However, the precision of VMThread.xxx is in millisecond while,
+  the SCJ sleep/wait is in nanosecond. When converting, nano part is simply ignored.     
+
+
+
+
+
+       ===========          TODO          ===============
 
   [[!!
     IMPORTANT: we must fully know what a method does if we need to call them in 
@@ -242,17 +259,6 @@ TODO:
   happens. SCJ instead requires to allocate in a dedicated thread local 
   space, which we do not have yet for now.
  
- 
-- Support to sleep until certain absolute time 
-    
-  RealtimeThread.sleep(HighResolutionTime) and HighResolutionTime.wait(Object, 
-  HighResolutionTime) will do absolute sleep / wait, when getting an AbsoluteTime
-  as parameter. We don't want to compute the delta to the current time by ourself 
-  and call Thread.sleep(delta) since the error may accumulate. Just tell the VM
-  when we want to wake up and let it do the math in an efficient way, e.g in native
-  code or by utilizing some OS/hardware support if there are some. 
-
-
 - Translate BackingStore.allocate() to C
 
   Otherwise, object allocation would be 20x slower.
@@ -263,4 +269,337 @@ TODO:
 
 - Example, Example, Example !
 
+- Happenings
+  
+  reserved happenings [name, id] 
 
+
+
+
+
+       ===========          DOCS          ===============
+
+  = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  = The memory management of Squawk with SCJ extension  =
+  = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+  
+  Pure SCJ should only use region-based memory management. But in order to save time,
+  we just add things without removing anything, since even one single piece of code 
+  removing can cause tons of time wasted on restructuring the system.
+  
+  So on top of the original memory layout, we add SCJ memory space which contains two
+  sub-spaces: Immortal (IMM) and Scoped (SCP) as shown in Figure 1. The immortal space
+  is used for immortal memory and the scoped space is for allocating all other bounded 
+  life memory regions.
+  
+  RAM is originally used as heap which is not used in SCJ. NVM is not neither. For ROM,
+  we treat it as immortal memory. 
+  
+  ---------------------------------------------------------
+    Memory_start
+      ROM:     treated as immortal
+      RAM:     not used; should not contain any objects
+      NVM:     not used; should not contain any objects
+      IMM:     immortal space  (NEW!)
+      SCP:     scoped   space  (NEW!)
+      serviceStack
+      argv copy
+    Memory_end
+  ---------------------------------------------------------
+  Figure 1.
+  
+  
+  The SCJ space is organized as a backing store tree. Each node is a backing store (BS)
+  which contains two pointers (allocStart / allocEnd) pointing to the low and high 
+  boundary addresses and a top pointer (allocTop) to the top of allocated memory in the
+  backing store, as shown in Figure 2. Upon receiving a request of creating a BS with 
+  certain size, a memory space with size of 
+      
+        real size = roundUpToWords(size) + sizeOf(BS instance)
+        
+  will be allocated. The BS instance is placed at the front of the memory space it owns.
+  
+  -----------------------------------------------------------      
+  
+    |-------------|  <- allocStart                ---
+    | BS instance |                                |
+    |-------------|  <- allocTop       --- 
+    |             |                     |       real size
+    | Free space  |                    size
+    |             |                     |          |
+    |-------------|  <- allocEnd       ---        ---
+    
+  ------------------------------------------------------------      
+  Figure 2.
+  
+  
+  Immortal (indexed 0) and Scoped (indexed 1) are the roots. And Immortal is a leaf at
+  the same time. Leaves are the place where user code can allocate objects in. Each leaf 
+  corresponds to a user level memory area: immortal memory, mission memories, or private
+  memories. 
+   
+  Figure 3 shows an example BS tree. There is one active mission which consists of two
+  threads (schedulable objects). Besides the initial private memory of each thread, thread 1
+  entered a nested private memory BS-7. Every child BS is allocated in its parent BS's space
+  in a stack way. The top BS is annotated with a star in the figure.
+  
+  In order to index BSs, there is an index table preceding a certain number of child BSs.
+  They are shown in the layout figure with I. The index table contains an array holding
+  references to the BSs following it. The capacity of the array would not change so when an
+  index table is full, another one is created and linked. In the example, the capacity is set
+  to 2, so BS-4 is indexed by a second table.
+  
+  In practice, we don't want too many index tables to be created (at best just one) since this 
+  will harm the performance of BS searching - for an address, search for the leaf BS enclosing 
+  it. We use binary search, but which can only be done in per-table basis. The complexity of 
+  across tables searching is linear.
+  
+  -----------------------------------------------------------------------------------------      
+    |* Correspondence *|
+    
+    BS-0     Immortal         (leaf)
+    BS-1     Scoped
+      BS-2     mission memory (leaf)
+      BS-3     backing store for thread 1
+        BS-5     private 0    (leaf)
+        BS-7*    private 1    (leaf)
+      BS-4*    backing store for thread 2
+        BS-6*    private 0    (leaf)
+        
+   
+    |* Layout in memory, address grows towards right *|
+    
+      ROM   Heap      BS-0                              BS-1
+    |-----|------|------------|--------------------------------------------------------|
+                               I  BS-2              BS-3            I    BS-4*               
+                              |-|------|---------------------------|-|-----------|     |
+                                        I  BS-5   BS-7*               I  BS-6*
+                                       |-|------|------|           | |-|------|  |     |    
+                                     
+  -----------------------------------------------------------------------------------------      
+  Figure 3.                                     
+  
+  
+  
+  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  = The External Event of Squawk with SCJ extension  (plan) =
+  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+  
+  1. VM events
+  
+  The category of events is platform and VM dependent. Typically, events refer to interrupts, 
+  signals, messages, etc. The VM vendor is responsible to document the list of supported events
+  and specify the way to identify them, e.g. associate each event with an unique ID. 
+  
+  
+  2. SCJ happenings
+  
+  The counterpart of VM events in SCJ is happenings. By defining a happening, the user program 
+  defines the response to an certain VM event.
+  
+    1) EventHappening
+      This happening can be associated with an AsyncEvent (or multiple, not clear in SCJ Spec), 
+      which will be fired (hence the handlers are invoked) upon the event happens.   
+  
+    2) InterruptHappening
+      This happening comes with a process() method, which should be implemented by user code as
+      the interrupt handling logic. The method will be invoked upon the interruption occurs. 
+      
+  In short, the handlers of EventHappening are asynchronous while those of InterruptHappening are
+  synchronous.
+  
+  For the reserved events, such as clock interrupt, users are not allowed to provide their own 
+  happenings. Every reserved event has a default one.
+  
+  The SCJ Spec does not specify how to associate a happening to an event. For our implementation,
+  we can assume an event and a happening are associated if sharing the same integer ID. Besides 
+  having the right ID, a happening needs to be registered (by Happening.register()) as well for 
+  being connected the event.
+  
+      
+  3. The event handling model
+  
+  Following items are taken from SCJ Spec; my questions followed if there are some:
+  
+  * Both first-level and second-level interrupt handlers are supported.
+  
+    Questions:
+  
+    1) By what way a user can specify the interrupt handler's level?
+    
+    2) The first level handler requires to be executed strictly immediately after the interrupt
+       occurs, which requires that Squawk can be preempted at any time. However, preempting the
+       VM arbitrarily can leave the VM in an inconsistent status. I don't see how to support first 
+       level handler in Squawk.
+       
+    Decision: 
+    
+    1) Postpone the implementation of the first-level interrupt handler support.
+    
+  
+  * An occurrence of an external event consists of its generation and delivery.
+  
+  * Generation of the external event is the mechanism in the underlying hardware, real-time JVM 
+    or system that makes the external event available to the Java program.
+  
+  * Delivery is the action that invokes the associated trigger method in response to the occurrence 
+    of the external event. This may be performed by the JVM or application native code linked with 
+    the JVM.
+    
+    Questions:
+  
+    1) Not sure what it means by allowing an application native code to control the delivery of an 
+       event.
+        
+    Decision: 
+    
+    1) Let the VM deliver events.
+    
+  * Between generation and delivery, the external event is pending.
+
+  * Some or all external event occurrences may be inhibited. When an external event occurrence is 
+    inhibited, all occurrences of that event are prevented from being delivered. Whether such 
+    occurrences remain pending or are lost is implementation defined.
+    
+    Questions:
+    
+    1) What is the duration of an event being inhibited? For 
+    
+    Decision:
+    
+    1) We do not need event inhibition feature as long as the delivery action is not done in parallel,
+       because event inhibition is invented to avoid nested occurrence of an event, while sequential 
+       delivery will not incur nested occurrence in nature.
+
+  * An exception propagated from a trigger method that is invoked by an external handler results in 
+    the uncaughtException method being called in the associated ManageInterruptHandler class.
+
+       
+       
+  4. Other details about implementation required to be documented
+   
+  1) For each external event, whether it can be inhibited or not, and the effects of attaching Happenings 
+     to non inhibitable external events (if this is permitted)
+     
+     A: feature not supported
+     
+  2) Which run-time stack the trigger method uses when it executes; if this is configurable, what is the 
+     mechanism to do so; how to specify how much space to reserve on that stack.
+     
+     A: for simplicity, the runtime stack is the one of the thread which is polling
+      
+  3) Any implementation- or hardware-specific activity that happens before a user-defined happenings gets 
+     control (e.g., reading device registers, acknowledging devices).
+     
+     TBD 
+
+  4) The state (inhibited/uninhibited) of the non-reserved external events when the program starts; if some 
+     external events are uninhibited, what is the mechanism a program can use to protect itself before it 
+     can register the corresponding Happening.
+     
+     A: feature not supported
+
+  5) The treatment of external event occurrences that are generated while the external event is inhibited; 
+     i.e., whether one or more occurrences are held for later delivery, or all are lost.
+     
+     A: feature not supported
+
+  6) Whether predefined or implementation-defined exceptions are raised as a result of the occurrence of 
+     any external event (for example, a hardware trap resulting from a segmentation error), and the mapping 
+     between the external event and the predefined exceptions.
+     
+     TBD 
+
+  7) On a multi-processor, the rules governing the delivery of an external event occurrence to a particular 
+     processor.
+  
+     TBD
+     
+  
+  5. Interrupt handler priority
+  
+  "SCJ also defines the notion of interrupt priorities. Interrupt priorities can only be used to define ceiling 
+  priorities." - from SCJ Spec
+  
+  Not much words about this issue. Presumably, SCJ would completely adapt Ada's model, in which handler procedures
+  must be "protected" (analogous to synchronized method in Java) and the priority of the handler is used to 
+  specify the ceiling of the protected object (the receiver object of the synchronized method in Java). Therefore
+  when the handler starts, its thread's priority will be raised up to the ceiling.
+  
+  To support this feature, we need priority ceiling protocol to be implemented first. For now, just ignore the 
+  priority.
+  
+  
+    
+  6. Implementation
+    
+    == Algorithms ==
+  
+    Data structures:
+      pendQ:  a queue of pending events
+      hapMap: a table mapping each event to its happening set 
+      
+    1) Event Generation (in native code):
+      WHEN event e occurs
+        pendQ.add(e)
+        
+    2) Event Delivery (VM poll):
+      FORALL e IN pendQ
+        pendQ.remove(e)
+        Happening.trigger(e)
+   
+    3) Happening.trigger(e):
+      happenings = hapMap.get(e)
+      IF empty(happenings)
+        return false 
+      FORALL h IN happenings 
+        IF h instanceof EventHappening
+          h.getAyncEvent.fire()
+          // if associating multiple AsyncEvents is supported, fire all of them
+        ELIF h instanceof InterruptHappening
+          h.process()
+        ELSE
+          error()
+      return true
+  
+
+    == Explanation ==
+
+    Since current VM only support I/O events, we need to have new native code to monitor the events generated from
+    hardware/OS. When an event is generated, add it to the pending queue. We can use "eventRequests" queue in 
+    io_native.c directly as the pending queue. When an new event comes up, create a new EventRequest and call 
+    signalEvent() on it.
+    
+    We should use negative integers as the SCJ event ID for avoiding conflicting with the current event number 
+    space. The pending events are delivered at VM poll. 
+    
+    
+    
+  7. Problems
+          
+	      The SCJ Spec says that users CAN unregister the happenings at
+          mission.cleanUp(). However, they are not mandatory to do that. So the
+          problem is what if there are some happening unregistered after the
+          mission.
+          
+          Leaving some registered happening in the gap between missions can be
+          dangerous since their handlers might be gone along with the mission.
+          Before everything is clarified, we simply unregister all happenings
+          belongs to current mission.
+          
+          Actually, this is still a hole: can a happening span missions? If
+          yes, how to ensure the happening will not hold some dead reference?
+          Particularly, ManagedAutonomousHappening can be attached with a
+          AsyncEvent. What if the AsyncEvent object dies with the mission,
+          while the happening is still alive?
+  
+    
+    
+    
+    
+    
+    
+    
+    
+     
+     
