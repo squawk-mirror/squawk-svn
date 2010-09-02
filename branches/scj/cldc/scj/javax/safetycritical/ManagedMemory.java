@@ -74,13 +74,13 @@ public abstract class ManagedMemory extends ScopedMemory {
             throw new IllegalStateException("Cannot enter private memory not owned. Current:["
                     + current.getManagedSchedulable() + "] Owner:[" + getOwner() + "]");
         if (nested == null) {
-            BackingStore.disableScopeCheck();
+            //BackingStore.disableScopeCheck();
             nested = new PrivateMemory(size);
-            BackingStore.enableScopeCheck();
+            //BackingStore.enableScopeCheck();
             nested.setManager(getManager());
             nested.setOwner(getOwner());
         } else {
-            nested.reserveBackingStore(size);
+            nested.reserveBS_protected(size);
         }
         nested.enter(logic);
         nested.destroyBS();
@@ -111,9 +111,9 @@ public abstract class ManagedMemory extends ScopedMemory {
      */
     // @SCJAllowed(INFRASTRUCTURE)
     void setManager(MissionManager mngr) {
-        BackingStore.disableScopeCheck();
+        //BackingStore.disableScopeCheck();
         manager = mngr;
-        BackingStore.enableScopeCheck();
+        //BackingStore.enableScopeCheck();
     }
 
     /**
@@ -127,7 +127,7 @@ public abstract class ManagedMemory extends ScopedMemory {
     }
 
     public void destroyBS() {
-        super.destroyBS();
+        destroyBS_protected();
         nested = null;
     }
 }

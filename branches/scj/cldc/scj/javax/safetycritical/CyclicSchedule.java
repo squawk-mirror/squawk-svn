@@ -1,6 +1,7 @@
 package javax.safetycritical;
 
 import javax.realtime.RelativeTime;
+import javax.safetycritical.util.Utils;
 
 /**
  * A CyclicSchedule represents a time-driven sequence of firings for
@@ -29,6 +30,7 @@ public class CyclicSchedule {
          */
         // @SCJAllowed
         public Frame(RelativeTime duration, PeriodicEventHandler[] handlers) {
+            Utils.unimplemented();
         }
 
         /**
@@ -45,6 +47,7 @@ public class CyclicSchedule {
          */
         // @SCJAllowed
         final RelativeTime getDuration() {
+            Utils.unimplemented();
             return null;
         }
 
@@ -68,6 +71,7 @@ public class CyclicSchedule {
          */
         // //@SCJAllowed
         final PeriodicEventHandler[] getHandlers() {
+            Utils.unimplemented();
             return null;
         }
     }
@@ -86,6 +90,7 @@ public class CyclicSchedule {
      */
     // @SCJAllowed
     public CyclicSchedule(Frame[] frames) {
+        Utils.unimplemented();
     }
 
     /**
@@ -106,6 +111,7 @@ public class CyclicSchedule {
     // @Allocate( { Area.CURRENT })
     // //@SCJAllowed
     final RelativeTime getCycleDuration() {
+        Utils.unimplemented();
         return null;
     }
 
@@ -129,6 +135,7 @@ public class CyclicSchedule {
     // //@SCJAllowed
     // @Allocate({ THIS })
     protected final Frame[] getFrames() {
+        Utils.unimplemented();
         return null;
     }
 }

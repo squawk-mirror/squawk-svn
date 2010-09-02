@@ -18,12 +18,4 @@ public class AsyncEvent {
         if (handler != null)
             handler.release();
     }
-
-    public void addHandler(AsyncEventHandler handler) {
-        // TODO:
-    }
-
-    public void removeHandler(AsyncEventHandler handler) {
-        // TODO:
-    }
 }

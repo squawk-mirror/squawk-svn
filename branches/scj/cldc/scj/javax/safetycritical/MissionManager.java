@@ -1,9 +1,7 @@
 package javax.safetycritical;
 
 import javax.realtime.Happening;
-import javax.safetycritical.util.Utils;
 
-import com.sun.squawk.BackingStore;
 import com.sun.squawk.util.SimpleLinkedList;
 
 /**
@@ -23,20 +21,30 @@ public class MissionManager {
     private volatile boolean termintionPending = false;
     private volatile boolean sequenceTerminationPending = false;
 
-    // the head of the schedulable list
-    private ManagedSchedulable schedulables = null;
+    // ManagedSchedulables, Happenings, belonging to current mission
+    private ManagedThread threads = null;
+    private ManagedEventHandler eventHandlers = null;
     private SimpleLinkedList happenings = new SimpleLinkedList();
 
     MissionManager(Mission mission) {
         this.mission = mission;
     }
 
-    void regSchedulable(ManagedSchedulable so) {
-        if (schedulables == null)
-            schedulables = so;
+    void regManagedEventHandler(ManagedEventHandler handler) {
+        if (eventHandlers == null)
+            eventHandlers = handler;
         else {
-            so.setNext(schedulables);
-            schedulables = so;
+            handler.next = eventHandlers;
+            eventHandlers = handler;
+        }
+    }
+
+    void regManagedThread(ManagedThread thread) {
+        if (threads == null)
+            threads = thread;
+        else {
+            thread.next = threads;
+            threads = thread;
         }
     }
 
@@ -48,26 +56,48 @@ public class MissionManager {
         return mission;
     }
 
-    void go() {
+    void startMission() {
         phase = INITIALIZATION;
-        mission.initialize();
+        doInitialization();
         phase = EXECUTION;
+        doExecution();
+        phase = CLEANUP;
+        doCleanup();
+        phase = INACTIVE;
+    }
 
-        if (Utils.DEBUG)
-            BackingStore.printCurrentBSStats();
+    private void doInitialization() {
+        mission.initialize();
+    }
 
-        for (ManagedSchedulable so = schedulables; so != null; so = so.getNext())
-            so.start();
+    private void doExecution() {
+        ManagedEventHandler h = null;
+        ManagedThread t = null;
+
+        // start all
+        for (h = eventHandlers; h != null; h = h.next)
+            h.start();
+        for (t = threads; t != null; t = t.next)
+            t.start();
+
+        // wait for all
         try {
-            for (ManagedSchedulable so = schedulables; so != null; so = so.getNext())
-                so.join();
+            for (h = eventHandlers; h != null; h = h.next)
+                h.join();
+            for (t = threads; t != null; t = t.next)
+                t.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        for (ManagedSchedulable so = schedulables; so != null; so = so.getNext())
-            so.cleanUp();
 
-        phase = CLEANUP;
+        // clean up all
+        for (h = eventHandlers; h != null; h = h.next)
+            h.cleanUp();
+        for (t = threads; t != null; t = t.next)
+            t.cleanUp();
+    }
+
+    private void doCleanup() {
         mission.cleanUp();
         /*
          * The SCJ Spec says that users CAN unregister the happenings at
@@ -86,17 +116,15 @@ public class MissionManager {
          * AsyncEvent. What if the AsyncEvent object dies with the mission,
          * while the happening is still alive?
          */
-        while (happenings.size() > 0) {
+        while (happenings.size() > 0)
             ((Happening) happenings.removeFirst()).unRegister();
-        }
-        phase = INACTIVE;
     }
 
     void requestTermination() {
         if (!termintionPending) {
             termintionPending = true;
-            for (ManagedSchedulable so = schedulables; so != null; so = so.getNext())
-                so.stop();
+            for (ManagedEventHandler handler = eventHandlers; handler != null; handler = handler.next)
+                handler.stop();
         }
     }
 

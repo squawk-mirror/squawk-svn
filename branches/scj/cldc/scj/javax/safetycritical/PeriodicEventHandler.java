@@ -22,14 +22,13 @@ public abstract class PeriodicEventHandler extends ManagedEventHandler {
         timer = new PeriodicTimer(period.getActualStart(), period.getActualPeriod(), this);
     }
 
-    public void start() {
+    void start() {
         timer.start();
     }
 
-    public void stop() {
+    void stop() {
         timer.destroy();
-        timer.removeHandler(this);
         timer = null;
-        super.stop();
+        cancel();
     }
 }

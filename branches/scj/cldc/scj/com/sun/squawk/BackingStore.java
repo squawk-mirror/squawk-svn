@@ -45,14 +45,30 @@ public final class BackingStore implements GlobalStaticFields {
             // The table instance is put at a lower address than those of all
             // BSs it is indexing.
             if (addr.lo(Address.fromObject(this))) {
+                // if (prev == null) {
+                // VM.print("Unable to locate the BS for an address: lower than lower bound: ");
+                // VM.printAddress(addr);
+                // VM.println();
+                // BackingStore.printBSTree(true);
+                // }
                 Assert.always(prev != null,
-                        "Unable to locate the BS for an address while it should be");
+                        "Unable to locate the BS for an address: lower than lower bound.");
                 return prev.search(addr);
             } else if (isEmpty()) {
-                Assert.always(false, "Unable to locate the BS for an address while it should be");
+                // VM.print("Unable to locate the BS for an address: empty table: ");
+                // VM.printAddress(addr);
+                // VM.println();
+                // BackingStore.printBSTree(true);
+                Assert.always(false, "Unable to locate the BS for an address: empty table.");
             } else if (bsArray[counter - 1].allocEnd.loeq(addr)) {
+                // if (next == null) {
+                // VM.print("Unable to locate the BS for an address: higher than higher bound: ");
+                // VM.printAddress(addr);
+                // VM.println();
+                // BackingStore.printBSTree(true);
+                // }
                 Assert.always(next != null,
-                        "Unable to locate the BS for an address while it should be");
+                        "Unable to locate the BS for an address: higher than higher bound.");
                 return next.search(addr);
             }
 
@@ -245,12 +261,12 @@ public final class BackingStore implements GlobalStaticFields {
 
         bsCounter = 0;
 
-        immortal = convertToBackingStore(immortalStart, immortalEnd);
+        immortal = convertToBS(immortalStart, immortalEnd);
         immortal.size = immortal.realSize - SIZE_OF_BackingStore;
         immortal.spaceRemaining = immortal.size;
         GC.getKlass(immortal);
 
-        scoped = convertToBackingStore(scopedStart, scopedEnd);
+        scoped = convertToBS(scopedStart, scopedEnd);
         scoped.size = scoped.realSize - SIZE_OF_BackingStore;
         scoped.spaceRemaining = scoped.size;
 
@@ -262,6 +278,11 @@ public final class BackingStore implements GlobalStaticFields {
         atBS_ = " @ BS-";
         ROM = "ROM";
         ASSIGN = "  <-   ";
+        MAP = "  <==>  ";
+        KEY = "   key: ";
+        VAL = " value: ";
+        com_sun_squawk_util_HashtableEntry = "com.sun.squawk.util.HashtableEntry";
+        com_sun_squawk_util_IntHashtableEntry = "com.sun.squawk.util.IntHashtableEntry";
         // for debug
         scopeCheckEnabled = 1;
 
@@ -302,6 +323,10 @@ public final class BackingStore implements GlobalStaticFields {
 
     public static void disableScopeCheck() {
         scopeCheckEnabled--;
+    }
+
+    public int getID() {
+        return id;
     }
 
     /**
@@ -467,8 +492,8 @@ public final class BackingStore implements GlobalStaticFields {
             VM.print(bs.id);
             VM.println("]");
         }
-        disableScopeCheck();
         BackingStore old = currentAllocContext;
+        disableScopeCheck();
         currentAllocContext = bs;
         enableScopeCheck();
         return old;
@@ -510,8 +535,16 @@ public final class BackingStore implements GlobalStaticFields {
         // has ROM. So if we are getting here, simply return immortal as ROM is
         // treated as immortal as well.
         if (ret == null) {
-            VM.print("[SCJ] Attempt to search the BS for an in ROM object of type ");
-            VM.println(Klass.getInternalName(GC.getKlass(obj)));
+            // Klass klassObj = GC.getKlass(obj);
+            // Address addrObj = Address.fromObject(obj);
+            String klassName = Klass.getInternalName(GC.getKlass(obj));
+            VM.print("[SCJ] Attempt to search BS for in-ROM object of type ");
+            VM.print(klassName);
+            if (klassName == "com.sun.squawk.Klass") {
+                VM.print(" - obj: ");
+                VM.print(Klass.getInternalName((Klass) obj));
+            }
+            VM.println();
             ret = immortal;
         }
 
@@ -553,9 +586,6 @@ public final class BackingStore implements GlobalStaticFields {
 
     // for debug
     private static String illegalAssignment;
-    private static String leftBrackets;
-    private static String atBS_;
-    private static String ROM;
     private static String ASSIGN;
 
     // for debug
@@ -572,36 +602,69 @@ public final class BackingStore implements GlobalStaticFields {
             if (throwException) {
                 throw new IllegalAssignmentError();
             } else {
-                Klass baseKlass = GC.getKlass(base.toObject());
-                Klass valueKlass = GC.getKlass(value.toObject());
-                BackingStore baseBS = getBackingStore(base.toObject());
-                BackingStore valueBS = getBackingStore(value.toObject());
-
                 VM.print(illegalAssignment);
-                while (baseKlass.isArray()) {
-                    VM.print(leftBrackets);
-                    baseKlass = baseKlass.getComponentType();
-                }
-                VM.print(Klass.getInternalName(baseKlass));
-                VM.print(atBS_);
-                if (baseBS == null)
-                    VM.print(ROM);
-                else
-                    VM.print(baseBS.id);
-
+                printAddrInfo(base);
                 VM.print(ASSIGN);
-
-                while (valueKlass.isArray()) {
-                    VM.print(leftBrackets);
-                    valueKlass = valueKlass.getComponentType();
-                }
-                VM.print(Klass.getInternalName(valueKlass));
-                VM.print(atBS_);
-                if (valueBS == null)
-                    VM.println(ROM);
-                else
-                    VM.println(valueBS.id);
+                printAddrInfo(value);
+                VM.println();
             }
+        }
+    }
+
+    // for debug
+    private static String leftBrackets;
+    private static String atBS_;
+    private static String ROM;
+    private static String MAP;
+    private static String KEY;
+    private static String VAL;
+    private static String com_sun_squawk_util_HashtableEntry;
+    private static String com_sun_squawk_util_IntHashtableEntry;
+
+    // for debug
+
+    /**
+     * klassName @ BS-id
+     * 
+     * @param klass
+     * @param bs
+     */
+    private static void printAddrInfo(Address addr) {
+        Object obj = addr.toObject();
+        Klass klass = GC.getKlass(obj);
+        Klass klass0 = klass;
+        String name = Klass.getInternalName(klass);
+        BackingStore bs = getBackingStore(obj);
+
+        while (klass0.isArray()) {
+            VM.print(leftBrackets);
+            klass0 = klass0.getComponentType();
+        }
+        VM.print(Klass.getInternalName(klass0));
+        VM.print(atBS_);
+        if (bs == null)
+            VM.print(ROM);
+        else
+            VM.print(bs.id);
+
+        if (name == com_sun_squawk_util_HashtableEntry) {
+            Object key = NativeUnsafe.getAddress(obj, 1).toObject();
+            Object val = NativeUnsafe.getAddress(obj, 2).toObject();
+            VM.println();
+            VM.print(KEY);
+            VM.print(Klass.getInternalName(GC.getKlass(key)));
+            VM.print(MAP);
+            VM.print(VAL);
+            VM.print(Klass.getInternalName(GC.getKlass(val)));
+        } else if (name == com_sun_squawk_util_IntHashtableEntry) {
+            int key = NativeUnsafe.getInt(obj, 0);
+            Object val = NativeUnsafe.getAddress(obj, 1).toObject();
+            VM.println();
+            VM.print(KEY);
+            VM.print(key);
+            VM.print(MAP);
+            VM.print(VAL);
+            VM.print(Klass.getInternalName(GC.getKlass(val)));
         }
     }
 
@@ -623,7 +686,7 @@ public final class BackingStore implements GlobalStaticFields {
      * @param end
      * @return
      */
-    private static BackingStore convertToBackingStore(Address start, Address end) {
+    private static BackingStore convertToBS(Address start, Address end) {
         int allocSize = end.diff(start).toInt();
         Assert.that(allocSize >= SIZE_OF_BackingStore,
                 "Memory too small to contain BackingStore instance itself!");
@@ -702,15 +765,15 @@ public final class BackingStore implements GlobalStaticFields {
             throw new Error("Only top child can be destroyed. Current is BS-" + this.id);
         }
 
-        disableScopeCheck();
-
         Address startZero;
 
         // If i'm the last one in topTable. The table can be reclaimed along
         // with myself.
         if (parent.topTable.counter == 1) {
             SearchTable oldTable = parent.topTable;
+            disableScopeCheck();
             parent.topTable = oldTable.prev;
+            enableScopeCheck();
             if (parent.topTable != null)
                 parent.topTable.next = null;
             startZero = Address.fromObject(oldTable).sub(HDR.basicHeaderSize);
@@ -724,7 +787,6 @@ public final class BackingStore implements GlobalStaticFields {
 
         // printBSTree(true);
 
-        enableScopeCheck();
     }
 
     /**
@@ -752,10 +814,11 @@ public final class BackingStore implements GlobalStaticFields {
      * @return the new backing store instance
      */
     public BackingStore excavate(int size) {
-        disableScopeCheck();
 
         Assert.that(size >= 0);
 
+        // set up search table chains
+        disableScopeCheck();
         BackingStore oldBS = currentAllocContext;
         currentAllocContext = this;
         if (topTable == null)
@@ -763,21 +826,28 @@ public final class BackingStore implements GlobalStaticFields {
         else
             topTable.extendIfNeed();
         currentAllocContext = oldBS;
+        enableScopeCheck();
 
+        // check available space
         int allocSize = size + SIZE_OF_BackingStore;
         if (spaceRemaining < allocSize) {
             throw VM.getOutOfMemoryError();
         }
 
+        // allocate memory by bumping the top pointer
         Address oldTop = allocTop;
         increaseAllocTop(allocSize);
 
-        BackingStore bs = convertToBackingStore(oldTop, allocTop);
+        // convert the allocated memory block to backing store; bs is the first
+        // object in the backing store.
+        BackingStore bs = convertToBS(oldTop, allocTop);
         bs.size = size;
         bs.parent = this;
         bs.spaceRemaining = size;
 
+        disableScopeCheck();
         topTable.put(bs);
+        enableScopeCheck();
 
         if (SCJ_DEBUG_ENABLED) {
             VM.println("[SCJ] BackingStore.excavate ... ");
@@ -786,10 +856,6 @@ public final class BackingStore implements GlobalStaticFields {
             VM.println("[SCJ] ==   result info  ==");
             bs.printInfo();
         }
-
-        // printBSTree(true);
-
-        enableScopeCheck();
 
         return bs;
     }

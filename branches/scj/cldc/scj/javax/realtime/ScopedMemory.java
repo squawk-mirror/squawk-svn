@@ -14,7 +14,7 @@ public abstract class ScopedMemory extends MemoryArea implements ScopedAllocatio
      * @param size
      * @param container
      */
-    public ScopedMemory(long size, BackingStore from) {
+    protected ScopedMemory(long size, BackingStore from) {
         super(size, from);
     }
 

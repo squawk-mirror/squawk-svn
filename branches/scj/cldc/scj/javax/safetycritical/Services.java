@@ -1,32 +1,13 @@
 package javax.safetycritical;
 
 import javax.realtime.HighResolutionTime;
+import javax.safetycritical.util.Utils;
 
 /**
  * System wide information
  */
 // @SCJAllowed
 public class Services {
-
-    /**
-     * @return the default ceiling priority The value is the highest software
-     *         priority.
-     */
-    // @SCJAllowed(LEVEL_1)
-    public static int getDefaultCeiling() {
-        return 30;
-    }
-
-    /**
-     * sets the ceiling priority of object O The priority can be in the software
-     * or hardware priority range.
-     * 
-     * @throws IllegalThreadState
-     *             if called outside the mission phase
-     */
-    // @SCJAllowed(LEVEL_1)
-    public static void setCeiling(Object O, int pri) {
-    }
 
     /**
      * Captures the stack back trace for the current thread into its
@@ -41,29 +22,7 @@ public class Services {
      */
     // @SCJAllowed
     public static void captureBackTrace(Throwable association) {
-    }
-
-    /**
-     * This method is invoked by infrastructure to change the association for
-     * the thread-local stack back trace buffer to the Class that represents a
-     * Throwable that has crossed its scope boundary, at the time that Throwable
-     * is replaced with a ThrowBoundaryError.
-     */
-    static void overwriteBackTraceAssociation(Class _class) {
-    }
-
-    /**
-     * Every interrupt has an implementation-defined integer id.
-     * 
-     * @return The priority of the code that the first-level interrupts code
-     *         executes. The returned value is always greater than
-     *         PriorityScheduler.getMaxPriority().
-     * @throws IllegalArgument
-     *             if unsupported InterruptId
-     */
-    // @SCJAllowed(LEVEL_1)
-    public static int getInterruptPriority(int InterruptId) {
-        return 33;
+        Utils.unimplemented();
     }
 
     // @SCJAllowed
@@ -84,15 +43,86 @@ public class Services {
      *            TBD: should not be a long nanoseconds?
      */
     // @SCJAllowed(LEVEL_2)
-    public static void delay(HighResolutionTime delay) {
+    public static void delay(int nanos) {
+        Utils.unimplemented();
     }
 
     /**
-     * Busy wait spinning loop (now plus delay).
+     * This is like sleep except that it is not interruptible and it uses
+     * nanoseconds instead of milliseconds.
+     * 
+     * @param delay
+     *            is the number of nanoseconds to suspend
+     * 
+     *            TBD: should this be called suspend or deepSleep to no have a
+     *            ridiculously long name?
+     * 
+     *            TBD: should not be a long nanoseconds?
+     */
+    // @SCJAllowed(LEVEL_2)
+    public static void delay(HighResolutionTime delay) {
+        Utils.unimplemented();
+    }
+
+    /**
+     * @return the default ceiling priority The value is the highest software
+     *         priority.
+     */
+    // @SCJAllowed(LEVEL_1)
+    public static int getDefaultCeiling() {
+        Utils.unimplemented();
+        return 0;
+    }
+
+    // // @SCJAllowed
+    // public static Level getDeploymentLevel() {
+    // }
+
+    /**
+     * Every interrupt has an implementation-defined integer id.
+     * 
+     * @return The priority of the code that the first-level interrupts code
+     *         executes. The returned value is always greater than
+     *         PriorityScheduler.getMaxPriority().
+     * @throws IllegalArgument
+     *             if unsupported InterruptId
+     */
+    // @SCJAllowed(LEVEL_1)
+    public static int getInterruptPriority(int InterruptId) {
+        Utils.unimplemented();
+        return 0;
+    }
+
+    /**
+     * Busy wait spinning loop (now plus nanos).
      * 
      * @param delay
      */
-    // @ICS
-    public static void spin(HighResolutionTime delay) {
+    // @@SCJAllowed(LEVEL_1)
+    public static void nanoSpin(int nanos) {
+        Utils.unimplemented();
+    }
+
+    // /**
+    // * Registers an interrupt handler.
+    // *
+    // * @param InterruptId
+    // * @param IH
+    // */
+    // // @SCJAllowed(LEVEL_1)
+    // public static void registerInterruptHandler(int InterruptId,
+    // InterruptHandler IH) {
+    // }
+
+    /**
+     * sets the ceiling priority of object O The priority can be in the software
+     * or hardware priority range.
+     * 
+     * @throws IllegalThreadState
+     *             if called outside the mission phase
+     */
+    // @SCJAllowed(LEVEL_1)
+    public static void setCeiling(Object obj, int pri) {
+        Utils.unimplemented();
     }
 }

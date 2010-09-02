@@ -7,14 +7,11 @@ import javax.safetycritical.StorageParameters;
 import com.sun.squawk.BackingStore;
 import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
-import com.sun.squawk.util.Assert;
 
 //@SCJAllowed(LEVEL_1)
 public class RealtimeThread extends Thread {
 
-    /**
-     * The backing store this thread owns
-     */
+    /** The backing store this thread owns */
     private BackingStore bs;
 
     /**
@@ -23,48 +20,19 @@ public class RealtimeThread extends Thread {
      */
     private MemoryArea initArea;
 
-    /**
-     * The storage configuration parameter
-     */
+    /** The storage configuration parameter */
     private StorageParameters storage;
 
-    /**
-     * The priority parameter
-     */
+    /** The priority parameter */
     private PriorityParameters priority;
 
-    /**
-     * The managed schedulable that this thread is dedicated to
-     */
+    /** The managed schedulable that this thread is dedicated to */
     private ManagedSchedulable schedulable;
 
-    /**
-     * The number of realtime threads created
-     */
+    /** The number of realtime threads created */
     private static int counter = 0;
 
-    // /**
-    // * Only used in creating the initial real-time thread.
-    // *
-    // * @param isolate
-    // * @param string
-    // */
-    // // @SCJAllowed(INFRASTRUCTURE)
-    // public RealtimeThread(String string, int stackSize, Runnable logic) {
-    // super(logic, forgeName(), stackSize);
-    //
-    // BackingStore.disableScopeCheck();
-    // bs = BackingStore.getScoped();
-    // BackingStore.enableScopeCheck();
-    //
-    // initArea = ImmortalMemory.instance();
-    // // TODO: default sPara and pPara??
-    //
-    // if (BackingStore.SCJ_DEBUG_ENABLED) {
-    // VM.println("[SCJ] Create primordial realtime thread ");
-    // bs.printInfo();
-    // }
-    // }
+    private static boolean DEBUG = true;
 
     /**
      * This constructor takes all the listed parameters which are clear enough
@@ -80,33 +48,7 @@ public class RealtimeThread extends Thread {
     public RealtimeThread(PriorityParameters priority, StorageParameters storage, long initMemSize,
             Runnable logic) {
         this(priority, storage, initMemSize, null, null, logic);
-
-        if (BackingStore.SCJ_DEBUG_ENABLED) {
-            VM.print("[SCJ] Created realtime thread: ");
-            VM.println(getName());
-        }
     }
-
-    // /**
-    // * Only used in creating the initial real-time thread.
-    // *
-    // * @param priority
-    // * @param storage
-    // * @param initMemSize
-    // * @param logic
-    // * @param bs
-    // */
-    // public RealtimeThread(PriorityParameters priority, StorageParameters
-    // storage, Runnable logic) {
-    // this(checkPriorityParameters(priority), checkStorageParameters(storage),
-    // ImmortalMemory
-    // .instance(), BackingStore.getScoped(), logic);
-    //
-    // if (BackingStore.SCJ_DEBUG_ENABLED) {
-    // VM.println("[SCJ] Created initial realtime thread: ");
-    // VM.println(getName());
-    // }
-    // }
 
     /**
      * Only used in creating mission sequencer thread since such thread does not
@@ -125,7 +67,7 @@ public class RealtimeThread extends Thread {
         this(priority, storage, -1, initArea, initArea == ImmortalMemory.instance() ? BackingStore
                 .getScoped() : null, logic);
 
-        if (BackingStore.SCJ_DEBUG_ENABLED) {
+        if (DEBUG) {
             VM.print("[SCJ] Created mission sequencer thread: ");
             VM.println(getName());
         }
@@ -139,14 +81,18 @@ public class RealtimeThread extends Thread {
         if (bs == null)
             bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
                     (int) storage.getTotalBackingStoreSize());
-        BackingStore.disableScopeCheck();
+        //BackingStore.disableScopeCheck();
         this.bs = bs;
-        BackingStore.enableScopeCheck();
+        //BackingStore.enableScopeCheck();
         if (initArea == null)
             initArea = new PrivateMemory(initMemSize, bs);
         this.initArea = initArea;
-
         this.setPriority(priority.getPriority());
+
+        if (DEBUG) {
+            VM.print("[SCJ] Created realtime thread: ");
+            VM.println(getName());
+        }
     }
 
     protected StorageParameters getStorageParameters() {
@@ -174,30 +120,30 @@ public class RealtimeThread extends Thread {
      * <p>
      * No allocation because ReleaseParameters are immutable.
      */
-    //
-    // //@SCJAllowed(LEVEL_2)
+    // @SCJAllowed(LEVEL_2)
     public ReleaseParameters getReleaseParameters() {
         return null;
     }
 
-    /**
-     * Allocates no memory. Does not allow this to escape local variables. The
-     * returned object may reside in scoped memory, within a scope that encloses
-     * this.
-     * <p>
-     * No allocation because SchedulingParameters are immutable.
-     */
-    public SchedulingParameters getSchedulingParameters() {
-        return priority;
+    // /**
+    // * Allocates no memory. Does not allow this to escape local variables. The
+    // * returned object may reside in scoped memory, within a scope that
+    // encloses
+    // * this.
+    // * <p>
+    // * No allocation because SchedulingParameters are immutable.
+    // */
+    // public SchedulingParameters getSchedulingParameters() {
+    // return priority;
+    // }
+
+    public ManagedSchedulable getManagedSchedulable() {
+        return schedulable;
     }
 
-    // public void setBackingStore(BackingStore bs) {
-    // this.bs = bs;
-    // }
-    //
-    // public void setInitArea(MemoryArea initArea) {
-    // runner.initArea = initArea;
-    // }
+    public void setManagedSchedulable(ManagedSchedulable schedulable) {
+        this.schedulable = schedulable;
+    }
 
     /**
      * Allocates no memory. Treats the implicit this argument as a variable
@@ -211,6 +157,15 @@ public class RealtimeThread extends Thread {
             throw new Error("Initial area must be specified before the thread can start!");
         }
         super.start();
+    }
+
+    /**
+     * Called in VMThread.callRun() for entering the initial area.
+     */
+    public final void startRun() {
+        initArea.enter(this);
+        initArea.destroyBS();
+        initArea = null;
     }
 
     /**
@@ -231,27 +186,27 @@ public class RealtimeThread extends Thread {
         return (MemoryArea) BackingStore.getCurrentContext().getMirror();
     }
 
-    public static int getMemoryAreaStackDepth() {
-        return getCurrentMemoryArea().indexOnStack + 1;
-    }
-
-    public static MemoryArea getOuterMemoryArea(int index) {
-        MemoryArea area = getCurrentMemoryArea();
-        if (index < 0 || area.indexOnStack < index)
-            return null;
-        while (true) {
-            if (area.indexOnStack == index)
-                return area;
-            area = area.immediateOuter;
-            // The index must fall in the stack range. If not, something goes
-            // wrong.
-            Assert.always(area != null);
-        }
-    }
+    // public static int getMemoryAreaStackDepth() {
+    // return getCurrentMemoryArea().indexOnStack + 1;
+    // }
+    //
+    // public static MemoryArea getOuterMemoryArea(int index) {
+    // MemoryArea area = getCurrentMemoryArea();
+    // if (index < 0 || area.indexOnStack < index)
+    // return null;
+    // while (true) {
+    // if (area.indexOnStack == index)
+    // return area;
+    // area = area.immediateOuter;
+    // // The index must fall in the stack range. If not, something goes
+    // // wrong.
+    // Assert.always(area != null);
+    // }
+    // }
 
     // @SCJAllowed(LEVEL_2)
     public static void sleep(HighResolutionTime time) throws InterruptedException {
-        // FIXME: Nanos are simply ignored for now. 
+        // FIXME: Nanos are simply ignored for now.
         if (time instanceof AbsoluteTime) {
             VMThread.sleepAbsolute(time.getMilliseconds());
         } else {
@@ -279,24 +234,7 @@ public class RealtimeThread extends Thread {
         return storage;
     }
 
-    /**
-     * Called in VMThread.callRun() for entering the initial area.
-     */
-    public final void startRun() {
-        initArea.enter(this);
-        initArea.destroyBS();
-        initArea = null;
-    }
-
-    public ManagedSchedulable getManagedSchedulable() {
-        return schedulable;
-    }
-
-    public void setManagedSchedulable(ManagedSchedulable schedulable) {
-        this.schedulable = schedulable;
-    }
-
-    private synchronized static String forgeName() {
+    private static String forgeName() {
         return "SCJ-Thread-" + counter++;
     }
 }

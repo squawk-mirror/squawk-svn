@@ -1,6 +1,7 @@
 package javax.realtime;
 
 import com.sun.squawk.BackingStore;
+import com.sun.squawk.util.Assert;
 
 //@SCJAllowed
 public final class ImmortalMemory extends MemoryArea {
@@ -13,8 +14,7 @@ public final class ImmortalMemory extends MemoryArea {
 
     // @SCJAllowed
     public static ImmortalMemory instance() {
-//        if (instance == null)
-//            instance = new ImmortalMemory();
+        Assert.that(instance != null);
         return instance;
     }
 }

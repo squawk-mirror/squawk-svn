@@ -26,10 +26,12 @@ public final class PrivateMemory extends ManagedMemory {
     }
 
     /**
-     * allocate BS from specified BS
+     * Allocate the backing store of this private memory in the specified BS
+     * "from". This constructor is only used by the RealtimeThread constructors
+     * when creating the initial private memory.
      * 
      * @param size
-     * @param container
+     * @param from
      */
     public PrivateMemory(long size, BackingStore from) {
         super(size, from);

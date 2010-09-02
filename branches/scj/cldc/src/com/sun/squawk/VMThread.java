@@ -537,7 +537,7 @@ public final class VMThread implements GlobalStaticFields {
 
             Assert.that(currentThread.nextThread == null);
 /*if[SCJ]*/
-            BackingStore.disableScopeCheck();
+            //BackingStore.disableScopeCheck();
 /*end[SCJ]*/
             currentThread.nextThread = this.joiners;
             this.joiners = currentThread;
@@ -547,7 +547,7 @@ public final class VMThread implements GlobalStaticFields {
             Assert.that(currentThread.waitingToJoin == null);
             currentThread.waitingToJoin = this;
 /*if[SCJ]*/
-            BackingStore.enableScopeCheck();
+            //BackingStore.enableScopeCheck();
 /*end[SCJ]*/
             currentThread.setInQueue(VMThread.Q_JOIN);
             reschedule();
@@ -2626,7 +2626,7 @@ VM.println("creating stack:");
 
                 // Remove this thread from the list of joiners
 /*if[SCJ]*/
-                BackingStore.disableScopeCheck();
+                //BackingStore.disableScopeCheck();
 /*end[SCJ]*/
                 if (waitingToJoin.joiners == this) {
                     waitingToJoin.joiners = this.nextThread;
@@ -2639,7 +2639,7 @@ VM.println("creating stack:");
                     prev.nextThread = this.nextThread;
                 }
 /*if[SCJ]*/
-                BackingStore.enableScopeCheck();
+                //BackingStore.enableScopeCheck();
 /*end[SCJ]*/
 
                 // Move this thread to the runnable thread queue
@@ -2715,7 +2715,6 @@ VM.println("creating stack:");
         this.threadNumber  = nextThreadNumber++;
         this.state         = NEW;
         this.stackSize     = GC.roundUpToWord(stackSize) / HDR.BYTES_PER_WORD;
-        
         Object target = NativeUnsafe.getObject(apiThread, (int)FieldOffsets.java_lang_Thread$target);
         if (target instanceof Isolate) {
             if (apiThread instanceof RealtimeThread) {
@@ -3119,7 +3118,7 @@ final class ThreadQueue {
         thread.setInQueue(VMThread.Q_RUN);
         count++;
 /*if[SCJ]*/
-        BackingStore.disableScopeCheck();
+        //BackingStore.disableScopeCheck();
 /*end[SCJ]*/
         if (first == null) {
             first = thread;
@@ -3138,7 +3137,7 @@ final class ThreadQueue {
             }
         }
 /*if[SCJ]*/
-        BackingStore.enableScopeCheck();
+        //BackingStore.enableScopeCheck();
 /*end[SCJ]*/
     }
 
@@ -3171,7 +3170,7 @@ final class ThreadQueue {
             thread = thread.nextThread;
         }
 /*if[SCJ]*/
-        BackingStore.disableScopeCheck();
+        //BackingStore.disableScopeCheck();
 /*end[SCJ]*/
         if (thread != null) {
             thread.setNotInQueue(VMThread.Q_RUN);
@@ -3184,7 +3183,7 @@ final class ThreadQueue {
             count--;
         }
 /*if[SCJ]*/
-        BackingStore.enableScopeCheck();
+        //BackingStore.enableScopeCheck();
 /*end[SCJ]*/
         return thread;
     }

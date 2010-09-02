@@ -10,7 +10,7 @@ public class Printer implements Runnable {
 
     private String msg;
     private int depth = 0;
-    private int iters = 0;
+    private int iter = 0;
     private static volatile boolean allowed = true;
 
     Printer(String msg) {
@@ -33,7 +33,7 @@ public class Printer implements Runnable {
     }
 
     private boolean checkForTermination() {
-        if (depth == 0 && iters++ >= Config.iterations) {
+        if (depth == 0 && iter++ >= Config.iterations) {
             System.err.println("[HelloWorld] All iterations finished. Requests mission termination ...");
             Mission.getCurrentMission().requestTermination();
             return true;
@@ -43,9 +43,9 @@ public class Printer implements Runnable {
 
     private void doPrint() {
         AbsoluteTime now = Clock.getRealtimeClock().getTime();
-        System.err.print("[");
-        System.err.print(iters);
-        System.err.print("] \t");
+        System.err.print("[HelloWorld] iter: ");
+        System.err.print(iter);
+        System.err.print(" \t ");
         System.err.print(msg);
         System.err.print(" @ PM Level ");
         System.err.print(depth);

@@ -69,7 +69,7 @@ public abstract class Timer extends AsyncEvent {
             synchronized (lock) {
                 Timer next = head;
                 /* if[SCJ] */
-                BackingStore.disableScopeCheck();
+                //BackingStore.disableScopeCheck();
                 /* end[SCJ] */
                 while (timer.targetTime.compareTo(next.targetTime) > 0)
                     next = next.next;
@@ -83,7 +83,7 @@ public abstract class Timer extends AsyncEvent {
                     interrupt();
                 }
                 /* if[SCJ] */
-                BackingStore.enableScopeCheck();
+                //BackingStore.enableScopeCheck();
                 /* end[SCJ] */
                 // VM.println("[SCJ] " + timer + " added ");
                 // printQueue();
@@ -99,14 +99,14 @@ public abstract class Timer extends AsyncEvent {
             synchronized (lock) {
                 if (timer.next != null) {
                     /* if[SCJ] */
-                    BackingStore.disableScopeCheck();
+                    //BackingStore.disableScopeCheck();
                     /* end[SCJ] */
                     timer.prev.next = timer.next;
                     timer.next.prev = timer.prev;
                     if (timer == head)
                         head = timer.next;
                     /* if[SCJ] */
-                    BackingStore.enableScopeCheck();
+                    //BackingStore.enableScopeCheck();
                     /* end[SCJ] */
                     timer.prev = null;
                     timer.next = null;

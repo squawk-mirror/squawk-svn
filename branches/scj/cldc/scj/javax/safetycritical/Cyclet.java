@@ -1,7 +1,6 @@
 package javax.safetycritical;
 
-import javax.realtime.PriorityParameters;
-import javax.realtime.PriorityScheduler;
+import javax.safetycritical.util.Utils;
 
 /**
  * TBD: Does the JSR302 expert group approve of the following revision?
@@ -32,6 +31,7 @@ public class Cyclet implements Safelet {
      */
     // @SCJAllowed
     public Cyclet() {
+        Utils.unimplemented();
     }
 
     /**
@@ -47,10 +47,8 @@ public class Cyclet implements Safelet {
     // @SCJAllowed
     // @SCJRestricted({INITIALIZATION})
     public MissionSequencer getSequencer() {
-        int priority = PriorityScheduler.instance().getNormPriority();
-        StorageParameters sp = new StorageParameters(10000L, 10000L, 10000L);
-        return new SingleMissionSequencer(new PriorityParameters(priority), sp,
-                getPrimordialMission());
+        Utils.unimplemented();
+        return null;
     }
 
     /**
@@ -59,7 +57,7 @@ public class Cyclet implements Safelet {
      */
     // @SCJAllowed
     public void setUp() {
-        // do nothing
+        Utils.unimplemented();
     }
 
     /**
@@ -68,7 +66,7 @@ public class Cyclet implements Safelet {
      */
     // @SCJAllowed
     public void tearDown() {
-        // do nothing
+        Utils.unimplemented();
     }
 
     /**
@@ -85,7 +83,7 @@ public class Cyclet implements Safelet {
      * This method will be called following an invocation of setUp().
      */
     public static Level0Mission getPrimordialMission() {
-        // vendor-specific implementation not shown.
+        Utils.unimplemented();
         return null;
     }
 
@@ -107,6 +105,7 @@ public class Cyclet implements Safelet {
      */
     // @SCJAllowed
     public static CyclicSchedule getSchedule(Level0Mission m) {
-        return m.getSchedule();
+        Utils.unimplemented();
+        return null;
     }
 }

@@ -1,5 +1,7 @@
 package javax.realtime;
 
+import javax.safetycritical.util.Utils;
+
 import com.sun.squawk.VM;
 import com.sun.squawk.util.Assert;
 
@@ -26,51 +28,69 @@ public abstract class Clock {
 
         private RelativeTime resolution;
 
-        protected boolean drivesEvents() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
+        // @SCJAllowed
         public RelativeTime getEpochOffset() {
-            // TODO Auto-generated method stub
+            Utils.unimplemented();
             return null;
         }
 
+        // @SCJAllowed
         public RelativeTime getResolution() {
             return resolution;
         }
 
+        // @SCJAllowed
         public RelativeTime getResolution(RelativeTime dest) {
             dest.set(resolution.getMilliseconds(), resolution.getNanoseconds());
             return dest;
         }
 
+        // @SCJAllowed
         public AbsoluteTime getTime() {
             return getTime(new AbsoluteTime());
         }
 
+        // @SCJAllowed
         public AbsoluteTime getTime(AbsoluteTime dest) {
-            // FIXME:
+            // FIXME: nanos field is ignored.
             dest.set(VM.getTimeMillis(), 0);
             return dest;
         }
 
-        protected void registerCallBack(AbsoluteTime time, ClockCallBack clockEvent) {
-            // TODO Auto-generated method stub
-
-        }
-
-        protected boolean resetTargetTime(AbsoluteTime time) {
-            // TODO Auto-generated method stub
+        // @SCJAllowed
+        protected boolean drivesEvents() {
+            Utils.unimplemented();
             return false;
         }
 
+        // @SCJAllowed(LEVEL_1)
+        protected void registerCallBack(AbsoluteTime time, ClockCallBack clockEvent) {
+            Utils.unimplemented();
+        }
+
+        // @SCJAllowed(LEVEL_1)
+        protected boolean resetTargetTime(AbsoluteTime time) {
+            Utils.unimplemented();
+            return false;
+        }
+
+        // @SCJAllowed(LEVEL_1)
         protected void setResolution(RelativeTime resolution) {
             resolution.set(resolution);
         }
     }
 
     private static RealtimeClock rtc = new RealtimeClock();
+
+    /**
+     * Constructor for the abstract class.
+     * 
+     * Allocates resolution here.
+     */
+
+    // @SCJAllowed
+    public Clock() {
+    }
 
     /**
      * There is always at least one clock object available: the system real-time
@@ -119,16 +139,6 @@ public abstract class Clock {
 
     // @SCJAllowed
     public abstract AbsoluteTime getTime(AbsoluteTime dest);
-
-    /**
-     * Constructor for the abstract class.
-     * 
-     * Allocates resolution here.
-     */
-
-    // @SCJAllowed
-    public Clock() {
-    }
 
     /**
      * Gets the resolution of the clock, the nominal interval between ticks.

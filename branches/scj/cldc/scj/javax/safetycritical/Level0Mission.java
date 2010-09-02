@@ -1,5 +1,7 @@
 package javax.safetycritical;
 
+import javax.safetycritical.util.Utils;
+
 /**
  * A Level-Zero Safety Critical Java application is comprised of one or more
  * Level0Missions. Each Level0Mission is implemented as a subclass of this
@@ -30,6 +32,7 @@ public abstract class Level0Mission extends Mission {
     // initializer_ initialization
     // @SCJAllowed
     public Level0Mission() {
+        Utils.unimplemented();
     }
 
     /**
@@ -41,7 +44,7 @@ public abstract class Level0Mission extends Mission {
      * javax.safetycritical package.
      */
     public CyclicSchedule getSchedule() {
+        Utils.unimplemented();
         return null;
     }
-
 }

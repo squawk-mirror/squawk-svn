@@ -233,7 +233,15 @@ public final class Isolate implements Runnable {
     /**
      * SquawkHashtable that holds the monitors for objects in ROM.
      */
-    private SquawkHashtable monitorHashtable = new SquawkHashtable();
+/*if[SCJ]*/
+    /* 
+     * The initial capacity should be large enough to ensure no rehash will happen.
+     * I don't know how large it should be here. Just put a random one.
+     */
+    private SquawkHashtable monitorHashtable = new SquawkHashtable(50);
+/*else[SCJ]*/
+//    private SquawkHashtable monitorHashtable = new SquawkHashtable();
+/*end[SCJ]*/
 
     /**
      * The translator that is to be used to locate, load and convert classes
@@ -2090,12 +2098,12 @@ public final class Isolate implements Runnable {
      */
     void addJoiner(VMThread thread) {
 /*if[SCJ]*/
-        BackingStore.disableScopeCheck();
+        //BackingStore.disableScopeCheck();
 /*end[SCJ]*/
         thread.nextThread = joiners;
         joiners = thread;
 /*if[SCJ]*/
-        BackingStore.enableScopeCheck();
+        //BackingStore.enableScopeCheck();
 /*end[SCJ]*/
     }
 

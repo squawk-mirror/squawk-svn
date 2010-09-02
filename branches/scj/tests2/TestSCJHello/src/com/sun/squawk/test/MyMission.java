@@ -18,6 +18,9 @@ public class MyMission extends Mission {
         new AsyncHappeningHandler(Config.priority, Config.aperiod, Config.storage,
                 Config.initPrivateSize).register();
         // new SyncHappeningHandler().register();
+        System.err.print("[HelloWorld] Mission ");
+        System.err.print(turn);
+        System.err.println(" initialization finished ...");
     }
 
     public long missionMemorySize() {

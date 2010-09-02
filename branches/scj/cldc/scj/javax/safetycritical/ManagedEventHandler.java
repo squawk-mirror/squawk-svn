@@ -12,7 +12,7 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
 
     private RealtimeThread thread;
 
-    private ManagedSchedulable next;
+    ManagedEventHandler next;
 
     ManagedEventHandler(PriorityParameters priority, ReleaseParameters release,
             StorageParameters storage, long initMemSize, String name) {
@@ -25,6 +25,17 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
         thread.start();
     }
 
+    void join() throws InterruptedException {
+        thread.join();
+    }
+
+    void start() {
+    }
+
+    void stop() {
+        cancel();
+    }
+
     // @SCJAllowed
     public String getName() {
         return name;
@@ -32,23 +43,11 @@ public abstract class ManagedEventHandler extends AsyncEventHandler implements M
 
     // @SCJAllowed
     public void register() {
-        ManagedMemory.getCurrentManageMemory().getManager().regSchedulable(this);
-    }
-
-    public void join() throws InterruptedException {
-        thread.join();
+        ManagedMemory.getCurrentManageMemory().getManager().regManagedEventHandler(this);
     }
 
     // @SCJAllowed
     public void cleanUp() {
-    }
-
-    public ManagedSchedulable getNext() {
-        return next;
-    }
-
-    public void setNext(ManagedSchedulable next) {
-        this.next = next;
     }
 
     // @SCJAllowed

@@ -1,47 +1,38 @@
 package javax.realtime;
 
-
 //@SCJAllowed
 public class AsyncEventHandler implements Schedulable {
 
+    /**
+     * A count of pending fires - the fires that have not been handled yet.
+     */
     private int fireCount = 0;
 
     private Object lock = new Object();
 
-    private volatile boolean stop = false;
+    /**
+     * If the thread loop gets cancelled.
+     */
+    private volatile boolean cancelled = false;
 
-    // public AsyncEventHandler() {
-    // }
-
-    public void run() {
-        while (!stop) {
-            try {
-                synchronized (lock) {
-                    if (fireCount == 0) {
-//                        VM.println("[SCJ] " + this + " is going to wait ...");
-                        lock.wait();
-                    }
-                }
-                while (getAndDecrementPendingFireCount() > 0)
-                    handleAsyncEvent();
-            } catch (InterruptedException e) {
-            }
-        }
-    }
-
-    public void release() {
+    void release() {
         synchronized (lock) {
             if (fireCount++ == 0) {
-//                VM.println("[SCJ] " + this + " notified ...");
+                // VM.println("[SCJ] " + this + " notified ...");
                 lock.notify();
             }
         }
     }
 
-    public void stop() {
+    // For subclasses that in javax.safetycritical package use
+    protected void release_protected() {
+        release();
+    }
+
+    protected void cancel() {
         synchronized (lock) {
             fireCount = 0;
-            stop = true;
+            cancelled = true;
             lock.notify();
         }
     }
@@ -69,6 +60,26 @@ public class AsyncEventHandler implements Schedulable {
             int fc = fireCount;
             fireCount++;
             return fc;
+        }
+    }
+
+    /**
+     * The thread loop where all fires get handled.
+     */
+    public void run() {
+        while (!cancelled) {
+            try {
+                synchronized (lock) {
+                    if (fireCount == 0) {
+                        // VM.println("[SCJ] " + this +
+                        // " is going to wait ...");
+                        lock.wait();
+                    }
+                }
+                while (getAndDecrementPendingFireCount() > 0)
+                    handleAsyncEvent();
+            } catch (InterruptedException e) {
+            }
         }
     }
 

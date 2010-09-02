@@ -2,6 +2,7 @@ package javax.safetycritical;
 
 import javax.realtime.PriorityParameters;
 import javax.realtime.PriorityScheduler;
+import javax.safetycritical.util.Utils;
 
 /**
  * TBD: An earlier version of CyclicExecutive extended Mission. In the current
@@ -60,6 +61,7 @@ public abstract class CyclicExecutive implements Safelet {
      */
     // @SCJAllowed
     public CyclicExecutive(StorageParameters storage) {
+        Utils.unimplemented();
     }
 
     /**
@@ -82,6 +84,7 @@ public abstract class CyclicExecutive implements Safelet {
      */
     // @SCJAllowed
     public static CyclicSchedule getSchedule(Level0Mission m) {
+        Utils.unimplemented();
         return null;
     }
 
@@ -96,13 +99,12 @@ public abstract class CyclicExecutive implements Safelet {
      */
     // @SCJAllowed
     public MissionSequencer getSequencer() {
-        return new SingleMissionSequencer(new PriorityParameters(
-                PriorityScheduler.instance().getNormPriority()),
-                new StorageParameters(10000L, 10000L, 10000L), getMission());
+        Utils.unimplemented();
+        return null;
     }
 
     private Mission getMission() {
-        // TODO Auto-generated method stub
+        Utils.unimplemented();
         return null;
     }
 }

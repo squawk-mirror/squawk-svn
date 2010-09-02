@@ -4,9 +4,6 @@ import javax.realtime.AsyncEventHandler;
 import javax.realtime.MemoryArea;
 import javax.realtime.PriorityParameters;
 import javax.realtime.RealtimeThread;
-import javax.safetycritical.util.Utils;
-
-import com.sun.squawk.BackingStore;
 
 /**
  * A MissionSequencer runs a sequence of independent Missions interleaved with
@@ -17,11 +14,11 @@ public abstract class MissionSequencer extends AsyncEventHandler {
 
     private MissionMemory memory;
 
-    private volatile boolean terminationRequestReceived = false;
-
     private RealtimeThread thread;
 
     private Runnable runner = new InMissionMemoryRunner();
+
+    private volatile boolean terminationRequestReceived = false;
 
     /**
      * Construct a MissionSequencer to run at the priority and with the memory
@@ -53,9 +50,9 @@ public abstract class MissionSequencer extends AsyncEventHandler {
             } else {
                 MissionManager manager = new MissionManager(mission);
                 mission.setManager(manager);
-                memory.resize(mission.missionMemorySize());
+                memory.shrink(mission.missionMemorySize());
                 memory.setManager(manager);
-                manager.go();
+                manager.startMission();
                 terminationRequestReceived = mission.sequenceTerminationPending();
                 // The manager instance will be gone soon along with the mission
                 // memory. So nulling the pointer.
@@ -73,17 +70,12 @@ public abstract class MissionSequencer extends AsyncEventHandler {
     // @SCJAllowed
     public final synchronized void handleAsyncEvent() {
         memory = new MissionMemory(0);
-
-        if (Utils.DEBUG)
-            BackingStore.printCurrentBSStats();
-
         do {
-            memory.reset();
+            memory.reinitialize();
             memory.enter(runner);
         } while (!terminationRequestReceived);
-        memory.destroyAllAboveBS();
-        memory.destroyBS();
-        stop();
+        memory.destroy();
+        cancel();
     }
 
     /**
@@ -127,7 +119,7 @@ public abstract class MissionSequencer extends AsyncEventHandler {
      */
     // @SCJAllowed(LEVEL_2)
     public final synchronized void start() {
-        release();
+        release_protected();
     }
 
     public final void join() throws InterruptedException {

@@ -169,6 +169,7 @@
   KlassInitializationState
   entry of SquawkHashtable Isolate.childThreads
 
+  Enumerators
 
 - Support to sleep until certain absolute time 
     

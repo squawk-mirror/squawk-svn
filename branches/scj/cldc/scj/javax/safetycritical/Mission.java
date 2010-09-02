@@ -47,8 +47,8 @@ public abstract class Mission {
     }
 
     void setManager(MissionManager manager) {
-        BackingStore.disableScopeCheck();
+        //BackingStore.disableScopeCheck();
         this.manager = manager;
-        BackingStore.enableScopeCheck();
+        //BackingStore.enableScopeCheck();
     }
 }
