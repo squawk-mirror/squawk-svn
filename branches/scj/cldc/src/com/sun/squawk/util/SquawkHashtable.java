@@ -27,6 +27,11 @@ package com.sun.squawk.util;
 import java.util.Enumeration;
 import java.util.NoSuchElementException;
 
+/*if[SCJ]*/
+import com.sun.squawk.BackingStore;
+import com.sun.squawk.VM;
+/*end[SCJ]*/
+
 /**
  * This class implements a variation of {@link java.util.Hashtable} that is unsynchronized. Any
  * non-<code>null</code> object can be used as a key or as a value.
@@ -370,6 +375,14 @@ public class SquawkHashtable<K, V> {
 /*end[JAVA5SYNTAX]*/
         setTable(null); // safety
         int oldCapacity = oldTable.length;
+/*if[SCJ]*/
+        BackingStore newBS = null, oldBS = null;
+        if(!VM.isHosted()) {
+            newBS = BackingStore.getBackingStore(oldTable);
+            oldBS = BackingStore.setCurrentContext(newBS);
+        }
+        try{
+/*end[SCJ]*/
 /*if[JAVA5SYNTAX]*/
         HashtableEntry<K, V>[] newTable = new HashtableEntry[newCapacity];
 /*else[JAVA5SYNTAX]*/
@@ -391,6 +404,13 @@ public class SquawkHashtable<K, V> {
             }
         }
         setTable(newTable);
+/*if[SCJ]*/
+        }finally{
+            if(!VM.isHosted()) {
+                BackingStore.setCurrentContext(oldBS);
+            }
+        }
+/*end[SCJ]*/
     }
 
     /**

@@ -28,6 +28,10 @@ import java.util.Enumeration;
 import java.util.NoSuchElementException;
 import com.sun.cldchi.jvm.JVM;
 
+/*if[SCJ]*/
+import com.sun.squawk.BackingStore;
+import com.sun.squawk.VM;
+/*end[SCJ]*/
 
 /**
  * The <code>SquawkVector</code> class is an unsynchronized version of 
@@ -168,7 +172,21 @@ public class SquawkVector {
         if (newCapacity < minCapacity) {
             newCapacity = minCapacity;
         }
-        elementData = new Object[newCapacity];
+/*if[SCJ]*/
+        BackingStore newBS = null, oldBS = null;
+        if(!VM.isHosted()) {
+            newBS = BackingStore.getBackingStore(oldData);
+            oldBS = BackingStore.setCurrentContext(newBS);
+        }
+        try{
+            elementData = new Object[newCapacity];
+        }finally{
+            if(!VM.isHosted())
+                BackingStore.setCurrentContext(oldBS);
+        }
+/*else[SCJ]*/
+//        elementData = new Object[newCapacity];
+/*end[SCJ]*/
         JVM.unchecked_obj_arraycopy(oldData, 0, 
                                     elementData, 0, elementCount);
     }

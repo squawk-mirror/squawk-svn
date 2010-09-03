@@ -28,6 +28,11 @@ package com.sun.squawk.util;
 import com.sun.squawk.Vm2c;
 /*end[JAVA5SYNTAX]*/
 
+/*if[SCJ]*/
+import com.sun.squawk.BackingStore;
+import com.sun.squawk.VM;
+/*end[SCJ]*/
+
 /**
  * This class provides mechanisms for manipulating a bit set.
  *
@@ -204,7 +209,22 @@ public final class BitSet {
 
         // Allocate larger of doubled size or required size
         int request = Math.max(2 * bits.length, bytesRequired);
-        byte newBits[] = new byte[request];
+/*if[SCJ]*/
+        BackingStore newBS = null, oldBS = null;
+        byte newBits[] = null;
+        if(!VM.isHosted()) {
+            newBS = BackingStore.getBackingStore(bits);
+            oldBS = BackingStore.setCurrentContext(newBS);
+        }
+        try{
+            newBits = new byte[request];
+        }finally{
+            if(!VM.isHosted())
+                BackingStore.setCurrentContext(oldBS);
+        }
+/*else[SCJ]*/
+//        byte newBits[] = new byte[request];
+/*end[SCJ]*/
         System.arraycopy(bits, 0, newBits, 0, bytesInUse);
         bits = newBits;
     }

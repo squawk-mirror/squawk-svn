@@ -26,6 +26,11 @@ package com.sun.squawk.util;
 
 import com.sun.cldchi.jvm.JVM;
 
+/*if[SCJ]*/
+import com.sun.squawk.BackingStore;
+import com.sun.squawk.VM;
+/*end[SCJ]*/
+
 
 
 /**
@@ -98,7 +103,21 @@ public final class IntSet {
         if (newCapacity < minCapacity) {
             newCapacity = minCapacity;
         }
-        elementData = new int[newCapacity];
+/*if[SCJ]*/
+        BackingStore newBS = null, oldBS = null;
+        if(!VM.isHosted()) {
+            newBS = BackingStore.getBackingStore(oldData);
+            oldBS = BackingStore.setCurrentContext(newBS);
+        }
+        try{
+            elementData = new int[newCapacity];
+        }finally{
+            if(!VM.isHosted())
+                BackingStore.setCurrentContext(oldBS);
+        }
+/*else[SCJ]*/
+//        elementData = new int[newCapacity];
+/*end[SCJ]*/
         JVM.unchecked_int_arraycopy(oldData, 0, 
                                     elementData, 0, elementCount);
     }

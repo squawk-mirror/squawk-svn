@@ -595,7 +595,21 @@
     hold some dead reference? Particularly, ManagedAutonomousHappening can be attached with a AsyncEvent. What 
     if the AsyncEvent object dies with the mission, while the happening is still alive?
   
-    
+    [[!!
+      NOTE: Executing user happening handler code in rescheduleNext() is NOT SAFE. The danger results from an
+      invariant violation:
+      
+      In user code's point of view, current thread should not be in any queues. 
+      
+      In the context of rescheduleNext(), this invariant does not hold since prior to the entrance, some other 
+      scheduling related code often have done putting the current thread in a proper queue. Therefore, executing 
+      user code in such context is dangerous. One case that can cause a crash is as following:  
+      
+      - put currentThread in some queue
+      - rescheduleNext()
+        - user happening handler
+          - put currentThread in some queue <-- here, currentThread.checkInQueue(Q_NONE) will fail!  
+    !!]]
     
     
     

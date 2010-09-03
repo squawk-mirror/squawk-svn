@@ -27,6 +27,11 @@ package com.sun.squawk.util;
 import java.util.Enumeration;
 import java.util.NoSuchElementException;
 
+/*if[SCJ]*/
+import com.sun.squawk.BackingStore;
+import com.sun.squawk.VM;
+/*end[SCJ]*/
+
 /**
  * This class implements an unsynchronized hashtable, which maps keys to values. Any
  * non-<code>null</code> object can be used as a value, but only primitive integers (ints) can be used as keys.
@@ -266,7 +271,22 @@ public class IntHashtable {
         IntHashtableEntry oldTable[] = table;
 
         int newCapacity = oldCapacity * 2 + 1;
-        IntHashtableEntry newTable[] = new IntHashtableEntry[newCapacity];
+/*if[SCJ]*/
+        BackingStore newBS = null, oldBS = null;
+        if(!VM.isHosted()) {
+            newBS = BackingStore.getBackingStore(oldTable);
+            oldBS = BackingStore.setCurrentContext(newBS);
+        }
+        IntHashtableEntry newTable[] = null;
+        try{
+            newTable = new IntHashtableEntry[newCapacity];
+        }finally{
+            if(!VM.isHosted())
+                BackingStore.setCurrentContext(oldBS);
+        }
+/*else[SCJ]*/
+//        IntHashtableEntry newTable[] = new IntHashtableEntry[newCapacity];
+/*end[SCJ]*/
 
         threshold = (int)((newCapacity * loadFactorPercent) / 100);
         table = newTable;
