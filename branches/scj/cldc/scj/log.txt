@@ -159,18 +159,7 @@
   be maintained. The queue is sorted based on the target time of the timers. 
   For supporting other user defined clocks, one queue per clock is needed.
 
-
-- Garbage in Immortal
   
-  There are certainly temporary objects allocated in immortal memory during VM 
-  starts up. Ideally, we should use object pool. But for now, just let it be 
-  while keeping a list of what they are (not complete, will add more when found):
-  
-  KlassInitializationState
-  entry of SquawkHashtable Isolate.childThreads
-
-  Enumerators
-
 - Support to sleep until certain absolute time 
     
   RealtimeThread.sleep(HighResolutionTime) and HighResolutionTime.wait(Object, 
@@ -213,13 +202,17 @@
 
 - Memory leak in immortal
 
-  There should be a lot of methods leaking memory if no GC. Who are they?
+  There should be methods leaking memory if no GC. Who are they?
   
   Need to check what data structures have been allocated dynamically. On 
   high level, we must make sure those data structures are of proper life 
   time and allocated in the proper scope, otherwise we have memory leak. 
   
-  Known leaking:
+  There are certainly temporary objects allocated in immortal memory during VM 
+  starts up. Ideally, we should use object pool. But for now, just let it be 
+  while keeping a list of them (not complete, will add more when found):
+
+  Known leaking points:
   
     * IOHander
         A regular Java thread which is started along with the VM and blocked
@@ -229,7 +222,18 @@
         out). Apparently, any following allocation done by IOHandler cause 
         leak in immortal unless the created objects are intended to be kept 
         permanently. 
+        
+    * KlassInitializationState
+        The entry becomes garbage after the klass has been fully initialized.
+    
+    * Enumerators / Iterators
+        Of all types of collections who support them. e.g SquawkHashtable.
+            
   
+  To solve memory leak, we may want to introduce ScratchPad area alongside of
+  immortal and scoped area. But how to decide the upper bound of size? And
+  should users be aware of it?
+
 
 - Monitor object allocations are triggered when printing. Check why??
 
@@ -519,16 +523,16 @@
   
   5. Interrupt handler priority
   
-  "SCJ also defines the notion of interrupt priorities. Interrupt priorities can only be used to define ceiling 
-  priorities." - from SCJ Spec
+  "SCJ also defines the notion of interrupt priorities. Interrupt priorities can only be used to define 
+  ceiling priorities." - from SCJ Spec
   
-  Not much words about this issue. Presumably, SCJ would completely adapt Ada's model, in which handler procedures
-  must be "protected" (analogous to synchronized method in Java) and the priority of the handler is used to 
-  specify the ceiling of the protected object (the receiver object of the synchronized method in Java). Therefore
-  when the handler starts, its thread's priority will be raised up to the ceiling.
+  Not much words about this issue. Presumably, SCJ would completely adapt Ada's model, in which handler 
+  procedures must be "protected" (analogous to synchronized method in Java) and the priority of the handler 
+  is used to specify the ceiling of the protected object (the receiver object of the synchronized method in 
+  Java). Therefore when the handler starts, its thread's priority will be raised up to the ceiling.
   
-  To support this feature, we need priority ceiling protocol to be implemented first. For now, just ignore the 
-  priority.
+  To support this feature, we need priority ceiling protocol to be implemented first. For now, just ignore 
+  the priority.
   
   
     
@@ -555,15 +559,18 @@
         return false 
       FORALL h IN happenings 
         IF h instanceof EventHappening
-          h.getAyncEvent.fire()
-          // if associating multiple AsyncEvents is supported, fire all of them
+          TriggerThread.add(h)
         ELIF h instanceof InterruptHappening
           h.process()
         ELSE
           error()
       return true
   
-
+    4) TriggerThread
+      FORALL h IN happenings
+        h.asyncEvent.fire()
+        // if associating multiple AsyncEvents is supported, fire all of them
+        
     == Explanation ==
 
     Since current VM only support I/O events, we need to have new native code to monitor the events generated from
@@ -575,24 +582,18 @@
     space. The pending events are delivered at VM poll. 
     
     
-    
   7. Problems
           
-	      The SCJ Spec says that users CAN unregister the happenings at
-          mission.cleanUp(). However, they are not mandatory to do that. So the
-          problem is what if there are some happening unregistered after the
-          mission.
+    The SCJ Spec says that users CAN unregister the happenings at mission.cleanUp(). However, they are not 
+    mandatory to do that. So the problem is what if there are some happening left registered after the mission.
           
-          Leaving some registered happening in the gap between missions can be
-          dangerous since their handlers might be gone along with the mission.
-          Before everything is clarified, we simply unregister all happenings
-          belongs to current mission.
+    Leaving some registered happening in the gap between missions can be dangerous since their handlers might be 
+    gone along with the mission. Before everything is clarified, we simply unregister all happenings belongs to 
+    current mission.
           
-          Actually, this is still a hole: can a happening span missions? If
-          yes, how to ensure the happening will not hold some dead reference?
-          Particularly, ManagedAutonomousHappening can be attached with a
-          AsyncEvent. What if the AsyncEvent object dies with the mission,
-          while the happening is still alive?
+    Actually, this is still a hole: can a happening span missions? If yes, how to ensure the happening will not 
+    hold some dead reference? Particularly, ManagedAutonomousHappening can be attached with a AsyncEvent. What 
+    if the AsyncEvent object dies with the mission, while the happening is still alive?
   
     
     

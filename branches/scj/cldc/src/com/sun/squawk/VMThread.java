@@ -34,7 +34,6 @@ import com.sun.squawk.platform.SystemEvents;
 import java.util.Enumeration;
 
 /*if[SCJ]*/
-import javax.realtime.Happening;
 import javax.realtime.RealtimeThread;
 /*end[SCJ]*/
 
@@ -911,7 +910,6 @@ public final class VMThread implements GlobalStaticFields {
 
     private int errno; /* save errno after native calls so java thread's will see correct errno value. */
 
-
     /**
      * Fail if thread invarients are true.
      */
@@ -1620,6 +1618,10 @@ VM.println("creating stack:");
      */
     private static void rescheduleNext() {
         Assert.that(GC.isSafeToSwitchThreads());
+/*if[SCJ]*/
+        Assert.that(!criticalRescheduleFence);
+        criticalRescheduleFence = true;
+/*end[SCJ]*/
         VMThread thread = null;
 
         /*
@@ -1635,8 +1637,15 @@ VM.println("creating stack:");
 /*if[SCJ]*/
                 if(event > 0)
                     signalEvent(event);
-                else
+                else {
+                    if(userRescheduleFence && VM.isVerbose())
+                        VM.println("[SCJ] User happening handler causes nested thread rescheduling.");
+                    criticalRescheduleFence = false;
+                    userRescheduleFence = true;
                     signalHappening(event);
+                    userRescheduleFence = false;
+                    criticalRescheduleFence = true;
+                }
 /*else[SCJ]*/
 //              signalEvent(event);
 /*end[SCJ]*/
@@ -1716,6 +1725,10 @@ VM.println("creating stack:");
         Assert.that(thread != null);
         thread.checkInQueue(Q_NONE);
         otherThread = thread;
+/*if[SCJ]*/
+        criticalRescheduleFence = false;
+/*end[SCJ]*/
+
     }
     
     public static long getTotalWaitTime() {
@@ -2705,6 +2718,9 @@ VM.println("creating stack:");
 	 * The current allocate context
 	 */
 	private BackingStore savedAllocCtx = BackingStore.getCurrentContext();
+	
+    private static boolean criticalRescheduleFence;
+    private static boolean userRescheduleFence;
 	
     /**
      * 
