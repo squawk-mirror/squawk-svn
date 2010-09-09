@@ -9,7 +9,9 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -33,7 +35,6 @@
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <jdk>(Default)</jdk>
   <triggers class="vector">
     <hudson.triggers.SCMTrigger>
       <spec>5 * * * *
@@ -50,8 +51,6 @@ export JAVA_HOME=/usr
 cd trunk
 
 pwd
-#/home/squawk/Hudson-Squawk/hudson/trunk/bin/runsmoketest.sh 
-
 platform=&apos;unknown&apos;
 unamestr=`uname`
 hudsondir=&apos;null&apos;
@@ -74,17 +73,13 @@ elif [[ $platform == &apos;mac&apos; ]]; then
 elif [[ $platform == &apos;windows&apos; ]];then
 	echo &apos;win&apos;
 fi
-
-
-
 echo huddir $hudsondir
 
-#$HUDSON_HOME/bin/verifyBuildJars2
+tests/bin/verifyBuildJars2
 ./d.sh -verbose builder
 ./d.sh   clean
 ./d.sh
-./d.sh  copyphoneme
-./d.sh -verbose -prod -mac -o2 rom -metadata cldc imp debugger
+./d.sh -verbose -prod -mac -o2 rom cldc imp debugger
 
 ls -l &gt; sizereport.txt
 
@@ -103,8 +98,9 @@ ls -l &gt; sizereport.txt
 echo working directory
 pwd
 
-$hudsondir/bin/runsmoketest.sh DELEGATING
-ls  $hudsondir/bin/
+tests/bin/runsmoketest.sh DELEGATING
+tests/bin/runiotests.sh
+
 rm -rf tempdoc
 
 echo MAKEAPI DISABLED FOR NOW!
@@ -113,9 +109,9 @@ echo MAKEAPI DISABLED FOR NOW!
 java -jar $hudsondir/findbugs/lib/findbugs.jar -textui -project $hudsondir/bin/findbugs-bootstrap.fbp -exclude $hudsondir/bin/findbugs-filter.xml -output findbugs.xml
 
 mkdir tmp
-cp squawk squawk.suite squawk.suite.metadata tmp
+cp squawk squawk.suite squawk.suite.map squawk.suite.metadata tmp
 ./d.sh clean 
-mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
+mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata tmp/squawk.suite.map .
 rmdir tmp
 </command>
     </hudson.tasks.Shell>
@@ -126,7 +122,7 @@ rmdir tmp
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.BuildTrigger>
-      <childProjects>normal-build-linux,normal-build-windows</childProjects>
+      <childProjects>normal-build-windows, platform-type-matrix, full-debug-build, small-build</childProjects>
       <threshold>
         <name>SUCCESS</name>
         <ordinal>0</ordinal>

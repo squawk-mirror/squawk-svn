@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<matrix-project>
+<project>
   <actions/>
   <description>Build a full debug build from SVN. Build with assertions, debug code, assume, tracing, and interpreted gc.</description>
   <logRotator>
@@ -9,7 +9,9 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -25,50 +27,44 @@
     <excludedRevprop></excludedRevprop>
     <excludedCommitMessages></excludedCommitMessages>
   </scm>
-  <canRoam>true</canRoam>
+  <assignedNode>WindowsXP32</assignedNode>
+  <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
-  <axes>
-    <axis>
-      <name>label</name>
-      <values>
-        <string>Ubuntu</string>
-      </values>
-    </axis>
-  </axes>
   <builders>
     <hudson.tasks.Shell>
-      <command>#!/bin/bash
+      <command>#!bash
 LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 cd trunk
 
-#HUDSON_DIR must be set in environment variables!
+java -jar build.jar clean
+java -jar build.jar -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
+java -Xmx256M -jar build.jar  -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true -DENABLE_DYNAMIC_CLASSLOADING=true  -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt cldc imp debugger
 
-./d.sh clean
-./d.sh copyphoneme
-./d.sh -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
-./d.sh -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true -DENABLE_DYNAMIC_CLASSLOADING=true  -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt -metadata cldc imp debugger
-
-./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-./d.sh genspec
-./d.sh jvmenv
-./d.sh systemproperties
-./d.sh Mnemonics
-./d.sh OPC
-./d.sh OperandStackEffect
-./d.sh Verifier
+java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+java -jar build.jar genspec
+java -jar build.jar jvmenv
+java -jar build.jar systemproperties
+java -jar build.jar Mnemonics
+java -jar build.jar OPC
+java -jar build.jar OperandStackEffect
+java -jar build.jar Verifier
 ./squawk -h
 ./squawk -version
-$HUDSON_DIR/bin/runsmoketest.sh DELEGATING
-$HUDSON_DIR/bin/rundsmoketest.sh DELEGATING
+
+unix2dos.exe tests/bin/runsmoketest.sh
+unix2dos.exe tests/bin/rundsmoketest.sh
+
+tests/bin/runsmoketest.sh DELEGATING
+tests/bin/rundsmoketest.sh DELEGATING
 
 ls -l &gt; sizereport.txt
 
 mkdir tmp
 cp squawk squawk.suite squawk.suite.metadata tmp
-./d.sh clean 
+java -jar build.jar clean 
 mv tmp/squawk tmp/squawk.suite tmp/squawk.suite.metadata .
 rmdir tmp
 </command>
@@ -81,5 +77,4 @@ rmdir tmp
     </hudson.tasks.ArtifactArchiver>
   </publishers>
   <buildWrappers/>
-  <runSequentially>false</runSequentially>
-</matrix-project>
+</project>

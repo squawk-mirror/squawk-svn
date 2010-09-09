@@ -1,5 +1,5 @@
 #!/bin/csh
 
-setenv HUDSON_HOME /scratch/dw29446/hudson/hudson_home
+setenv HUDSON_HOME .
 
-/usr/java/bin/java -jar $HUDSON_HOME/hudson.war &
+/usr/bin/java -server -jar hudson.war &

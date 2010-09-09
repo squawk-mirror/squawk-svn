@@ -7,7 +7,9 @@
     <numToKeep>3</numToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
   <scm class="hudson.scm.NullSCM"/>
   <quietPeriod>1800</quietPeriod>
   <canRoam>true</canRoam>

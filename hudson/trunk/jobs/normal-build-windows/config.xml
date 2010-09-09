@@ -9,7 +9,9 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -33,13 +35,7 @@
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <jdk>(Default)</jdk>
-  <triggers class="vector">
-    <hudson.triggers.SCMTrigger>
-      <spec>5 * * * *&#xd;
-</spec>
-    </hudson.triggers.SCMTrigger>
-  </triggers>
+  <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
@@ -52,14 +48,14 @@ pwd
 
 ls -l
 
-#$HUDSON_HOME/bin/verifyBuildJars2
+dos2unix.exe tests/bin/verifyBuildJars2
+tests/bin/verifyBuildJars2
       
         dos2unix.exe d.sh
 	./d.sh clean
 	./d.sh 
         ./d.sh mapper
-	./d.sh copyphoneme
-	./d.sh -prod -mac -o2 rom -metadata cldc imp debugger
+	./d.sh -prod -mac -o2 rom  cldc imp debugger
 	ls -l &gt; sizereport.txt
 	./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
 	./d.sh genspec
@@ -73,9 +69,9 @@ ls -l
 	./squawk -version
 
 
-dos2unix.exe $HUDSON_DIR/bin/runsmoketest.sh
-$HUDSON_DIR/bin/runsmoketest.sh DELEGATING
-ls  $HUDSON_DIR/bin/
+dos2unix.exe tests/bin/runsmoketest.sh
+tests/bin/runsmoketest.sh DELEGATING
+
 rm -rf tempdoc
 
 echo MAKEAPI DISABLED FOR NOW!
@@ -96,6 +92,14 @@ rmdir tmp
       <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>full-debug-build-windows, small-build-windows</childProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
   </publishers>
   <buildWrappers/>
 </project>

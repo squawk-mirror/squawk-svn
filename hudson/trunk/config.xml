@@ -48,18 +48,7 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
 &lt;li&gt;&lt;a href=&quot;http://squawk-sqa:8080/job/squawk-build-local/&quot;&gt;squawk-build-local&lt;/a&gt; &#xd;
 &lt;/ul&gt;&#xd;
 &lt;/table&gt;</systemMessage>
-  <jdks>
-    <jdk>
-      <name>1.6</name>
-      <home>/usr/jdk/instances/jdk1.6.0</home>
-      <properties/>
-    </jdk>
-    <jdk>
-      <name>1.5</name>
-      <home>/usr/jdk/instances/jdk1.5.0</home>
-      <properties/>
-    </jdk>
-  </jdks>
+  <jdks/>
   <clouds/>
   <slaves>
     <slave>
@@ -67,7 +56,7 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
       <description></description>
       <remoteFS>/home/squawk-lin/</remoteFS>
       <numExecutors>2</numExecutors>
-      <mode>EXCLUSIVE</mode>
+      <mode>NORMAL</mode>
       <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
       <launcher class="hudson.slaves.JNLPLauncher"/>
       <label></label>
@@ -78,7 +67,7 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
       <description></description>
       <remoteFS>c:\</remoteFS>
       <numExecutors>2</numExecutors>
-      <mode>NORMAL</mode>
+      <mode>EXCLUSIVE</mode>
       <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
       <launcher class="hudson.slaves.JNLPLauncher"/>
       <label></label>
@@ -150,14 +139,13 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
         <comparator class="hudson.util.CaseInsensitiveComparator"/>
         <string>build-flash-memory-matrix</string>
         <string>build-matrix</string>
-        <string>full-debug-build</string>
+        <string>full-debug-build-windows</string>
         <string>normal-build</string>
-        <string>platform-type-builds</string>
-        <string>platform-type-matrix0</string>
         <string>small-build</string>
         <string>start-jam-from-svn</string>
         <string>start-tck-cmdline</string>
       </jobNames>
+      <jobFilters/>
       <columns>
         <hudson.views.StatusColumn/>
         <hudson.views.WeatherColumn/>
@@ -174,5 +162,7 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
   <label></label>
   <nodeProperties/>
   <globalNodeProperties/>
-  <disabledAdministrativeMonitors/>
+  <disabledAdministrativeMonitors>
+    <string>hudson.node_monitors.MonitorMarkedNodeOffline</string>
+  </disabledAdministrativeMonitors>
 </hudson>

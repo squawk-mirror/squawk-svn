@@ -16,7 +16,9 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -36,7 +38,6 @@
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <jdk>(Default)</jdk>
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <builders>
@@ -49,13 +50,13 @@ dos2unix.exe d.sh
 ./d.sh
 ./d.sh copyphoneme
 ./d.sh -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
-./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -strip:a cldc
+./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 -tracing rom -strip:a cldc
 ./squawk -h
 ./squawk -version
 
 ls -l &gt; sizereport.txt
-dos2unix.exe $HUDSON_DIR/bin/runsmoketest.sh
-$HUDSON_DIR/bin/runsmoketest.sh DELEGATING</command>
+dos2unix.exe tests/bin/runsmoketest.sh
+tests/bin/runsmoketest.sh DELEGATING</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>

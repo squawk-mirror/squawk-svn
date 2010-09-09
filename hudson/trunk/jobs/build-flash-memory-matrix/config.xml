@@ -16,7 +16,9 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.javanet.StatsProperty/>
+  </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -38,34 +40,33 @@
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <axes>
-    <axis>
+    <hudson.matrix.TextAxis>
       <name>ASSERTIONS_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.TextAxis>
       <name>DEBUG_CODE_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.TextAxis>
       <name>FLOATS</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.LabelAxis>
       <name>label</name>
       <values>
-        <string>Ubuntu</string>
         <string>master</string>
       </values>
-    </axis>
+    </hudson.matrix.LabelAxis>
   </axes>
   <builders>
     <hudson.tasks.Shell>
@@ -74,9 +75,8 @@ LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instanc
 
 cd trunk
 ./d.sh clean 
-./d.sh copyphoneme
 ./d.sh -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  
-./d.sh -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -prod -mac -o2 rom -metadata cldc imp debugger
+./d.sh -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED  -prod -mac -o2 rom cldc imp debugger
 ls -l &gt; sizereport.txt
 ./d.sh clean </command>
     </hudson.tasks.Shell>
