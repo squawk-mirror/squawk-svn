@@ -40,47 +40,48 @@
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <axes>
-    <hudson.matrix.TextAxis>
+    <axis>
       <name>ASSERTIONS_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </hudson.matrix.TextAxis>
-    <hudson.matrix.TextAxis>
+    </axis>
+    <axis>
       <name>DEBUG_CODE_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </hudson.matrix.TextAxis>
-    <hudson.matrix.TextAxis>
+    </axis>
+    <axis>
       <name>ENABLE_DYNAMIC_CLASSLOADING</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </hudson.matrix.TextAxis>
-    <hudson.matrix.TextAxis>
+    </axis>
+    <axis>
       <name>FLOATS</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </hudson.matrix.TextAxis>
-    <hudson.matrix.TextAxis>
+    </axis>
+    <axis>
       <name>TRACING_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </hudson.matrix.TextAxis>
-    <hudson.matrix.LabelAxis>
+    </axis>
+    <axis>
       <name>label</name>
       <values>
+        <string>Ubuntu</string>
         <string>master</string>
       </values>
-    </hudson.matrix.LabelAxis>
+    </axis>
   </axes>
   <builders>
     <hudson.tasks.Shell>
