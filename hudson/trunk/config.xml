@@ -65,7 +65,7 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
     <slave>
       <name>WindowsXP32</name>
       <description></description>
-      <remoteFS>c:\</remoteFS>
+      <remoteFS>E:\</remoteFS>
       <numExecutors>2</numExecutors>
       <mode>EXCLUSIVE</mode>
       <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
