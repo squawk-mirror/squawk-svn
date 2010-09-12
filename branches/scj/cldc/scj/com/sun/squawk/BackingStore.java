@@ -9,13 +9,13 @@ import com.sun.squawk.vm.HDR;
 
 public final class BackingStore implements GlobalStaticFields {
 
-    private final class SearchTable {
+    private final class IndexTable {
         private int counter;
-        private SearchTable prev;
-        private SearchTable next;
+        private IndexTable prev;
+        private IndexTable next;
         private BackingStore[] bsArray;
 
-        private SearchTable() {
+        private IndexTable() {
             // VM.println("[SCJ] new search table created");
             bsArray = new BackingStore[SEARCHTABLE_CAPACITY];
         }
@@ -89,8 +89,8 @@ public final class BackingStore implements GlobalStaticFields {
 
         private void extendIfNeed() {
             if (counter == SEARCHTABLE_CAPACITY) {
-                SearchTable old = topTable;
-                topTable = new SearchTable();
+                IndexTable old = topTable;
+                topTable = new IndexTable();
                 topTable.prev = old;
                 old.next = topTable;
             }
@@ -220,7 +220,7 @@ public final class BackingStore implements GlobalStaticFields {
     /**
      * 
      */
-    private SearchTable topTable;
+    private IndexTable topTable;
 
     /**
      * The real size of memory allocated. realSize == roundUpToWord(size) +
@@ -770,7 +770,7 @@ public final class BackingStore implements GlobalStaticFields {
         // If i'm the last one in topTable. The table can be reclaimed along
         // with myself.
         if (parent.topTable.counter == 1) {
-            SearchTable oldTable = parent.topTable;
+            IndexTable oldTable = parent.topTable;
             disableScopeCheck();
             parent.topTable = oldTable.prev;
             enableScopeCheck();
@@ -822,7 +822,7 @@ public final class BackingStore implements GlobalStaticFields {
         BackingStore oldBS = currentAllocContext;
         currentAllocContext = this;
         if (topTable == null)
-            topTable = new SearchTable();
+            topTable = new IndexTable();
         else
             topTable.extendIfNeed();
         currentAllocContext = oldBS;
@@ -1052,7 +1052,7 @@ public final class BackingStore implements GlobalStaticFields {
             VM.print(spaceRemaining);
         }
         VM.println();
-        SearchTable table = topTable;
+        IndexTable table = topTable;
         while (table != null && table.prev != null)
             table = table.prev;
         while (table != null) {

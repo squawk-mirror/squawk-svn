@@ -221,6 +221,9 @@ void signalEvent(EventRequest* evt) {
 #if FORCE_RESCHEDULE_FOR_NATIVE_EVENT
     bc = 0;
 #endif
+#ifdef REAL_TIME
+    setEventOther();
+#endif
 }
 
 /*

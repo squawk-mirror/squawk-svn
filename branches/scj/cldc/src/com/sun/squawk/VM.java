@@ -280,11 +280,7 @@ public class VM implements GlobalStaticFields {
          */
         VMThread.initializeThreading();
         synchronizationEnabled = true;
-        
-/*if[REAL_TIME]*/
-        startTimer();
-/*end[REAL_TIME]*/
-        
+                
         /*
          * Fill in the args array with the C command line arguments.
          */
@@ -733,17 +729,6 @@ public class VM implements GlobalStaticFields {
 //      Assert.shouldNotReachHere();
 /*end[ENABLE_SDA_DEBUGGER]*/
     }
-
-/*if[REAL_TIME]*/
-/*if[JAVA5SYNTAX]*/
-    @Vm2c(root="updateTimerQueue")
-/*end[JAVA5SYNTAX]*/
-    static void updateTimerQueue() {
-        VMThread.updateTimerQueue();
-    }
-
-    native static void startTimer();
-/*end[REAL_TIME]*/
     
 /*if[SCJ]*/
 /*if[JAVA5SYNTAX]*/

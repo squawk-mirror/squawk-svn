@@ -188,10 +188,6 @@ char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) {
     return NULL;
 }
 
-#ifdef REAL_TIME
-void startTimer();
-#endif
-
 /**
  * Apple specific initialization of the IO subsystem. This function creates a new thread in which to run Squawk
  * and the embedded JVM and leaves the initial thread in an empty main loop.
@@ -240,6 +236,10 @@ int os_main(int argc, char *argv[]) {
     /* Start the thread that will execute the Squawk VM. */
     pthread_create(&squawkThread, &thread_attr, Squawk_startup, launchOptions);
     pthread_attr_destroy(&thread_attr);
+#ifdef REAL_TIME
+void startTimer();
+	startTimer();
+#endif
     /* Create a a sourceContext to be used by our source that makes */
     /* sure the CFRunLoop doesn't exit right away */
     sourceContext.version = 0;
@@ -276,7 +276,7 @@ void timerLogic(){
 	AbsoluteTime next;
 
 	tick.hi = 0;
-	tick.lo = com_sun_squawk_VMThread_TICK;
+	tick.lo = TICK; // TICK is 32 bit positive number for simplicity
 	time = mach_absolute_time();
 	next = *(AbsoluteTime*) &time;
 
@@ -293,7 +293,7 @@ void timerLogic(){
 //		fprintf(stderr, "[RT] time %u:%010u ns\n", nano.hi, nano.lo);
 		// debug
 
-		updateTimerQueue();
+		setEventTimer();
 	}
 }
 
@@ -307,11 +307,12 @@ void startTimer() {
 	struct sched_param param;
 
 	pthread_getschedparam(pthread_self(), &policy, &param);
-	fprintf(stderr, "[RT] current priority: %d\n", param.sched_priority);
-	fprintf(stderr, "[RT] current policy: %d\n", policy);
-	param.sched_priority ++;
+	param.sched_priority++;
+	fprintf(stdout, "[RT] Start native timer thread: prio = %d, policy = %d \n", param.sched_priority, policy);
 	pthread_attr_init(&attr);
 	pthread_attr_setschedparam (&attr, &param);
 	pthread_create(&id, &attr, (pthread_func_t)timerLogic, NULL);
+    pthread_attr_destroy(&attr);
+    enablePolling();
 }
 #endif

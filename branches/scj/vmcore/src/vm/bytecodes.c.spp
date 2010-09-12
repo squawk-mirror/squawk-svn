@@ -2070,14 +2070,14 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
 		 * poll check during kernel execution. Following code just does not work well now.
 		 */
 /*MAC*/ void pollCheck() {
-            if(unlikely(com_sun_squawk_VMThread_pollWord > com_sun_squawk_VMThread_POLL_DISABLE)) {
+            if(likely(needReschedule())) {
                 if(!usingServiceStack()){
                     //uint64_t     time;
                     //Nanoseconds  nano;
                     //time = mach_absolute_time();
                     //nano = AbsoluteToNanoseconds(*(AbsoluteTime*) &time);
                     //fprintf(stderr, "[RT] reschedule @ %u:%010u ns\n", nano.hi, nano.lo);
-                    com_sun_squawk_VMThread_pollWord = 0;
+                    clearPollWord();
                     call(com_sun_squawk_VM_yield);
                 }
              }
@@ -4977,14 +4977,6 @@ foundSlot:
 
 /*end[KERNEL_SQUAWK_HOSTED]*/
 /*end[KERNEL_SQUAWK]*/
-
-/*if[REAL_TIME]*/
-                case Native_com_sun_squawk_VM_startTimer: {
-                    startTimer();
-                    break;
-                }
-/*end[REAL_TIME]*/
-
                 default: {
 /*                   fprintf(stderr, "*** Undefined native method: *** %d\n", iparm); */
                     pushInt(iparm);

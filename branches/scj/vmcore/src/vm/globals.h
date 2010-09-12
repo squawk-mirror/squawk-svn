@@ -155,7 +155,21 @@ Address     messageEvents;              /* The list of message events that are r
 #endif /* OLD_IIC_MESSAGES */
 
 int         interruptsDisabled;         /* Depth-count:  for correct interrupt state changes */
-volatile    boolean     shutdownVM;
+#ifdef REAL_TIME
+volatile  boolean  shutdownVM;          /**/
+volatile  int      pollWord;            /**/
+
+#define EVENT_TIMER   0x1
+#define EVENT_OTHER   0x2
+#define POLL_ENABLE   0x40000000
+#define TICK 1000000                    /** Timer period, in nano second.  */
+#define needReschedule()   (pollWord >= POLL_ENABLE)
+#define setEventTimer()    (pollWord = pollWord | EVENT_TIMER)
+#define setEventOther()    (pollWord = pollWord | EVENT_OTHER)
+#define clearPollWord()    (pollWord = pollWord & POLL_ENABLE)
+#define enablePolling()    (pollWord = pollWord | POLL_ENABLE)
+#define disablePolling()   (pollWord = pollWord & ~POLL_ENABLE)
+#endif
 
 #if KERNEL_SQUAWK
 boolean     kernelMode;                 /* If true, kernel support for interrupts is enabled */

@@ -2,30 +2,6 @@
 
        ===========          Memo          ===============
 
-- Allocating process: new -> GC.allocatePrim() -> BackingStore.allocate()
-
-- Current allocating context is hold by BackingStore; VMThread has a field 
-  called "savedAllocCtx", which is used to save the current allocating 
-  context for the current thread which will be switched out immediately.
-
-- Immortal and Scoped are seen as RAM during SCJ execution, so we put the 
-  check in GC.inRam(Object) as well and return true if the object is in 
-  Immortal or Scoped.
-
-- ObjectAssociation / Monitor allocation - two choices:
-  1) allocate along with the object - space wasting
-  2) allocate upon required at the scope where the object is allocated 
-     - overhead: search for and switch allocation context (done)
-
-- Class state allocation - two choices:
-  1) pre-allocate in immortal memory before user program starts to run 
-  2) allocate upon required in immortal memory (done)
-  
-- Implementing BackingStore.getBackingStore(Object) in an efficient
-  way; for now it is done by simply searching for the BS enclosing the 
-  address of the object. The search time can be decreased by:
-  1) add BS pointer to object header
-  2) make BS organization support binary search. (done)     
   
 - A timer super thread is added for improving the reschedule granularity on 
   Mac OS platform. The timer periodically decreases the slept time of the
@@ -46,8 +22,8 @@
   !!]]
   
 - Scope checks: we need to do scope check when assigning one object to another's
-  field for making sure no object references objects located in shorter living BSs.
-  The scope check for (obj1.f = obj2) is done in this way:
+  field for making sure no object references objects located in shorter living 
+  BSs. The scope check for (obj1.f = obj2) is done in this way:
     - fast path: if addressOf(obj1) > addressOf(obj2), OK; 
                  else slow path
     - slow path: if BSof(obj1) == BSof(obj2), OK; 
@@ -55,22 +31,26 @@
 
   The scope check is done as a write barrier along with updating reference 
   operation. For now, all reference updates are checked. However, we want
-  a way to disable scope check for some updates, because sometimes scope
-  rule has to be violated in implementation. e.g. when manipulating BS 
-  pointers must not be check as the BS structures is in an inconsistent status
-  during then. And, to implementing portal for scoped memory will definitely 
-  violate scope rule.
+  a way to disable scope check for some updates, because scope rule has to be 
+  violated sometimes for variety kinds of reasons and those violations are 
+  known not to be able to cause any error in the end. e.g. checking BS pointer 
+  manipulation must be disabled as the BS structures would not be in a consistent 
+  status during then so the slow path would not work. Other examples include
+  letting a thread wait for a monitor. Some of the references from the monitor 
+  to all the waiting threads can be illegal; however, it is guaranteed that 
+  a waiting thread will eventually detach itself from that monitor before it
+  terminates (then dies).
   
-  The current way to disable scope check is simple, inefficient, and not
+  The current way to disable scope check is simple but inefficient and not
   thread safe: a static field, BackingStore.scopeCheckEnabled, is used as
   a switch, so for every assignment which is not supposed to be checked, one
-  needs to surround it with BackingStore.disableScopeCheck()/enableScopeCheck()
+  needs to surround it by BackingStore.disableScopeCheck()/enableScopeCheck()
   pair(, which is kind of ugly). 
   
   An ideal way would be to have a new annotation denoting whether a method or
-  assignment expression should be checked or not. This causes the unnecessary
+  assignment expression should be checked or not. This makes the unnecessary
   check removed statically, which is still simple, no harm to performance, and
-  not related to threading issue.   
+  not related to threading issue.
   
   [[!!
     We MUST: 
@@ -91,7 +71,110 @@
         If the value is globally needed, should switch to immortal when allocating. 
         If temporarily needed (will not be read after the object dies), should 
         disable scope check for assignment.  
-  
+
+    com.sun.squawk.GC
+      GarbageCollector collector
+        - not used.
+      SquawkHashtable  heapstats
+        - unsafe:   Can be allocated anywhere, but only for debug
+        - solution: Let it be
+      ObjectMemory[]   readOnlyObjectMemories
+        - not sure ...
+
+    com.sun.squawk.JavaApplicationManager
+      String classPath          
+      String parentSuiteURI
+      String testMIDletClass
+        - all safe: Refer to strings in Immortal and never change.
+
+    com.sun.squawk.Klass
+      Klass           ADDRESS - VOID, klassClass
+        - all safe: Refer to Klass instances in ROM.
+      SquawkHashtable klassToClass 
+        - unsafe:   Lazy-allocated in asClass(Klass). 
+        - solution: Forced to be allocated in Immortal.
+      KlassInitializationState initializationQueue
+        - unsafe:   New queue node can be created in setInitializationState(VMThread) 
+                    whenever a new class is going to be initialized. 
+        - solution: Forced to be allocated in Immortal.
+
+    com.sun.squawk.NativeUnsafe
+      byte[]          memory
+      byte[]          typeMap
+      BitSet          oopMap
+        - not sure: 
+      SquawkHashtable unresolvedClassPointers
+        - not sure: Seems to be used when hosted
+
+    com.sun.squawk.ObjectMemoryLoader
+      String filePathelements
+        - safe: Refer to string in Immortal and never change.
+
+    com.sun.squawk.ServiceOperation
+      Throwable pendingException
+        - unsafe for now: but with fully implemented SCJ exception handling, it should
+          be safe.
+
+    com.sun.squawk.SymbolParser
+      SymbolParser      p1
+      SymbolParser      p2
+        - unsafe:   Created in create(byte[], Klass[]). 
+        - solution: Forced to be allocated in Immortal.
+      ByteBufferEncoder membersBuffer
+      ByteBufferEncoder symbolsBuffer
+
+    com.sun.squawk.VM
+      Hashtable commandLineProperties
+        - safe: Created before SCJ program starts; used to pass properties to Isolates. 
+                It will become garbage after the Isolate is created.
+      Isolate   currentIsolate
+        - safe: There is only one Isolate, com.sun.squawk.JavaApplicationManager, throughout 
+                the execution.
+      String    isolateInitializer
+        - safe: Created before SCJ program starts.
+      Object       keyedGlobalsMutex
+      IntHashtable keyeGlobals
+        - unsafe: Lazily initialized in VM.getKeyedGlobalsMutex(); don't know how these two
+                  fields are used
+      Object    reportedArray
+        - safe: Assigned and cleared right before ArrayIndexOutOfBoundsException is 
+                going to be thrown.
+      OutOfMemoryError     outOfMemoryError
+        - safe: Initialized in at VM startup and never change.
+      PeripheralRegistry   peripheralRegistry
+        - unsafe: Lazily initialized in VM.getPeripheralRegistry(). Not familiar with this
+                  part.
+      SquawkHashtable      registeredMailboxes
+        - unsafe: Lazily initialized in VM.registerMailbox(String, Mailbox). 
+      CallbackManager      shutdownHooks
+        - safe: Initialized in at VM startup and never change.
+      WeakIsolateListEntry isolates
+        - safe: There is only one Isolate.
+      VMBufferDecoder      vmbufferDecoder
+        - safe: Initialized in at VM startup and never change.
+
+    com.sun.squawk.VMThread
+      VMThread       currentThread
+      VMThread       otherThread
+      ThreadQueue    runnableThreads
+      TimerQueue     timerQueue
+        - safe: SCJ guarantees that a thread in a scope will definitely terminate before 
+                the enclosing scope is reclaimed. And it is always true that a terminated 
+                thread cannot be in any queues hence cannot be referenced by either 
+                currentThread or otherThread since which will only be assigned with the 
+                threads just being detached from a queue. So no dangling pointers would 
+                show up regarding these fields.
+      VMThread       serviceThread
+      EventHashtable events
+      EventHashtable osevents
+        - safe: Permanent stuff initialized in VMThread.initializeThreading().
+      SystemEvents   systemEvents
+        - safe: Permanent stuff initialized in VMThread.initializeThreading2().
+
+
+    * VMThread queues and monitors.
+      
+
     * Mission.manager = MissionManager 
         Does not cause error. Scope check should be disabled.
       
@@ -107,16 +190,7 @@
         mission memory, the NeverFireTimer is created in immortal. Trying to link
         them will cause illegal assignment, but will not cause error, because when
         a timer instance is about to die, it will be detached from the queue. 
-      
-    * Assign to VMThread.currentThread / VMThread.otherThread
-        VMThread instances can be created in scopes. When finishing running, they
-        should be removed somehow from these two references. Seems to be not going
-        to cause error. Need to check more ...
-  
-    * ThreadQueue <- VMThread
-     
-    * Monitor <- VMThread
-    
+            
     * IntHashtable / EventHashtable
         IntHashtable   VM.keyeGlobals
         EventHashtable VMThread.events
@@ -145,61 +219,11 @@
          
        GC.heapstats
        Klass.klassToClass
-       NativeUnsafe.unresolvedClassPointers
        VM.registeredMailboxes
        ComputationTimer.flatTimes
        ComputationTimer.totalTimes
        Tracer._features
        
-       
-    
-- A limitation of SCJ Timer: simply ignores the clock field; assumes all time 
-  are according to the realtime clock (get by calling Clock.getRealtimeClock()).
-  This compromise simplifies the implementation: only one timer queue needs to 
-  be maintained. The queue is sorted based on the target time of the timers. 
-  For supporting other user defined clocks, one queue per clock is needed.
-
-  
-- Support to sleep until certain absolute time 
-    
-  RealtimeThread.sleep(HighResolutionTime) and HighResolutionTime.wait(Object, 
-  HighResolutionTime) will do absolute sleep / wait, when getting an AbsoluteTime
-  as parameter. We don't want to compute the delta to the current time by ourself 
-  and call Thread.sleep(delta) since the error may accumulate. Just tell the VM
-  when we want to wake up and let it do the math in an efficient way, e.g in native
-  code or by utilizing some OS/hardware support if there are some.
-  
-  Partially done: VMThread.sleepAbsolute() and VMThread.monitorWaitAbsolute() are 
-  added. They are used in RealtimeThread.sleep() and HighResolutionTime.waitForObject()
-  respectively. However, the precision of VMThread.xxx is in millisecond while,
-  the SCJ sleep/wait is in nanosecond. When converting, nano part is simply ignored.     
-
-
-
-
-
-       ===========          TODO          ===============
-
-  [[!!
-    IMPORTANT: we must fully know what a method does if we need to call them in 
-    scoped memory, because a method can potentially:
-      1) allocating (which means leaking memory under GC-absent environment)
-      2) doing illegal assignments  
-    For 1), we must make sure the allocation is necessary and user-awared;
-    For 2), make sure no dangling pointer will actually occur and annotate it.
-  !!]]
-
-
-
-- Add SCJ options to builder
-
-  For now, we start the SCJ instead of Midlet launcher simply by replacing 
-  the original value of Isolate.MIDLET_WRAPPER_CLASS with 
-  com.sun.squawk.scj.SafeletLauncher. And also, the Safelet class name is 
-  hard coded in SafeletLauncher. We may want to do the SCJ startup process 
-  more elegantly by extending the builder ...
-
-
 - Memory leak in immortal
 
   There should be methods leaking memory if no GC. Who are they?
@@ -233,50 +257,34 @@
   To solve memory leak, we may want to introduce ScratchPad area alongside of
   immortal and scoped area. But how to decide the upper bound of size? And
   should users be aware of it?
-
-
-- Monitor object allocations are triggered when printing. Check why??
-
-
-- Scheduling performance improvement:
-  - separated priority queue?
-  - delta timer queue?
-  - RTC interrupted rescheduling?
-  
-  Solution:
-    - the sleeping thread queue is maintained as a delta queue (dQ); the unit of 
-      delta is "tick"
-    - a timer (ISR or supervisor thread) decrease the dQ.head by one tick. If 
-      dQ.head == 0, set reschedule word
-    - at poll check,
-        if reschedule word set, do reschedule
-  
-
-- Priority Ceiling Emulation Implementation
-
-
-- Need to have priority levels >= 28
-
-
-- Exception handling
-
-  the exception object is still allocated in the scope where the exception
-  happens. SCJ instead requires to allocate in a dedicated thread local 
-  space, which we do not have yet for now.
- 
-- Translate BackingStore.allocate() to C
-
-  Otherwise, object allocation would be 20x slower.
+         
     
+- A limitation of SCJ Timer: simply ignores the clock field; assumes all time 
+  are according to the realtime clock (get by calling Clock.getRealtimeClock()).
+  This compromise simplifies the implementation: only one timer queue needs to 
+  be maintained. The queue is sorted based on the target time of the timers. 
+  For supporting other user defined clocks, one queue per clock is needed.
+
   
-- Test, Test, Test ! 
-
-
-- Example, Example, Example !
-
-- Happenings
+- Support to sleep until certain absolute time 
+    
+  RealtimeThread.sleep(HighResolutionTime) and HighResolutionTime.wait(Object, 
+  HighResolutionTime) will do absolute sleep / wait, when getting an AbsoluteTime
+  as parameter. We don't want to compute the delta to the current time by ourself 
+  and call Thread.sleep(delta) since the error may accumulate. Just tell the VM
+  when we want to wake up and let it do the math in an efficient way, e.g in native
+  code or by utilizing some OS/hardware support if there are some.
   
-  reserved happenings [name, id] 
+  Partially done: VMThread.sleepAbsolute() and VMThread.monitorWaitAbsolute() are 
+  added. They are used in RealtimeThread.sleep() and HighResolutionTime.waitForObject()
+  respectively. However, the precision of VMThread.xxx is in millisecond while,
+  the SCJ sleep/wait is in nanosecond. When converting, nano part is simply ignored.     
+
+
+
+
+
+
 
 
 
@@ -289,13 +297,12 @@
   = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
   
   Pure SCJ should only use region-based memory management. But in order to save time,
-  we just add things without removing anything, since even one single piece of code 
-  removing can cause tons of time wasted on restructuring the system.
+  we just add things without removing anything.
   
-  So on top of the original memory layout, we add SCJ memory space which contains two
+  On top of the original memory layout, we add SCJ memory space which contains two
   sub-spaces: Immortal (IMM) and Scoped (SCP) as shown in Figure 1. The immortal space
-  is used for immortal memory and the scoped space is for allocating all other bounded 
-  life memory regions.
+  is used for immortal memory and the scoped space is for allocating all other bounded- 
+  lifetime memory regions.
   
   RAM is originally used as heap which is not used in SCJ. NVM is not neither. For ROM,
   we treat it as immortal memory. 
@@ -314,11 +321,18 @@
   Figure 1.
   
   
-  The SCJ space is organized as a backing store tree. Each node is a backing store (BS)
-  which contains two pointers (allocStart / allocEnd) pointing to the low and high 
-  boundary addresses and a top pointer (allocTop) to the top of allocated memory in the
-  backing store, as shown in Figure 2. Upon receiving a request of creating a BS with 
-  certain size, a memory space with size of 
+  Backing store (BS). We use term "scope" to refer to a memory region on high-level (from 
+  the user's perspective), and use "backing store" to refer to the same thing on low-level.
+  Basically, a scope may remain the same while its underlying backing store is changed.
+  Furthermore, every realtime thread has a backing store which is dedicated to that thread.
+  The backing store will not be reclaimed until the thread terminates. Details will be
+  reached in following parts.
+  
+  The SCJ space is organized as backing store trees. Each node is a BS which contains two 
+  pointers (allocStart / allocEnd) pointing to the low and high boundary addresses and a 
+  top pointer (allocTop) to the top of allocated memory in the backing store, as shown in 
+  Figure 2. Upon receiving a request of creating a BS with certain size, a memory space with 
+  size of 
       
         real size = roundUpToWords(size) + sizeOf(BS instance)
         
@@ -338,26 +352,30 @@
   Figure 2.
   
   
-  Immortal (indexed 0) and Scoped (indexed 1) are the roots. And Immortal is a leaf at
-  the same time. Leaves are the place where user code can allocate objects in. Each leaf 
-  corresponds to a user level memory area: immortal memory, mission memories, or private
-  memories. 
+  Immortal (indexed 0) and Scoped (indexed 1) are the roots of trees. Since Immortal contains
+  only one node, it is a leaf at the same time. Leaves correspond to user-level scopes, where 
+  user code can allocate objects in, while non-leaves are invisible to users; they will be used 
+  to allocate children BSs or other auxiliary objects. 
    
-  Figure 3 shows an example BS tree. There is one active mission which consists of two
-  threads (schedulable objects). Besides the initial private memory of each thread, thread 1
-  entered a nested private memory BS-7. Every child BS is allocated in its parent BS's space
-  in a stack way. The top BS is annotated with a star in the figure.
+  Figure 3 shows an example BS trees. There is one active mission which consists of two
+  threads (schedulable objects), which are in the stage where their initial private memories 
+  (BS-5 and BS-6 respectively) have been entered. Besides that, thread 1 also entered a nested 
+  private memory BS-7. Every child BS is allocated in its parent BS's space in a stack way. 
+  The top BS is annotated with a star in the figure.
   
   In order to index BSs, there is an index table preceding a certain number of child BSs.
-  They are shown in the layout figure with I. The index table contains an array holding
+  They are shown in the layout figure with I. An index table contains an array holding
   references to the BSs following it. The capacity of the array would not change so when an
-  index table is full, another one is created and linked. In the example, the capacity is set
-  to 2, so BS-4 is indexed by a second table.
+  index table is full, one other is created and linked to the tail of the index table queue. 
+  In the example, the capacity is set to 2, so BS-4 is indexed by a second table.
   
+  Index tables are used in searching (by binary search) the enclosing BS of an memory address.
   In practice, we don't want too many index tables to be created (at best just one) since this 
-  will harm the performance of BS searching - for an address, search for the leaf BS enclosing 
-  it. We use binary search, but which can only be done in per-table basis. The complexity of 
-  across tables searching is linear.
+  will harm the searching performance, since the binary search can only be done in per-table 
+  basis. The complexity of across tables searching part is linear.
+  
+  An index table is reclaimed as the last one BS it indexes is reclaimed. So allocation and
+  reclamation of such BS would incur extra overhead.
   
   -----------------------------------------------------------------------------------------      
     |* Correspondence *|
@@ -383,6 +401,39 @@
                                      
   -----------------------------------------------------------------------------------------      
   Figure 3.                                     
+  
+  The current way of BS management is not complicated in general, but there is a much simpler 
+  way as long as the platform's memory resource is not restricted: organizing and allocating 
+  the memory in page basis and maintaining a map from page numbers to BSs for BS searching. 
+  The searching complexity drops to constant. This mean is not suitable for small memory  
+  environment (~ hundreds of KB) because where the page size must be relatively small, 
+  consequently the map itself becomes negligible in terms of size.  
+  
+  
+  - Allocating process: new -> GC.allocatePrim() -> BackingStore.allocate()
+
+- Current allocating context is hold by BackingStore; VMThread has a field 
+  called "savedAllocCtx", which is used to save the current allocating 
+  context for the current thread which will be switched out immediately.
+
+- Immortal and Scoped are seen as RAM during SCJ execution, so we put the 
+  check in GC.inRam(Object) as well and return true if the object is in 
+  Immortal or Scoped.
+
+- ObjectAssociation / Monitor allocation - two choices:
+  1) allocate along with the object - space wasting
+  2) allocate upon required at the scope where the object is allocated 
+     - overhead: search for and switch allocation context (done)
+
+- Class state allocation - two choices:
+  1) pre-allocate in immortal memory before user program starts to run 
+  2) allocate upon required in immortal memory (done)
+  
+- Implementing BackingStore.getBackingStore(Object) in an efficient
+  way; for now it is done by simply searching for the BS enclosing the 
+  address of the object. The search time can be decreased by:
+  1) add BS pointer to object header
+  2) make BS organization support binary search. (done)     
   
   
   
@@ -613,9 +664,146 @@
     
     
     
+  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  =            Class Pre-initialization  (plan)             =
+  = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   
+
+  1. Overview
+  
+  Since no dynamic class loading is allowed in SCJ, the classes are required and possible to be pre-initialized
+  in immortal memory.
+  
+  In order to save memory, ideally only the actually used classes need to be initialized. So we assume that the 
+  list of such classes can be obtained somehow, e.g. by using static analysis tools. The classes on the list
+  are going to be initialized in particular (e.g. alphabetic) order.
+  
+  Problem: since different order of initialization generates different result for certain cases. How to guarantee
+  user-intended order? 
+  
+  2. Procedure
+  
+  Procedure is adapted from http://java.sun.com/docs/books/jvms/second_edition/html/Concepts.doc.html#24237, 
+  section 2.17.5 Detailed Initialization Procedure. Essentially, all synchronization and thread-related judgments 
+  have been removed from the original procedure.
+
+  States of the class object:
+    - This Class object is not initialized.
+    - This Class object is being initialized.
+    - This Class object is fully initialized.
+    - This Class object is in an erroneous state. 
+
+  The procedure for initializing a class or interface is then as follows:
+
+  (del)  1) Synchronize on the Class object that represents the class or interface to be initialized. This involves 
+            waiting until the current thread can obtain the lock for that object.
+
+  (del)  2) If initialization by some other thread is in progress for the class or interface, then wait on this Class 
+            object (which temporarily releases the lock). When the current thread awakens from the wait, repeat this 
+            step.
+
+   3) If initialization is in progress for the class or interface by the current thread, then this must be a recursive 
+      request for initialization. Complete normally.
+
+   4) If the class or interface has already been initialized, then no further action is required. Complete normally.
+
+   5) If the Class object is in an erroneous state, then initialization is not possible. Throw a NoClassDefFoundError.
+
+   6) Otherwise, record the fact that initialization of the Class object is now in progress.
+
+   7) Next, if the Class object represents a class rather than an interface, and the direct superclass of this class has 
+      not yet been initialized, then recursively perform this entire procedure for the uninitialized superclass. If the 
+      initialization of the direct superclass completes abruptly because of a thrown exception, then label it erroneous, 
+      complete abruptly, throwing the same exception that resulted from the initializing the superclass.
+
+   8) Next, execute either the class variable initializers and static initializers of the class or the field initializers 
+      of the interface, in textual order, as though they were a single block, except that final static variables and fields 
+      of interfaces whose values are compile-time constants are initialized first.
+
+   9) If the execution of the initializers completes normally, then label it fully initialized and complete this procedure 
+      normally.
+
+  10) Otherwise, the initializers must have completed abruptly by throwing some exception E. If the class of E is not Error 
+      or one of its subclasses, then create a new instance of the class ExceptionInInitializerError, with E as the argument, 
+      and use this object in place of E in the following step. But if a new instance of ExceptionInInitializerError cannot 
+      be created because an OutOfMemoryError occurs, then instead use an OutOfMemoryError object in place of E in the 
+      following step.
+
+  11) Label it erroneous and complete this procedure abruptly with reason E or its replacement as determined in the previous 
+      step. 
+      
+  3. Some implementation details:
+  
+  1) KlassInitializationState instances can be placed in some scratchpad memory area, which subjects to reclamation after
+  finishing all the class initialization.
+  
+  
+  
+  
+       ===========          TODO          ===============
+
+  [[!!
+    IMPORTANT: we must fully know what a method does if we need to call them in 
+    scoped memory, because a method can potentially:
+      1) allocating (which means leaking memory under GC-absent environment)
+      2) doing illegal assignments  
+    For 1), we must make sure the allocation is necessary and user-awared;
+    For 2), make sure no dangling pointer will actually occur and annotate it.
+  !!]]
+
+- Pre-initialize all used classes.
+  Problem: the order of initialization matters when there is recursion in the 
+  initialization process. How to ensure that we obey the user-intended order?
+
+- Add SCJ options to builder
+
+  For now, we start the SCJ instead of Midlet launcher simply by replacing 
+  the original value of Isolate.MIDLET_WRAPPER_CLASS with 
+  com.sun.squawk.scj.SafeletLauncher. And also, the Safelet class name is 
+  hard coded in SafeletLauncher. We may want to do the SCJ startup process 
+  more elegantly by extending the builder ...
+
+
+- Monitor object allocations are triggered when printing. Check why??
+
+
+- Scheduling performance improvement:
+  - separated priority queue?
+  - delta timer queue?
+  - RTC interrupted rescheduling?
+  
+  Solution:
+    - the sleeping thread queue is maintained as a delta queue (dQ); the unit of 
+      delta is "tick"
+    - a timer (ISR or supervisor thread) decrease the dQ.head by one tick. If 
+      dQ.head == 0, set reschedule word
+    - at poll check,
+        if reschedule word set, do reschedule
+  
+
+- Priority Ceiling Emulation Implementation
+
+
+- Need to have priority levels >= 28
+
+
+- Exception handling
+
+  the exception object is still allocated in the scope where the exception
+  happens. SCJ instead requires to allocate in a dedicated thread local 
+  space, which we do not have yet for now.
+ 
+- Translate BackingStore.allocate() to C
+
+  Otherwise, object allocation would be 20x slower.
     
-    
-    
-    
-     
+  
+- Test, Test, Test ! 
+
+
+- Example, Example, Example !
+
+- Happenings
+  
+  reserved happenings [name, id]   
+   
      

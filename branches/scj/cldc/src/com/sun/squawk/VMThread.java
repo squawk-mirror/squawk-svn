@@ -2718,7 +2718,6 @@ VM.println("creating stack:");
 	 * The current allocate context
 	 */
 	private BackingStore savedAllocCtx = BackingStore.getCurrentContext();
-	
     private static boolean criticalRescheduleFence;
     private static boolean userRescheduleFence;
 	
@@ -2761,39 +2760,18 @@ VM.println("creating stack:");
             }
         }
     }
-    
-    public BackingStore saveAllocationContext(BackingStore bs){
-        BackingStore old = savedAllocCtx;
-        savedAllocCtx = bs;
-        return old;
-    }
-    
-    public BackingStore getSavedAllocationContext(){
-        return savedAllocCtx;
-    }
-	
+//    
+//    public BackingStore saveAllocationContext(BackingStore bs){
+//        BackingStore old = savedAllocCtx;
+//        savedAllocCtx = bs;
+//        return old;
+//    }
+//    
+//    public BackingStore getSavedAllocationContext(){
+//        return savedAllocCtx;
+//    }
+//	
 /*end[SCJ]*/    
-
-/*if[REAL_TIME]*/
-    private volatile static int pollWord;
-    
-    public final static int SIG_SLEEP_TIMEOUT = 0x1;
-    public final static int POLL_DISABLE = 0x40000000;
-    
-    /**
-     * The reschedule granularity in nano second.
-     */
-    final static int TICK = 1000000;
-    
-    static void updateTimerQueue() {
-        Assert.always(timerQueue != null, "Timer started before timer queue created");
-        if(timerQueue.first != null) {
-            timerQueue.first.time -= 1;
-            if(timerQueue.first.time <= 0)
-                pollWord |= SIG_SLEEP_TIMEOUT;
-        }
-    }
-/*end[REAL_TIME]*/
     
 //    /** debug code */
 //    public static void main(String[] args) {
@@ -3241,7 +3219,6 @@ final class TimerQueue {
      */
     VMThread first;
     
-/*if[!REAL_TIME]*/
     /**
      * Add a thread to the queue.
      *
@@ -3390,129 +3367,6 @@ final class TimerQueue {
             break;
         }
     }
-/*else[REAL_TIME]*/
-//    /**
-//     * delta in ms
-//     */
-//    void add(VMThread thread, long delta) {
-//        Assert.that(thread.nextTimerThread == null);
-//        if (delta < 0) {
-//
-//           /*
-//            * If delta is so huge that the time went negative then just make
-//            * it a very large value. The universe will end before the error
-//            * can be detected.
-//            */
-//            delta = Long.MAX_VALUE;
-//        }
-//        thread.time = delta * 100000 / VMThread.TICK;
-//        if (first == null) {
-//            first = thread;
-//        } else {
-//            if (first.time > delta) {
-//                first.time -= delta;
-//                thread.nextTimerThread = first;
-//                first = thread;
-//            } else {
-//                VMThread last = first;
-//                while (last.nextTimerThread != null && last.nextTimerThread.time < delta) {
-//                    delta -= last.nextTimerThread.time;
-//                    last = last.nextTimerThread;
-//                }
-//                thread.time = delta;
-//                thread.nextTimerThread = last.nextTimerThread;
-//                last.nextTimerThread = thread;
-//                if(thread.nextTimerThread != null)
-//                    thread.nextTimerThread.time -= delta;
-//            }
-//        }
-//    }
-//
-//    /**
-//     * Get the next thread in the queue that has reached its time.
-//     *
-//     * @return a thread or null if there is none
-//     */
-//    VMThread next() {
-//        VMThread thread = first;
-//        if (thread == null || thread.time > 0) {
-//            return null;
-//        }
-//        first = first.nextTimerThread;
-//        // the head delta might be negative because of the deadline miss.
-//        // propagate the effect to the following detlas.
-//        if(first != null)
-//            first.time += thread.time;
-//        thread.nextTimerThread = null;
-//        thread.time = 0;
-//        return thread;
-//    }
-//
-//    /**
-//     * Remove a specific thread from the queue.
-//     *
-//     * @param thread the thread
-//     */
-//    void remove(VMThread thread) {
-//        if (first == null) {
-//            Assert.that(thread.time == 0);
-//            return;
-//        }
-//        if (thread.time == 0) {
-//            return;
-//        }
-//        thread.time = 0;
-//        if (thread == first) {
-//            first = thread.nextTimerThread;
-//            thread.nextTimerThread = null;
-//            return;
-//        }
-//        VMThread p = first;
-//        while (p.nextTimerThread != null) {
-//            if (p.nextTimerThread == thread) {
-//                p.nextTimerThread = thread.nextTimerThread;
-//                thread.nextTimerThread = null;
-//                return;
-//            }
-//            p = p.nextTimerThread;
-//        }
-//        VM.fatalVMError();
-//    }
-//
-//    /**
-//     * Get the time delta to the next event in the queue.
-//     *
-//     * @return the time
-//     */
-//    long nextDelta() {
-//        return first == null ? Long.MAX_VALUE : first.time;
-//    }
-//
-//
-//    /**
-//     * Remove all the threads in this queue that are owned by <code>isolate</code>
-//     * and add them to the queue of hibernated timer-blocked threads in the isolate.
-//     *
-//     * @param isolate  the isolate whose timer-blocked threads are to be removed
-//     */
-//    void prune(Isolate isolate) {//TODO:
-//        start:
-//        while (true) {
-//            VMThread t = first;
-//            while (t != null) {
-//                if (t.getIsolate() == isolate) {
-//                    long time = t.time - VM.getTimeMillis();
-//                    remove(t);
-//                    t.time = time;
-//                    isolate.addToHibernatedTimerThread(t);
-//                    continue start;
-//                }
-//                t = t.nextTimerThread;
-//            }
-//            break;
-//        }
-//    }
-/*end[REAL_TIME]*/
 }
 
 /**
