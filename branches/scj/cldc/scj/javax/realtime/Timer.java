@@ -1,6 +1,5 @@
 package javax.realtime;
 
-import com.sun.squawk.BackingStore;
 import com.sun.squawk.VM;
 
 public abstract class Timer extends AsyncEvent {

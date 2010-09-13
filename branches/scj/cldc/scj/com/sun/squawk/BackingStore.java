@@ -538,13 +538,13 @@ public final class BackingStore implements GlobalStaticFields {
             // Klass klassObj = GC.getKlass(obj);
             // Address addrObj = Address.fromObject(obj);
             String klassName = Klass.getInternalName(GC.getKlass(obj));
-            VM.print("[SCJ] Attempt to search BS for in-ROM object of type ");
-            VM.print(klassName);
-            if (klassName == "com.sun.squawk.Klass") {
-                VM.print(" - obj: ");
-                VM.print(Klass.getInternalName((Klass) obj));
-            }
-            VM.println();
+//            VM.print("[SCJ] Attempt to search BS for in-ROM object of type ");
+//            VM.print(klassName);
+//            if (klassName == "com.sun.squawk.Klass") {
+//                VM.print(" - obj: ");
+//                VM.print(Klass.getInternalName((Klass) obj));
+//            }
+//            VM.println();
             ret = immortal;
         }
 
