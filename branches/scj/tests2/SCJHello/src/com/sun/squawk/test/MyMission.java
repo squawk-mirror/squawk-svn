@@ -7,20 +7,21 @@ public class MyMission extends Mission {
     public int turn;
 
     protected void initialize() {
-        System.err.print("[HelloWorld] Mission ");
-        System.err.print(turn);
-        System.err.println(" initializes ...");
+        System.out.print("[HelloWorld] Mission ");
+        System.out.print(turn);
+        System.out.println(" initializes ...");
 
         new MyPEH(Config.priority, Config.periodHello, Config.storage, Config.initPrivateSize,
                 new Printer("Hello")).register();
         new MyPEH(Config.priority, Config.periodWord, Config.storage, Config.initPrivateSize,
                 new Printer("World")).register();
-        new AsyncHappeningHandler(Config.priority, Config.aperiod, Config.storage,
+        new AsyncHapHandler(Config.priority, Config.aperiod, Config.storage,
                 Config.initPrivateSize).register();
         // new SyncHappeningHandler().register();
-        System.err.print("[HelloWorld] Mission ");
-        System.err.print(turn);
-        System.err.println(" initialization finished ...");
+        
+        System.out.print("[HelloWorld] Mission ");
+        System.out.print(turn);
+        System.out.println(" initialization finished ...");
     }
 
     public long missionMemorySize() {
@@ -28,6 +29,6 @@ public class MyMission extends Mission {
     }
 
     protected void cleanUp() {
-        System.err.println("[HelloWorld] Mission " + turn + " cleanUp ... ");
+        System.out.println("[HelloWorld] Mission " + turn + " cleanUp ... ");
     }
 }

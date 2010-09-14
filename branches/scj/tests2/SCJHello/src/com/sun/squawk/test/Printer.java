@@ -17,6 +17,10 @@ public class Printer implements Runnable {
         this.msg = msg;
     }
 
+    /**
+     * Enter private memory until the max depth. Print the message at each
+     * level.
+     */
     public void run() {
         try {
             if (checkForTermination())
@@ -32,31 +36,35 @@ public class Printer implements Runnable {
         }
     }
 
+    /** Terminate current mission if all iterations have been finished. */
     private boolean checkForTermination() {
         if (depth == 0 && iter++ >= Config.iterations) {
-            System.err.println("[HelloWorld] All iterations finished. Requests mission termination ...");
+            System.out
+                    .println("[HelloWorld] All iterations finished. Request mission termination ...");
             Mission.getCurrentMission().requestTermination();
             return true;
         }
         return false;
     }
 
+    /** Format: [HelloWorld] iter: (i) (Hello/World) @ PM Level (l) - (ms):(ns) */
     private void doPrint() {
         AbsoluteTime now = Clock.getRealtimeClock().getTime();
-        System.err.print("[HelloWorld] iter: ");
-        System.err.print(iter);
-        System.err.print(" \t ");
-        System.err.print(msg);
-        System.err.print(" @ PM Level ");
-        System.err.print(depth);
-        System.err.print(" \t - ");
-        System.err.print(now.getMilliseconds());
-        System.err.print(":");
-        System.err.println(now.getNanoseconds());
+        System.out.print("[HelloWorld] iter: ");
+        System.out.print(iter);
+        System.out.print(" \t ");
+        System.out.print(msg);
+        System.out.print(" @ PM Level ");
+        System.out.print(depth);
+        System.out.print(" \t - ");
+        System.out.print(now.getMilliseconds());
+        System.out.print(":");
+        System.out.println(now.getNanoseconds());
     }
 
+    /** Disable printers */
     public static void silence() {
         allowed = false;
-        System.err.println("[HelloWorld] Printers silenced!");
+        System.out.println("[HelloWorld] Printers silenced!");
     }
 }

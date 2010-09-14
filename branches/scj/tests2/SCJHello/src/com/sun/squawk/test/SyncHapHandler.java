@@ -2,9 +2,12 @@ package com.sun.squawk.test;
 
 import javax.safetycritical.ManagedInterruptHappening;
 
-public class SyncHappeningHandler extends ManagedInterruptHappening {
+/**
+ * Not used
+ */
+public class SyncHapHandler extends ManagedInterruptHappening {
 
-    public SyncHappeningHandler() {
+    public SyncHapHandler() {
         super(Config.SIGQUIT);
     }
 
