@@ -23,6 +23,7 @@ public class Printer implements Runnable {
      */
     public void run() {
         try {
+            reschedPoint();
             if (checkForTermination())
                 return;
             if (allowed)
@@ -66,5 +67,11 @@ public class Printer implements Runnable {
     public static void silence() {
         allowed = false;
         System.out.println("[HelloWorld] Printers silenced!");
+    }
+
+    /** Manually add some back branches for allowing the VM to poll */
+    private static void reschedPoint() {
+        for (int i = 0; i < 100; i++)
+            ;
     }
 }

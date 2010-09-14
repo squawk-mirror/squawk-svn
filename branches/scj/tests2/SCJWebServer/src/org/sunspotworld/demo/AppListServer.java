@@ -10,7 +10,8 @@ public class AppListServer implements WebApplication {
 
     public Response serve(Request request) {
         if (request.uri.length() != 0) {
-            return new Response(NanoHTTP.HTTP_NOTFOUND, NanoHTTP.MIME_HTML, "<h1>URI path not found:</h1><code>" + request.uri + "</code>");
+            return new Response(NanoHTTP.HTTP_NOTFOUND, NanoHTTP.MIME_HTML,
+                    "<h1>URI path not found:</h1><code>" + request.uri + "</code>");
         }
         StringBuffer res = new StringBuffer();
         res.append("<html>\n<head><title>" + myText + "</title></head>\n");

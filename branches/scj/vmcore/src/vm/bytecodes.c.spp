@@ -2070,7 +2070,7 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
 		 * poll check during kernel execution. Following code just does not work well now.
 		 */
 /*MAC*/ void pollCheck() {
-            if(likely(needReschedule())) {
+            if(unlikely(needReschedule())) {
                 if(!usingServiceStack()){
                     //uint64_t     time;
                     //Nanoseconds  nano;

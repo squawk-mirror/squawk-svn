@@ -32,7 +32,7 @@ public class RealtimeThread extends Thread {
     /** The number of realtime threads created */
     private static int counter = 0;
 
-    private static boolean DEBUG = true;
+    private static boolean DEBUG = false;
 
     /**
      * This constructor takes all the listed parameters which are clear enough

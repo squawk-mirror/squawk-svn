@@ -140,7 +140,7 @@ public class NanoHTTP {
             if (st.hasMoreTokens()) {
                 String line = readLine(in);
                 while (line.trim().length() > 0) {
-                    int p = line.indexOf(':'); 
+                    int p = line.indexOf(':');
                     request.header.put(line.substring(0, p).trim(), line.substring(p + 1).trim());
                     line = readLine(in);
                 }
