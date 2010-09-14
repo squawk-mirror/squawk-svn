@@ -12,9 +12,7 @@ import com.sun.squawk.VMThread;
 
 public class SafeletLauncher {
 
-    /**
-     * Purely static class should not be instantiated.
-     */
+    /** Purely static class should not be instantiated. */
     private SafeletLauncher() {
     }
 
@@ -44,7 +42,7 @@ public class SafeletLauncher {
             throw new IllegalArgumentException("Specified class, " + className
                     + ", must be subclass of javax.safetycritical.Safelet");
         }
-        final Safelet safelet = (Safelet) klass.newInstance();
+        Safelet safelet = (Safelet) klass.newInstance();
 
         Timer.startTimerThread();
         VMHappening.startHappening();

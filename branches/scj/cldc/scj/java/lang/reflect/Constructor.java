@@ -7,8 +7,11 @@
 
 package java.lang.reflect;
 
+import javax.safetycritical.util.Utils;
+
 public class Constructor {
-	public Object newInstance(Object[] args) {
-		return null;
-	}
+    public Object newInstance(Object[] args) {
+        Utils.unimplemented();
+        return null;
+    }
 }

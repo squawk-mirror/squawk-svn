@@ -1,15 +1,16 @@
 package java.lang;
 
+import javax.safetycritical.util.Utils;
+
 public class CharSequence {
 
 	public int length() {
-		// TODO Auto-generated method stub
+	    Utils.unimplemented();
 		return 0;
 	}
 
 	public char charAt(int i) {
-		// TODO Auto-generated method stub
+        Utils.unimplemented();
 		return 0;
 	}
-
 }
