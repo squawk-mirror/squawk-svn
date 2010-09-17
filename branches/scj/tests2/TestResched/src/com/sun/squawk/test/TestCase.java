@@ -1,63 +1,58 @@
 package com.sun.squawk.test;
 
 public class TestCase {
-	int iterations;
-	long sleepPeriod;
-	int workType;
-	int workload;
-	TimeRecord record;
+    long sleepPeriod;
+    int workType;
+    int workload;
+    TimeRecord record;
+    ThreadLow low;
+    ThreadHigh high;
 
-	public TestCase(int iter, long sleep, int workType, int workload) {
-		this.iterations = iter;
-		this.sleepPeriod = sleep;
-		this.workType = workType;
-		this.workload = workload;
-		record = new TimeRecord(iterations, sleepPeriod);
-	}
+    public TestCase(long sleep, int workType, int workload) {
+        this.sleepPeriod = sleep;
+        this.workType = workType;
+        this.workload = workload;
+        record = new TimeRecord(Config.iterations, sleepPeriod);
+        low = new ThreadLow(new Work(workType, workload), record);
+        high = new ThreadHigh(sleepPeriod, record);
+    }
 
-	public void run() {
-		ThreadLow low = new ThreadLow(iterations, new Work(workType, workload),
-				record);
-		ThreadHigh high = new ThreadHigh(iterations, sleepPeriod, record);
+    public void run() {
+        printInfo();
+        low.start();
+        high.start();
+        try {
+            high.join();
+            low.stopIt();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        printResult();
+    }
 
-		printInfo();
-		low.start();
-		high.start();
-		try {
-			high.join();
-			low.stop = true;
-			printResult();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
+    private void printInfo() {
+        // System.out.println("---------------------- Test Case Info ----------------------");
+        System.out.println();
+        System.out.println("Iterations:\t" + Config.iterations);
+        System.out.println("Sleep time:\t" + sleepPeriod + "ms");
+        System.out.println("Work type:\t" + Work.typeToString(workType));
+        System.out.println("Workload:\t" + workload + "X");
+    }
 
-	private void printResult() {
-		System.out.println("Total time (thread high): "
-				+ record.getHighTotalTime() + "ms");
-		System.out.println("Average reschedule delay: "
-				+ record.getHighAvgDelay() + "ms");
-		System.out.println("Worst-case reschedule delay: "
-				+ record.getHighMaxDelay() + "ms");
-		System.out.println("Average time per iteration: "
-				+ record.getLowAvgTimePerIter() + "ms");
-		System.out.println("Worst-case time per iteration: "
-				+ record.getLowMaxTimePerIter() + "ms");
-		System.out.println("Delay record (ms):");
-		long[] delays = record.getHighDelays();
-		for (int i = 0; i < iterations; i++) {
-			System.out.print(delays[i] + " ");
-		}
-		System.out
-				.println("\n---------------------------- End ----------------------------");
+    private void printResult() {
+        System.out.println();
+        System.out.println("High thread total time:   " + record.getHighTotalTime() + "\tms");
+        System.out.println("Reschedule delay (AVG):   " + record.getHighAvgDelay() + "\tms");
+        System.out.println("Reschedule delay (WC):    " + record.getHighMaxDelay() + "\tms");
+        System.out.println("Per-iteration time (AVG): " + record.getLowAvgTimePerIter() + "\tms");
+        System.out.println("Per-iteration time (WC):  " + record.getLowMaxTimePerIter() + "\tms");
+        System.out.println("Delay record (ms):");
+        long[] delays = record.getHighDelays();
+        for (int i = 0; i < Config.iterations; i++) {
+            System.out.print(delays[i] + " ");
+        }
+        System.out.println();
+        System.out.println("--------------------------- End ----------------------------");
 
-	}
-
-	private void printInfo() {
-		System.out.println("Test case info:");
-		System.out.println("Iterations: " + iterations);
-		System.out.println("Sleep period: " + sleepPeriod + "ms");
-		System.out.println("Work type: " + Work.typeToString(workType));
-		System.out.println("Workload: " + workload + "X");
-	}
+    }
 }

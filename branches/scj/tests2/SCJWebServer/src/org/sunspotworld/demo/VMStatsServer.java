@@ -78,8 +78,6 @@ public class VMStatsServer implements WebApplication {
         res.append("</font>");
         res.append("</body>\n</html>");
         
-//        for (int i = 0; i < 100000000; i++);
-
         return new Response(NanoHTTP.HTTP_OK, NanoHTTP.MIME_HTML, res.toString());
     }
 }

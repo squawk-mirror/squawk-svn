@@ -2072,11 +2072,13 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
 /*MAC*/ void pollCheck() {
             if(unlikely(needReschedule())) {
                 if(!usingServiceStack()){
-                    //uint64_t     time;
-                    //Nanoseconds  nano;
-                    //time = mach_absolute_time();
-                    //nano = AbsoluteToNanoseconds(*(AbsoluteTime*) &time);
-                    //fprintf(stderr, "[RT] reschedule @ %u:%010u ns\n", nano.hi, nano.lo);
+                    /*
+                    uint64_t     time;
+                    Nanoseconds  nano;
+                    time = mach_absolute_time();
+                    nano = AbsoluteToNanoseconds(*(AbsoluteTime*) &time);
+                    fprintf(stderr, "[RT] reschedule @ %u:%010u ns\n", nano.hi, nano.lo);
+                    */
                     clearPollWord();
                     call(com_sun_squawk_VM_yield);
                 }
@@ -2090,17 +2092,19 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
          * Java Stack:  _  ->  _
          * <p>
          */
-/*MAC*/ void do_bbtarget_app() {
 #ifdef REAL_TIME
+/*MAC*/ void do_bbtarget_app() {
             pollCheck();
+        }
 #else
+/*MAC*/ void do_bbtarget_app() {
             do_bbtarget_sys();
             if (unlikely(bc++ >= 0)) {                                                                                                             
                 bc = -TIMEQUANTA;                                                                                                                  
                 call(com_sun_squawk_VM_yield);                                                                                                     
             }
-#endif
         }
+#endif
 
 #ifdef FLASH_MEMORY
         /**

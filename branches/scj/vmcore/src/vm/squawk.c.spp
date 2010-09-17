@@ -762,7 +762,9 @@ NORETURN void stopVM(int exitCode) {
  * @param exitCode the exit code
  */
 NORETURN void stopVM0(int exitCode, boolean cleanup) {
+#ifdef REAL_TIME
     shutdownVM = true;
+#endif
     static boolean inStop = false;
 
 /*

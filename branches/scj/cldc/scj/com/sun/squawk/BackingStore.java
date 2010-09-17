@@ -17,11 +17,11 @@ public final class BackingStore implements GlobalStaticFields {
 
         private IndexTable() {
             // VM.println("[SCJ] new search table created");
-            bsArray = new BackingStore[SEARCHTABLE_CAPACITY];
+            bsArray = new BackingStore[INDEXTABLE_CAPACITY];
         }
 
         private BackingStore top() {
-            Assert.always(counter <= SEARCHTABLE_CAPACITY, "Search table is over full");
+            Assert.always(counter <= INDEXTABLE_CAPACITY, "Search table is over full");
             return bsArray[counter - 1];
         }
 
@@ -31,35 +31,42 @@ public final class BackingStore implements GlobalStaticFields {
         }
 
         private void put(BackingStore bs) {
-            Assert.always(counter != SEARCHTABLE_CAPACITY,
+            Assert.always(counter != INDEXTABLE_CAPACITY,
                     "Attempt to put item in a full searching table ");
             bsArray[counter++] = bs;
         }
 
         /**
+         * Search for and return the leaf BS that encloses the target address.
+         * The caller must ensure that the target address actually falls in an
+         * index table on the chain that current table is on. If the method
+         * cannot find anything, there must be something wrong.
          * 
          * @param addr
-         * @return
+         *            the target address
+         * @return the enclosing BS
          */
         private BackingStore search(Address addr) {
-            // The table instance is put at a lower address than those of all
-            // BSs it is indexing.
+            /*
+             * If the address is not in the range of current table, go for the
+             * previous or next table depending on the address is lower or
+             * higher than the boundary.
+             * 
+             * The table instance precedes all the BSs it indexes in terms of
+             * address. So if the target address is lower than "this", it is
+             * definitely not in the BSs of this table. Go checking with the
+             * previous table if there is one.
+             */
             if (addr.lo(Address.fromObject(this))) {
-                // if (prev == null) {
-                // VM.print("Unable to locate the BS for an address: lower than lower bound: ");
-                // VM.printAddress(addr);
-                // VM.println();
-                // BackingStore.printBSTree(true);
-                // }
                 Assert.always(prev != null,
-                        "Unable to locate the BS for an address: lower than lower bound.");
+                        "Unable to locate the BS of an address: lower than lower bound.");
                 return prev.search(addr);
             } else if (isEmpty()) {
                 // VM.print("Unable to locate the BS for an address: empty table: ");
                 // VM.printAddress(addr);
                 // VM.println();
                 // BackingStore.printBSTree(true);
-                Assert.always(false, "Unable to locate the BS for an address: empty table.");
+                Assert.always(false, "Unable to locate the BS of an address: empty table.");
             } else if (bsArray[counter - 1].allocEnd.loeq(addr)) {
                 // if (next == null) {
                 // VM.print("Unable to locate the BS for an address: higher than higher bound: ");
@@ -68,11 +75,11 @@ public final class BackingStore implements GlobalStaticFields {
                 // BackingStore.printBSTree(true);
                 // }
                 Assert.always(next != null,
-                        "Unable to locate the BS for an address: higher than higher bound.");
+                        "Unable to locate the BS of an address: higher than higher bound.");
                 return next.search(addr);
             }
 
-            // addr is fallen in this range
+            // The address is fallen in this range, do the binary search.
             int l = 0;
             int h = counter - 1;
             while (true) {
@@ -87,8 +94,12 @@ public final class BackingStore implements GlobalStaticFields {
             }
         }
 
+        /**
+         * If the table if full, create a new one and connect it to the tail of
+         * the chain.
+         */
         private void extendIfNeed() {
-            if (counter == SEARCHTABLE_CAPACITY) {
+            if (counter == INDEXTABLE_CAPACITY) {
                 IndexTable old = topTable;
                 topTable = new IndexTable();
                 topTable.prev = old;
@@ -102,54 +113,36 @@ public final class BackingStore implements GlobalStaticFields {
     }
 
     /**
-     * debug?
+     * debug
      */
     public static boolean SCJ_DEBUG_ENABLED;
     public static boolean SCJ_DEBUG_ALLOC;
 
-    /**
-     * The size of BS instance rounded up to word
-     */
+    /** The size of BS instance rounded up to words */
     private static int SIZE_OF_BackingStore;
 
-    /**
-     * The size of BS instance rounded up to word
-     */
-    private static int SEARCHTABLE_CAPACITY;
+    /** Index table capacity rounded up to words */
+    private static int INDEXTABLE_CAPACITY;
 
-    /**
-     * Start of immortal memory.
-     */
+    /** Start of immortal memory. */
     private static Address immortalStart;
 
-    /**
-     * End of immortal memory.
-     */
+    /** End of immortal memory. */
     private static Address immortalEnd;
 
-    /**
-     * Start of scoped memory area
-     */
+    /** Start of scoped memory area. */
     private static Address scopedStart;
 
-    /**
-     * End of scoped memory area
-     */
+    /** End of scoped memory area. */
     private static Address scopedEnd;
 
-    /**
-     * The backing store of immortal memory.
-     */
+    /** The backing store of immortal memory. */
     private static BackingStore immortal;
 
-    /**
-     * The backing store of scoped memories.
-     */
+    /** The backing store of scoped memories. */
     private static BackingStore scoped;
 
-    /**
-     * The Klass instance of BackingStore
-     */
+    /** The Klass instance of BackingStore */
     private static Klass KLASS_OF_BackingStore;
 
     /**
@@ -158,9 +151,7 @@ public final class BackingStore implements GlobalStaticFields {
      */
     private static volatile BackingStore currentAllocContext;
 
-    /**
-     * The number of backing stores that have ever been created
-     */
+    /** The number of backing stores that have ever been created. */
     private static int bsCounter;
 
     /**
@@ -176,57 +167,41 @@ public final class BackingStore implements GlobalStaticFields {
      */
     private static volatile int scopeCheckEnabled;
 
-    /**
-     * Start of this backing store
-     */
+    /** Start of this backing store. */
     private Address allocStart;
 
-    /**
-     * The next allocation address.
-     */
+    /** Start of free space. */
     private Address allocTop;
 
-    /**
-     * End of this backing store
-     */
+    /** End of this backing store */
     private Address allocEnd;
 
-    /**
-     * The enclosing backing store of this
-     */
+    /** The enclosing backing store. */
     private BackingStore parent;
 
     /**
-     * The associated MemoryArea object. A BS only has a mirror when it is the
-     * leaf, which means no other child BS will be allocated in.
+     * The associated MemoryArea object. The BSs only have mirrors if they are
+     * leaves, that is, they have no children.
      */
     private Object mirror;
 
-    /**
-     * The backing store id.
-     */
+    /** The backing store id. */
     private int id;
 
-    /**
-     * The user specified size of this backing store.
-     */
+    /** The user specified size. */
     private int size;
-
-    /**
-     * The size of this backing store
-     */
-    private int spaceRemaining;
-
-    /**
-     * 
-     */
-    private IndexTable topTable;
 
     /**
      * The real size of memory allocated. realSize == roundUpToWord(size) +
      * HEADER_PLUS_INSTANCE_SIZE.
      */
     private int realSize;
+
+    /** Size of the space remained. */
+    private int spaceRemaining;
+
+    /** The tail of the table chain of this backing store. */
+    private IndexTable topTable;
 
     /**
      * 
@@ -242,7 +217,7 @@ public final class BackingStore implements GlobalStaticFields {
         VM.zeroWords(immortalStart, immortalEnd);
         VM.zeroWords(scopedStart, scopedEnd);
 
-        SCJ_DEBUG_ENABLED = Klass.DEBUG_CODE_ENABLED;
+        SCJ_DEBUG_ENABLED = false;
         SCJ_DEBUG_ALLOC = false;
 
         KLASS_OF_BackingStore = bootstrapSuite.lookup("com.sun.squawk.BackingStore");
@@ -257,7 +232,20 @@ public final class BackingStore implements GlobalStaticFields {
         SIZE_OF_ObjectAssociation = HDR.basicHeaderSize
                 + KLASS_OF_ObjectAssociation.getInstanceSize() * HDR.BYTES_PER_WORD;
 
-        SEARCHTABLE_CAPACITY = 2;
+        // for debug
+        illegalAssignment = "[SCJ] Illegal assignment: ";
+        leftBrackets = "[";
+        atBS_ = " @ BS-";
+        ROM = "ROM";
+        ASSIGN = "  <-   ";
+        MAP = "  <==>  ";
+        KEY = "   key: ";
+        VAL = " value: ";
+        com_sun_squawk_util_HashtableEntry = "com.sun.squawk.util.HashtableEntry";
+        com_sun_squawk_util_IntHashtableEntry = "com.sun.squawk.util.IntHashtableEntry";
+        // end
+
+        INDEXTABLE_CAPACITY = 2;
 
         bsCounter = 0;
 
@@ -272,18 +260,6 @@ public final class BackingStore implements GlobalStaticFields {
 
         currentAllocContext = immortal;
 
-        // for debug
-        illegalAssignment = "[SCJ] Illegal assignment: ";
-        leftBrackets = "[";
-        atBS_ = " @ BS-";
-        ROM = "ROM";
-        ASSIGN = "  <-   ";
-        MAP = "  <==>  ";
-        KEY = "   key: ";
-        VAL = " value: ";
-        com_sun_squawk_util_HashtableEntry = "com.sun.squawk.util.HashtableEntry";
-        com_sun_squawk_util_IntHashtableEntry = "com.sun.squawk.util.IntHashtableEntry";
-        // for debug
         scopeCheckEnabled = 1;
 
         if (SCJ_DEBUG_ENABLED) {
@@ -291,30 +267,6 @@ public final class BackingStore implements GlobalStaticFields {
             immortal.printInfo();
             scoped.printInfo();
         }
-    }
-
-    /**
-     * Setup the class pointer field of a header.
-     * 
-     * @param oop
-     *            object pointer
-     * @param klass
-     *            the address of the object's classs
-     */
-    /* private */static void setHeaderClass(Address oop, Object klass) throws ForceInlinedPragma {
-        NativeUnsafe.setAddress(oop, HDR.klass, klass);
-    }
-
-    /**
-     * Setup the length word of a header.
-     * 
-     * @param oop
-     *            object pointer
-     * @param length
-     *            the length in elements of the array
-     */
-    /* private */static void setHeaderLength(Address oop, int length) throws ForceInlinedPragma {
-        NativeUnsafe.setUWord(oop, HDR.length, encodeLengthWord(length));
     }
 
     public static void enableScopeCheck() {
@@ -330,6 +282,8 @@ public final class BackingStore implements GlobalStaticFields {
     }
 
     /**
+     * Allocate a chunk of memory in current backing store and set up the object
+     * header.
      * 
      * @param size
      * @param klass
@@ -342,10 +296,9 @@ public final class BackingStore implements GlobalStaticFields {
     }
 
     /**
-     * 
-     * FIXME: not thread safe
-     * 
-     * Allocate a chunk of zeroed memory from this backing store
+     * Allocate a chunk of memory in this backing store. Note that allocation is
+     * not in charge of zeroing memory. It is done in initializing the entire
+     * memory and in destroying a backing store.
      * 
      * @param size
      * @param klass
@@ -372,17 +325,18 @@ public final class BackingStore implements GlobalStaticFields {
         }
 
         Address oop;
+        // Set up the header.
         if (arrayLength == -1) {
             oop = allocTop.add(HDR.basicHeaderSize);
-            setHeaderClass(oop, klass);
+            GC.setHeaderClass(oop, klass);
         } else {
             oop = allocTop.add(HDR.arrayHeaderSize);
-            setHeaderClass(oop, klass);
-            setHeaderLength(oop, arrayLength);
+            GC.setHeaderClass(oop, klass);
+            GC.setHeaderLength(oop, arrayLength);
             Assert.always(GC.getArrayLength(oop) == arrayLength);
         }
 
-        // don't zero at allocation; zero at destroy instead
+        // bump the top pointer
         increaseAllocTop(size);
 
         if (SCJ_DEBUG_ALLOC) {
@@ -416,6 +370,12 @@ public final class BackingStore implements GlobalStaticFields {
         return oop;
     }
 
+    /**
+     * Bump the pointer and adjust the related variables.
+     * 
+     * @param offset
+     *            the amount of bump by
+     */
     private void increaseAllocTop(int offset) {
         allocTop = allocTop.add(offset);
         Assert.always(allocTop.loeq(allocEnd), "allocTop > allocEnd");
@@ -423,6 +383,13 @@ public final class BackingStore implements GlobalStaticFields {
         spaceRemaining -= offset;
     }
 
+    /**
+     * Extend the high boundary of this backing store and adjust the related
+     * variables.
+     * 
+     * @param offset
+     *            the amount to extend by
+     */
     private void increaseAllocEnd(int offset) {
         allocEnd = allocEnd.add(offset);
         Assert.always(allocEnd.hieq(allocStart.add(SIZE_OF_BackingStore)), "allocEnd < BS Header");
@@ -431,59 +398,47 @@ public final class BackingStore implements GlobalStaticFields {
         spaceRemaining += offset;
     }
 
+    /** Check if the address is in the range of Immortal. */
     public static boolean inImmortal(Address addr) {
         return !(addr.loeq(immortalStart) || addr.hi(immortalEnd));
     }
 
+    /** Check if the address is in the range of Scoped. */
     public static boolean inScoped(Address addr) {
         return !(addr.loeq(scopedStart) || addr.hi(scopedEnd));
     }
 
+    /** Check if the address is in the range of this backing store. */
     public boolean containAddr(Address addr) {
         return !(addr.loeq(allocStart) || addr.hi(allocEnd));
     }
 
+    /** Check if this backing store is leaf (no child). */
     private boolean isLeaf() {
         return topTable == null;
     }
 
+    /** Check if this backing store is root (no parent). */
     private boolean isRoot() {
         return parent == null;
     }
 
-    /**
-     * If bs is the top child of this
-     * 
-     * @param bs
-     * @return
-     */
+    /** Check if the backing store is the top child of this. */
     private boolean topChildIs(BackingStore bs) {
         return !isLeaf() && topTable.top() == bs;
     }
 
-    /**
-     * Get the top child if there is one. Return null otherwise.
-     * 
-     * @return
-     */
+    /** Get the top child. Return null if there is none. */
     private BackingStore getTopChild() {
         return isLeaf() ? null : topTable.top();
     }
 
-    /**
-     * 
-     * @return the current BS
-     */
+    /** Get the current backing store. */
     public static BackingStore getCurrentContext() {
         return currentAllocContext;
     }
 
-    /**
-     * 
-     * @param bs
-     *            the new BS
-     * @return the old BS
-     */
+    /** Set the current backing store and return the old one. */
     public static BackingStore setCurrentContext(BackingStore bs) {
         if (SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] Set current allocation context from [");
@@ -499,22 +454,21 @@ public final class BackingStore implements GlobalStaticFields {
         return old;
     }
 
-    /**
-     * 
-     * @return
-     */
+    /** Get the Immortal space. The size should be specified by users. */
     public static BackingStore getImmortal() {
         return immortal;
     }
 
-    /**
-     * 
-     * @return
-     */
+    /** Get the Scoped space. The size should be specified by users. */
     public static BackingStore getScoped() {
         return scoped;
     }
 
+    /**
+     * 
+     * @param obj
+     * @return
+     */
     public static BackingStore getBackingStore(Object obj) {
         Address addr = Address.fromObject(obj);
         BackingStore ret = null;
@@ -538,13 +492,13 @@ public final class BackingStore implements GlobalStaticFields {
             // Klass klassObj = GC.getKlass(obj);
             // Address addrObj = Address.fromObject(obj);
             String klassName = Klass.getInternalName(GC.getKlass(obj));
-//            VM.print("[SCJ] Attempt to search BS for in-ROM object of type ");
-//            VM.print(klassName);
-//            if (klassName == "com.sun.squawk.Klass") {
-//                VM.print(" - obj: ");
-//                VM.print(Klass.getInternalName((Klass) obj));
-//            }
-//            VM.println();
+            // VM.print("[SCJ] Attempt to search BS for in-ROM object of type ");
+            // VM.print(klassName);
+            // if (klassName == "com.sun.squawk.Klass") {
+            // VM.print(" - obj: ");
+            // VM.print(Klass.getInternalName((Klass) obj));
+            // }
+            // VM.println();
             ret = immortal;
         }
 
@@ -715,24 +669,6 @@ public final class BackingStore implements GlobalStaticFields {
         // }
 
         return bs;
-    }
-
-    /**
-     * Encode an array length word.
-     * 
-     * @param length
-     *            the length to encode
-     * @return the encoded length word
-     */
-    private static UWord encodeLengthWord(int length) throws ForceInlinedPragma {
-        // Can only support arrays whose length can encoded in 30 bits. Throwing
-        // an out of memory error is the cleanest way to handle this situtation
-        // in the rare case that there was enough memory to allocate the array
-        if (length > 0x3FFFFFF) {
-            VM.println("encodeLengthWord");
-            throw VM.getOutOfMemoryError();
-        }
-        return UWord.fromPrimitive((length << HDR.headerTagBits) | HDR.arrayHeaderTag);
     }
 
     /**

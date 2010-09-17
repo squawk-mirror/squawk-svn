@@ -7,7 +7,7 @@ import javax.realtime.RelativeTime;
 import javax.safetycritical.StorageParameters;
 
 public class Config {
-    public static boolean DEBUG = false;
+    public static boolean DEBUG = true;
 
     public static long B = 1;
     public static long KB = 1024 * B;

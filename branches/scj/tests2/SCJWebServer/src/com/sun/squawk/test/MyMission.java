@@ -23,8 +23,8 @@ public class MyMission extends Mission {
     protected void initialize() {
         try {
             server.initialize();
-            new AsyncHapHandler(Config.priority, Config.aperiod, Config.storage,
-                    Config.initPrivateSize).register();
+//            new AsyncHapHandler(Config.priority, Config.aperiod, Config.storage,
+//                    Config.initPrivateSize).register();
         } catch (IOException e) {
             System.err.println("Server initialization ");
             e.printStackTrace();
