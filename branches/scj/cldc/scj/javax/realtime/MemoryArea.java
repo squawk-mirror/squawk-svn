@@ -7,9 +7,6 @@ import java.lang.reflect.InvocationTargetException;
 import com.sun.squawk.BackingStore;
 import com.sun.squawk.util.Assert;
 
-/**
- * allocate backing store at construction
- */
 // @SCJAllowed
 public abstract class MemoryArea implements AllocationContext {
 
@@ -19,7 +16,10 @@ public abstract class MemoryArea implements AllocationContext {
     /** The backing store of this memory area */
     private BackingStore bs;
 
-    /** Immortal's index is 0 */
+    /**
+     * The index of this memory area on the scope stack. immortal memory's index
+     * is 0
+     */
     int indexOnStack;
 
     /** The immediate out memory area on the scope stack */
@@ -34,12 +34,7 @@ public abstract class MemoryArea implements AllocationContext {
         indexOnStack = 0;
     }
 
-    /**
-     * Allocate my BS from specified parent BS
-     * 
-     * @param size
-     * @param container
-     */
+    /** Create a memory area and allocate the BS from specified parent BS. */
     protected MemoryArea(long size, BackingStore from) {
         reserveBS(size, from);
         immediateOuter = RealtimeThread.getCurrentMemoryArea();
@@ -65,7 +60,7 @@ public abstract class MemoryArea implements AllocationContext {
 
     /**
      * Empty the memory area and set the backing store to include all the rest
-     * free memory space of its container.
+     * free memory space of its parent BS.
      */
     protected void reset() {
         Assert.always(bs != null, "MemoryArea: backing store is null @ reset().");
@@ -74,21 +69,19 @@ public abstract class MemoryArea implements AllocationContext {
     }
 
     /**
-     * Destroy all backing stores above me (excluded) on the stack.
+     * Destroy all backing stores above me (excluded) on the stack. This method
+     * is called after a mission terminates for destroying all BSs allocated for
+     * that mission's threads
      */
     protected void destroyAllAboveBS() {
         Assert.always(bs != null, "MemoryArea: backing store is null @ destroyAllAboveBS().");
         bs.destroyAllAboves();
     }
 
-    protected void reserveBS_protected(long size) {
-        reserveBS(size, RealtimeThread.currentRealtimeThread().getBackingStore());
-    }
-
-    protected void destroyBS_protected() {
-        destroyBS();
-    }
-
+    /**
+     * Allocate BS from "from" with size of "size" and use it as the BS of this
+     * memory area.
+     */
     void reserveBS(long size, BackingStore from) {
         Assert.always(bs == null,
                 "MemoryArea: cannot allocate new backing store without destroying the old one.");
@@ -98,11 +91,15 @@ public abstract class MemoryArea implements AllocationContext {
         if (from == null)
             throw new Error("Resource backing store cannot be null.");
 
-        //BackingStore.disableScopeCheck();
+        // BackingStore.disableScopeCheck();
         bs = from.excavate((int) size);
-        //BackingStore.enableScopeCheck();
+        // BackingStore.enableScopeCheck();
         bs.setMirror(this);
         Assert.always(bs != null, "MemoryArea: failed to allocate new backing store.");
+    }
+
+    protected void reserveBS_protected(long size) {
+        reserveBS(size, RealtimeThread.currentRealtimeThread().getBackingStore());
     }
 
     void destroyBS() {
@@ -111,6 +108,10 @@ public abstract class MemoryArea implements AllocationContext {
             bs.destroy();
             bs = null;
         }
+    }
+
+    protected void destroyBS_protected() {
+        destroyBS();
     }
 
     // @SCJAllowed
@@ -203,9 +204,4 @@ public abstract class MemoryArea implements AllocationContext {
     public long size() {
         return size;
     }
-
-    // Just for debug
-    // public BackingStore getBS() {
-    // return bs;
-    // }
 }

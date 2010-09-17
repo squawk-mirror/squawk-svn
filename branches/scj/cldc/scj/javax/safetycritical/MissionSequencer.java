@@ -13,11 +13,8 @@ import javax.realtime.RealtimeThread;
 public abstract class MissionSequencer extends AsyncEventHandler {
 
     private MissionMemory memory;
-
     private RealtimeThread thread;
-
     private Runnable runner = new InMissionMemoryRunner();
-
     private volatile boolean terminationRequestReceived = false;
 
     /**

@@ -1,6 +1,5 @@
 package javax.safetycritical;
 
-import com.sun.squawk.BackingStore;
 
 //@SCJAllowed
 public abstract class Mission {

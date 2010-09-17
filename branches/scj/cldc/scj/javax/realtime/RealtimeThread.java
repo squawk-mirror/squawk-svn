@@ -7,17 +7,18 @@ import javax.safetycritical.StorageParameters;
 import com.sun.squawk.BackingStore;
 import com.sun.squawk.VM;
 import com.sun.squawk.VMThread;
+import com.sun.squawk.util.Assert;
 
 //@SCJAllowed(LEVEL_1)
 public class RealtimeThread extends Thread {
 
-    /** The backing store this thread owns */
+    /**
+     * The backing store reserved for this thread. It is used to allocate the
+     * private memories.
+     */
     private BackingStore bs;
 
-    /**
-     * The initial memory area which this thread will be running in after
-     * started
-     */
+    /** The memory area used as initial allocating context after thread start. */
     private MemoryArea initArea;
 
     /** The storage configuration parameter */
@@ -35,15 +36,9 @@ public class RealtimeThread extends Thread {
     private static boolean DEBUG = false;
 
     /**
-     * This constructor takes all the listed parameters which are clear enough
-     * by reading the name. The backing store is taken from the parent real-time
-     * thread's backing store. Then the initial private memory takes its backing
-     * store from "this".
-     * 
-     * @param priority
-     * @param storage
-     * @param initMemSize
-     * @param logic
+     * Create a new realtime thread. The backing store is taken from the current
+     * thread's. The initial memory area will be created with the backing store
+     * taken the new thread's backing store.
      */
     public RealtimeThread(PriorityParameters priority, StorageParameters storage, long initMemSize,
             Runnable logic) {
@@ -53,12 +48,6 @@ public class RealtimeThread extends Thread {
     /**
      * Only used in creating mission sequencer thread since such thread does not
      * initialize its run in private memory.
-     * 
-     * @param priority
-     * @param storage
-     * @param initMemSize
-     * @param logic
-     * @param bs
      */
     public RealtimeThread(PriorityParameters priority, StorageParameters storage,
             MemoryArea initArea, Runnable logic) {
@@ -81,9 +70,9 @@ public class RealtimeThread extends Thread {
         if (bs == null)
             bs = RealtimeThread.currentRealtimeThread().getBackingStore().excavate(
                     (int) storage.getTotalBackingStoreSize());
-        //BackingStore.disableScopeCheck();
+        // BackingStore.disableScopeCheck();
         this.bs = bs;
-        //BackingStore.enableScopeCheck();
+        // BackingStore.enableScopeCheck();
         if (initArea == null)
             initArea = new PrivateMemory(initMemSize, bs);
         this.initArea = initArea;
@@ -103,39 +92,19 @@ public class RealtimeThread extends Thread {
         return bs;
     }
 
-    /**
-     * Allocates no memory. Does not allow this to escape local variables. The
-     * returned object may reside in scoped memory, within a scope that encloses
-     * this.
-     */
     // @SCJAllowed(LEVEL_2)
     public MemoryArea getMemoryArea() {
         return initArea;
     }
 
-    /**
-     * Allocates no memory. Does not allow this to escape local variables. The
-     * returned object may reside in scoped memory, within a scope that encloses
-     * this.
-     * <p>
-     * No allocation because ReleaseParameters are immutable.
-     */
     // @SCJAllowed(LEVEL_2)
     public ReleaseParameters getReleaseParameters() {
         return null;
     }
 
-    // /**
-    // * Allocates no memory. Does not allow this to escape local variables. The
-    // * returned object may reside in scoped memory, within a scope that
-    // encloses
-    // * this.
-    // * <p>
-    // * No allocation because SchedulingParameters are immutable.
-    // */
-    // public SchedulingParameters getSchedulingParameters() {
-    // return priority;
-    // }
+    public SchedulingParameters getSchedulingParameters() {
+        return priority;
+    }
 
     public ManagedSchedulable getManagedSchedulable() {
         return schedulable;
@@ -145,65 +114,52 @@ public class RealtimeThread extends Thread {
         this.schedulable = schedulable;
     }
 
-    /**
-     * Allocates no memory. Treats the implicit this argument as a variable
-     * residing in scoped memory.
-     */
     public void start() {
-        if (bs == null) {
+        if (bs == null)
             throw new Error("Backing store must be specified before the thread can start!");
-        }
-        if (initArea == null) {
+        if (initArea == null)
             throw new Error("Initial area must be specified before the thread can start!");
-        }
         super.start();
     }
 
-    /**
-     * Called in VMThread.callRun() for entering the initial area.
-     */
+    /** Called by VMThread.callRun() for entering the initial area. */
     public final void startRun() {
         initArea.enter(this);
         initArea.destroyBS();
         initArea = null;
     }
 
-    /**
-     * Allocates no memory. Returns an object that resides in the current
-     * mission's MissionMemory.
-     */
     // @SCJAllowed(LEVEL_2)
     public static RealtimeThread currentRealtimeThread() {
         return (RealtimeThread) Thread.currentThread();
     }
 
-    /**
-     * Allocates no memory. The returned object may reside in scoped memory,
-     * within a scope that encloses the current execution context.
-     */
     // @SCJAllowed(LEVEL_1)
     public static MemoryArea getCurrentMemoryArea() {
         return (MemoryArea) BackingStore.getCurrentContext().getMirror();
     }
 
-    // public static int getMemoryAreaStackDepth() {
-    // return getCurrentMemoryArea().indexOnStack + 1;
-    // }
-    //
-    // public static MemoryArea getOuterMemoryArea(int index) {
-    // MemoryArea area = getCurrentMemoryArea();
-    // if (index < 0 || area.indexOnStack < index)
-    // return null;
-    // while (true) {
-    // if (area.indexOnStack == index)
-    // return area;
-    // area = area.immediateOuter;
-    // // The index must fall in the stack range. If not, something goes
-    // // wrong.
-    // Assert.always(area != null);
-    // }
-    // }
+    /** See the description of RTSJ */
+    public static int getMemoryAreaStackDepth() {
+        return getCurrentMemoryArea().indexOnStack + 1;
+    }
 
+    /** See the description of RTSJ */
+    public static MemoryArea getOuterMemoryArea(int index) {
+        MemoryArea area = getCurrentMemoryArea();
+        if (index < 0 || area.indexOnStack < index)
+            return null;
+        while (true) {
+            if (area.indexOnStack == index)
+                return area;
+            area = area.immediateOuter;
+            // The index must fall in the stack range. If not, something goes
+            // wrong.
+            Assert.always(area != null);
+        }
+    }
+
+    /** Do absolute or relative sleep depending on the type of time. */
     // @SCJAllowed(LEVEL_2)
     public static void sleep(HighResolutionTime time) throws InterruptedException {
         // FIXME: Nanos are simply ignored for now.
@@ -215,7 +171,6 @@ public class RealtimeThread extends Thread {
     }
 
     private static PriorityParameters checkPriorityParameters(PriorityParameters priority) {
-        // TODO: revise the check
         if (priority == null)
             throw new IllegalArgumentException(
                     "Priority parameter cannot be null; No default for now!");

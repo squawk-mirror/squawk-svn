@@ -2,7 +2,6 @@ package com.sun.squawk;
 
 import javax.realtime.IllegalAssignmentError;
 
-import com.sun.squawk.pragma.ForceInlinedPragma;
 import com.sun.squawk.pragma.GlobalStaticFields;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.vm.HDR;
@@ -284,11 +283,6 @@ public final class BackingStore implements GlobalStaticFields {
     /**
      * Allocate a chunk of memory in current backing store and set up the object
      * header.
-     * 
-     * @param size
-     * @param klass
-     * @param arrayLength
-     * @return
      */
     public static Object allocate(int size, Object klass, int arrayLength) {
         Assert.always(currentAllocContext != null, "Current allocation context cannot be null!");
@@ -299,11 +293,6 @@ public final class BackingStore implements GlobalStaticFields {
      * Allocate a chunk of memory in this backing store. Note that allocation is
      * not in charge of zeroing memory. It is done in initializing the entire
      * memory and in destroying a backing store.
-     * 
-     * @param size
-     * @param klass
-     * @param arrayLength
-     * @return
      */
     private Object allocate0(int size, Object klass, int arrayLength) {
 
@@ -464,14 +453,9 @@ public final class BackingStore implements GlobalStaticFields {
         return scoped;
     }
 
-    /**
-     * 
-     * @param obj
-     * @return
-     */
+    /** Return the backing store where the object is allocated in. */
     public static BackingStore getBackingStore(Object obj) {
         Address addr = Address.fromObject(obj);
-        BackingStore ret = null;
 
         if (SCJ_DEBUG_ENABLED) {
             VM.print("[SCJ] search BS for address ");
@@ -481,24 +465,26 @@ public final class BackingStore implements GlobalStaticFields {
 
         if (immortal.containAddr(addr))
             return immortal;
+
+        BackingStore ret = null;
         if (scoped.containAddr(addr))
             ret = scoped.search(addr);
 
-        // TODO: res should not be null because in SCJ the memory area
-        // is either immortal or scoped. This is not true for Squawk since it
-        // has ROM. So if we are getting here, simply return immortal as ROM is
-        // treated as immortal as well.
+        // TODO: ret should not be null because objects must be in either
+        // Immortal or Scoped. However, since Squawk has ROM, we can be sure
+        // that if the ret is null, the object we are looking at is definitely
+        // in ROM. And it is safe to treat ROM as part of immortal memory.
         if (ret == null) {
-            // Klass klassObj = GC.getKlass(obj);
-            // Address addrObj = Address.fromObject(obj);
             String klassName = Klass.getInternalName(GC.getKlass(obj));
-            // VM.print("[SCJ] Attempt to search BS for in-ROM object of type ");
-            // VM.print(klassName);
-            // if (klassName == "com.sun.squawk.Klass") {
-            // VM.print(" - obj: ");
-            // VM.print(Klass.getInternalName((Klass) obj));
-            // }
-            // VM.println();
+            if (SCJ_DEBUG_ENABLED) {
+                VM.print("[SCJ] Attempt to search for BS for in-ROM object of type ");
+                VM.print(klassName);
+                if (klassName == "com.sun.squawk.Klass") {
+                    VM.print(" - obj: ");
+                    VM.print(Klass.getInternalName((Klass) obj));
+                }
+                VM.println();
+            }
             ret = immortal;
         }
 
@@ -510,20 +496,38 @@ public final class BackingStore implements GlobalStaticFields {
         return ret;
     }
 
+    /**
+     * Search for the leaf BS enclosing given address. The caller must make sure
+     * the address is in the range of this BS.
+     */
+    private BackingStore search(Address addr) {
+        if (SCJ_DEBUG_ENABLED) {
+            VM.print("[SCJ] search in BS-");
+            VM.println(id);
+        }
+        Assert.always(containAddr(addr));
+        return isLeaf() ? this : topTable.search(addr);
+    }
+
     private static int SIZE_OF_Monitor;
     private static int SIZE_OF_ObjectAssociation;
 
     /**
-     * Get the upper bound of size of memory consumed for the object being
-     * existing. This includes header, body, monitor, object association ...
-     * TODO: what else??
+     * Get the size of the maximum memory that can be potentially consumed for
+     * the object being existing. This includes header + body + (monitor |
+     * object association) + what else?
+     * 
+     * This method is used by javax.realtime.SizeEstimator for estimating the
+     * upper bound size of a new scope.
+     * 
+     * TODO: not sure if the current implementation is reasonable.
      * 
      * @param clazz
      *            the object class if arrayLength == -1; the component class if
      *            arrayLength > -1
      * @param arrayLength
      *            the array length; -1 if not an array.
-     * @return
+     * @return the upper bound size
      */
     public static int getConsumedMemorySize(Class clazz, int arrayLength) {
         int size;
@@ -541,16 +545,22 @@ public final class BackingStore implements GlobalStaticFields {
     // for debug
     private static String illegalAssignment;
     private static String ASSIGN;
+    private static String leftBrackets;
+    private static String atBS_;
+    private static String ROM;
+    private static String MAP;
+    private static String KEY;
+    private static String VAL;
+    private static String com_sun_squawk_util_HashtableEntry;
+    private static String com_sun_squawk_util_IntHashtableEntry;
 
     // for debug
 
     static void scopeCheckSlow(Address base, Address value) {
         if (scopeCheckEnabled > 0 && !getBackingStore(base.toObject()).containAddr(value)) {
-            // TODO: scope check failed
-
             /*
-             * Illegal assignment should lead to an error thrown. For debugging,
-             * just prints and lets the program continue.
+             * Illegal assignment should lead to an error thrown. But for debug
+             * purpose, just prints and lets the program continue.
              */
             boolean throwException = false;
             if (throwException) {
@@ -565,23 +575,13 @@ public final class BackingStore implements GlobalStaticFields {
         }
     }
 
-    // for debug
-    private static String leftBrackets;
-    private static String atBS_;
-    private static String ROM;
-    private static String MAP;
-    private static String KEY;
-    private static String VAL;
-    private static String com_sun_squawk_util_HashtableEntry;
-    private static String com_sun_squawk_util_IntHashtableEntry;
-
-    // for debug
-
     /**
-     * klassName @ BS-id
+     * Print the information given an object pointer. If the object is a
+     * HashTable, the klasses of keys and values will also be printed.
      * 
-     * @param klass
-     * @param bs
+     * Format: klassName @ BS-id
+     * 
+     * key: keyKlass -> val: valKlass
      */
     private static void printAddrInfo(Address addr) {
         Object obj = addr.toObject();
@@ -622,23 +622,10 @@ public final class BackingStore implements GlobalStaticFields {
         }
     }
 
-    private BackingStore search(Address addr) {
-        if (SCJ_DEBUG_ENABLED) {
-            VM.print("[SCJ] search in BS-");
-            VM.println(id);
-        }
-        Assert.always(containAddr(addr));
-        return isLeaf() ? this : topTable.search(addr);
-    }
-
     /**
-     * Convert a block of memory to backing store, where the BS instance locates
-     * at the front of the block. Following fields will be set:
+     * Convert a block of memory to backing store unit, where the BS instance
+     * locates at the front of the block. Following fields will be set:
      * allocStart/Top/End, realSize, id.
-     * 
-     * @param start
-     * @param end
-     * @return
      */
     private static BackingStore convertToBS(Address start, Address end) {
         int allocSize = end.diff(start).toInt();
@@ -656,42 +643,39 @@ public final class BackingStore implements GlobalStaticFields {
         bs.realSize = allocSize;
         bs.id = bsCounter++;
 
-        // if (SCJ_DEBUG_ENABLED) {
-        // VM.println("[SCJ] Convert raw memory to backing store");
-        // VM.print("[SCJ]  - start: ");
-        // VM.println(bs.allocStart);
-        // VM.print("[SCJ]  - top:   ");
-        // VM.println(bs.allocTop);
-        // VM.print("[SCJ]  - end:   ");
-        // VM.println(bs.allocEnd);
-        // VM.print("[SCJ]  - size:  ");
-        // VM.println(bs.realSize);
-        // }
+        if (SCJ_DEBUG_ENABLED) {
+            VM.println("[SCJ] Convert raw memory to backing store");
+            VM.print("[SCJ]  - start: ");
+            VM.printAddress(bs.allocStart);
+            VM.println("");
+            VM.print("[SCJ]  - top:   ");
+            VM.printAddress(bs.allocTop);
+            VM.println("");
+            VM.print("[SCJ]  - end:   ");
+            VM.printAddress(bs.allocEnd);
+            VM.println("");
+            VM.print("[SCJ]  - size:  ");
+            VM.println(bs.realSize);
+        }
 
         return bs;
     }
 
-    /**
-     * 
-     * @return
-     */
     public int bsConsumed() {
         return size - spaceRemaining;
     }
 
-    /**
-     * 
-     * @return
-     */
     public int bsRemaining() {
         return spaceRemaining;
     }
 
     /**
-     * FIXME: not thread safe
+     * Destroy this backing store unit. Pop myself from container and zero the
+     * memory owned (the instance of "this" is erased at the same time).
      * 
-     * Pop myself from container and zero my memory space (the instance of
-     * "this" is erased at the same time).
+     * NOTE: the caller must make sure "this" is
+     * 
+     * 1) not Immortal or Scoped; 2) the top child of its parent.
      */
     public void destroy() {
         if (isRoot())
@@ -703,8 +687,9 @@ public final class BackingStore implements GlobalStaticFields {
 
         Address startZero;
 
-        // If i'm the last one in topTable. The table can be reclaimed along
-        // with myself.
+        // If i'm the last one in topTable, the table becomes empty after i am
+        // destroyed, so can be reclaimed as well. Erase the table instance and
+        // zero the memory.
         if (parent.topTable.counter == 1) {
             IndexTable oldTable = parent.topTable;
             disableScopeCheck();
@@ -719,18 +704,17 @@ public final class BackingStore implements GlobalStaticFields {
         }
         int incr = -allocEnd.diff(startZero).toInt();
         parent.increaseAllocTop(incr);
+        // after the following line, "this" object is gone.
         VM.zeroWords(startZero, allocTop);
-
-        // printBSTree(true);
-
     }
 
     /**
-     * Destroy all backing stores above me (excluded).
+     * Destroy all BSs that have the same parent with me and are positioned
+     * above me (myself excluded).
      */
     public void destroyAllAboves() {
-        // TODO: more efficient way: decrease top pointer and zero memory at
-        // once
+        // TODO: more efficient way: decrease the parent's top pointer and zero
+        // memory at once
         if (!isRoot()) {
             while (!parent.topChildIs(this))
                 parent.getTopChild().destroy();
@@ -738,10 +722,8 @@ public final class BackingStore implements GlobalStaticFields {
     }
 
     /**
-     * 
-     * Allocate a block of memory as new backing store in current backing store
-     * space. The new instance will be set with its: size, spaceRemaining,
-     * container.
+     * Allocate memory for a new child in current backing store space. The new
+     * instance will be set with its: size, spaceRemaining, container.
      * 
      * FIXME: not thread safe
      * 
@@ -800,34 +782,22 @@ public final class BackingStore implements GlobalStaticFields {
         return parent;
     }
 
-    /**
-     * 
-     * @return
-     */
     public Object getMirror() {
         return mirror;
     }
 
-    /**
-     * 
-     * @return
-     */
     public int getSize() {
         return size;
     }
 
-    /**
-     * 
-     * @return
-     */
     public int getRealSize() {
         return realSize;
     }
 
     /**
      * Empty and zero currently owned memory space. Restore the allocating top
-     * pointer to its original value. If this is the top child of the parent,
-     * takes all available space of its parent (which usually means the size
+     * pointer to its origin. If "this" is the top child of the parent, takes
+     * all available space of its parent as mine (which usually means the size
      * will grow).
      */
     public void reset() {
@@ -843,7 +813,7 @@ public final class BackingStore implements GlobalStaticFields {
 
         topTable = null;
 
-        /* if this the top, take all parent's available space as mine. */
+        /* if this is the top, take all parent's available space as mine. */
         if (!isRoot() && parent.getTopChild() == this) {
             int freeSpace = parent.spaceRemaining;
             parent.increaseAllocTop(freeSpace);
@@ -863,22 +833,27 @@ public final class BackingStore implements GlobalStaticFields {
     }
 
     /**
-     * Shrink is dangerous and strictly only applied to mission memory, which
-     * when shrinking we are sure there is nothing on top of it in the
-     * container.
+     * Resize the BS to a smaller size.
      * 
-     * @param newSize
+     * This function is specially designed for mission memory. Creating mission
+     * memory is special in that before it is created the VM will not be able to
+     * know how large it should be (because the mission instance should be
+     * created in the mission memory while the size of the mission memory is
+     * gotten by mission.missionMemorySize()). A way to solve is to first making
+     * the mission memory as large as possible then shrinking it to the right
+     * size after we are able to get the information. In sum, we are shrinking
+     * the mission memory when active in it.
+     * 
+     * The caller of this function must guarantee that 1) the new size cannot be
+     * smaller than the already used space ; 2) "this" must be the top child.
      * 
      * @throws IllegalStateException
-     *             if the objects already allocated within this MissionMemory
-     *             consume more than newSize bytes.
+     *             if 1) is violated
      * 
      * @throws IllegalArgumentException
-     *             if newSize is larger than the current size of the
-     *             MissionMemory.
+     *             if newSize is larger than the current size.
      */
     public void shrink(int newSize) throws IllegalStateException, IllegalArgumentException {
-        // how much to shrink. Illegal if it is actually increase.
         int decr = size - newSize;
         if (decr < 0)
             throw new IllegalArgumentException();
@@ -955,9 +930,7 @@ public final class BackingStore implements GlobalStaticFields {
         VM.println();
     }
 
-    /**
-     * 
-     */
+    /** Print the BS tree structure representing current memory usage. */
     public static void printBSTree(boolean detailed) {
         VM.println();
         VM.println("[SCJ] print entire backing store tree ---------------------------- start ");
@@ -967,6 +940,7 @@ public final class BackingStore implements GlobalStaticFields {
         VM.println();
     }
 
+    /** A helper */
     private void printBSTreeRecursive(boolean detailed, int indent) {
         printSpace(indent);
         VM.print("BS-");
@@ -998,80 +972,14 @@ public final class BackingStore implements GlobalStaticFields {
         }
     }
 
+    /** A helper */
     private static void printSpace(int indent) {
         VM.print("[SCJ] ");
         for (int i = 0; i < indent; i++)
             VM.print("    ");
     }
 
-    static void test() {
-        float ff = 0.1234f;
-        double dd = 0.1234;
-        int[] a = new int[] { 222, 333, 444 };
-        double[] f = new double[] { 0.222, 0.333, 0.444 };
-        Dummy d = new Dummy();
-        boolean r = d._int == 12345 && d._char == 'j' && d._long == 948472349 && d._boolean == true
-                && d._float == 0.12345 && d._double == 3.1415926 && a[0] == 222 && a[1] == 333
-                && a[2] == 444;
-        if (!r) {
-            VM.println("------------ Error in allocation ------------");
-            VM.println(d._int);
-            VM.println(d._char);
-            VM.println(d._long);
-            VM.println(d._boolean);
-            VM.println(d._float);
-            VM.println(d._double);
-            VM.println(a[0]);
-            VM.println(a[1]);
-            VM.println(a[2]);
-            VM.println(f[0]);
-            VM.println(f[1]);
-            VM.println(f[2]);
-            VM.println(ff);
-            VM.println(dd);
-            VM.println(a.length);
-            Assert.always(r);
-        }
-    }
-
-    private static boolean verifyZero(Address start, Address end) {
-        VM.print("[SCJ] start verify memory [");
-        VM.printAddress(start);
-        VM.print(" - ");
-        VM.printAddress(end);
-        VM.println("]");
-        boolean res = true;
-        // boolean open = true;
-        int range = end.diff(start).toInt();
-        for (int i = 0; i < range; i++) {
-            // if (open) {
-            if (NativeUnsafe.getByte(start, i) != 0) {
-                res = false;
-                // VM.print("[");
-                // VM.print(start.add(i));
-                // VM.print(" - ");
-                // open = false;
-            }
-            // } else {
-            // if (Unsafe.getInt(start, i) == 0) {
-            // VM.print(start.add(i));
-            // VM.print("] ");
-            // open = true;
-            // }
-            // }
-        }
-        return res;
-    }
-
-    static class Dummy {
-        int _int = 12345;
-        float _float = 0.12345f;
-        char _char = 'j';
-        boolean _boolean = true;
-        double _double = 3.1415926;
-        long _long = 948472349;
-    }
-
+    /** Print all instances in current BS */
     public static void printCurrentBSStats() {
         VM.print(" **************** Instance in BS-");
         VM.print(currentAllocContext.id);
@@ -1079,4 +987,75 @@ public final class BackingStore implements GlobalStaticFields {
         GC.printHeapStats(currentAllocContext, true);
         VM.println(" ************************************************");
     }
+
+    /* For testing ... */
+    // private static void test() {
+    // float ff = 0.1234f;
+    // double dd = 0.1234;
+    // int[] a = new int[] { 222, 333, 444 };
+    // double[] f = new double[] { 0.222, 0.333, 0.444 };
+    // Dummy d = new Dummy();
+    // boolean r = d._int == 12345 && d._char == 'j' && d._long == 948472349 &&
+    // d._boolean == true
+    // && d._float == 0.12345 && d._double == 3.1415926 && a[0] == 222 && a[1]
+    // == 333
+    // && a[2] == 444;
+    // if (!r) {
+    // VM.println("------------ Error in allocation ------------");
+    // VM.println(d._int);
+    // VM.println(d._char);
+    // VM.println(d._long);
+    // VM.println(d._boolean);
+    // VM.println(d._float);
+    // VM.println(d._double);
+    // VM.println(a[0]);
+    // VM.println(a[1]);
+    // VM.println(a[2]);
+    // VM.println(f[0]);
+    // VM.println(f[1]);
+    // VM.println(f[2]);
+    // VM.println(ff);
+    // VM.println(dd);
+    // VM.println(a.length);
+    // Assert.always(r);
+    // }
+    // }
+    //
+    // private static boolean verifyZero(Address start, Address end) {
+    // VM.print("[SCJ] start verify memory [");
+    // VM.printAddress(start);
+    // VM.print(" - ");
+    // VM.printAddress(end);
+    // VM.println("]");
+    // boolean res = true;
+    // // boolean open = true;
+    // int range = end.diff(start).toInt();
+    // for (int i = 0; i < range; i++) {
+    // // if (open) {
+    // if (NativeUnsafe.getByte(start, i) != 0) {
+    // res = false;
+    // // VM.print("[");
+    // // VM.print(start.add(i));
+    // // VM.print(" - ");
+    // // open = false;
+    // }
+    // // } else {
+    // // if (Unsafe.getInt(start, i) == 0) {
+    // // VM.print(start.add(i));
+    // // VM.print("] ");
+    // // open = true;
+    // // }
+    // // }
+    // }
+    // return res;
+    // }
+    //
+    // static class Dummy {
+    // int _int = 12345;
+    // float _float = 0.12345f;
+    // char _char = 'j';
+    // boolean _boolean = true;
+    // double _double = 3.1415926;
+    // long _long = 948472349;
+    // }
 }
