@@ -34,7 +34,7 @@
 #define CMD_LINE_FILENAME "SQUAWK_CMD_LINE"
 
 #ifndef SQUAWK_VERSION
-#define SQUAWK_VERSION "2010 FRC"
+#define SQUAWK_VERSION "2011 FRC"
 #endif
 
 extern void freeBuffers();
