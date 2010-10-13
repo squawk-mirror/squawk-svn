@@ -59,6 +59,11 @@ tests/bin/runsmoketest.sh DELEGATING</command>
       <artifacts>trunk/squawk,trunk/squawk.suite,trunk/sizereport.txt</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.Mailer>
+      <recipients>squawk-regression@sun.com</recipients>
+      <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers/>
 </project>

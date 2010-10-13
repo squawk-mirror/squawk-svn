@@ -10,7 +10,7 @@
 &#xd;
 The BARE_METAL type can&apos;t be built the same way...&#xd;
 &#xd;
-Each platform type is built +/- ASSERTIONS_ENABLED, DEBUG_CODE_ENABLED, TRACING_ENABLED, and ENABLE_DYNAMIC_CLASSLOADING</description>
+Each platform type is built +/- ASSERTIONS_ENABLED, and DEBUG_CODE_ENABLED</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>2</numToKeep>
@@ -57,25 +57,11 @@ Each platform type is built +/- ASSERTIONS_ENABLED, DEBUG_CODE_ENABLED, TRACING_
       </values>
     </axis>
     <axis>
-      <name>ENABLE_DYNAMIC_CLASSLOADING</name>
-      <values>
-        <string>true</string>
-        <string>false</string>
-      </values>
-    </axis>
-    <axis>
       <name>PLATFORM_TYPE</name>
       <values>
         <string>NATIVE</string>
         <string>DELEGATING</string>
         <string>SOCKET</string>
-      </values>
-    </axis>
-    <axis>
-      <name>TRACING_ENABLED</name>
-      <values>
-        <string>true</string>
-        <string>false</string>
       </values>
     </axis>
     <axis>
@@ -92,8 +78,8 @@ Each platform type is built +/- ASSERTIONS_ENABLED, DEBUG_CODE_ENABLED, TRACING_
 cd trunk
 ./d.sh clean 
 
-./d.sh -DPLATFORM_TYPE=$PLATFORM_TYPE -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING
-./d.sh  -DPLATFORM_TYPE=$PLATFORM_TYPE -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata -lnt -strip:d cldc imp debugger
+./d.sh -DPLATFORM_TYPE=$PLATFORM_TYPE -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED
+./d.sh -DPLATFORM_TYPE=$PLATFORM_TYPE -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -prod -mac -o2 rom cldc imp debugger
 
 tests/bin/runsmoketest.sh $PLATFORM_TYPE 
 ./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
@@ -109,6 +95,11 @@ ls -l &gt; sizereport.txt
       <artifacts>trunk/sizereport.txt</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.Mailer>
+      <recipients>squawk-regression@sun.com</recipients>
+      <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers/>
   <runSequentially>false</runSequentially>

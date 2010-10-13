@@ -87,6 +87,11 @@ rmdir tmp
         <color>BLUE</color>
       </threshold>
     </hudson.tasks.BuildTrigger>
+    <hudson.tasks.Mailer>
+      <recipients>squawk-regression@sun.com</recipients>
+      <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers/>
   <runSequentially>false</runSequentially>

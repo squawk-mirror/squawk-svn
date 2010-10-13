@@ -14,10 +14,10 @@
   </properties>
   <scm class="hudson.scm.NullSCM"/>
   <quietPeriod>1800</quietPeriod>
-  <canRoam>true</canRoam>
+  <assignedNode>master</assignedNode>
+  <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <jdk>(Default)</jdk>
   <triggers class="vector">
     <hudson.triggers.TimerTrigger>
       <spec>0 2 * * *</spec>
@@ -37,5 +37,5 @@
     <hudson.tasks.test.AggregatedTestResultPublisher/>
   </publishers>
   <buildWrappers/>
-  <customWorkspace>/scratch/dw29446/hudson/tck</customWorkspace>
+  <customWorkspace>$HOME/Hudson-Squawk/hudson2/Squawk-tck</customWorkspace>
 </project>

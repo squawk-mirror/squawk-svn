@@ -47,10 +47,8 @@ LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instanc
 cd trunk
 dos2unix.exe d.sh
 ./d.sh clean
-./d.sh
-./d.sh copyphoneme
-./d.sh -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
-./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 -tracing rom -strip:a cldc
+./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
+./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -strip:a cldc
 ./squawk -h
 ./squawk -version
 
@@ -64,6 +62,11 @@ tests/bin/runsmoketest.sh DELEGATING</command>
       <artifacts>trunk/squawk,trunk/squawk.suite,trunk/sizereport.txt</artifacts>
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.Mailer>
+      <recipients>squawk-regression@sun.com</recipients>
+      <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
   </publishers>
   <buildWrappers/>
 </project>
