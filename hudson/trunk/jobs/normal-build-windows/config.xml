@@ -42,34 +42,34 @@
       <command>#!bash
 LD_LIBRARY_PATH=/cygdrive/c/Progra~1/Java/jdk1.6.0_21/lib/tools.jar:/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 
-
 cd trunk
-pwd
 
-ls -l
-
+dos2unix.exe d.sh
+dos2unix.exe builder/bld.sh
 dos2unix.exe tests/bin/verifyBuildJars2
-tests/bin/verifyBuildJars2
-      
-        dos2unix.exe d.sh
-	./d.sh clean
-	./d.sh 
-        ./d.sh mapper
-	./d.sh -prod -mac -o2 rom  cldc imp debugger
-	ls -l &gt; sizereport.txt
-	./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-	./d.sh genspec
-	./d.sh jvmenv
-	./d.sh systemproperties
-	./d.sh Mnemonics
-	./d.sh OPC
-	./d.sh OperandStackEffect
-	./d.sh Verifier
-	./squawk -h
-	./squawk -version
-
-
 dos2unix.exe tests/bin/runsmoketest.sh
+
+tests/bin/verifyBuildJars2
+
+#rm -rf build.jar build-commands.jar
+#./d.sh builder
+
+./d.sh clean
+./d.sh 
+./d.sh -prod -mac -o2 rom  cldc imp debugger
+ls -l &gt; sizereport.txt
+./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+./d.sh genspec
+./d.sh jvmenv
+./d.sh systemproperties
+./d.sh Mnemonics
+./d.sh OPC
+./d.sh OperandStackEffect
+./d.sh Verifier
+./squawk -h
+./squawk -version
+
+
 tests/bin/runsmoketest.sh DELEGATING
 
 rm -rf tempdoc
