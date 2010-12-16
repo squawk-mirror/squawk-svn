@@ -78,7 +78,7 @@
     <axis>
       <name>label</name>
       <values>
-        <string>Ubuntu</string>
+        <string>Solaris</string>
         <string>master</string>
       </values>
     </axis>

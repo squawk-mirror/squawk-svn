@@ -64,8 +64,7 @@
     <axis>
       <name>label</name>
       <values>
-        <string>Ubuntu</string>
-        <string>master</string>
+        <string>Solaris</string>
       </values>
     </axis>
   </axes>

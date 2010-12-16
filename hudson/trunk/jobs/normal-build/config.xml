@@ -47,13 +47,13 @@
       <command>#!/bin/bash
 LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 
-export JAVA_HOME=/usr
+#export JAVA_HOME=/usr
 cd trunk
 
 pwd
 platform=&apos;unknown&apos;
 unamestr=`uname`
-hudsondir=&apos;null&apos;
+hudsondir=../../../../
 
 
 if [[ &quot;$unamestr&quot; == &apos;Linux&apos; ]];then
@@ -69,14 +69,16 @@ if [[ $platform == &apos;linux&apos; ]]; then
         hudsondir=&apos;/home/squawk/Hudson-Squawk/hudson/trunk&apos;
 elif [[ $platform == &apos;mac&apos; ]]; then
    	echo &apos;mac&apos;
-        #hudsondir=$HUDSON_HOME
 elif [[ $platform == &apos;windows&apos; ]];then
 	echo &apos;win&apos;
 fi
-echo huddir $hudsondir
+echo huddir=$hudsondir
 
 tests/bin/verifyBuildJars2
-./d.sh -verbose builder
+echo DONE verifyBuildJars2
+
+./d.sh builder
+
 ./d.sh   clean
 ./d.sh
 ./d.sh -verbose -prod -mac -o2 rom cldc imp debugger
@@ -106,6 +108,7 @@ rm -rf tempdoc
 echo MAKEAPI DISABLED FOR NOW!
 #java -jar build.jar -verbose makeapi  squawk.suite.api cldc/preprocessed:imp/preprocessed:debugger/preprocessed tempdoc -verbose -docletpath build.jar
 
+echo Running FindBugs...
 java -jar $hudsondir/findbugs/lib/findbugs.jar -textui -project $hudsondir/bin/findbugs-bootstrap.fbp -exclude $hudsondir/bin/findbugs-filter.xml -output findbugs.xml
 
 mkdir tmp
@@ -117,10 +120,34 @@ rmdir tmp
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
+    <hudson.plugins.findbugs.FindBugsPublisher>
+      <healthy></healthy>
+      <unHealthy></unHealthy>
+      <thresholdLimit>low</thresholdLimit>
+      <pluginName>[FINDBUGS] </pluginName>
+      <defaultEncoding></defaultEncoding>
+      <canRunOnFailed>false</canRunOnFailed>
+      <useDeltaValues>false</useDeltaValues>
+      <thresholds>
+        <unstableTotalAll></unstableTotalAll>
+        <unstableTotalHigh></unstableTotalHigh>
+        <unstableTotalNormal></unstableTotalNormal>
+        <unstableTotalLow></unstableTotalLow>
+        <unstableNewAll></unstableNewAll>
+        <unstableNewHigh></unstableNewHigh>
+        <unstableNewNormal></unstableNewNormal>
+        <unstableNewLow></unstableNewLow>
+        <failedTotalAll></failedTotalAll>
+        <failedTotalHigh></failedTotalHigh>
+        <failedTotalNormal></failedTotalNormal>
+        <failedTotalLow></failedTotalLow>
+        <failedNewAll></failedNewAll>
+        <failedNewHigh></failedNewHigh>
+        <failedNewNormal></failedNewNormal>
+        <failedNewLow></failedNewLow>
+      </thresholds>
+      <pattern></pattern>
+    </hudson.plugins.findbugs.FindBugsPublisher>
     <hudson.tasks.BuildTrigger>
       <childProjects>normal-build-windows, platform-type-matrix, full-debug-build, small-build</childProjects>
       <threshold>
@@ -129,6 +156,10 @@ rmdir tmp
         <color>BLUE</color>
       </threshold>
     </hudson.tasks.BuildTrigger>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.Mailer>
       <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>

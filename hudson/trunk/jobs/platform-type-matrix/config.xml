@@ -67,7 +67,7 @@ Each platform type is built +/- ASSERTIONS_ENABLED, and DEBUG_CODE_ENABLED</desc
     <axis>
       <name>label</name>
       <values>
-        <string>Ubuntu</string>
+        <string>Solaris</string>
         <string>master</string>
       </values>
     </axis>

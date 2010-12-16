@@ -1,12 +1,33 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson.scm.SubversionSCM_-DescriptorImpl>
-  <generation>60</generation>
+  <generation>81</generation>
   <credentials class="hashtable">
     <entry>
       <string>&lt;https://squawk.dev.java.net:443&gt; CollabNet Subversion Repository</string>
       <hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
         <userName>guest</userName>
         <password></password>
+      </hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
+    </entry>
+    <entry>
+      <string>&lt;https://sourceforge.wpi.edu:443&gt; Authorization Realm</string>
+      <hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
+        <userName>derek_white</userName>
+        <password>ZnVuZnVuZnVu</password>
+      </hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
+    </entry>
+    <entry>
+      <string>&lt;http://firstforge.wpi.edu:80&gt; Authorization Realm</string>
+      <hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
+        <userName>derekwhite</userName>
+        <password>R3JlZW4yV2hpdGUh</password>
+      </hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
+    </entry>
+    <entry>
+      <string>&lt;https://squawk-frc.dev.java.net:443&gt; CollabNet Subversion Repository</string>
+      <hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
+        <userName>derek_white</userName>
+        <password>N21hcnl0Z3c=</password>
       </hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential>
     </entry>
   </credentials>

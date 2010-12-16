@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<list>
+  <external>
+    <path>trunk//rollingthunder</path>
+    <url>https://sourceforge.wpi.edu/svn/repos/rollingthunder</url>
+    <revision>-1</revision>
+  </external>
+  <external>
+    <path>trunk//squawk</path>
+    <url>https://squawk.dev.java.net/svn/squawk/branches/squawk-frc2011</url>
+    <revision>-1</revision>
+  </external>
+  <external>
+    <path>trunk//wpilib</path>
+    <url>http://firstforge.wpi.edu/svn/repos/azaleasource/WPILibCProgramming/trunk/WPILib</url>
+    <revision>-1</revision>
+  </external>
+</list>
