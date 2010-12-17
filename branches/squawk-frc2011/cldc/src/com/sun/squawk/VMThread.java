@@ -1667,7 +1667,7 @@ VM.println("creating stack:");
     }
     
     public static long getTotalWaitTime() {
-        return (waitTimeHi32 << 32) | waitTimeLo32;
+        return ((long)waitTimeHi32 << 32) | waitTimeLo32;
     }
     
     /**
