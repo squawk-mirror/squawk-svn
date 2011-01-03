@@ -1,34 +1,32 @@
 /*
  * Copyright 2007-2008 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
+ *
  * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
  * Park, CA 94025 or visit www.sun.com if you need additional
  * information or have any questions.
  */
 
-/**
- * Hello
- */
 package com.sun.cldc.i18n;
 
+import com.sun.cldc.i18n.j2me.ISO8859_1_Reader;
+import com.sun.cldc.i18n.j2me.ISO8859_1_Writer;
 import java.io.*;
-//import com.sun.squawk.util.Assert;
 
 /**
  * This class provides general helper functions for the J2ME environment.
@@ -38,7 +36,7 @@ import java.io.*;
  * @version CLDC 1.1 03/29/02
  */
 public class Helper {
-    
+
     /**
      * Purely static class should not be instantiated.
      */
@@ -49,7 +47,7 @@ public class Helper {
      * - hardcoded here and in System.getProperty().
      */
     public static final String defaultEncoding = "ISO8859_1";
-    
+
     /**
      * If set to true, then ONLY support ISO8859_1 encodings,
      * although aliases (such as "US_ASCII") are allowed.
@@ -75,11 +73,11 @@ public class Helper {
         try {
             return getStreamReader(is, defaultEncoding);
         } catch(UnsupportedEncodingException x) {
-                throw new RuntimeException(
+            throw new RuntimeException(
 /*if[VERBOSE_EXCEPTIONS]*/
                                              "Missing default encoding "+defaultEncoding
 /*end[VERBOSE_EXCEPTIONS]*/
-                );
+                                             );
         }
     }
 
@@ -99,52 +97,63 @@ public class Helper {
         }
 
         /* Get the reader from the encoding */
-        StreamReader fr = (StreamReader)getStreamReaderOrWriter(name, "_Reader");
+        StreamReader fr = (StreamReader)getStreamReaderOrWriter(name, true);
 
         /* Open the connection and return*/
         return fr.open(is, name);
     }
 
-    private static Object getStreamReaderOrWriter(String name, String suffix)
+    private static Object getStreamReaderOrWriter(String name, boolean reader)
         throws UnsupportedEncodingException {
         if (name == null) {
             throw new NullPointerException();
         }
+        if (ISO8859_1_ONLY_SUPPORTED) {
+            if (isISO8859_1(name)) {
+                if (reader) {
+                    return new ISO8859_1_Reader();
+                } else {
+                    return new ISO8859_1_Writer();
+                }
+            } else {
+                throw new UnsupportedEncodingException();
+            }
+        } else {
+            name = internalNameForEncoding(name);
 
-        name = internalNameForEncoding(name);
+            try {
+                String className;
+                String suffix = reader ? "_Reader" : "_Writer";
 
-        try {
-             String className;
+                /* Get the reader class name */
+                className = defaultMEPath + '.' + name + suffix;
 
-             /* Get the reader class name */
-             className = defaultMEPath + '.' + name + suffix;
+                /* Using the decoder names lookup the implementation class */
+                Class clazz = Class.forName(className);
 
-             /* Using the decoder names lookup the implementation class */
-             Class clazz = Class.forName(className);
-
-             /* Return a new instance */
-             return clazz.newInstance();
-        } catch(ClassNotFoundException x) {
-            throw new UnsupportedEncodingException(
+                /* Return a new instance */
+                return clazz.newInstance();
+            } catch (ClassNotFoundException x) {
+                throw new UnsupportedEncodingException(
 /*if[VERBOSE_EXCEPTIONS]*/
-                                         "Encoding "+name+" not found"
+                        "Encoding " + name + " not found"
 /*end[VERBOSE_EXCEPTIONS]*/
-            );
-        } catch(InstantiationException x) {
-            throw new RuntimeException(
+                        );
+            } catch (InstantiationException x) {
+                throw new RuntimeException(
 /*if[VERBOSE_EXCEPTIONS]*/
-                                         "InstantiationException "+x.getMessage()
+                        "InstantiationException " + x.getMessage()
 /*end[VERBOSE_EXCEPTIONS]*/
-            );
-        } catch(IllegalAccessException x) {
-            throw new RuntimeException(
+                        );
+            } catch (IllegalAccessException x) {
+                throw new RuntimeException(
 /*if[VERBOSE_EXCEPTIONS]*/
-                                         "IllegalAccessException "+x.getMessage()
+                        "IllegalAccessException " + x.getMessage()
 /*end[VERBOSE_EXCEPTIONS]*/
-            );
+                        );
+            }
         }
     }
-
 
     /**
      * Get a writer for an OutputStream
@@ -182,7 +191,7 @@ public class Helper {
         }
 
         /* Get the writer from the encoding */
-        StreamWriter sw = (StreamWriter)getStreamReaderOrWriter(name, "_Writer");
+        StreamWriter sw = (StreamWriter)getStreamReaderOrWriter(name, false);
 
         /* Open it on the output stream and return */
         return sw.open(os, name);
@@ -264,7 +273,7 @@ public class Helper {
         /* Note: offset or length might be near -1>>>1 */
         if (offset > buffer.length - length) {
             throw new IndexOutOfBoundsException(
-/*if[VERBOSE_EXCEPTIONS]*/                                           
+/*if[VERBOSE_EXCEPTIONS]*/
                                          Integer.toString(offset + length)
 /*end[VERBOSE_EXCEPTIONS]*/
             );
@@ -283,14 +292,14 @@ public class Helper {
             return byteToCharArray0(buffer, offset, length, enc);
         }
     }
-    
+
     /**
      * handle the non-ISO8859_1 cases.  Must synchronized this.
      */
      private static synchronized char[] byteToCharArray0(byte[] buffer, int offset, int length, String enc) throws UnsupportedEncodingException {
         /* If we don't have a cached reader then make one */
         if(lastReaderEncoding == null || !lastReaderEncoding.equals(enc)) {
-            lastReader = (StreamReader)getStreamReaderOrWriter(enc, "_Reader");
+            lastReader = (StreamReader)getStreamReaderOrWriter(enc, true);
             lastReaderEncoding = enc;
         }
 
@@ -338,7 +347,7 @@ public class Helper {
     private static synchronized byte[] charToByteArray0(char[] buffer, int offset, int length, String enc) throws UnsupportedEncodingException {
         /* If we don't have a cached writer then make one */
         if(lastWriterEncoding == null || !lastWriterEncoding.equals(enc)) {
-            lastWriter = (StreamWriter)getStreamReaderOrWriter(enc, "_Writer");
+            lastWriter = (StreamWriter)getStreamReaderOrWriter(enc, false);
             lastWriterEncoding = enc;
         }
 
@@ -359,7 +368,7 @@ public class Helper {
         } catch(IOException x) {
             throw new RuntimeException(
 /*if[VERBOSE_EXCEPTIONS]*/
-                                         "IOException writing writer " 
+                                         "IOException writing writer "
                                          +x.getMessage()
 /*end[VERBOSE_EXCEPTIONS]*/
             );
@@ -374,7 +383,7 @@ public class Helper {
         /* Return the array */
         return os.toByteArray();
     }
-    
+
     /**
      * Convert a byte array to a char array
      *
@@ -403,10 +412,10 @@ public class Helper {
             return charToByteArray0(buffer, offset, length, enc);
         }
     }
-    
-    /** 
+
+    /**
      * Is encodingName some variation of "ISO8859_1"?
-     * 
+     *
      * @param encodingName
      * @return true if encodingName is some variation of "ISO8859_1".
      */
@@ -417,7 +426,7 @@ public class Helper {
             return false;
         }
     }
-    
+
     /**
      * Get the internal name for an encoding.
      *
