@@ -188,7 +188,7 @@ public final class ChannelConstants {
         INTERNAL_GETTIMEMILLIS_HIGH             = 1012,
         INTERNAL_GETTIMEMICROS_HIGH             = 1013,
         INTERNAL_STOPVM                         = 1014,
-        /*INTERNAL_COPYBYTES                      = 1015,*/
+        INTERNAL_PRINTBYTES                     = 1015,
         INTERNAL_PRINTCONFIGURATION             = 1016,
         INTERNAL_PRINTGLOBALOOPNAME             = 1017,
         INTERNAL_PRINTGLOBALS                   = 1018,
