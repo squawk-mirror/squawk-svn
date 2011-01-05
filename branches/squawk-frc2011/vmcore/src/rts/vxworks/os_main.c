@@ -37,6 +37,9 @@
 #define SQUAWK_VERSION "2011 FRC"
 #endif
 
+// FRC 2011 wants user code running at 101
+#define SQUAWK_TASK_PRIORITY 101
+
 extern void freeBuffers();
 
 void Priv_SetWriteFileAllowed(int);
@@ -121,6 +124,8 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5) {
 
     argc = VXLOADARG("squawk.out", argv, argc);
 
+    squawk_printVersion();
+
     // load cmd line args from file
     cmdFile = fopen(CMD_LINE_FILENAME, "r");
     if (cmdFile != NULL) {
@@ -157,12 +162,12 @@ void robotTask_DEBUG() {
 }
 
 void squawk_printVersion() {
-	printf("\n[Squawk VM] Version: %s, %s, %s\n", SQUAWK_VERSION, __DATE__, __TIME__);
+	fprintf(stdout, "\n[Squawk VM] Version: %s, %s, %s\n", SQUAWK_VERSION, __DATE__, __TIME__);
 	fflush(stdout);
 }
 
 /**
- * Entry point used by FRC.
+ * Entry point used by OTA server.
  */
 int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6, char* arg7, char* arg8, char* arg9, char* arg10) {
     int fd;
@@ -198,12 +203,12 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
     }
     */
 
-    
+    taskDelay(200); // give cRIO libs chance to start up
     // Start robot task
     // This is done to ensure that the C++ robot task is spawned with the floating point
     // context save parameter.
     int m_taskID = taskSpawn("SquawkRobotTask",
-                                            100,
+                                            SQUAWK_TASK_PRIORITY,
                                             VX_FP_TASK,						// options
                                             64000,						// stack size
                                             entryPt,						// function to start
