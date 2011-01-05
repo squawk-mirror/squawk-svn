@@ -44,6 +44,11 @@ extern void freeBuffers();
 
 void Priv_SetWriteFileAllowed(int);
 
+void squawk_printVersion() {
+	fprintf(stdout, "\n[Squawk VM] Version: %s, %s, %s\n", SQUAWK_VERSION, __DATE__, __TIME__);
+	fflush(stdout);
+}
+
 int VXLOADARG(char* arg, char** argv, int argc) {
     if (arg != NULL) {              
         if (argc >= MAXARGS) {       
@@ -159,11 +164,6 @@ void robotTask() {
 
 void robotTask_DEBUG() {
     os_main("com.sun.squawk.debugger.sda.SDA", "com.sun.squawk.imp.MIDletMainWrapper", "MIDlet-1", null, null);
-}
-
-void squawk_printVersion() {
-	fprintf(stdout, "\n[Squawk VM] Version: %s, %s, %s\n", SQUAWK_VERSION, __DATE__, __TIME__);
-	fflush(stdout);
 }
 
 /**
