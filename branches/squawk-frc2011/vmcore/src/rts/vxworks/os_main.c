@@ -218,6 +218,10 @@ int squawk_StartupLibraryInit(char* arg1, char* arg2, char* arg3, char* arg4, ch
     bool ok = HandleError(m_taskID);
     if (!ok) m_taskID = kInvalidTaskID;
 */
+    while(1) {
+        taskDelay(1000);
+        fprintf(stderr, "[squawk_StartupLibraryInit is still here.]\n");
+    }
     return 0;
 }
 
