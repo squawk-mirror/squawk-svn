@@ -174,7 +174,7 @@ public class Romizer {
 /*end[J2ME.STATS]*/
 
     /**
-     * This is a prototype translator used to process and print translator options. It is not the translator used for translattion.
+     * This is a prototype translator used to process and print translator options. It is not the translator used for translation.
      */
     private TranslatorInterface protoTranslator;
     
@@ -331,7 +331,7 @@ public class Romizer {
     }
 
     /**
-     * Commmand line interface.
+     * Command line interface.
      *
      * @param args
      * @throws IOException 
@@ -454,10 +454,15 @@ public class Romizer {
         }
 /*end[J2ME.STATS]*/
 
-        System.out.println("Romizer processed " + suite.getClassCount() + " classes and generated these files:");
-        for (String name : generatedFiles) {
-            System.out.println("  " + name);
-		}
+        System.out.print("Romizer processed " + suite.getClassCount() + " classes and generated " + generatedFiles.size() + " files");
+        if (VM.isVerbose()) {
+            System.out.println(":");
+            for (String name : generatedFiles) {
+                System.out.println("  " + name);
+            }
+        } else {
+            System.out.println(".");
+        }
 
         return args;
     }
@@ -482,6 +487,15 @@ public class Romizer {
 
             if (arg == null || arg.charAt(0) != '-') {
                 break;
+            } else if (arg.startsWith("-D")) {
+                try {
+                    String name = arg.substring("-D".length(), arg.indexOf('='));
+                    String value = arg.substring(arg.indexOf('=') + 1);
+                    putBuildProperty(name, value);
+                } catch (IndexOutOfBoundsException e) {
+                    usage("malformed -D option: " + arg);
+                    throw new RuntimeException();
+                }
             } else if (arg.startsWith("-cp:")) {
                 classPath = ArgsUtilities.toPlatformPath(arg.substring("-cp:".length()), true);
             } else if (arg.startsWith("-java5cp:")) {
@@ -657,7 +671,7 @@ public class Romizer {
     /**
      * Strips classes from a list of class names based on an excludes file.
      *
-     * @param classNames   the list of class names to modifiy
+     * @param classNames   the list of class names to modify
      * @param excludeFile  the name of the excludes file to use
      */
     private void excludeClasses(Vector<String> classNames, String excludeFile) {
@@ -671,7 +685,7 @@ public class Romizer {
         for (String className : classNames) {
             boolean include = true;
             for (String spec : excludes) {
-                if (firstLoop) {
+                if (firstLoop && VM.isVerbose()) {
                     System.out.println("excluding: " + spec);
                 }
                 boolean isPrefix = spec.endsWith("*");
