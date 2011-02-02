@@ -129,8 +129,6 @@ int os_main(char* arg1, char* arg2, char* arg3, char* arg4, char* arg5) {
 
     argc = VXLOADARG("squawk.out", argv, argc);
 
-    squawk_printVersion();
-
     // load cmd line args from file
     cmdFile = fopen(CMD_LINE_FILENAME, "r");
     if (cmdFile != NULL) {
