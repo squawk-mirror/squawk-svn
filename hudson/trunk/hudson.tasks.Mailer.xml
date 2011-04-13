@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson.tasks.Mailer_-DescriptorImpl>
-  <hudsonUrl>http://squawk-sqa2.us.oracle.com:8080/</hudsonUrl>
+  <hudsonUrl>http://squawk-sqa.east.sun.com:8080/</hudsonUrl>
   <smtpAuthUsername>derek.white@oracle.com</smtpAuthUsername>
-  <smtpAuthPassword>f4CuMgYGv9WLSmd9xvIzSdvTKx4iE+Slt7KX7tDUGXQ=</smtpAuthPassword>
+  <smtpAuthPassword>NxzMiKnMkO4bN6oiG2PmftvTKx4iE+Slt7KX7tDUGXQ=</smtpAuthPassword>
   <adminAddress>Squawk Hudson Server &lt;derek.white@sun.com&gt;</adminAddress>
   <smtpHost>stbeehive.oracle.com</smtpHost>
   <useSsl>true</useSsl>

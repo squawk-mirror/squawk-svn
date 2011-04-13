@@ -2,12 +2,12 @@
 <list>
   <external>
     <path>trunk//rollingthunder</path>
-    <url>https://sourceforge.wpi.edu/svn/repos/rollingthunder</url>
+    <url>http://firstforge.wpi.edu/svn/repos/trashcontainer</url>
     <revision>-1</revision>
   </external>
   <external>
     <path>trunk//squawk</path>
-    <url>https://squawk.dev.java.net/svn/squawk/branches/squawk-frc2011</url>
+    <url>https://svn.java.net/svn/squawk~svn/branches/squawk-frc2011</url>
     <revision>-1</revision>
   </external>
   <external>

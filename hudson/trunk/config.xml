@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson>
-  <version>1.372</version>
+  <version>1.395</version>
   <numExecutors>2</numExecutors>
   <mode>NORMAL</mode>
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
   <securityRealm class="hudson.security.SecurityRealm$None"/>
   <systemMessage>&lt;h1&gt;Test/Integration Server for Squawk Project&lt;/h1&gt;&#xd;
-Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@sun.com&lt;p&gt;&#xd;
+Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@oracle.com&lt;p&gt;&#xd;
 &#xd;
 &lt;table cellspacing=&quot;20&quot;&gt;&#xd;
 &lt;tr&gt;&lt;th&gt;Automatic&lt;th&gt;Manual - TCK&lt;th&gt;Manual - Other&#xd;
@@ -47,7 +47,15 @@ currently running &lt;a href=&quot;job/start-tck-cmdline/&quot;&gt;start-tck-cmd
 &lt;ul&gt;&#xd;
 &lt;li&gt;&lt;a href=&quot;job/squawk-build-local/&quot;&gt;squawk-build-local&lt;/a&gt; &#xd;
 &lt;/ul&gt;&#xd;
-&lt;/table&gt;</systemMessage>
+&lt;/table&gt;&#xd;
+&#xd;
+&lt;h3&gt;Nodes&lt;/h3&gt;&#xd;
+&lt;ul&gt;&#xd;
+&lt;li&gt;&quot;Master&quot; - Mac Pro in HW1. squawk-sqa.east.sun.com&#xd;
+&lt;li&gt;&quot;WindowsXP32&quot; - virtual image on mac pro&#xd;
+&lt;li&gt; &quot;Solaris&quot; - dstar10 (x6220 blade)&#xd;
+&lt;li&gt; Also putting windows and linux nodes on dstar11 (x6220 blade), which has extra 300GB disk&#xd;
+&lt;/ul&gt;</systemMessage>
   <jdks/>
   <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
   <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
@@ -55,13 +63,20 @@ currently running &lt;a href=&quot;job/start-tck-cmdline/&quot;&gt;start-tck-cmd
   <slaves>
     <slave>
       <name>Ubuntu</name>
-      <description></description>
-      <remoteFS>/home/squawk-lin/</remoteFS>
+      <description>Ubuntu virtual image running on dstar10.us.oracle.com as squawk-sqa-lin1.us.oracle.com</description>
+      <remoteFS>/home/squawksqamaster/</remoteFS>
       <numExecutors>2</numExecutors>
       <mode>NORMAL</mode>
       <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
-      <launcher class="hudson.slaves.JNLPLauncher"/>
-      <label></label>
+      <launcher class="hudson.plugins.sshslaves.SSHLauncher">
+        <host>squawk-sqa-lin1.us.oracle.com</host>
+        <port>22</port>
+        <username>squawksqamaster</username>
+        <password>Z6peuRdJlUi362u6Eau7rA==</password>
+        <privatekey></privatekey>
+        <jvmOptions></jvmOptions>
+      </launcher>
+      <label>ubuntu</label>
       <nodeProperties/>
     </slave>
     <slave>
@@ -72,7 +87,7 @@ currently running &lt;a href=&quot;job/start-tck-cmdline/&quot;&gt;start-tck-cmd
       <mode>EXCLUSIVE</mode>
       <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
       <launcher class="hudson.slaves.JNLPLauncher"/>
-      <label></label>
+      <label>windowsXP</label>
       <nodeProperties>
         <hudson.slaves.EnvironmentVariablesNodeProperty>
           <envVars serialization="custom">
@@ -90,14 +105,89 @@ currently running &lt;a href=&quot;job/start-tck-cmdline/&quot;&gt;start-tck-cmd
       </nodeProperties>
     </slave>
     <slave>
-      <name>Solaris</name>
-      <description>native Solaris x86 on dtsar10.east.sun.com</description>
+      <name>Solaris-dstar10</name>
+      <description>dstar10.us.oracle.com</description>
       <remoteFS>/scratch/dw29446/hudson</remoteFS>
       <numExecutors>2</numExecutors>
       <mode>NORMAL</mode>
       <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
-      <launcher class="hudson.slaves.JNLPLauncher"/>
+      <launcher class="hudson.plugins.sshslaves.SSHLauncher">
+        <host>dstar10.us.oracle.com</host>
+        <port>22</port>
+        <username>dw29446</username>
+        <password>Z6peuRdJlUi362u6Eau7rA==</password>
+        <privatekey></privatekey>
+        <jvmOptions></jvmOptions>
+      </launcher>
       <label>solaris</label>
+      <nodeProperties>
+        <hudson.slaves.EnvironmentVariablesNodeProperty>
+          <envVars serialization="custom">
+            <unserializable-parents/>
+            <tree-map>
+              <default>
+                <comparator class="hudson.util.CaseInsensitiveComparator" reference="../../../../../../../slave[2]/nodeProperties/hudson.slaves.EnvironmentVariablesNodeProperty/envVars/tree-map/default/comparator"/>
+              </default>
+              <int>2</int>
+              <string>JAVA_HOME</string>
+              <string>/usr/java</string>
+              <string>PATH</string>
+              <string>/usr/bin:/pkg/gnu/bin</string>
+            </tree-map>
+          </envVars>
+        </hudson.slaves.EnvironmentVariablesNodeProperty>
+      </nodeProperties>
+    </slave>
+    <slave>
+      <name>Solaris-dstar11</name>
+      <description>dstar11.us.oracle.com</description>
+      <remoteFS>/scratch/dw29446/hudson</remoteFS>
+      <numExecutors>2</numExecutors>
+      <mode>NORMAL</mode>
+      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+      <launcher class="hudson.plugins.sshslaves.SSHLauncher">
+        <host>dstar11.us.oracle.com</host>
+        <port>22</port>
+        <username>dw29446</username>
+        <password>Z6peuRdJlUi362u6Eau7rA==</password>
+        <privatekey></privatekey>
+        <jvmOptions></jvmOptions>
+      </launcher>
+      <label>solaris</label>
+      <nodeProperties>
+        <hudson.slaves.EnvironmentVariablesNodeProperty>
+          <envVars serialization="custom">
+            <unserializable-parents/>
+            <tree-map>
+              <default>
+                <comparator class="hudson.util.CaseInsensitiveComparator" reference="../../../../../../../slave[2]/nodeProperties/hudson.slaves.EnvironmentVariablesNodeProperty/envVars/tree-map/default/comparator"/>
+              </default>
+              <int>2</int>
+              <string>JAVA_HOME</string>
+              <string>/usr/java</string>
+              <string>PATH</string>
+              <string>/usr/bin:/pkg/gnu/bin</string>
+            </tree-map>
+          </envVars>
+        </hudson.slaves.EnvironmentVariablesNodeProperty>
+      </nodeProperties>
+    </slave>
+    <slave>
+      <name>Ubuntu-dstar11</name>
+      <description>Ubuntu virtual image squawk-sqa-lin2.us.oracle.com running on dstar11.us.oracle.com </description>
+      <remoteFS>/home/squawksqamaster/</remoteFS>
+      <numExecutors>2</numExecutors>
+      <mode>NORMAL</mode>
+      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+      <launcher class="hudson.plugins.sshslaves.SSHLauncher">
+        <host>squawk-sqa-lin2.us.oracle.com</host>
+        <port>22</port>
+        <username>squawksqamaster</username>
+        <password>Z6peuRdJlUi362u6Eau7rA==</password>
+        <privatekey></privatekey>
+        <jvmOptions></jvmOptions>
+      </launcher>
+      <label>ubuntu</label>
       <nodeProperties/>
     </slave>
   </slaves>
@@ -172,7 +262,7 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
   </views>
   <primaryView>All</primaryView>
   <slaveAgentPort>0</slaveAgentPort>
-  <label></label>
+  <label>mac</label>
   <nodeProperties/>
   <globalNodeProperties/>
   <disabledAdministrativeMonitors>

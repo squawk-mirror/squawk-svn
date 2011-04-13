@@ -9,17 +9,15 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://squawk-frc.dev.java.net/svn/squawk-frc/trunk</remote>
+        <remote>https://svn.java.net/svn/squawk-frc~svn/trunk</remote>
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>true</useUpdate>
+    <useUpdate>false</useUpdate>
     <doRevert>false</doRevert>
     <browser class="hudson.scm.browsers.FishEyeSVN">
       <url>https://fisheye4.atlassian.com/browse/squawk/</url>
@@ -34,6 +32,7 @@
   <assignedNode>WindowsXP32</assignedNode>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
     <hudson.triggers.SCMTrigger>
@@ -44,7 +43,7 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>#!bash</command>
+      <command>#!bash  -ex</command>
     </hudson.tasks.Shell>
     <hudson.tasks.BatchFile>
       <command>cd %WORKSPACE%\trunk\sdkbuilder
@@ -59,14 +58,14 @@ exit %finalval%
     </hudson.tasks.BatchFile>
   </builders>
   <publishers>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/FRCNetbeansDist.zip, trunk/sunspotfrcsdk.zip, trunk/nbdistrib/*</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.JavadocArchiver>
       <javadocDir>trunk/sdk/doc/javadoc</javadocDir>
       <keepAll>true</keepAll>
     </hudson.tasks.JavadocArchiver>
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>trunk/FRCNetbeansDist.zip, trunk/sunspotfrcsdk.zip</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
   </publishers>
   <buildWrappers/>
 </project>

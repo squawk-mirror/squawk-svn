@@ -9,13 +9,11 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <remote>https://svn.java.net/svn/squawk~svn/trunk</remote>
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
@@ -34,6 +32,7 @@
   <assignedNode>WindowsXP32</assignedNode>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
@@ -88,10 +87,6 @@ rmdir tmp
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.tasks.ArtifactArchiver>
-      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
-      <latestOnly>false</latestOnly>
-    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.BuildTrigger>
       <childProjects>full-debug-build-windows, small-build-windows</childProjects>
       <threshold>
@@ -100,6 +95,10 @@ rmdir tmp
         <color>BLUE</color>
       </threshold>
     </hudson.tasks.BuildTrigger>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/squawk,trunk/squawk.suite,trunk/squawk.suite.metadata,trunk/sizereport.txt,trunk/squawk.suite.map</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.Mailer>
       <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>

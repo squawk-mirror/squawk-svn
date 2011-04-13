@@ -16,17 +16,15 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <remote>https://svn.java.net/svn/squawk~svn/trunk</remote>
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>true</useUpdate>
+    <useUpdate>false</useUpdate>
     <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -36,65 +34,67 @@
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <axes>
-    <axis>
+    <hudson.matrix.TextAxis>
       <name>ASSERTIONS_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.TextAxis>
       <name>DEBUG_CODE_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.TextAxis>
       <name>ENABLE_DYNAMIC_CLASSLOADING</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.TextAxis>
       <name>FLOATS</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.TextAxis>
       <name>TRACING_ENABLED</name>
       <values>
         <string>true</string>
         <string>false</string>
       </values>
-    </axis>
-    <axis>
+    </hudson.matrix.TextAxis>
+    <hudson.matrix.LabelAxis>
       <name>label</name>
       <values>
-        <string>Solaris</string>
-        <string>master</string>
+        <string>mac</string>
+        <string>solaris</string>
+        <string>ubuntu</string>
       </values>
-    </axis>
+    </hudson.matrix.LabelAxis>
   </axes>
   <builders>
     <hudson.tasks.Shell>
-      <command>#!bash
+      <command>#!bash  -ex
 LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+
 cd trunk
 
-dos2unix.exe d.sh
 ./d.sh clean 
-./d.sh copyphoneme
 ./d.sh -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING
 
-./d.sh -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom -metadata cldc imp debugger
+./d.sh -DTRACING_ENABLED=$TRACING_ENABLED -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -DENABLE_DYNAMIC_CLASSLOADING=$ENABLE_DYNAMIC_CLASSLOADING  -prod -mac -o2 rom cldc imp debugger
+
 tests/bin/runsmoketest.sh DELEGATING
 
 ./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite

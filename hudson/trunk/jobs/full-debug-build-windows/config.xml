@@ -9,17 +9,15 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.plugins.javanet.StatsProperty/>
-  </properties>
+  <properties/>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://squawk.dev.java.net/svn/squawk/trunk</remote>
+        <remote>https://svn.java.net/svn/squawk~svn/trunk</remote>
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>true</useUpdate>
+    <useUpdate>false</useUpdate>
     <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -30,20 +28,24 @@
   <assignedNode>WindowsXP32</assignedNode>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>#!bash
-LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+      <command>#!bash  -ex
+
 cd trunk
+
+set JVMDLL=C:\Progra~1\Java\jdk1.6.0_24\jre\bin\client\jvm.dll
 
 java -jar build.jar clean
 java -jar build.jar -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
 java -Xmx256M -jar build.jar  -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true -DENABLE_DYNAMIC_CLASSLOADING=true  -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt cldc imp debugger
 
-java -jar build.jar map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+java -jar build.jar -verbose map -verbose -verbose -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
+
 java -jar build.jar genspec
 java -jar build.jar jvmenv
 java -jar build.jar systemproperties
@@ -54,11 +56,12 @@ java -jar build.jar Verifier
 ./squawk -h
 ./squawk -version
 
-unix2dos.exe tests/bin/runsmoketest.sh
-unix2dos.exe tests/bin/rundsmoketest.sh
+dos2unix.exe tests/bin/runsmoketest.sh
+dos2unix.exe tests/bin/rundsmoketest.sh
 
 tests/bin/runsmoketest.sh DELEGATING
 tests/bin/rundsmoketest.sh DELEGATING
+
 
 ls -l &gt; sizereport.txt
 
