@@ -401,7 +401,7 @@ public class MakeAPI extends Command {
 //        extraArgs.add("-target");
 //        extraArgs.add("1.4");
 
-        env.javac(classpath, classpath, baseDir, new File[] {srcDir}, true, extraArgs, false, true);
+        env.javac(classpath, classpath, baseDir, new File[] {srcDir}, false, extraArgs, false, true);
 
         File classesJar = new File(baseDir, "classes.jar");
         File apiJar = new File(baseDir, suite.name + "_rt.jar");
