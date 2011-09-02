@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson>
   <version>1.395</version>
-  <numExecutors>2</numExecutors>
+  <numExecutors>3</numExecutors>
   <mode>NORMAL</mode>
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
   <securityRealm class="hudson.security.SecurityRealm$None"/>
   <systemMessage>&lt;h1&gt;Test/Integration Server for Squawk Project&lt;/h1&gt;&#xd;
-Squawk &lt;a href=&quot;http://squawk-sqa:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@oracle.com&lt;p&gt;&#xd;
+Squawk &lt;a href=&quot;http://squawk-sqa2.us.oracle.com:8080/job/normal-build/java.net-stats/&quot;&gt;Issue Tracker Stats&lt;/a&gt;. derek.white@oracle.com&lt;p&gt;&#xd;
 &#xd;
 &lt;table cellspacing=&quot;20&quot;&gt;&#xd;
 &lt;tr&gt;&lt;th&gt;Automatic&lt;th&gt;Manual - TCK&lt;th&gt;Manual - Other&#xd;
@@ -49,13 +49,39 @@ currently running &lt;a href=&quot;job/start-tck-cmdline/&quot;&gt;start-tck-cmd
 &lt;/ul&gt;&#xd;
 &lt;/table&gt;&#xd;
 &#xd;
-&lt;h3&gt;Nodes&lt;/h3&gt;&#xd;
+&lt;table&gt;&#xd;
+&lt;tr&gt;&lt;th&gt;Nodes&lt;th&gt;Starting Virtual Nodes&#xd;
+&lt;tr&gt;&lt;td&gt;&#xd;
 &lt;ul&gt;&#xd;
-&lt;li&gt;&quot;Master&quot; - Mac Pro in HW1. squawk-sqa.east.sun.com&#xd;
+&lt;li&gt;&quot;Master&quot; - Mac Pro in HW1. squawk-sqa2.us.oracle.com&#xd;
 &lt;li&gt;&quot;WindowsXP32&quot; - virtual image on mac pro&#xd;
-&lt;li&gt; &quot;Solaris&quot; - dstar10 (x6220 blade)&#xd;
-&lt;li&gt; Also putting windows and linux nodes on dstar11 (x6220 blade), which has extra 300GB disk&#xd;
-&lt;/ul&gt;</systemMessage>
+&lt;li&gt; &quot;Solaris-dstar10&quot; - x6220 blade&#xd;
+&lt;li&gt; &quot;Solaris-dstar11&quot; - x6220 blade&#xd;
+&lt;li&gt; &quot;Ubuntu&quot; - virtual image on dstar10&#xd;
+&lt;li&gt; &quot;Ubuntu-dstar11&quot; - virtual image on dstar11&#xd;
+&lt;li&gt; Also putting windows on dstar11, which has extra 300GB disk&#xd;
+&lt;/ul&gt;&#xd;
+&lt;td&gt;&#xd;
+&lt;ul&gt;&#xd;
+&lt;li&gt;Ubuntu&#xd;
+&lt;ol&gt;&#xd;
+&lt;li&gt; Log into native solaris box. &#xd;
+&lt;li&gt; cd /scratch/dw29446/hudson&#xd;
+&lt;li&gt; Run start-ubuntu-vb.sh&#xd;
+&lt;li&gt; After a brief wait, go to Hudson &quot;Node&quot; page for this Ubuntu node, and click on &quot;Launch Slave Agent&quot;&#xd;
+&lt;/ol&gt;&#xd;
+&lt;li&gt; Windows&#xd;
+&lt;ol&gt;&#xd;
+&lt;li&gt; Log into Mac (for now use Ricky)&#xd;
+&lt;ul&gt;&#xd;
+&lt;li&gt; Either log on locally On Mac or use &quot;Remote Desktop&quot;&#xd;
+&lt;/ul&gt;&#xd;
+&lt;li&gt; Launch VirtualBox&#xd;
+&lt;li&gt; Start Windows image, log in to Windows&#xd;
+&lt;li&gt; Run start-slave.bat scripts on desktop&#xd;
+&lt;/ol&gt;&#xd;
+&lt;/small&gt;&lt;/td&gt;&#xd;
+&lt;/table&gt;</systemMessage>
   <jdks/>
   <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
   <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>

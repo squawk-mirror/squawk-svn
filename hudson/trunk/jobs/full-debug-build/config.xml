@@ -17,7 +17,7 @@
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>false</useUpdate>
+    <useUpdate>true</useUpdate>
     <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -66,7 +66,7 @@ cd trunk
 tests/bin/runsmoketest.sh DELEGATING
 tests/bin/rundsmoketest.sh DELEGATING
 
-ls -l &gt; sizereport.txt
+ls -s &gt; sizereport.txt
 
 mkdir tmp
 cp squawk squawk.suite squawk.suite.metadata tmp
@@ -82,7 +82,7 @@ rmdir tmp
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.BuildTrigger>
-      <childProjects>build-matrix</childProjects>
+      <childProjects>build-matrix, full-debug-build-buggy</childProjects>
       <threshold>
         <name>SUCCESS</name>
         <ordinal>0</ordinal>
@@ -90,7 +90,7 @@ rmdir tmp
       </threshold>
     </hudson.tasks.BuildTrigger>
     <hudson.tasks.Mailer>
-      <recipients>squawk-regression@sun.com</recipients>
+      <recipients>derek.white@oracle.com</recipients>
       <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>

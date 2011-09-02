@@ -1,14 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <matrix-project>
   <actions/>
-  <description>Build squawk in several configurations, with FLASH_MEMORY=TRUE and ENABLE_DYNAMIC_CLASSLOADING=FALSE:&#xd;
-&lt;ul&gt;&#xd;
-&lt;li&gt;ASSERTIONS_ENABLED&#xd;
-&lt;li&gt;DEBUG_CODE_ENABLED&#xd;
-&lt;li&gt;FLOATS&#xd;
-&lt;/ul&gt;&#xd;
-&#xd;
-&lt;b&gt;Can&apos;t actually run FLASH_MEMORY builds&lt;/b&gt; on desktop, due to different channel operations, etc.</description>
+  <description>Build squawk normally on Solaris and Linux, and do moderate testing.</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>2</numToKeep>
@@ -16,7 +9,9 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.descriptionsetter.JobByDescription/>
+  </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
@@ -24,13 +19,12 @@
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>true</useUpdate>
-    <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
     <excludedUsers></excludedUsers>
     <excludedRevprop></excludedRevprop>
     <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
   </scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
@@ -39,31 +33,9 @@
   <triggers class="vector"/>
   <concurrentBuild>false</concurrentBuild>
   <axes>
-    <hudson.matrix.TextAxis>
-      <name>ASSERTIONS_ENABLED</name>
-      <values>
-        <string>true</string>
-        <string>false</string>
-      </values>
-    </hudson.matrix.TextAxis>
-    <hudson.matrix.TextAxis>
-      <name>DEBUG_CODE_ENABLED</name>
-      <values>
-        <string>true</string>
-        <string>false</string>
-      </values>
-    </hudson.matrix.TextAxis>
-    <hudson.matrix.TextAxis>
-      <name>FLOATS</name>
-      <values>
-        <string>true</string>
-        <string>false</string>
-      </values>
-    </hudson.matrix.TextAxis>
     <hudson.matrix.LabelAxis>
       <name>label</name>
       <values>
-        <string>mac</string>
         <string>solaris</string>
         <string>ubuntu</string>
       </values>
@@ -71,13 +43,19 @@
   </axes>
   <builders>
     <hudson.tasks.Shell>
-      <command>#!/bin/bash -ex
+      <command>#!bash  -ex
 LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 
 cd trunk
+
 ./d.sh clean 
-./d.sh -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS
-./d.sh -DFLASH_MEMORY=true -DENABLE_DYNAMIC_CLASSLOADING=false -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -DFLOATS=$FLOATS -prod -mac -o2 rom cldc imp debugger
+./d.sh 
+./d.sh  -prod -mac -o2 rom -strip:d -lnt cldc imp debugger
+
+tests/bin/runsmoketest.sh DELEGATING
+
+tests/bin/runiotests.sh
+
 ls -l &gt; sizereport.txt
 ./d.sh clean </command>
     </hudson.tasks.Shell>
@@ -88,7 +66,7 @@ ls -l &gt; sizereport.txt
       <latestOnly>false</latestOnly>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.Mailer>
-      <recipients>derek.white@oracle.com</recipients>
+      <recipients>squawk-regression@sun.com</recipients>
       <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>

@@ -24,7 +24,7 @@
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>false</useUpdate>
+    <useUpdate>true</useUpdate>
     <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -47,13 +47,22 @@ cd trunk
 dos2unix.exe d.sh
 ./d.sh clean
 ./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
-./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -strip:a cldc
+./d.sh -verbose -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -verbose -strip:a cldc
 ./squawk -h
 ./squawk -version
 
 ls -l &gt; sizereport.txt
-dos2unix.exe tests/bin/runsmoketest.sh
-tests/bin/runsmoketest.sh DELEGATING</command>
+set +e
+./squawk com.sun.squawk.Test
+STAT=$?
+set -e
+# status got trunctated from 12345 to 57
+if [ $STAT -eq 57 ]; then
+	echo good $STAT
+else
+	echo bad $STAT
+	exit $STAT
+fi</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>

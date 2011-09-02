@@ -17,7 +17,7 @@
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>false</useUpdate>
+    <useUpdate>true</useUpdate>
     <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -44,8 +44,6 @@ java -jar build.jar clean
 java -jar build.jar -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true  -DENABLE_DYNAMIC_CLASSLOADING=true -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true
 java -Xmx256M -jar build.jar  -DTRACING_ENABLED=true -DASSERTIONS_ENABLED=true -DDEBUG_CODE_ENABLED=true -DENABLE_DYNAMIC_CLASSLOADING=true  -DNATIVE_GC_ONLY=false -DJ2ME.STATS=true  -DTYPEMAP=true -DFULL_SLOT_CLEARING_ANALYSIS=true -DCHECK_SLOT_CLEARING=true -DTRUST_SLOT_CLEARING=false -DSUITE_VERIFIER=true -assume -tracing -typemap rom -strip:d -lnt cldc imp debugger
 
-java -jar build.jar -verbose map -verbose -verbose -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
-
 java -jar build.jar genspec
 java -jar build.jar jvmenv
 java -jar build.jar systemproperties
@@ -62,6 +60,8 @@ dos2unix.exe tests/bin/rundsmoketest.sh
 tests/bin/runsmoketest.sh DELEGATING
 tests/bin/rundsmoketest.sh DELEGATING
 
+
+java -jar build.jar -verbose map -verbose -verbose -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
 
 ls -l &gt; sizereport.txt
 

@@ -26,7 +26,7 @@ Each platform type is built +/- ASSERTIONS_ENABLED, and DEBUG_CODE_ENABLED</desc
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>false</useUpdate>
+    <useUpdate>true</useUpdate>
     <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -74,12 +74,14 @@ Each platform type is built +/- ASSERTIONS_ENABLED, and DEBUG_CODE_ENABLED</desc
   </axes>
   <builders>
     <hudson.tasks.Shell>
-      <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+      <command>#!/bin/bash  -ex
+
+LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
 cd trunk
 ./d.sh clean 
 
 ./d.sh -DPLATFORM_TYPE=$PLATFORM_TYPE -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED
-./d.sh -DPLATFORM_TYPE=$PLATFORM_TYPE -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -prod -mac -o2 rom cldc imp debugger
+./d.sh -DPLATFORM_TYPE=$PLATFORM_TYPE -DASSERTIONS_ENABLED=$ASSERTIONS_ENABLED -DDEBUG_CODE_ENABLED=$DEBUG_CODE_ENABLED -prod -mac -o2 rom -traceDCE cldc imp debugger
 
 tests/bin/runsmoketest.sh $PLATFORM_TYPE 
 ./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite

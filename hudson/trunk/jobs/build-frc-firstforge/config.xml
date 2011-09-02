@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
   <actions/>
-  <description>Build SDK for FIRST Robotics Competition. This uses the old java.net project.</description>
+  <description>Build SDK for FIRST Robotics Competition from firstforge.wpi.edu. This does full squawk AND WPILib build.</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
     <numToKeep>4</numToKeep>
@@ -9,29 +9,29 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties/>
+  <properties>
+    <hudson.plugins.descriptionsetter.JobByDescription/>
+  </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>https://svn.java.net/svn/squawk-frc~svn/trunk</remote>
-        <local>trunk</local>
+        <remote>http://firstforge.wpi.edu/svn/repos/azaleasource/WPILibJavaProgramming/trunk</remote>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://svn.java.net/svn/squawk~svn/branches/squawk-frc2011</remote>
+        <local>trunk/squawk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>true</useUpdate>
-    <doRevert>false</doRevert>
-    <browser class="hudson.scm.browsers.FishEyeSVN">
-      <url>https://fisheye4.atlassian.com/browse/squawk/</url>
-      <rootModule>trunk/squawk</rootModule>
-    </browser>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
     <excludedUsers></excludedUsers>
     <excludedRevprop></excludedRevprop>
     <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
   </scm>
   <assignedNode>WindowsXP32</assignedNode>
   <canRoam>false</canRoam>
-  <disabled>true</disabled>
+  <disabled>false</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">

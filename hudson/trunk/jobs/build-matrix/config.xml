@@ -24,7 +24,7 @@
         <local>trunk</local>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
-    <useUpdate>false</useUpdate>
+    <useUpdate>true</useUpdate>
     <doRevert>false</doRevert>
     <excludedRegions></excludedRegions>
     <includedRegions></includedRegions>
@@ -99,7 +99,6 @@ tests/bin/runsmoketest.sh DELEGATING
 
 ./d.sh map -cp:cldc/j2meclasses:imp/j2meclasses:debugger/j2meclasses squawk.suite
 rm squawk.suite.map
-
 ls -l &gt; sizereport.txt
 ./d.sh clean </command>
     </hudson.tasks.Shell>

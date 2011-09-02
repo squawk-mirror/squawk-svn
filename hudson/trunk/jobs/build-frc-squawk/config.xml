@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Build Squawk VM (only) for National Instruments cRIO/vxWorks.</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>4</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.descriptionsetter.JobByDescription/>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>http://firstforge.wpi.edu/svn/repos/azaleasource/WPILibJavaProgramming/trunk/sdkbuilder</remote>
+        <local>trunk/sdkbuilder</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>http://firstforge.wpi.edu/svn/repos/azaleasource/WPILibJavaProgramming/trunk/OTAServer</remote>
+        <local>trunk/OTAServer</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://svn.java.net/svn/squawk~svn/branches/squawk-frc2011</remote>
+        <local>trunk/squawk</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+  </scm>
+  <assignedNode>WindowsXP32</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>25 * * * *
+</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!bash  -ex</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.BatchFile>
+      <command>cd %WORKSPACE%\trunk\sdkbuilder
+
+
+c:\windriver\wrenv.exe -p vxworks-6.3 buildvm.bat
+set finalval=%ERRORLEVEL%
+
+cd ..\..
+
+rd /s /q &quot;trunk\buildartifacts&quot;
+
+md trunk\buildartifacts
+md trunk\buildartifacts\romizer
+md trunk\buildartifacts\translator
+md trunk\buildartifacts\debugger
+md trunk\buildartifacts\debugger\preprocessed
+md trunk\buildartifacts\cldc
+md trunk\buildartifacts\cldc\preprocessed
+md trunk\buildartifacts\cldc-native-declarations
+md trunk\buildartifacts\imp
+md trunk\buildartifacts\imp\preprocessed
+md trunk\buildartifacts\debugger-proxy
+md trunk\buildartifacts\hosted-support
+
+copy trunk\squawk\build.properties trunk\buildartifacts
+copy trunk\squawk\build.jar trunk\buildartifacts
+copy trunk\squawk\build-commands.jar trunk\buildartifacts
+copy trunk\squawk\squawk.out trunk\buildartifacts
+copy trunk\squawk\squawk.suite trunk\buildartifacts
+copy trunk\squawk\squawk.suite.api trunk\buildartifacts
+copy trunk\squawk\squawk.suite.metadata trunk\buildartifacts
+copy trunk\squawk\romizer\classes.jar trunk\buildartifacts\romizer\classes.jar
+copy trunk\squawk\squawk.jar trunk\buildartifacts\squawk.jar
+copy trunk\squawk\squawk_classes.jar trunk\buildartifacts\squawk_classes.jar
+copy trunk\squawk\cldc\classes.jar trunk\buildartifacts\cldc\classes.jar
+xcopy /E trunk\squawk\cldc\preprocessed trunk\buildartifacts\cldc\preprocessed
+copy trunk\squawk\cldc-native-declarations\classes.jar trunk\buildartifacts\cldc-native-declarations\classes.jar
+copy trunk\squawk\imp\classes.jar trunk\buildartifacts\imp\classes.jar
+xcopy /E trunk\squawk\imp\preprocessed trunk\buildartifacts\imp\preprocessed
+copy trunk\squawk\translator\classes.jar trunk\buildartifacts\translator\classes.jar
+copy trunk\squawk\debugger\classes.jar trunk\buildartifacts\debugger\classes.jar
+xcopy /E trunk\squawk\debugger\preprocessed trunk\buildartifacts\debugger\preprocessed
+copy trunk\squawk\debugger-proxy\classes.jar trunk\buildartifacts\debugger-proxy\classes.jar
+copy trunk\squawk\hosted-support\classes.jar trunk\buildartifacts\hosted-support\classes.jar
+
+cd trunk\buildartifacts
+ant -file ..\sdkbuilder\zipsquawkfiles.xml -Dzipname=squawkbuild -Dhere=..\buildartifacts
+
+echo final error level = %finalval%
+exit %finalval%
+</command>
+    </hudson.tasks.BatchFile>
+  </builders>
+  <publishers>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/buildartifacts/squawkbuild.zip</artifacts>
+      <latestOnly>false</latestOnly>
+    </hudson.tasks.ArtifactArchiver>
+  </publishers>
+  <buildWrappers/>
+</project>

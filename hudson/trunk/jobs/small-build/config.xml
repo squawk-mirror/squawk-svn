@@ -9,11 +9,14 @@
 &lt;li&gt;debugging&#xd;
 &lt;li&gt;C version of GC&#xd;
 &lt;li&gt;Generational GC&#xd;
+&lt;li&gt;Runtime metadata support&#xd;
+&lt;li&gt;Interisolate communication&#xd;
+&lt;li&gt;Dynamic classloading&#xd;
 &lt;/ul&gt;&#xd;
 &lt;p&gt;</description>
   <logRotator>
     <daysToKeep>-1</daysToKeep>
-    <numToKeep>10</numToKeep>
+    <numToKeep>20</numToKeep>
     <artifactDaysToKeep>-1</artifactDaysToKeep>
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
@@ -43,16 +46,32 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>LD_LIBRARY_PATH=/usr/jdk/instances/jdk1.6.0/jre/lib/i386/client:/usr/jdk/instances/jdk1.6.0/jre/lib/i386:$LD_LIBRARY_PATH
+      <command>#!bash  -ex
+
 cd trunk
+
 ./d.sh clean
-./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector
-./d.sh -DFLOATS=false -DCLDC1.1=false -DFLASH_MEMORY=false -DENABLE_DYNAMIC_CLASSLOADING=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DVM2C=false -DGC=com.sun.squawk.Lisp2Collector -prod -mac -o2 rom -strip:a cldc
+
+./d.sh -DFLOATS=false -DCLDC1.1=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DGC2C=false -DGC=com.sun.squawk.Lisp2Collector -DENABLE_RUNTIME_METADATA=false -DNEW_IIC_MESSAGES=false -DGMT_ONLY=true -DENABLE_SDA_DEBUGGER=false -DENABLE_SUITE_LOADING=false
+
+./d.sh -DFLOATS=false -DCLDC1.1=false -DNATIVE_VERIFICATION=false -DNATIVE_GC_ONLY=false -DGC2C=false -DGC=com.sun.squawk.Lisp2Collector -DENABLE_RUNTIME_METADATA=false -DNEW_IIC_MESSAGES=false -DGMT_ONLY=true -DENABLE_SDA_DEBUGGER=false -DENABLE_SUITE_LOADING=false -prod -mac -o2 rom -strip:a cldc
+
 ./squawk -h
 ./squawk -version
 
 ls -l &gt; sizereport.txt
-tests/bin/runsmoketest.sh DELEGATING</command>
+
+set +e
+./squawk com.sun.squawk.Test
+STAT=$?
+set -e
+# status got trunctated from 12345 to 57
+if [ $STAT -eq 57 ]; then
+	echo good $STAT
+else
+	echo bad $STAT
+	exit $STAT
+fi</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
