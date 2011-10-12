@@ -82,6 +82,7 @@ currently running &lt;a href=&quot;job/start-tck-cmdline/&quot;&gt;start-tck-cmd
 &lt;/ol&gt;&#xd;
 &lt;/small&gt;&lt;/td&gt;&#xd;
 &lt;/table&gt;</systemMessage>
+  <configuredWorkspaceRoot></configuredWorkspaceRoot>
   <jdks/>
   <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
   <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
@@ -271,8 +272,8 @@ currently running &lt;a href=&quot;http://squawk-sqa:8080/job/start-tck-cmdline/
         <string>full-debug-build-windows</string>
         <string>normal-build</string>
         <string>small-build</string>
-        <string>start-jam-from-svn</string>
-        <string>start-tck-cmdline</string>
+        <string>tck-jam-start</string>
+        <string>tck-server-start</string>
       </jobNames>
       <jobFilters/>
       <columns>

@@ -49,6 +49,7 @@
 cd trunk 
 
 rm -f sdkbuilder/squawkbuild.zip
+rm -rf squawk
 
 cp ${WORKSPACE}/../../build-frc-squawk/lastSuccessful/archive/trunk/buildartifacts/squawkbuild.zip sdkbuilder
 

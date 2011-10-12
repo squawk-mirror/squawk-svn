@@ -1,0 +1,126 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Build mbed sdk from ant script</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>20</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <creationTime>0</creationTime>
+  <properties>
+    <hudson.plugins.descriptionsetter.JobByDescription/>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://svn.java.net/svn/squawk~svn/trunk</remote>
+        <local>trunk</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://svn.java.net/svn/squawk-addons~source-code-repository/trunk</remote>
+        <local>trunk/squawk-addons</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <browser class="hudson.scm.browsers.FishEyeSVN">
+      <url>http://fisheye4.atlassian.com/browse/squawk/</url>
+      <rootModule></rootModule>
+    </browser>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+  </scm>
+  <assignedNode>master</assignedNode>
+  <advancedAffinityChooser>false</advancedAffinityChooser>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>35 * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <cleanWorkspaceRequired>false</cleanWorkspaceRequired>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash  -ex
+
+cd trunk
+
+pwd
+
+export PATH=$PATH:.
+
+tests/bin/verifyBuildJars2
+echo DONE verifyBuildJars2
+
+./d.sh builder
+
+#--------------------------------
+echo REPLACING sdkbuild.properties with hudson version
+export ARM_HOME=/Applications/CodeSourcery/arm-cs-tools-bin
+export PATH=$PATH:$ARM_HOME/bin
+
+#make sure path is correct:
+which arm-none-eabi-ar
+
+echo &apos;# FROM HUDSON CONFIG: Where the GNU C tool chain is installed&apos; &gt; squawk-addons/builder/sdkbuild.properties
+echo &quot;toolchainDir=$ARM_HOME&quot; &gt;&gt; squawk-addons/builder/sdkbuild.properties
+echo &apos;toolchainIncludeDir=${toolchainDir}/arm-none-eabi/include&apos; &gt;&gt; squawk-addons/builder/sdkbuild.properties
+echo &apos;toolchainLibDir=${toolchainDir}/arm-none-eabi/lib&apos; &gt;&gt; squawk-addons/builder/sdkbuild.properties
+echo &apos;toolchainGCCLibDir=${toolchainDir}/lib/gcc/arm-none-eabi/4.5.1/thumb2&apos; &gt;&gt; squawk-addons/builder/sdkbuild.properties
+echo &apos;toolchainBinDir=${toolchainDir}/bin&apos; &gt;&gt; squawk-addons/builder/sdkbuild.properties
+echo &apos;toolchainAssemblerFloatFlag=-mfloat-abi=soft&apos; &gt;&gt; squawk-addons/builder/sdkbuild.properties
+#--------------------------------
+
+test_app=squawk-addons/tests/TestLed
+squawkhome=`pwd`
+
+ant -Dsquawk.home=$squawkhome -f squawk-addons/sdkbuilder/build.xml clean
+
+ant -Dsquawk.home=$squawkhome -f squawk-addons/sdkbuilder/build.xml compile-mbed-sdk assemble-mbed-sdk
+
+# now get stats and save files...
+ls -l squawk-addons/sdkbuilder/sunspotmbedsdk/arm/vm-spot.bin &gt; sizereport.txt
+ls -l squawk-addons/sdkbuilder/sunspotmbedsdk/arm/vmloader.bin &gt;&gt; sizereport.txt
+
+ant -Dsquawk.home=$squawkhome -Drelease=true -f squawk-addons/sdkbuilder/build.xml package-mbed-sdk
+
+ls -l squawk-addons/sdkbuilder/sunspotmbedsdk.zip &gt;&gt; sizereport.txt
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>trunk/sizereport.txt, trunk/squawk-addons/sdkbuilder/sunspotmbedsdk.zip</artifacts>
+      <compressionType>GZIP</compressionType>
+      <latestOnly>false</latestOnly>
+      <autoValidateFileMask>false</autoValidateFileMask>
+    </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.Mailer>
+      <recipients>squawk-regression@sun.com</recipients>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>run-mbed-sdk</childProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
+  </publishers>
+  <buildWrappers/>
+</project>

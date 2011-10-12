@@ -9,6 +9,7 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
+  <creationTime>0</creationTime>
   <properties>
     <hudson.plugins.descriptionsetter.JobByDescription/>
   </properties>
@@ -16,10 +17,12 @@
     <locations>
       <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>http://firstforge.wpi.edu/svn/repos/azaleasource/WPILibJavaProgramming/trunk</remote>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
       <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>https://svn.java.net/svn/squawk~svn/branches/squawk-frc2011</remote>
         <local>trunk/squawk</local>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <excludedRegions></excludedRegions>
@@ -31,7 +34,7 @@
   </scm>
   <assignedNode>WindowsXP32</assignedNode>
   <canRoam>false</canRoam>
-  <disabled>false</disabled>
+  <disabled>true</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
@@ -41,6 +44,7 @@
     </hudson.triggers.SCMTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
+  <cleanWorkspaceRequired>false</cleanWorkspaceRequired>
   <builders>
     <hudson.tasks.Shell>
       <command>#!bash  -ex</command>
@@ -61,6 +65,7 @@ exit %finalval%
     <hudson.tasks.ArtifactArchiver>
       <artifacts>trunk/FRCNetbeansDist.zip, trunk/sunspotfrcsdk.zip, trunk/nbdistrib/*</artifacts>
       <latestOnly>false</latestOnly>
+      <autoValidateFileMask>false</autoValidateFileMask>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.JavadocArchiver>
       <javadocDir>trunk/sdk/doc/javadoc</javadocDir>

@@ -9,6 +9,7 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
+  <creationTime>0</creationTime>
   <properties>
     <hudson.plugins.descriptionsetter.JobByDescription/>
   </properties>
@@ -17,14 +18,20 @@
       <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>http://firstforge.wpi.edu/svn/repos/azaleasource/WPILibJavaProgramming/trunk/sdkbuilder</remote>
         <local>trunk/sdkbuilder</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
       <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>http://firstforge.wpi.edu/svn/repos/azaleasource/WPILibJavaProgramming/trunk/OTAServer</remote>
         <local>trunk/OTAServer</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
       <hudson.scm.SubversionSCM_-ModuleLocation>
         <remote>https://svn.java.net/svn/squawk~svn/branches/squawk-frc2011</remote>
         <local>trunk/squawk</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>false</ignoreExternalsOption>
       </hudson.scm.SubversionSCM_-ModuleLocation>
     </locations>
     <excludedRegions></excludedRegions>
@@ -35,6 +42,7 @@
     <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
   </scm>
   <assignedNode>WindowsXP32</assignedNode>
+  <advancedAffinityChooser>false</advancedAffinityChooser>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
@@ -46,6 +54,7 @@
     </hudson.triggers.SCMTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
+  <cleanWorkspaceRequired>false</cleanWorkspaceRequired>
   <builders>
     <hudson.tasks.Shell>
       <command>#!bash  -ex</command>
@@ -95,6 +104,13 @@ xcopy /E trunk\squawk\debugger\preprocessed trunk\buildartifacts\debugger\prepro
 copy trunk\squawk\debugger-proxy\classes.jar trunk\buildartifacts\debugger-proxy\classes.jar
 copy trunk\squawk\hosted-support\classes.jar trunk\buildartifacts\hosted-support\classes.jar
 
+mkdir trunk\buildartifacts\platform-specific
+xcopy trunk\squawk\tools\linux-x86 trunk\buildartifacts\platform-specific\linux-x86 /s /i
+xcopy trunk\squawk\tools\macosx-x86 trunk\buildartifacts\platform-specific\macosx-x86 /s /i
+xcopy trunk\squawk\tools\sunos-x86 trunk\buildartifacts\platform-specific\sunos-x86 /s /i
+xcopy trunk\squawk\tools\windows-x86 trunk\buildartifacts\platform-specific\windows-x86 /s /i
+
+
 cd trunk\buildartifacts
 ant -file ..\sdkbuilder\zipsquawkfiles.xml -Dzipname=squawkbuild -Dhere=..\buildartifacts
 
@@ -106,7 +122,9 @@ exit %finalval%
   <publishers>
     <hudson.tasks.ArtifactArchiver>
       <artifacts>trunk/buildartifacts/squawkbuild.zip</artifacts>
+      <compressionType>GZIP</compressionType>
       <latestOnly>false</latestOnly>
+      <autoValidateFileMask>false</autoValidateFileMask>
     </hudson.tasks.ArtifactArchiver>
   </publishers>
   <buildWrappers/>

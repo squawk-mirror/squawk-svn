@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Install mbed SDK and compile test apps.</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>25</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <creationTime>1315339608662</creationTime>
+  <properties>
+    <hudson.plugins.descriptionsetter.JobByDescription/>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <assignedNode>mac</assignedNode>
+  <advancedAffinityChooser>false</advancedAffinityChooser>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector"/>
+  <concurrentBuild>false</concurrentBuild>
+  <cleanWorkspaceRequired>true</cleanWorkspaceRequired>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>cp ../../build-mbed-sdk-ant/lastSuccessful/archive/trunk/squawk-addons/sdkbuilder/sunspotmbedsdk.zip .
+
+unzip sunspotmbedsdk.zip
+rm sunspotmbedsdk.zip
+
+ant -f install.xml
+
+cd tests
+
+cd TestLed
+ant suite
+
+cd ../TestSerial
+ant suite
+
+cd ../TestSPI
+ant suite
+
+cd ../TestTC
+ant suite
+
+cd ../TestWDT
+ant suite</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+  <customWorkspace>jobs/run-mbed-sdk/workspace</customWorkspace>
+</project>
