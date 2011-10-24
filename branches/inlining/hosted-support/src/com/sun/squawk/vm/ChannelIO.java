@@ -1,5 +1,6 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2010 Oracle. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This code is free software; you can redistribute it and/or modify
@@ -17,9 +18,9 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
- * information or have any questions.
+ * Please contact Oracle, 16 Network Circle, Menlo Park, CA 94025 or
+ * visit www.oracle.com if you need additional information or have
+ * any questions.
  */
 
 package com.sun.squawk.vm;
@@ -67,6 +68,7 @@ public class ChannelIO implements java.io.Serializable {
      */
     private int nextAvailableChannelID = ChannelConstants.CHANNEL_LAST_FIXED + 1;
 
+/*if[ENABLE_CHANNEL_GUI]*/
     /**
      * The special events channel.
      */
@@ -76,6 +78,7 @@ public class ChannelIO implements java.io.Serializable {
      * The special graphics channel.
      */
     private GUIOutputChannel guiOutputChannel;
+/*end[ENABLE_CHANNEL_GUI]*/
 
     /**
      * The class of the exception (if any) that occurred in the last call to
@@ -147,7 +150,7 @@ public class ChannelIO implements java.io.Serializable {
                 }
                 case ChannelConstants.GLOBAL_POSTEVENT: {
 		    //EventQueue.unblock(EventQueue.getNextEventNumber());   //  Need generic event to unblock waiters
-		    EventQueue.sendNotify();
+                    EventQueue.sendNotify();
                     return ChannelConstants.RESULT_OK;
                 }
                 case ChannelConstants.GLOBAL_WAITFOREVENT: {
@@ -156,11 +159,13 @@ public class ChannelIO implements java.io.Serializable {
                     return ChannelConstants.RESULT_OK;
                 }
                 case ChannelConstants.GLOBAL_CREATECONTEXT: {
-                    ChannelIO cio = createCIO((byte[])o1);
-                    int index = nextContext++;
-                    contexts.put(index, cio);
-                    cio.context = index;
-                    return index;
+                    if (contexts.get(1) == null) {   // let all Isolates share the same context
+                        ChannelIO cio = createCIO((byte[])o1);
+                        int index = 1; // nextContext++;
+                        contexts.put(index, cio);
+                        cio.context = index;
+                    }
+                    return 1;
                 }
                 default: {
                     throw Assert.shouldNotReachHere("Unknown global IO operation opcode: " + op);
@@ -206,7 +211,9 @@ public class ChannelIO implements java.io.Serializable {
             try {
                 ChannelIO cio = deserialize(serializedData);
                 cio.rundown = false;
+/*if[ENABLE_CHANNEL_GUI]*/
                 cio.guiInputChannel.addToGUIInputQueue(ChannelConstants.GUIIN_REPAINT, 0, 0, 0); // Add a repaint command
+/*end[ENABLE_CHANNEL_GUI]*/
                 return cio;
             } catch (Exception ex) {
                 System.err.println("Error deserializing channel "+ex);
@@ -218,14 +225,14 @@ public class ChannelIO implements java.io.Serializable {
 
     /**
      * Constructor.
-     *
-     * @param mainClassName     the name of the isolate's main class
      */
     private ChannelIO() {
+/*if[ENABLE_CHANNEL_GUI]*/
         guiInputChannel  = new GUIInputChannel(this, ChannelConstants.CHANNEL_GUIIN);
         guiOutputChannel = new GUIOutputChannel(this, ChannelConstants.CHANNEL_GUIOUT, guiInputChannel);
         channels.put(ChannelConstants.CHANNEL_GUIIN, guiInputChannel);
         channels.put(ChannelConstants.CHANNEL_GUIOUT, guiOutputChannel);
+/*end[ENABLE_CHANNEL_GUI]*/
     }
 
     /**
@@ -300,10 +307,12 @@ public class ChannelIO implements java.io.Serializable {
             }
             case ChannelConstants.CONTEXT_GETCHANNEL: {
                 switch (i1) { // Channel type
+/*if[ENABLE_CHANNEL_GUI]*/
                     case ChannelConstants.CHANNEL_GUIIN:
                     case ChannelConstants.CHANNEL_GUIOUT: {
                         return i1; // Both channels are already open and the channel number is the channel type
                     }
+/*end[ENABLE_CHANNEL_GUI]*/
                     case ChannelConstants.CHANNEL_GENERIC: {
                         return createGenericConnectionChannel().getChannelID();
                     }
@@ -331,7 +340,7 @@ public class ChannelIO implements java.io.Serializable {
             }
 
             case ChannelConstants.CONTEXT_HIBERNATE: {
-                hibernationData = hibernate();
+                hibernationData = new byte[0]; // hibernate();
                 if (hibernationData != null) {
                     return hibernationData.length;
                 } else {
@@ -339,10 +348,10 @@ public class ChannelIO implements java.io.Serializable {
                 }
             }
 
-            case ChannelConstants.CONTEXT_DELETE: {
-                close();
+            case ChannelConstants.CONTEXT_DELETE: { // since all isolates use same context never delete it
+//                close();
                 // Remove this context object from the table of contexts
-                contexts.remove(this.context);
+//                contexts.remove(this.context);
                 return ChannelConstants.RESULT_OK;
             }
         }
@@ -366,7 +375,7 @@ public class ChannelIO implements java.io.Serializable {
         } catch (Throwable ex) {
 //System.out.println("Exception -\n"+ex);
 //ex.printStackTrace();
-            status = raiseException(ex.getClass().getName());
+            status = raiseException(ex.toString());
         }
         theResult = channel.getResult();
 
@@ -589,8 +598,8 @@ public class ChannelIO implements java.io.Serializable {
                             System.err.println("Exception cause in I/O server "+ex);
                             buf = new byte[0];
                         }
-                        int low  = execute(cio, ChannelConstants.CONTEXT_GETRESULT,   -1, 0, 0, 0, 0, 0, 0, null, null);
-                        int high = execute(cio, ChannelConstants.CONTEXT_GETRESULT_2, -1, 0, 0, 0, 0, 0, 0, null, null);
+                        int low  = (cio == -1) ? -1 : execute(cio, ChannelConstants.CONTEXT_GETRESULT,   -1, 0, 0, 0, 0, 0, 0, null, null);
+                        int high = (cio == -1) ? -1 : execute(cio, ChannelConstants.CONTEXT_GETRESULT_2, -1, 0, 0, 0, 0, 0, 0, null, null);
 
                         if (timing != 0) {
                             end = System.currentTimeMillis();
