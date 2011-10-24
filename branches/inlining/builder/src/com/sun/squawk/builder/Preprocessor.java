@@ -87,6 +87,13 @@ public class Preprocessor {
      * The default value is <code>false</code>.
      */
     public boolean assertionsEnabled;
+    
+    /**
+     * If <code>true</code> then assertion failure messages contain the file and line number.
+     * <p>
+     * The default value is <code>false</code>.
+     */
+    public boolean showLineNumbers = true;
 
     /**
      * Processes a set of files placing the resulting output in a given directory.
@@ -95,11 +102,7 @@ public class Preprocessor {
      * @param destDir     the directory where the processed files are to be written
      */
     public void execute(FileSet inputFiles, File destDir) {
-
-//        printProperties();
-        Iterator iterator = inputFiles.list().iterator();
-        while (iterator.hasNext()) {
-            File inputFile = (File)iterator.next();
+        for (File inputFile: inputFiles.list()) {
             if (inputFile.length() != 0) {
                 File outputFile = inputFiles.replaceBaseDir(inputFile, destDir);
                 execute(inputFile, outputFile);
@@ -112,8 +115,7 @@ public class Preprocessor {
      *
      */
     protected void printProperties() {
-        for (Iterator entries = properties.entrySet().iterator(); entries.hasNext(); ) {
-            Map.Entry entry = (Map.Entry) entries.next();
+        for (Map.Entry<?, ?> entry: properties.entrySet()) {
             System.out.print(entry.getKey());
             System.out.print("=");
             System.out.println(entry.getValue());
@@ -151,9 +153,9 @@ public class Preprocessor {
                 boolean value;
                 if (name.charAt(0) == '!') {
                     name = name.substring(1);
-                    value = !getBooleanProperty(name, in);
+                    value = !getBooleanProperty(name);
                 } else {
-                    value = getBooleanProperty(name, in);
+                    value = getBooleanProperty(name);
                 }
                 if (!value) {
                     if (verbose) {
@@ -289,13 +291,10 @@ public class Preprocessor {
      * @param name       the name of the property
      * @return the value of the property named <code>name</code>
      */
-    private boolean getBooleanProperty(String name, LineReader in) {
+    private boolean getBooleanProperty(String name) {
         String value = properties.getProperty(name);
         if (value == null) {
-            if (verbose) {
-                log.println(in.getSource() + ":" + in.getLastLineNumber() + ": no value for property '" + name + "' - setting true by default");
-            }
-            return true;
+            throw new PreprocessorException("no value for property '" + name + "'");
         }
         if (value.equals("false")) {
             return false;
@@ -314,10 +313,10 @@ public class Preprocessor {
      * @param mustExist  if true and there is no property corresponding to <code>name</code>, then this method throws a BuildException
      * @return the value of the property named <code>name</code>
      */
-    private String getProperty(String name, boolean mustExist) {
+    private String getProperty(String name) {
         String value = properties.getProperty(name);
-        if (mustExist && value == null) {
-            throw new BuildException("value for required property '" + name + "' not specified");
+        if (value == null) {
+            throw new PreprocessorException("value for required property '" + name + "' not specified");
         }
         return value;
     }
@@ -365,9 +364,9 @@ public class Preprocessor {
                 boolean value;
                 if (name.charAt(0) == '!') {
                     name = name.substring(1);
-                    value = !getBooleanProperty(name, in);
+                    value = !getBooleanProperty(name);
                 } else {
-                    value = getBooleanProperty(name, in);
+                    value = getBooleanProperty(name);
                 }
                 ConditionalScope inner = new ConditionalScope(name, value, conditional);
                 out.println();  // Replace the directive with an empty line
@@ -447,7 +446,7 @@ public class Preprocessor {
             }
 
             String name = matcher.group(2);
-            String value = getProperty(name, false);
+            String value = getProperty(name);
             if (value != null) {
                 return line.substring(0, index) + value + matcher.group(3);
             }
@@ -527,22 +526,16 @@ public class Preprocessor {
      * @return the converted line
      */
     private String prependContext(String line, int invoke, LineReader in) {
-
-        int quote = line.indexOf('"', invoke);
         File inFile = new File(in.getSource());
-        String context = "\"[" + inFile.getName() + ":" + in.getLastLineNumber() + "] ";
-        if (quote != -1) {
-            line = line.substring(0, quote) + context + line.substring(quote + 1);
-        } else {
+        String context = "\"" + inFile.getName() + "\", " + in.getLastLineNumber();
             int bracket = line.lastIndexOf(");");
             if (bracket != -1) {
                 String comma = ", ";
                 if (line.charAt(bracket - 1) == '(') {
                     comma = "";
                 }
-                line = line.substring(0, bracket) + comma + context + '"' + line.substring(bracket);
+                line = line.substring(0, bracket) + comma + context + line.substring(bracket);
             }
-        }
         return line;
     }
 
@@ -578,18 +571,25 @@ public class Preprocessor {
                         // Change "Assert..." into "if (false) Assert..."
                         newLine = line.substring(0, invoke) + "if (false) " + line.substring(invoke);
                     } else {
-                        line = prependContext(line, invoke, in);
+                        if (showLineNumbers) {
+                            line = prependContext(line, invoke, in);
+                        }
                         newLine = line.substring(0, invoke) + "if (Assert.SHOULD_NOT_REACH_HERE_ALWAYS_ENABLED) " + line.substring(invoke);
                     }
                     line = newLine;
+                } else if (method.startsWith("always")) {
+                    if (showLineNumbers) {
+                        line = prependContext(line, invoke, in);
+                    }
                 }
             } else {
                 if (makeAssertionsFatal) {
                     line = makeAssertionFatal(line, line.indexOf('(', invoke));
                 }
-
-                // prepend file name and line number to message
-                line = prependContext(line, invoke, in);
+                if (showLineNumbers) {
+                    // prepend file name and line number to message
+                    line = prependContext(line, invoke, in);
+                }
 
             }
         }

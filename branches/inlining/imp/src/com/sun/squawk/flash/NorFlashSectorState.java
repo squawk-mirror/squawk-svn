@@ -1,5 +1,6 @@
 /*
- * Copyright 2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2006-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2010-2011 Oracle. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This code is free software; you can redistribute it and/or modify
@@ -16,9 +17,9 @@
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -33,23 +34,27 @@ import java.io.IOException;
 import javax.microedition.rms.RecordStoreException;
 
 import com.sun.squawk.Address;
+import com.sun.squawk.VM;
 import com.sun.squawk.peripheral.INorFlashSector;
+import com.sun.squawk.util.Assert;
 
 /**
  * 
  *
  */
 public class NorFlashSectorState implements INorFlashSectorState {
+    public static final boolean DEBUG = false;
+
     public static final byte[] ERASED_HEADER = new byte[] {'S', 'Q', 'U', 'A', 'W', 'K'};
-    // erased value (byte) + header.length + sequence (long) + erased value (byte)
-    public static final int ERASED_HEADER_SIZE = 2 + ERASED_HEADER.length + 8 + 2;
+    // erased value (byte) + header.length + sequence (int) + erased value (byte)
+    public static final int ERASED_HEADER_SIZE = 2 + ERASED_HEADER.length + 4 + 4;
     public static final byte[] BUFFER = new byte[ERASED_HEADER_SIZE];
 
     protected Address startAddress;
     protected Address endAddress;
     protected int writeHead;
     protected INorFlashSector flashSector;
-    protected long sequence;
+    protected int sequence;
     protected INorFlashSectorState nextSector;
     protected INorFlashSectorStateList owningList;
     protected int mallocedBlockCount;
@@ -64,25 +69,50 @@ public class NorFlashSectorState implements INorFlashSectorState {
         init(flashSector.getStartAddress(), flashSector.getSize());
     }
 
+    public String toString() {
+        if (DEBUG) {
+            return "{NorFlashSectorState for " + startAddress.toUWord().toPrimitive() + ", size: " + getSize()
+                    + " available: " + getAvailable()
+                    + " malloc count: " + getAllocatedBlockCount()
+                    + " free count: " + getFreedBlockCount()
+                    + " erasedHeader: " + hasErasedHeader
+                    + "}";
+        } else {
+            return super.toString();
+        }
+    }
+
     protected void checkReadWriteParameters(int offset, byte[] buffer, int bufferStart, int bufferLength) {
-        String message;
         if (bufferLength == 0) {
             return;
         }
-        if (offset < 0 || bufferStart < 0 || bufferLength < 0) {
-            message = "one of offset(" + offset + "), bufferStart(" + bufferStart + "), bufferLength(" + bufferLength + ") is < 0";
-        } else if (offset >= flashSector.getSize()) {
-            message = "offset(" + offset + ") >= size(" + flashSector.getSize() + ")"; 
-        } else if ((offset + bufferLength) > getSize()) {
-            message = "offset(" + offset + ") + bufferLength(" + bufferLength + ") > size(" + getSize() + ")"; 
-        } else if (bufferStart >= buffer.length) {
-            message = "bufferStart(" + bufferStart + ") >= buffer.length(" + buffer.length + ")";
-        } else if (bufferStart + bufferLength > buffer.length) {
-            message = "bufferStart(" + bufferStart + ") + bufferLength(" + bufferLength + ") > buffer.length(" + buffer.length + ")";
+        if (DEBUG) {
+            String message;
+            if (offset < 0 || bufferStart < 0 || bufferLength < 0) {
+                message = "one of offset(" + offset + "), bufferStart(" + bufferStart + "), bufferLength(" + bufferLength + ") is < 0";
+            } else if (offset >= flashSector.getSize()) {
+                message = "offset(" + offset + ") >= size(" + flashSector.getSize() + ")";
+            } else if ((offset + bufferLength) > getSize()) {
+                message = "offset(" + offset + ") + bufferLength(" + bufferLength + ") > size(" + getSize() + ")";
+            } else if (bufferStart >= buffer.length) {
+                message = "bufferStart(" + bufferStart + ") >= buffer.length(" + buffer.length + ")";
+            } else if (bufferStart + bufferLength > buffer.length) {
+                message = "bufferStart(" + bufferStart + ") + bufferLength(" + bufferLength + ") > buffer.length(" + buffer.length + ")";
+            } else {
+                return;
+            }
+            throw new IndexOutOfBoundsException(message);
         } else {
-            return;
+            if (offset < 0 || bufferStart < 0 || bufferLength < 0) {
+            } else if (offset >= flashSector.getSize()) {
+            } else if ((offset + bufferLength) > getSize()) {
+            } else if (bufferStart >= buffer.length) {
+            } else if (bufferStart + bufferLength > buffer.length) {
+            } else {
+                return;
+            }
+           throw new IndexOutOfBoundsException();
         }
-        throw new IndexOutOfBoundsException(message);
     }
 
     public void decrementMallocedCount() {
@@ -98,9 +128,14 @@ public class NorFlashSectorState implements INorFlashSectorState {
             dataOut.write(NorFlashMemoryHeap.ERASED_VALUE_XOR);
             dataOut.write(NorFlashMemoryHeap.ERASED_VALUE_XOR);
             dataOut.write(ERASED_HEADER);
-            dataOut.writeLong(sequence);
+            dataOut.writeInt((int)sequence);
             dataOut.write(NorFlashMemoryHeap.ERASED_VALUE_XOR);
             dataOut.write(NorFlashMemoryHeap.ERASED_VALUE_XOR);
+            //add 2 ERASED_VALUE_XOR
+            dataOut.write(NorFlashMemoryHeap.ERASED_VALUE_XOR);
+            dataOut.write(NorFlashMemoryHeap.ERASED_VALUE_XOR);
+            Assert.that(bytesOut.size() == ERASED_HEADER_SIZE);
+            dataOut.close();
         } catch (IOException e) {
             throw new RecordStoreException("Unexpected IO exception: " + e);
         }
@@ -154,6 +189,10 @@ public class NorFlashSectorState implements INorFlashSectorState {
     public int getWriteHeadPosition() {
         return writeHead;
     }
+
+    public int getAvailable() {
+        return getSize() - writeHead;
+    }
     
     public boolean hasAvailable(int length) {
         if (length == 0) {
@@ -203,7 +242,13 @@ public class NorFlashSectorState implements INorFlashSectorState {
                     return;
                 }
             }
-            sequence = input.readLong();
+            sequence = input.readInt();
+            if (input.readByte() != NorFlashMemoryHeap.ERASED_VALUE_XOR) {
+                return;
+            }
+            if (input.readByte() != NorFlashMemoryHeap.ERASED_VALUE_XOR) {
+                return;
+            }
             if (input.readByte() != NorFlashMemoryHeap.ERASED_VALUE_XOR) {
                 return;
             }
@@ -256,18 +301,27 @@ public class NorFlashSectorState implements INorFlashSectorState {
     public void setWriteHeadPosition(int position) {
         writeHead = position;
     }
-    
+
+    /**
+     * Write bytes to the flash sector at the current "writeHead" position.
+     *
+     * @param buffer
+     * @param bufferStart
+     * @param bufferLength
+     */
     public void writeBytes(byte buffer[], int bufferStart, int bufferLength) {
-        // Special case to handle no-zero values for bufferStart and a zero value for bufferLength
-        // which causes an ArrayIndexOutOfBoundsException on System.arrayCopy
-        if (bufferLength == 0) {
-            return;
-        }
-        checkReadWriteParameters(writeHead, buffer, bufferStart, bufferLength);
-        flashSector.setBytes(writeHead, buffer, bufferStart, bufferLength);
+        writeBytes(writeHead, buffer, bufferStart, bufferLength);
         writeHead += bufferLength;
     }
 
+    /**
+     * Write bytes to the flash sector starting at "offset".
+     * 
+     * @param offset
+     * @param buffer
+     * @param bufferStart
+     * @param bufferLength
+     */
     public void writeBytes(int offset, byte buffer[], int bufferStart, int bufferLength) {
         // Special case to handle no-zero values for bufferStart and a zero value for bufferLength
         // which causes an ArrayIndexOutOfBoundsException on System.arrayCopy

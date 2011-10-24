@@ -39,15 +39,15 @@ abstract public class AbstractSwitch extends Generator {
      */
     void generate(PrintWriter out) {
 
-        List instructions = Instruction.getInstructions();
-        List floatInstructions = Instruction.getFloatInstructions();
+        List<Instruction> instructions = Instruction.getInstructions();
+        List<Instruction> floatInstructions = Instruction.getFloatInstructions();
 
         String firstLine = getFirstLine();
         if (firstLine != null) {
             out.println(firstLine);
         }
 
-        printCopyright(out);
+        printCopyright(this.getClass(), out);
 
         // Generate header
         printHeader(out);
@@ -75,5 +75,5 @@ abstract public class AbstractSwitch extends Generator {
      * @param out      where to print
      * @param list     a list of Instructions
      */
-    abstract void printCases(PrintWriter out, List list);
+    abstract void printCases(PrintWriter out, List<Instruction> list);
 }

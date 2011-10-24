@@ -81,10 +81,16 @@ public abstract class MIDlet {
                 }
             }
         };
-        ImpGlobal.midLetTunnel = new MIDletTunnelImpl();
+        if (ImpGlobal.midLetTunnel == null) {
+            ImpGlobal.midLetTunnel = new MIDletTunnelImpl();
+        }
     }
 
-    private void startWrapper() throws MIDletStateChangeException {
+    /**
+     * Install midletDestroyer LifecycleListener, then start isolate.
+     * Called by MIDLetTunnelImpl to start the isolate.
+     */ 
+    void startWrapper() throws MIDletStateChangeException {
         // In theory (if pauaseApp() supported_, this could be called more than once.
         Isolate.currentIsolate().addLifecycleListener(midletDestroyer, Isolate.SHUTDOWN_EVENT_MASK);
         startApp();

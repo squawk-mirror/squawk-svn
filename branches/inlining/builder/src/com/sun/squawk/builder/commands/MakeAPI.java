@@ -38,6 +38,8 @@ import java.lang.reflect.Modifier;
  * by {@link Suite#printAPI} and the classpath and sourcepath used to build the suite.
  *
  */
+// TODO: get rid of the SuppressWarnings annotations
+@SuppressWarnings(value={"unchecked"})
 public class MakeAPI extends Command {
 
     /**
@@ -393,7 +395,13 @@ public class MakeAPI extends Command {
         File srcDir = makeSource(classes.values(), packages);
         File javadocDir = nodoc ? null : makeJavadoc(packages, srcDir);
         File classesDir = new File(baseDir, "classes");
-        env.javac(classpath, baseDir, new File[] {srcDir}, true, null, null, false);
+        ArrayList extraArgs = new ArrayList<String>();
+//        extraArgs.add("-source");
+//        extraArgs.add("1.4");
+//        extraArgs.add("-target");
+//        extraArgs.add("1.4");
+
+        env.javac(classpath, classpath, baseDir, new File[] {srcDir}, true, extraArgs, false, true);
 
         File classesJar = new File(baseDir, "classes.jar");
         File apiJar = new File(baseDir, suite.name + "_rt.jar");
@@ -429,6 +437,7 @@ public class MakeAPI extends Command {
         }
         args.add("-doclet");
         args.add(this.getClass().getName());
+
         args.addAll(packages);
 
         client = this;
@@ -536,7 +545,7 @@ public class MakeAPI extends Command {
         args.add("-taglet");
         args.add("com.sun.squawk.builder.ToDoTaglet");
         args.add("-tagletpath");
-        args.add("build.jar:build-commands.jar");
+        args.add("build-commands.jar");
         // Standard doclet options
         args.add("-quiet");
         args.add("-d");
@@ -641,7 +650,7 @@ public class MakeAPI extends Command {
             Constructors constructors = (Constructors) constructorsMap.get(cdoc.qualifiedName());
             constructors.print(sf, constructorsMap);
         }
-        printFields(sf, klass.getFields(root, cdoc.fields()));
+        printFields(sf, klass.getFields(root, cdoc.fields()), isInterface);
         printMethods(sf, klass.getMethods(root, cdoc.methods()));
         printNestedClasses(sf, cdoc.innerClasses());
 
@@ -752,11 +761,17 @@ public class MakeAPI extends Command {
      * @param sf     the source file being generated
      * @param fdocs  the javadoc for the fields
      */
-    private void printFields(SourceFile sf, List fdocs) {
+    private void printFields(SourceFile sf, List fdocs, boolean ownerIsInterface) {
         for (Iterator i = fdocs.iterator(); i.hasNext(); ) {
             FieldDoc fdoc = (FieldDoc)i.next();
             sf.printDoc(fdoc, this);
             String cve = fdoc.constantValueExpression();
+            // Handle the case where we have an interface defining a static final via an expression such as
+            //     public final static int FIOCLEX   = INSTANCE.initConstInt(0);
+            // See com.sun.squawk.platform.posix.natives.Ioctl
+            if (ownerIsInterface && cve == null) {
+                cve = getDefaultValue(fdoc.type());
+            }
             boolean needsStaticInit = false;
             if (cve == null) {
                 cve = "";
@@ -942,7 +957,7 @@ public class MakeAPI extends Command {
     /**
      * Prints a usage message.
      */
-    private void usage() {
+    public void usage(String errMsg) {
         PrintStream out = System.out;
         out.println("Usage: makeapi [-options] api sourcepath dir [javadoc_options]");
         out.println("where options include:");
@@ -974,16 +989,14 @@ public class MakeAPI extends Command {
             } else if (arg.equals("-nodoc")) {
                 nodoc = true;
             } else {
-                usage();
-                throw new BuildException("Unknown option: " + arg, 1);
+                throw new CommandException(this, "Unknown option: " + arg);
             }
 
             argc++;
         }
 
         if (args.length < (argc + 3)) {
-            usage();
-            throw new BuildException("missing api, sourcepath or dir", 1);
+            throw new CommandException(this, "missing api, sourcepath or dir");
         }
 
         String api = args[argc++];
@@ -1004,6 +1017,10 @@ public class MakeAPI extends Command {
     }
 
     public void run(String[] args) throws BuildException {
+//        if (env.isJava5SyntaxSupported()) {
+//            // TODO Fix MAKEAPI for Java5
+//            return;
+//        }
         parseArgs(args);
         run();
     }
@@ -1029,6 +1046,7 @@ public class MakeAPI extends Command {
 /**
  * A <code>SourceFile</code> instance is used to generate a Java source file.
  */
+@SuppressWarnings(value={"unchecked"})
 class SourceFile {
 
     private final PrintWriter out;
@@ -1197,6 +1215,7 @@ class SourceFile {
  * by the output of {@link Suite#printAPI}.
  *
  */
+@SuppressWarnings(value={"unchecked"})
 final class Suite {
 
     /**
@@ -1467,10 +1486,10 @@ nextField:  for (Iterator iter = fields.entrySet().iterator(); iter.hasNext(); )
     private static String parseWordOrEOF(StreamTokenizer st, String source, String validSet) {
         try {
             int token = st.nextToken();
-            if (token == st.TT_EOF) {
+            if (token == StreamTokenizer.TT_EOF) {
                 return null;
             }
-            if (token != st.TT_WORD) {
+            if (token != StreamTokenizer.TT_WORD) {
                 throw new BuildException(source + ": invalid token " + st);
             }
             String value = st.sval;

@@ -161,7 +161,6 @@ public class Jam extends Thread {
                 } catch (IOException e) {
                 }
             }
-            ;
             input = null;
             if (output != null) {
                 try {
@@ -169,7 +168,6 @@ public class Jam extends Thread {
                 } catch (IOException e) {
                 }
             }
-            ;
             output = null;
         }
     }
@@ -207,6 +205,8 @@ public class Jam extends Thread {
                     }
                     printPrefix();
                     out.println("   URL: " + urlString);
+                    printPrefix();
+                    out.println("   err: " + e);
                     reportedError = true;
 				}
                 try {
@@ -338,7 +338,7 @@ public class Jam extends Thread {
     /**
      * Return the name of the Squawk VM executable that can be used to invoke it from within a
      * shell/command box. Use the squawk executable from the current directory assuming you are
-     * running from the Squawk3G directory
+     * running from the Squawk directory
      * 
      * @return Name of the Squawk VM executable
      */
@@ -353,7 +353,7 @@ public class Jam extends Thread {
      * @param bootstrapSuitePath Path to the bootstrap suite of the suite to be created
      * @param classPath Classpath containing all classes to be included in suite to be created
      * @param littleEndian True if the suite to be created is to be little endian, false for big endian, and
-     *                     null to use the default of the platform SuiteCreator is being run on
+     *                     null to use the default of the host platform
      * @param suiteName The name of the suite to be created
      * @param properties properties from the application descriptor file (.jad)
      */
@@ -371,7 +371,6 @@ public class Jam extends Thread {
     	if (parent != null) {
     		args.add("-parent:" + parent);
     	}
-    	args.add("-metadata");
     	String cp = "-cp";
     	for (String string : classPath) {
 			cp += ":" + string;
@@ -427,7 +426,9 @@ public class Jam extends Thread {
             buffer.append(" ");
             buffer.append(squawkArgs.get(i));
         }
-        buffer.append(" -J-Djava.awt.headless=true");
+        if (env.getBooleanProperty("PLATFORM_TYPE_DELEGATING")) {
+            buffer.append(" -J-Djava.awt.headless=true");
+        }
         buffer.append(" -suite:");
         buffer.append(suiteName);
         if (includeDebugger) {
@@ -455,7 +456,6 @@ public class Jam extends Thread {
         if (jarFile != null) {
             jarFile.delete();
         }
-        ;
         if (suitePath != null) {
             new File(suitePath + MakeAPI.SUITE_FILE_EXTENSION).delete();
             new File(suitePath + MakeAPI.SUITE_FILE_EXTENSION + MakeAPI.SUITE_FILE_EXTENSION_METADATA).delete();
@@ -533,7 +533,6 @@ public class Jam extends Thread {
                     if (jarFile != null) {
                         jarFile.delete();
                     }
-                    ;
                     if (suitePath != null) {
                         new File(suitePath + MakeAPI.SUITE_FILE_EXTENSION).delete();
                         new File(suitePath + MakeAPI.SUITE_FILE_EXTENSION + MakeAPI.SUITE_FILE_EXTENSION_API).delete();

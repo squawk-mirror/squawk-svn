@@ -39,7 +39,7 @@ public class OperandStackEffect extends Generator {
     void generate(PrintWriter out) {
 
         // Generate class header
-        printCopyright(out);
+        printCopyright(this.getClass(), out);
         out.println("package com.sun.squawk.vm;");
         out.println();
         out.println("import com.sun.squawk.util.Assert;");
@@ -96,9 +96,9 @@ public class OperandStackEffect extends Generator {
         return new File(baseDir, "com/sun/squawk/vm/OperandStackEffect.java");
     }
 
-    private static int printEffectsDef(PrintWriter out, List list, int opcodeCheck, boolean closeArrayInitializer) {
+    private static int printEffectsDef(PrintWriter out, List<Instruction> list, int opcodeCheck, boolean closeArrayInitializer) {
 
-        for (Iterator iterator = list.iterator(); iterator.hasNext(); ) {
+        for (Iterator<Instruction> iterator = list.iterator(); iterator.hasNext(); ) {
             Instruction instruction = (Instruction) iterator.next();
             if (opcodeCheck != instruction.opcode) {
                 throw new RuntimeException("instructions are not ordered by opcode");

@@ -33,10 +33,13 @@
 @rem ----------------------------------------------------------
 if exist classes rmdir /S /Q classes
 mkdir classes
-javac -target 1.5 -source 1.5 -d classes -g src\com\sun\squawk\builder\launcher\*.java
-jar cfm ..\build.jar build-manifest.mf -C classes .
+"%JAVA_HOME%\bin\javac" -target 1.5 -source 1.5 -d classes -g src\com\sun\squawk\builder\launcher\*.java
+"%JAVA_HOME%\bin\jar" cfm ..\build.jar build-manifest.mf -C classes .
 rmdir /S /Q classes
 mkdir classes
-javac -target 1.5 -source 1.5 -d classes -g -cp %JAVA_HOME%\lib\tools.jar src\com\sun\squawk\builder\*.java src\com\sun\squawk\builder\bytecodespec\*.java src\com\sun\squawk\builder\ccompiler\*.java src\com\sun\squawk\builder\commands\*.java src\com\sun\squawk\builder\gen\*.java src\com\sun\squawk\builder\launcher\*.java src\com\sun\squawk\builder\platform\*.java src\com\sun\squawk\builder\util\*.java
-jar cfm ..\build-commands.jar build-commands-manifest.mf -C classes .
+cd classes
+"%JAVA_HOME%\bin\jar" xf ..\..\tools\retroweaver-all-squawk.jar
+cd ..
+"%JAVA_HOME%\bin\javac" -target 1.5 -source 1.5 -d classes -g -cp classes;..\vm2c\lib\openjdk-javac-6-b12.jar;%JAVA_HOME%\lib\tools.jar src\com\sun\cldc\jna\*.java   src\com\sun\cldc\jna\ptr\*.java src\com\sun\squawk\builder\*.java src\com\sun\squawk\builder\bytecodespec\*.java src\com\sun\squawk\builder\ccompiler\*.java src\com\sun\squawk\builder\commands\*.java src\com\sun\squawk\builder\gen\*.java src\com\sun\squawk\builder\launcher\*.java src\com\sun\squawk\builder\platform\*.java src\com\sun\squawk\builder\util\*.java
+"%JAVA_HOME%\bin\jar" cfm ..\build-commands.jar build-commands-manifest.mf -C classes .
 rmdir /S /Q classes

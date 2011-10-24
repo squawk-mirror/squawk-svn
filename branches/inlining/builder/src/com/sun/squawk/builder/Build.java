@@ -1,5 +1,4 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
  * 
  * This code is free software; you can redistribute it and/or modify
@@ -24,11 +23,17 @@
 
 package com.sun.squawk.builder;
 
+import com.sun.squawk.SquawkRetroWeaver;
 import com.sun.squawk.builder.ccompiler.*;
+import com.sun.squawk.builder.ccompiler.CCompiler.Options;
 import com.sun.squawk.builder.commands.*;
 import com.sun.squawk.builder.gen.Generator;
+import com.sun.cldc.jna.JNAGen;
+import com.sun.cldc.jna.JNAGenDirect;
+import com.sun.cldc.jna.SourceProcessor;
 import com.sun.squawk.builder.launcher.Launcher;
 import com.sun.squawk.builder.platform.Platform;
+import com.sun.squawk.builder.platform.VxWorks_PPC;
 import com.sun.squawk.builder.platform.Windows_X86;
 import com.sun.squawk.builder.util.DirSet;
 import com.sun.squawk.builder.util.FileSet;
@@ -40,17 +45,19 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import net.sourceforge.retroweaver.event.WeaveListener;
 
 /**
  * This is the launcher for building parts (or all) of the Squawk VM as well as launching commands.
@@ -58,6 +65,7 @@ import java.util.zip.ZipOutputStream;
  *
  */
 public class Build {
+// TODO Go through and clean up the references to directories so that they are consistent 
 
     /*---------------------------------------------------------------------------*\
      *                               Runtime options                             *
@@ -153,16 +161,17 @@ public class Build {
 
     /**
      * Gets the instance through which JDK tools can be accessed.
+     * @return the JDK instance
      */
     public JDK getJDK() {
         return jdk;
     }
 
     /**
-     * The host platform. This is used to access tools required for running the builder and has not
+     * The host platform. This is used to access tools required for running the builder and has no
      * relationship with the target platform that a Squawk executable will be built for.
      */
-    private final Platform platform;
+    private Platform platform;
 
     /**
      * Gets the object that represents the host platform.
@@ -176,7 +185,7 @@ public class Build {
     /**
      * The Java source preprocessor.
      */
-    private final Preprocessor preprocessor;
+    private Preprocessor preprocessor;
 
     /**
      * Gets the Java source preprocessor.
@@ -190,7 +199,7 @@ public class Build {
     /**
      * The C function macroizer.
      */
-    private final Macroizer macroizer;
+    private Macroizer macroizer;
 
     /**
      * Gets the C function macroizer.
@@ -207,14 +216,23 @@ public class Build {
     private Properties properties;
 
     /**
+     * The properties that came from command line or dynamically (not from file)
+     */
+    public Properties dynamicProperties;
+
+    /**
      * The most recent date that the file(s) from which the properties are loaded was modified.
      */
     private long propertiesLastModified;
     
     private String specfifiedBuildDotOverrideFileName;
     
+    protected boolean isInitialized;
+    
+    protected boolean isJava5SyntaxSupported;
+    
     /**
-     * Gets the name of the build.override file specified by the -override: arg. Or null if no
+     * Gets the name of the build.override file specified by the -override: or -override arg. Or null if no
      * -override: arg was specified.
      *
      * @return String or null
@@ -223,11 +241,20 @@ public class Build {
         return specfifiedBuildDotOverrideFileName;
     }
 
+    protected List<File> possibleModuleDirs = new ArrayList<File>();
 
+    public void addPossibleModuleDir(File dir) {
+        possibleModuleDirs.add(dir);
+    }
+    
+    public List<File> getPossibleModuleDirs() {
+        return possibleModuleDirs;
+    }
+    
     /**
      * The interface to run a Java source compiler.
      */
-    private final JavaCompiler javaCompiler;
+    private JavaCompiler javaCompiler;
 
     /**
      * Gets the object used to do a Java compilation as well as run javadoc.
@@ -263,14 +290,6 @@ public class Build {
     private Map<String, Command> commands = new TreeMap<String, Command>();
 
     /**
-     * Get the available commands as an iterator
-     * @return Iterator for command entries
-     */
-    public Iterator getCommandList() {
-        return commands.entrySet().iterator();
-    }
-
-    /**
      * Adds a command to the set of builder commands.
      *
      * @param command the command
@@ -286,6 +305,438 @@ public class Build {
         return command;
     }
 
+    public static class JNAGenCommand extends Command {
+
+        private ArrayList<String> includes = new ArrayList<String>();
+        private String cp = "";
+        private File baseDir;
+        private File dstDir;
+        /**
+         * If command created from a module's builder.properties, then set true...
+         */
+        private boolean custom;
+
+        JNAGenCommand(Build env) {
+            super(env, "JNAGen");
+        }
+
+        JNAGenCommand(Build env, File baseDir, File dstDir, String cp, ArrayList<String> includes) {
+            super(env, baseDir.getName() + "-gen");
+            this.custom = true;
+            this.cp = cp;
+            this.includes = includes;
+            this.baseDir = baseDir;
+            if (dstDir == null) {
+                this.dstDir = new File(baseDir, "native");
+            } else {
+                this.dstDir = dstDir;
+            }
+        }
+
+        public String getDescription() {
+            return "Imports C code into Java";
+        }
+
+        public void usage(String errMsg) {
+            PrintStream out = System.err;
+
+            if (errMsg != null) {
+                out.println(errMsg);
+            }
+            out.println("Usage: JNAGen [options] module ");
+            out.println("where module is directory containing a \"src\" directory, and options include:");
+            out.println();
+            out.println("    -cp:<classpath>       classes to compile against");
+            out.println("    -dst:<srcpath>        directory to store generated sources");
+            out.println("    -I<dir>               directory of C include files");
+
+        }
+
+        /**
+         * genJNAPhase2
+         * Create final JNA impl source by compiling and running C code.
+         *
+         * @param includeDirs include directorys to compile against
+         * @param sourceDir   the directory containing the C source code to compile and run
+         * @param baseDir     the directory under which the "build" directory exists
+         * @param dstDir      the directory to create the generated Java files (typically "native").
+         * @return the preprocessor output directory
+         */
+        public File genJNAPhase2(
+                File[] includeDirs,
+                File sourceDir,
+                File baseDir,
+                File dstDir) {
+            final File buildDir = mkdir(baseDir, "build");
+
+            System.out.println("    Compiling and running JNA C files...");
+            FileSet fs = new FileSet(buildDir, Build.C_SOURCE_SELECTOR);
+            Iterator iterator = fs.list().iterator();
+            while (iterator.hasNext()) {
+                File inputFile = (File) iterator.next();
+                if (inputFile.length() != 0 && inputFile.getName().indexOf('$') < 0) { // only look at outer classes. Inner classes will get sucked up by them
+                    File oFile = env.ccompiler.compile(includeDirs, inputFile, inputFile.getParentFile(), true);
+                    File exeFile = env.ccompiler.link(new File[]{oFile}, inputFile.getParentFile() + "/a.out", false);
+                    String outFileName = env.stripSuffix(inputFile.getName()) + ".java";
+                    File generatedFile = fs.replaceBaseDir(new File(inputFile.getParentFile(), outFileName), dstDir);
+
+                    String cmd = exeFile + " " + generatedFile;
+                    env.exec(cmd);
+                }
+            }
+            System.out.println("    Generated JNA files in " + dstDir);
+            return dstDir;
+        }
+
+        /**
+         * Preprocess a given set of Java import file source files.
+         *
+         * @param   dstDir     the directory containing the generated Java src files (typically "native")
+         * @param   srcDirs    the set of directories that are searched recursively for the source files to be imported
+         * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
+         * @return the preprocessor output directory
+         */
+        public File processImports(
+                File dstDir,
+                File[] srcDirs,
+                boolean j2me) {
+            // Get the preprocessor output directory
+            SourceProcessor sp = new SourceProcessor();
+
+
+            for (int i = 0; i != srcDirs.length; ++i) {
+
+                File sourceDir = srcDirs[i];
+
+                // A selector that matches a source file whose preprocessed copy does not exist,
+                // is younger than the source file or has a last modification date
+                // earlier than the last modification date of the properties
+                FileSet.Selector outOfDate = new FileSet.DependSelector(new FileSet.SourceDestDirMapper(sourceDir, dstDir)) {
+
+                    public boolean isSelected(
+                            File file) {
+                        if (super.isSelected(file)) {
+                            return true;
+                        }
+                        File preprocessedFile = getMapper().map(file);
+                        long fileLastModified = preprocessedFile.lastModified();
+                        return (fileLastModified < env.propertiesLastModified);
+                    }
+                };
+
+                FileSet.Selector selector = new FileSet.AndSelector(JAVA_SOURCE_SELECTOR, outOfDate);
+                FileSet fs = new FileSet(sourceDir, selector);
+                sp.execute(fs, dstDir);
+            }
+            return dstDir;
+        }
+
+        public void run(String[] args) {
+            if (baseDir == null && args.length == 0) {
+                throw new CommandException(this, "module not specified");
+            }
+            String baseDirPath;
+
+            if (!env.getBooleanProperty("AUTOGEN_JNA_NATIVES")) {
+                System.out.println("    Skipping generation JNA files in " + baseDir);
+                return;
+            }
+
+            if (custom) {
+                 baseDirPath = baseDir.getPath();
+            } else {
+                int argi = 0;
+                while (args[argi].startsWith("-")) {
+                    if (args[argi].startsWith("-cp:")) {
+                        cp = args[argi].substring("-cp:".length());
+                    } else if (args[argi].startsWith("-dst:")) {
+                        String dst = args[argi].substring("-dst:".length());
+                        dstDir = new File(dst);
+                    } else if (args[argi].startsWith("-I")) {
+                        includes.add(args[argi].substring("-I".length()));
+                    } else {
+                        throw new CommandException(this, "malformed option " + args[argi]);
+                    }
+                    argi++;
+                }
+                baseDirPath = args[argi];
+                baseDir = new File(baseDirPath);
+                if (dstDir == null) {
+                    dstDir = new File(baseDir, "native");
+                }
+
+                Command cmd = env.getCommand(baseDir.getName());
+                if (cmd == null) {
+                    throw new CommandException(this, "no target found to build " + baseDirPath);
+                }
+                cmd.run(NO_ARGS);
+
+            }
+
+            File srcDir = new File(baseDir, "src");
+
+            System.out.println("    Generating JNA implementations from JNA interfaces in " + srcDir + "...");
+
+            processImports(dstDir, new File[]{srcDir}, true);
+
+            JNAGen gen = new JNAGen(env, baseDir, dstDir, cp);
+            gen.run(NO_ARGS);
+
+            File[] includePaths = new File[includes.size()];
+            for (int i = 0; i < includePaths.length; i++) {
+                includePaths[i] = new File(includes.get(i));
+            }
+
+            genJNAPhase2(includePaths, srcDir, baseDir, dstDir);
+        }
+    } /* JNAGenCommand */
+
+    public static class JNAGenDirectCommand extends Command {
+        private String cp = "";
+        private File baseDir;
+        private File dstDir;
+        /**
+         * If command created from a module's builder.properties, then set true...
+         */
+        private boolean custom;
+
+        JNAGenDirectCommand(Build env) {
+            super(env, "JNAGenDirect");
+        }
+
+        JNAGenDirectCommand(Build env, File baseDir, File dstDir, String cp) {
+            super(env, baseDir.getName() + "-gen");
+            this.custom = true;
+            this.cp = cp;
+            this.baseDir = baseDir;
+            if (dstDir == null) {
+                this.dstDir = new File(baseDir, "native");
+            } else {
+                this.dstDir = dstDir;
+            }
+        }
+
+        public String getDescription() {
+            return "Imports C code into Java";
+        }
+
+        public void usage(String errMsg) {
+            PrintStream out = System.err;
+
+            if (errMsg != null) {
+                out.println(errMsg);
+            }
+            out.println("Usage: JNAGenDirect [options] module ");
+            out.println("where module is directory containing a \"src\" directory, and options include:");
+            out.println();
+            out.println("    -cp:<classpath>       classes to compile against");
+            out.println("    -dst:<srcpath>        directory to store generated sources");
+        }
+
+//        /**
+//         * genJNAPhase2
+//         * Create final JNA impl source by compiling and running C code.
+//         *
+//         * @param includeDirs include directorys to compile against
+//         * @param sourceDir   the directory containing the C source code to compile and run
+//         * @param baseDir     the directory under which the "build" directory exists
+//         * @param dstDir      the directory to create the generated Java files (typically "native").
+//         * @return the preprocessor output directory
+//         */
+//        public File genJNAPhase2(
+//                File[] includeDirs,
+//                File sourceDir,
+//                File baseDir,
+//                File dstDir) {
+//            final File buildDir = mkdir(baseDir, "build");
+//
+//            System.out.println("    Compiling and running JNA C files...");
+//            FileSet fs = new FileSet(buildDir, Build.C_SOURCE_SELECTOR);
+//            Iterator iterator = fs.list().iterator();
+//            while (iterator.hasNext()) {
+//                File inputFile = (File) iterator.next();
+//                if (inputFile.length() != 0 && inputFile.getName().indexOf('$') < 0) { // only look at outer classes. Inner classes will get sucked up by them
+//                    File oFile = env.ccompiler.compile(includeDirs, inputFile, inputFile.getParentFile(), true);
+//                    File exeFile = env.ccompiler.link(new File[]{oFile}, inputFile.getParentFile() + "/a.out", false);
+//                    String outFileName = env.stripSuffix(inputFile.getName()) + ".java";
+//                    File generatedFile = fs.replaceBaseDir(new File(inputFile.getParentFile(), outFileName), dstDir);
+//
+//                    String cmd = exeFile + " " + generatedFile;
+//                    env.exec(cmd);
+//                }
+//            }
+//            System.out.println("    Generated JNA files in " + dstDir);
+//            return dstDir;
+//        }
+
+        /**
+         * Preprocess a given set of Java import file source files.
+         *
+         * @param   dstDir     the directory containing the generated Java src files (typically "native")
+         * @param   srcDirs    the set of directories that are searched recursively for the source files to be imported
+         * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
+         * @return the preprocessor output directory
+         */
+        public File processImports(
+                File dstDir,
+                File[] srcDirs,
+                boolean j2me) {
+            // Get the preprocessor output directory
+            SourceProcessor sp = new SourceProcessor();
+
+            for (int i = 0; i != srcDirs.length; ++i) {
+
+                File sourceDir = srcDirs[i];
+
+                // A selector that matches a source file whose preprocessed copy does not exist,
+                // is younger than the source file or has a last modification date
+                // earlier than the last modification date of the properties
+                FileSet.Selector outOfDate = new FileSet.DependSelector(new FileSet.SourceDestDirMapper(sourceDir, dstDir)) {
+
+                    public boolean isSelected(
+                            File file) {
+                        if (super.isSelected(file)) {
+                            return true;
+                        }
+                        File preprocessedFile = getMapper().map(file);
+                        long fileLastModified = preprocessedFile.lastModified();
+                        return (fileLastModified < env.propertiesLastModified);
+                    }
+                };
+
+                FileSet.Selector selector = new FileSet.AndSelector(JAVA_SOURCE_SELECTOR, outOfDate);
+                FileSet fs = new FileSet(sourceDir, selector);
+                sp.execute(fs, dstDir);
+            }
+            return dstDir;
+        }
+
+        public void run(String[] args) {
+            if (baseDir == null && args.length == 0) {
+                throw new CommandException(this, "module not specified");
+            }
+            String baseDirPath;
+
+//            if (!env.getBooleanProperty("AUTOGEN_JNA_NATIVES")) {
+//                System.out.println("    Skipping generation JNA files in " + baseDir);
+//                return;
+//            }
+
+            if (custom) {
+                 baseDirPath = baseDir.getPath();
+            } else {
+                int argi = 0;
+                while (args[argi].startsWith("-")) {
+                    if (args[argi].startsWith("-cp:")) {
+                        cp = args[argi].substring("-cp:".length());
+                    } else if (args[argi].startsWith("-dst:")) {
+                        String dst = args[argi].substring("-dst:".length());
+                        dstDir = new File(dst);
+                     } else {
+                        throw new CommandException(this, "malformed option " + args[argi]);
+                    }
+                    argi++;
+                }
+                baseDirPath = args[argi];
+                baseDir = new File(baseDirPath);
+                if (dstDir == null) {
+                    dstDir = new File(baseDir, "native");
+                }
+
+                Command cmd = env.getCommand(baseDir.getName());
+                if (cmd == null) {
+                    throw new CommandException(this, "no target found to build " + baseDirPath);
+                }
+                cmd.run(NO_ARGS);
+
+            }
+
+            File srcDir = new File(baseDir, "src");
+
+            System.out.println("    Generating JNA implementations from JNA interfaces in " + srcDir + "...");
+
+            processImports(dstDir, new File[]{srcDir}, true);
+
+            JNAGen gen = new JNAGen(env, baseDir, dstDir, cp);
+            gen.run(NO_ARGS);
+
+//            File[] includePaths = new File[includes.size()];
+//            for (int i = 0; i < includePaths.length; i++) {
+//                includePaths[i] = new File(includes.get(i));
+//            }
+//
+//            genJNAPhase2(includePaths, srcDir, baseDir, dstDir);
+        }
+    } /* JNAGenDirectCommand */
+
+        /**
+     * Creates and installs a Target.
+     *
+     * @param baseDir        the parent directory for primary source directory and the output directory(s). This will also be the name of the target.
+     * @param dstDir
+     * @param dependencies   the space separated names of the Java compilation targets that this target depends upon
+     * @param classpath
+     * @return the created and installed command
+     */
+    public Command addJNAGenDirectCommand(String baseDir, String dstDir, String dependencies, String classpath) {
+        File baseDirFile = new File(baseDir);
+        File dstDirFile = null;
+        if (dstDir != null) {
+            dstDirFile = new File(dstDir);
+        }
+
+        Command command = new JNAGenDirectCommand(this, baseDirFile, dstDirFile, classpath);
+
+        if (dependencies == null) {
+            dependencies = baseDirFile.getName(); // always depends on compiling src
+        } else {
+            dependencies = baseDirFile.getName() + " " + dependencies;
+        }
+        command.dependsOn(dependencies);
+
+        addCommand(command);
+        return command;
+    }
+
+
+    /**
+     * Creates and installs a Target.
+     *
+     * @param baseDir        the parent directory for primary source directory and the output directory(s). This will also be the name of the target.
+     * @param dstDir
+     * @param dependencies   the space separated names of the Java compilation targets that this target depends upon
+     * @param classpath
+     * @param includes
+     * @return the created and installed command
+     */
+    public Command addJNAGenCommand(String baseDir, String dstDir, String dependencies, String classpath, String includes) {
+        File baseDirFile = new File(baseDir);
+        File dstDirFile = null;
+        if (dstDir != null) {
+            dstDirFile = new File(dstDir);
+        }
+
+        ArrayList<String> includesArray = new ArrayList<String>();
+        if (includes != null) {
+            StringTokenizer st = new StringTokenizer(includes);
+            while (st.hasMoreTokens()) {
+                includesArray.add(st.nextToken());
+            }
+        }
+
+        Command command = new JNAGenCommand(this, baseDirFile, dstDirFile, classpath, includesArray);
+
+        if (dependencies == null) {
+            dependencies = baseDirFile.getName(); // always depends on compiling src
+        } else {
+            dependencies = baseDirFile.getName() + " " + dependencies;
+        }
+        command.dependsOn(dependencies);
+        
+        addCommand(command);
+        return command;
+    }
+
     /**
      * Creates and installs a Target.
      *
@@ -297,41 +748,55 @@ public class Build {
      * @return the created and installed command
      */
     public Target addTarget(boolean j2me, String baseDir, String dependencies, String extraClassPath, String extraSourceDirs) {
-        File primarySrcDir = new File (baseDir, "src");
+ //log(true, "addTarget j2me: " + j2me + " baseDir:" + baseDir + " dependencies:" + dependencies + " extraClassPath:" + extraClassPath+ " extraSourceDirs:" + extraSourceDirs);
+        File primarySrcDir = new File(baseDir, "src");
         File[] srcDirs;
         if (extraSourceDirs != null) {
             StringTokenizer st = new StringTokenizer(extraSourceDirs);
             srcDirs = new File[st.countTokens() + 1];
             srcDirs[0] = primarySrcDir;
             for (int i = 1; i != srcDirs.length; ++i) {
-                srcDirs[i] = new File(st.nextToken());
+                srcDirs[i] = new File(baseDir, st.nextToken());
             }
         } else {
             srcDirs = new File[] { primarySrcDir };
         }
 
-        StringBuffer classPathBuffer = new StringBuffer();
-        if (dependencies != null) {
-            StringTokenizer st = new StringTokenizer(dependencies);
-            while (st.hasMoreTokens()) {
-                String dependency = st.nextToken();
-                classPathBuffer.append(dependency).append(File.separatorChar).append("classes");
-                if (st.hasMoreTokens()) {
-                	classPathBuffer.append(File.pathSeparatorChar);
+        StringBuffer extraBuffer = new StringBuffer();
+        if (extraClassPath != null && extraClassPath.length() != 0) {
+            String string = toPlatformPath(extraClassPath, true);
+            StringTokenizer tokenizer = new StringTokenizer(string, File.pathSeparator);
+            while (tokenizer.hasMoreTokens()) {
+                String token = tokenizer.nextToken();
+                File tokenFile = new File(baseDir, token); // check relative to target first
+                if (!tokenFile.exists()) {
+                    tokenFile = new File(token); //  // check relative to current dir
+                }
+                tokenFile = tokenFile.getAbsoluteFile();
+                //log(true, "add extraClassPath: " + tokenFile);
+                extraBuffer.append(tokenFile);
+                if (tokenizer.hasMoreTokens()) {
+                    extraBuffer.append(File.pathSeparatorChar);
                 }
             }
         }
-        if (extraClassPath != null && extraClassPath.length() != 0) {
-        	classPathBuffer.append(File.pathSeparatorChar).append(toPlatformPath(extraClassPath, true));
-        }
-        String classPath;
-        if (classPathBuffer.length() == 0) {
-        	classPath = null;
-        } else {
-        	classPath = classPathBuffer.toString();
-        }
 
-        Target command = new Target(classPath, j2me, baseDir, srcDirs, true, this);
+//        if (dependencies != null) {
+//            StringTokenizer tokenizer = new StringTokenizer(dependencies);
+//            while (tokenizer.hasMoreTokens()) {
+//                String dependency = tokenizer.nextToken();
+//                File classesDir = new File(new File(baseDir, dependency), "classes"); // check relative to target first
+//                if (!classesDir.exists() || !classesDir.isDirectory()) {
+//                     classesDir = new File(dependency, "classes"); // check relative to current dir
+//                }
+//                extraBuffer.append(classesDir);
+//                if (tokenizer.hasMoreTokens()) {
+//                	extraBuffer.append(File.pathSeparatorChar);
+//                }
+//            }
+//        }
+        
+        Target command = new Target(extraBuffer.toString(), j2me, baseDir, srcDirs, true, this, new File(baseDir).getName().toLowerCase());
         if (dependencies != null) {
             command.dependsOn(dependencies);
         }
@@ -365,6 +830,57 @@ public class Build {
     }
 
     /**
+     * Creates and installs a LinkTarget and a run command.
+     *
+     * @param baseDir        the parent directory for primary source directory and the output directory
+     * @param parent         path to the parent suite file
+     * @param dependencies   the space separated names of the LinkTarget commands that this command depends upon
+     * @param extraSuitePath the suitepath to search (beyond "." and baseDir and dependency dirs)
+     * @return the created and installed command
+     */
+    public LinkTarget addLinkTarget(String baseDir, String parent, String dependencies, String extraSuitePath) {
+        String basicName = new File(baseDir).getName();
+        String compileCmdStr = basicName;
+        String suiteCmdStr   = basicName + "-suite";
+        String runCmdStr     = basicName + "-run";
+
+        StringBuffer suitePathBuffer = new StringBuffer(".");
+        suitePathBuffer.append(File.pathSeparatorChar).append(baseDir);
+        if (dependencies != null) {
+            StringTokenizer st = new StringTokenizer(dependencies);
+            while (st.hasMoreTokens()) {
+                String dependency = st.nextToken();
+                File dependencyDir = new File(baseDir, dependency); // check relative to target first
+                if (!dependencyDir.exists() || !dependencyDir.isDirectory()) {
+                    dependencyDir = new File(dependency); // check relative to current dir
+                }
+                if (!dependencyDir.exists() || !dependencyDir.isDirectory()) {
+                    continue; // skip non-directories
+                }
+                suitePathBuffer.append(File.pathSeparatorChar).append(dependencyDir);
+            }
+        }
+        if (extraSuitePath != null && extraSuitePath.length() != 0) {
+            suitePathBuffer.append(File.pathSeparatorChar).append(toPlatformPath(extraSuitePath, true));
+        }
+        
+        String fullSuitePath = suitePathBuffer.toString();
+        LinkTarget suiteCmd = new LinkTarget(baseDir, parent, this, basicName, fullSuitePath);
+        
+        suiteCmd.dependsOn(compileCmdStr); // suite command depends on compile command
+        if (dependencies != null) {
+            suiteCmd.dependsOn(dependencies);
+        }
+        addCommand(suiteCmd);
+        
+        // add run command:
+        Command runCmd = addSquawkCommand(runCmdStr, null, "-suitepath:" + fullSuitePath + " -suite:" + basicName, "", "", "run application in " + basicName);
+        runCmd.dependsOn(suiteCmdStr);// run command depends on suite command
+
+        return suiteCmd;
+    }
+    
+    /**
      * Creates and installs a JavaCommand.
      *
      * @param j2me           compiles for a J2ME platform
@@ -387,6 +903,7 @@ public class Build {
      * @param extraVMArgs String
      * @param mainClassName String
      * @param args String
+     * @param description 
      * @return the created and installed command
      */
     public Command addSquawkCommand(String name, String classPath, String extraVMArgs, String mainClassName, String args, final String description) {
@@ -405,7 +922,6 @@ public class Build {
                 }
                 return super.getDescription();
             }
-
         };
         addCommand(command);
         return command;
@@ -452,40 +968,56 @@ public class Build {
         }
     }
 
-    protected File[] getSiblingBuilderDotPropertiesFiles() {
-    	List<File> dotPropertiesFiles = new ArrayList<File>();
-    	File[] siblingDirs = new File(".").listFiles();
-    	for (File siblingDir: siblingDirs) {
-    		File dotPropertiesFile = new File(siblingDir, "builder.properties");
-    		if (dotPropertiesFile.canRead()) {
-    			dotPropertiesFiles.add(dotPropertiesFile);
-    		}
-    	}
-    	return dotPropertiesFiles.toArray(new File[dotPropertiesFiles.size()]);
+    protected void addSiblingBuilderDotPropertiesFiles(File rootDir, List<File> files) {
+        File[] siblingDirs = rootDir.listFiles();
+        if (siblingDirs == null) {
+            return;
+        }
+        for (File siblingDir : siblingDirs) {
+            File dotPropertiesFile = new File(siblingDir, "builder.properties");
+            if (dotPropertiesFile.canRead()) {
+                log(verbose, "Reading builder.properties: " + dotPropertiesFile.getPath());
+                files.add(dotPropertiesFile);
+            }
+        }
     }
-    
-    protected void processBuilderDotPropertiesFiles(File[] dotPropertiesFiles) {
+
+    protected void processBuilderDotPropertiesFiles(List<File> dotPropertiesFiles) {
     	for (File dotProperties: dotPropertiesFiles) {
     		processBuilderDotPropertiesFile(dotProperties);
     	}
     }
     
+    private HashSet<File> loadedPropertyFiles = new HashSet<File>();
+    
     /**
-     * Installs commands from a properties file.
+     * Installs commands from a properties file or directory.
+     * If dotPropertiesFile is a directory, try to load dotPropertiesFile + "/builder.properties".
      *
-     * @param pluginsFile  the properties file to load from
+     * @param dotPropertiesFile  the properties file to load from
      */
     protected void processBuilderDotPropertiesFile(File dotPropertiesFile) {
+        if (dotPropertiesFile.isDirectory()) {
+            processBuilderDotPropertiesFile(new File(dotPropertiesFile, "builder.properties"));
+            return;
+        } else if (!dotPropertiesFile.exists()) {
+            throw new BuildException("builder properties file doesn't exist: " + dotPropertiesFile);
+        } else if (loadedPropertyFiles.contains(dotPropertiesFile)) {
+            log(verbose, "property file already loaded: " + dotPropertiesFile);
+            return;
+        }
+        
     	log(verbose, "Reading commands from: " + dotPropertiesFile.getPath());
-    	Properties properties = new Properties();
+        loadedPropertyFiles.add(dotPropertiesFile);
+    	Properties savedproperties = new Properties();
     	InputStream in = null;
     	try {
         	in = new FileInputStream(dotPropertiesFile);
-    		properties.load(in);
+    		savedproperties.load(in);
     	} catch (IOException e) {
     	}
     	if (in != null) {
-    		try {in.close();} catch (IOException e) {};
+    		try {in.close();} catch (IOException e) { }
     		in = null;
     	}
     	int propertyIndex = 0;
@@ -494,16 +1026,19 @@ public class Build {
     	HashMap<String, String> attributes = new HashMap<String, String>();
         ClassLoader loader = Build.class.getClassLoader();
         final String classpathKey = "classpath";
-        if (properties.containsKey(classpathKey)) {
-        	String value = properties.getProperty(classpathKey);
-        	properties.remove(classpathKey);
+        if (savedproperties.containsKey(classpathKey)) {
+        	String value = savedproperties.getProperty(classpathKey);
+        	savedproperties.remove(classpathKey);
         	// handle classpath=path1:path2
             URL[] urls = null;
             String[] classpath = Build.toPlatformPath(value, true).split(File.pathSeparator);
             try {
                 urls = new URL[classpath.length];
-                for(int i = 0; i < classpath.length; i++) {
-                    File f = new File (classpath[i]);
+                for (int i = 0; i < classpath.length; i++) {
+                    File f = new File(classpath[i]);
+                    if (!f.isAbsolute()) { // if relative, make absolute based on location on properties file
+                        f = new File(dotPropertiesFile.getParentFile().getAbsoluteFile(), classpath[i]);
+                    }
                     String url = f.getAbsolutePath();
 
                     // Make sure the url class loader recognises directories
@@ -530,20 +1065,20 @@ public class Build {
             };
         }
         // Sort the properties to process them in a decent order
-        ArrayList<String> sortedPropertyNames = new ArrayList<String>(properties.size());
-        for (Enumeration<?> names = properties.propertyNames(); names.hasMoreElements(); ) {
+        ArrayList<String> sortedPropertyNames = new ArrayList<String>(savedproperties.size());
+        for (Enumeration<?> names = savedproperties.propertyNames(); names.hasMoreElements(); ) {
         	sortedPropertyNames.add((String) names.nextElement());
         }
         Collections.sort(sortedPropertyNames);
-    	for (String propertyName: sortedPropertyNames) {
-    		propertyIndex++;
-            String value = properties.getProperty(propertyName);
+        for (String propertyName : sortedPropertyNames) {
+            propertyIndex++;
+            String value = savedproperties.getProperty(propertyName);
             if (propertyName.indexOf('.') == -1) {
-            	// handle command name=command class
+                // handle command name=command class
                 try {
                     Class<?> pluginClass = loader.loadClass(value);
-                    Constructor<?> cons = pluginClass.getConstructor(new Class[] {Build.class});
-                    Command command = (Command)cons.newInstance(new Object[] {this});
+                    Constructor<?> cons = pluginClass.getConstructor(new Class[] { Build.class });
+                    Command command = (Command) cons.newInstance(new Object[] { this });
                     addCommand(command);
                 } catch (InvocationTargetException e) {
                     throw new BuildException("error creating " + value + " plugin: ", e);
@@ -565,7 +1100,7 @@ public class Build {
 		    		String type = tokenizer.nextToken();
 		    		String name = tokenizer.nextToken();
 		    		String attribute = tokenizer.nextToken();
-		    		if (!type.equals(currentType) && !name.equals(currentName)) {
+		    		if (!type.equals(currentType) || !name.equals(currentName)) {
 		    			if (!attributes.isEmpty()) {
 		    				processBuilderDotPropertiesFile(currentType, currentName, dotPropertiesFile, propertyIndex, attributes);
 		    			}
@@ -584,36 +1119,245 @@ public class Build {
     	}
     }
     
+    /**
+     * Convert a space-separated class path into a platform-specific classpath
+     * @param path string of class path elements that may be space separated
+     * @return string of classpath elements that are separated by platforms separated
+     */
+    public String spacesToPath(String path) {
+        if (path == null) {
+            return null;
+        }
+        return path.replace(' ', File.pathSeparatorChar);
+    }
+
     protected void processBuilderDotPropertiesFile(String type, String name, File dotPropertiesFile, int propertyIndex, HashMap<String, String> attributes) {
-		if (type.equals("Target")) {
-			Target target = addTarget(Boolean.valueOf(attributes.get("j2me")), dotPropertiesFile.getParentFile().getName(), attributes.get("dependsOn"), attributes.get("extraClassPath"), attributes.get("extraSourceDirs"));
-			String triggers = attributes.get("triggers");
-			if (triggers != null) {
-				target.triggers(triggers);
-			}
-		} else {
-			throw new BuildException("Unsupported type " + type + " on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
-		}
+        Command cmd = null;
+        String baseDir = dotPropertiesFile.getParentFile().getPath();
+        if (type.equals("Target")) {
+            Target target = addTarget(
+                    Boolean.valueOf(attributes.get("j2me")),
+                    baseDir,
+                    attributes.get("dependsOn"),
+                    spacesToPath(attributes.get("extraClassPath")),
+                    attributes.get("extraSourceDirs"));
+            String extraArgs = attributes.get("extraArgs");
+            if (extraArgs != null) {
+                target.addExtraArg(extraArgs);
+            }
+            target.addCopyJ2meDirs(attributes.get("copyJ2meDirs"));
+            cmd = target;
+        } else if (type.equals("LinkTarget")) {
+            cmd = addLinkTarget(baseDir, attributes.get("parent"), attributes.get("dependsOn"), attributes.get("suitePath"));
+        } else if (type.equals("JNAGen")) {
+            cmd = addJNAGenCommand(baseDir, attributes.get("dstDir"), attributes.get("dependsOn"), attributes.get("classpath"), attributes.get("includes"));
+        } else if (type.equals("JNAGenDirect")) {
+            cmd = addJNAGenDirectCommand(baseDir, attributes.get("dstDir"), attributes.get("dependsOn"), attributes.get("classpath"));
+        } else {
+            throw new BuildException("Unsupported type " + type + " on property at index " + propertyIndex + " in file " + dotPropertiesFile.getPath());
+        }
+        cmd.setBaseDir(dotPropertiesFile.getParentFile());
+        String triggers = attributes.get("triggers");
+        if (triggers != null) {
+            cmd.triggers(triggers);
+        }
+    }
+
+    public static String[] toStringArray(Collection c) {
+        String[] result = new String[c.size()];
+        int i = 0;
+        for (Object o : c) {
+            result[i++] = (String) o;
+        }
+        return result;
     }
     
+    /**
+     * Copy files from sourceRootPath, contained in subPaths, to destinationRootPath.  If any of the files being copy already exist
+     * in siblingRootPath, then ignore it.
+     * 
+     * @param sourceRootPath
+     * @param destinationRootPath
+     * @param siblingRootPath
+     * @param commentOutOverrideAnnotation
+     * @param subPaths
+     */
+    public void copy(String sourceRootPath, String destinationRootPath, String siblingRootPath, String... subPaths) {
+        copy(sourceRootPath, destinationRootPath, siblingRootPath, false, subPaths);
+    }
+    
+    /**
+     * Copy files from sourceRootPath, contained in subPaths, to destinationRootPath.  If any of the files being copy already exist
+     * in siblingRootPath, then ignore it.
+     * 
+     * @param sourceRootPath
+     * @param destinationRootPath
+     * @param siblingRootPath
+     * @param commentOutOverrideAnnotation
+     * @param subPaths
+     */
+    public void copy(String sourceRootPath, String destinationRootPath, String siblingRootPath, boolean commentOutOverrideAnnotation, String... subPaths) {
+        for (String subPath: subPaths) {
+            boolean goDeep = subPath.equals("**");
+            if (goDeep) {
+                subPath = "";
+            }
+            File sourceDir = new File(sourceRootPath, subPath);
+            File[] sourceFiles = sourceDir.listFiles();
+            File destinationDir = new File(destinationRootPath, subPath);
+            boolean didNoCopy = true;
+            File siblingDir = null;
+            if (siblingRootPath != null) {
+                siblingDir = new File(siblingRootPath, subPath);
+            }
+            if (sourceFiles != null) {
+                for (File sourceFile: sourceFiles) {
+                    if (sourceFile.isDirectory()) {
+                        if (goDeep) {
+                            String path = sourceFile.getName();
+                            copy(sourceRootPath + File.separator + path, destinationRootPath + File.separator + path, siblingRootPath + File.separator + path, commentOutOverrideAnnotation, "**");
+                        }
+                        continue;
+                    }
+                    if (siblingDir != null) {
+                        File siblingFile = new File(siblingDir, sourceFile.getName());
+                        if (siblingFile.exists()) {
+                            continue;
+                        }
+                    }
+                    if (didNoCopy) {
+                        mkdir(destinationDir);
+                        didNoCopy = false;
+                    }
+                    File destinationFile = new File(destinationDir, sourceFile.getName());
+                    cp(sourceFile, destinationFile, false, commentOutOverrideAnnotation);
+                }
+            }
+            if (!goDeep && didNoCopy) {
+                throw new RuntimeException("Did not find any entries to copy from: " + sourceDir.getPath());
+            }
+        }
+    }
+    
+    /**
+     * Dynamically make a "user" commmand (either user-suite or user-run)
+     * @param staticCmd 
+     * @param args
+     * @return extra arguemnts to run with...
+     */
+    class UserCommand extends Command {
+
+        final String description;
+        
+        UserCommand(Build env, String name, String description) {
+            super(env, name);
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void usage(String errMsg) {
+            PrintStream out = System.err;
+
+            if (errMsg != null) {
+                out.println(errMsg);
+            }
+            out.println("Usage: " + getName() + " [options] module ");
+            out.println("where module is directory containing a \"src\" directory, and options include:");
+            out.println();
+            out.println("    -parent:<suite_dir>   parent library or module (directory) containing a parent suite");
+            out.println("    -cp:classpath>        classes to compile against");
+            out.println("as well as most romize options. Run 'romize -h' for more details");
+        }
+
+        public void run(String[] args) {
+            int argi = 0;
+            String parent = "";
+            String cp = "-cp:.";
+            Vector<String> extraArgs = new Vector<String>();
+            while ((argi < args.length) && args[argi].startsWith("-")) {
+                if (args[argi].startsWith("-parent:")) {
+                    parent = args[argi].substring("-parent:".length());
+                } else if (args[argi].startsWith("-cp:")) {
+                    cp = args[argi];
+                } else {
+                    extraArgs.add(args[argi]);
+                }
+                argi++;
+            }
+
+            if (argi >= args.length) {
+                throw new CommandException(this, "module not specified");
+            }
+
+            String userBaseDir = args[argi++];
+
+            // collect remaining (non-option) arguments
+            for (int i = argi; i < args.length; i++) {
+                extraArgs.add(args[i]);
+            }
+
+            Command compileCommand = getCommand("user-compile");
+            Vector<String> compileArgs = new Vector<String>();
+            compileArgs.add(cp);
+            if (parent.length() != 0) {
+                compileArgs.add("-parent:" + parent);
+
+            }
+            compileArgs.add(userBaseDir);
+            compileCommand.run(toStringArray(compileArgs));
+
+            String dependency = null;
+            if (parent.length() != 0) {
+                File parentFile = new File(parent);
+                if (parentFile.isDirectory()) {
+                    dependency = parent;
+                    parent = parentFile.getName();
+                }
+            }
+
+            log(brief, "[linking user project at " + userBaseDir + "...]");
+            LinkTarget cmd = addLinkTarget(userBaseDir, parent, dependency, null);
+
+            if (getName().equals("user-suite")) {
+                cmd.run(toStringArray(extraArgs));
+            } else if (getName().equals("user-run")) {
+                String cmdName = cmd.getName();
+                cmd.run(NO_ARGS);
+                cmdName = cmdName.substring(0, cmdName.indexOf("-suite")) + "-run";
+                Command runcmd = env.getCommand(cmdName);
+                runcmd.run(toStringArray(extraArgs));
+            } else {
+                throw new RuntimeException("Dynamic command not found: " + getName());
+            }
+        }
+    }
+
     /**
      * Installs the built-in commands.
      */
     private void installBuiltinCommands() {
-    	
-    	File[] siblingBuilderDotPropertiesFiles = getSiblingBuilderDotPropertiesFiles();
-    	processBuilderDotPropertiesFiles(siblingBuilderDotPropertiesFiles);
+
+//File[] siblingBuilderDotPropertiesFiles = getSiblingBuilderDotPropertiesFiles();
+    	List<File> dotPropertiesFiles = new ArrayList<File>();
+    	addSiblingBuilderDotPropertiesFiles(new File("."), dotPropertiesFiles);
+    	processBuilderDotPropertiesFiles(dotPropertiesFiles);
 
         addGen("OPC",                "cldc/src");
         addGen("OperandStackEffect", "translator/src");
         addGen("Mnemonics",          "translator/src");
         addGen("Verifier",           "translator/src");
         addGen("SwitchDotC",         "vmcore/src");
-
+        
         // Add the "clean" command
         addCommand(new Command(this, "clean") {
             public String getDescription() {
                 return "cleans one or more targets (all targets if no argument is given)";
+            }
+            public void usage(String errMsg) {
+               defaultUsage(" modules*", errMsg);
             }
             public void run(String[] args) {
                 // We do this in order to clean up some references that may still exist to .jar files that may be about to be deleted
@@ -629,7 +1373,7 @@ public class Build {
                         Command cmd = iterator.next();
                         cmd.clean();
                     }
-                    clearFilesMarkedAsSvnIgnore(new File("."), "build.override");
+                    clearFilesMarkedAsSvnIgnore(new File("."));
                     Build.clear(new File("builder", "classes"), true);
                 } else {
                     for (int i = 0; i != args.length; ++i) {
@@ -646,59 +1390,63 @@ public class Build {
 
         // Add the "copyphoneme" command
         addCommand(new Command(this, "copyphoneme") {
+
+            @Override
+            public void clean() {
+                delete(new File("cldc/phoneme"));
+                delete(new File("imp/phoneme"));
+            }
+
             public String getDescription() {
                 return "copies the source code from the phoneME source tree into ours in order to be able to compile cldc and imp";
             }
-            public void copy(String sourceRootPath, String destinationRootPath, String siblingRootPath, String... subPaths) {
-            	for (String subPath: subPaths) {
-            		File sourceDir = new File(sourceRootPath, subPath);
-            		File[] sourceFiles = sourceDir.listFiles();
-            		File destinationDir = new File(destinationRootPath, subPath);
-            		boolean didNoCopy = true;
-            		File siblingDir = new File(siblingRootPath, subPath);
-            		if (sourceFiles != null) {
-	            		for (File sourceFile: sourceFiles) {
-	            			if (sourceFile.isDirectory()) {
-	            				continue;
-	            			}
-	            			File siblingFile = new File(siblingDir, sourceFile.getName());
-	            			if (siblingFile.exists()) {
-	            				continue;
-	            			}
-	            			if (didNoCopy) {
-	                    		mkdir(destinationDir);
-	                    		didNoCopy = false;
-	            			}
-	            			File destinationFile = new File(destinationDir, sourceFile.getName());
-	            			cp(sourceFile, destinationFile, false);
-	            		}
-            		}
-            		if (didNoCopy) {
-            			throw new RuntimeException("Did not find any entries to copy from: " + sourceDir.getPath());
-            		}
-            	}
-            }
-            
+                        
             public void run(String[] args) {
-            	delete(new File("cldc/phoneme"));
-            	delete(new File("imp/phoneme"));
+                if (args.length != 0) {
+                    throw new CommandException(this, "too many arguemnts");
+                }
 //			When I remove the phoneme source from our source tree
 //            	String phoneMeSourceRoot = "../phoneme/";
             	String phoneMeSourceRoot = "phoneme/";
-            	copy(phoneMeSourceRoot + "cldc/src/javaapi/cldc1.1", "cldc/phoneme", "cldc/src", "java/io", "java/lang", "java/lang/ref", "java/util", "javax/microedition/io");
+            	copy(phoneMeSourceRoot + "cldc/src/javaapi/cldc1.1", "cldc/phoneme", "cldc/src", "java/io", "java/lang", "java/lang/ref", "java/util", "javax/microedition/io", "com/sun/cldc/io");
             	copy(phoneMeSourceRoot + "midp/src/core/javautil/classes", "cldc/phoneme", "cldc/src", "java/lang");
             	copy(phoneMeSourceRoot + "midp/src/core/javautil/reference/classes", "cldc/phoneme", "cldc/src", "java/lang");
             	copy(phoneMeSourceRoot + "midp/src/core/javautil/classes", "imp/phoneme", "imp/src", "java/util");
             	copy(phoneMeSourceRoot + "midp/src/core/javautil/reference/classes", "imp/phoneme", "imp/src", "java/util");
-            	// copy(phoneMeSourceRoot + "midp/src/core/javautil/reference/classes", "imp/phoneme", "imp/src", "com/sun/midp/util/DateParser.java");
-                cp(new File(phoneMeSourceRoot + "midp/src/core/javautil/reference/classes", "com/sun/midp/util/DateParser.java"), new File("imp/phoneme", "com/sun/midp/util/DateParser.java"), false);
-
+            	
             	copy(phoneMeSourceRoot + "midp/src/protocol/http/classes", "imp/phoneme", "imp/src", "javax/microedition/io");
-            	copy(phoneMeSourceRoot + "midp/src/ams/ams_api/reference/classes", "imp/phoneme", "imp/src", "javax/microedition/midlet");
+            	cp(new File(phoneMeSourceRoot + "midp/src/ams/ams_api/reference/classes", "javax/microedition/midlet/MIDletStateChangeException.java"), new File("imp/phoneme", "javax/microedition/midlet/MIDletStateChangeException.java"), false);
+            	cp(new File(phoneMeSourceRoot + "midp/src/ams/ams_api/reference/classes", "javax/microedition/midlet/package.html"),                    new File("imp/phoneme", "javax/microedition/midlet/package.html"), false);
             	cp(new File(phoneMeSourceRoot + "midp/src/ams/ams_api/reference/classes", "com/sun/midp/midlet/MIDletTunnel.java"), new File("imp/phoneme", "com/sun/midp/midlet/MIDletTunnel.java"), false);
             	copy(phoneMeSourceRoot + "midp/src/rms/rms_api/classes", "imp/phoneme", "imp/src", "javax/microedition/rms");
             	copy(phoneMeSourceRoot + "midp/src/rms/rms_api/reference/classes", "imp/phoneme", "imp/src", "javax/microedition/rms");
             	copy(phoneMeSourceRoot + "midp/src/rms/rms_exc/reference/classes", "imp/phoneme", "imp/src", "javax/microedition/rms");
+            }
+        });
+
+        // Add the "copyjavacard3" command
+        addCommand(new Command(this, "copyjavacard3") {
+            public String getDescription() {
+                return "copies the source code from the javacard3 source tree into ours in order to be able to compile it to run on Squawk";
+            }
+            
+            public void run(String[] args) {
+                File sdkSource = new File("../api/sdk-src");
+                delete(sdkSource);
+                sdkSource.mkdirs();
+                File sdkLib = new File("../api/sdk-lib");
+                delete(sdkLib);
+                sdkLib.mkdirs();
+                File cryptoLib = new File(sdkLib, "crypto");
+                cryptoLib.mkdirs();
+                String sourceRoot = "../bundles/sdk/src/";
+                copy(sourceRoot + "api", sdkSource.getPath(), "../api/src", true, "**");
+                extractJar(new File("../bundles/sdk/src/crypto.jar"), cryptoLib);
+                retroweave(sdkLib, cryptoLib);
+                boolean success = new File(sdkLib, "weaved").renameTo(new File(sdkLib, "crypto-weaved"));
+                if (!success) {
+                    throw new BuildException("Failed to rename dir");
+                }
             }
         });
 
@@ -717,23 +1465,23 @@ public class Build {
             setDescription("generates the Squawk bytecode specification in doc/spec");
 
         // Add the "romize" command
-        addJavaCommand("romize", "hosted-support/classes:romizer/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.Romizer", "romizer").
+        addJavaCommand("romize", "hosted-support/classes.jar:romizer/classes.jar:cldc/classes.jar:translator/classes.jar", false, "", "com.sun.squawk.Romizer", "romizer").
             setDescription("processes a number of classes to produce a .suite file");
 
         // Add the "traceviewer" command
-        addJavaCommand("traceviewer", "hosted-support/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.traces.TraceViewer", "hosted-support").
+        addJavaCommand("traceviewer", "hosted-support/classes:mapper/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.traces.TraceViewer", "mapper").
             setDescription("the Squawk VM execution trace GUI viewer");
 
         // Add the "profileviewer" command
-        addJavaCommand("profileviewer", "hosted-support/classes:cldc/classes", false, "", "com.sun.squawk.traces.ProfileViewer", "hosted-support").
+        addJavaCommand("profileviewer", "hosted-support/classes:mapper/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.traces.ProfileViewer", "mapper").
             setDescription("the Squawk VM execution profile GUI viewer");
 
         // Add the "gctf" command
-        addJavaCommand("gctf", "hosted-support/classes:cldc/classes", false, "", "com.sun.squawk.traces.GCTraceFilter", "hosted-support").
+        addJavaCommand("gctf", "hosted-support/classes:mapper/classes:cldc/classes", false, "", "com.sun.squawk.traces.GCTraceFilter", "mapper").
             setDescription("filter that converts method addresses in a garbage collector trace to signatures");
 
         // Add the "ht2html" command
-        addJavaCommand("ht2html", "hosted-support/classes:cldc/classes", false, "", "com.sun.squawk.ht2html.Main", "hosted-support").
+        addJavaCommand("ht2html", "hosted-support/classes:mapper/classes:cldc/classes", false, "", "com.sun.squawk.ht2html.Main", "mapper").
             setDescription("converts a heap trace to a set of HTML files");
 
         // Add the "rom" command
@@ -769,6 +1517,10 @@ public class Build {
         addJavaCommand("omfconv", "hosted-support/classes:mapper/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.ObjectMemoryFileEndianessConverter", "mapper").
             setDescription("object memory file endianess converter");
 
+        // Add the "flashconv" command
+        addJavaCommand("flashconv", "hosted-support/classes:mapper/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.suiteconverter.FlashConverter", "mapper").
+            setDescription("object memory file endianess converter");
+
         // Add the "sdproxy" command
         addJavaCommand("sdproxy", "romizer/classes:hosted-support/classes:debugger/classes:debugger-proxy/classes:cldc/classes:translator/classes", false, "", "com.sun.squawk.debugger.sdp.SDP", "debugger-proxy").
             setDescription("Debugger proxy for translating between Squawk VM and normal JDPA debuggers");
@@ -795,6 +1547,9 @@ public class Build {
 
         // Add the "comp_test" command
         addCommand(new Command(this, "comp_test") {  // compiler test: run only 1 test
+            public void usage(String errMsg) {
+               defaultUsage(" test", errMsg);
+            }
             public void run(String[] args) {
                 System.out.println("Running compiler test ");
                 String testName = "com.sun.squawk.compiler.tests." + args[0];
@@ -811,35 +1566,8 @@ public class Build {
             }
         });
 
-
-        // Add "vm2c" target
-        URL toolsJarURL;
-        try {
-        	toolsJarURL = Launcher.getToolsJar();
-        } catch (MalformedURLException e) {
-        	throw new BuildException("Problems finding tools.jar", e);
-        }
-        String toolsJarPathEntry;
-        String toolsJarPath;
-        if (toolsJarURL == null) {
-        	toolsJarPath = "";
-        	toolsJarPathEntry = "";
-        } else {
-            File f;
-            try {
-                f = new File(toolsJarURL.toURI());
-            } catch(URISyntaxException e) {
-                f = new File(toolsJarURL.getPath());
-            }
-            toolsJarPath = f.getPath();
-            toolsJarPathEntry = toolsJarPath + File.pathSeparator;
-        }
-        System.out.println("For vm2c tools.jar=" + toolsJarPath);
-        Target vm2c = addTarget(false,  "vm2c", null, toolsJarPath);
-        vm2c.version = "1.5";
-
         // Add "runvm2c" target
-        addJavaCommand("runvm2c", toolsJarPathEntry + "vm2c/classes:cldc/classes", false, "", "com.sun.squawk.vm2c.Main", "vm2c").
+        addJavaCommand("runvm2c", "vm2c/classes:cldc/classes", false, "-Xbootclasspath/p:vm2c/lib/openjdk-javac-6-b12.jar", "com.sun.squawk.vm2c.Main", "vm2c").
         	setDescription("runs the VM Java source file to C converter");
         
         // Add the "user-compile" command
@@ -847,102 +1575,89 @@ public class Build {
             public String getDescription() {
                 return "compile a user-project";
             }
+            
+            public void usage(String errMsg) {
+                PrintStream out = System.err;
+
+                if (errMsg != null) {
+                    out.println(errMsg);
+                }
+                out.println("Usage: user-compile [options] module ");
+                out.println("where module is directory containing a \"src\" directory, and options include:");
+                out.println();
+                out.println("    -cp:<classpath>        classes to compile against");
+                out.println("    -parent:<parentdir>    module that this module depends on");
+            }
+                        
             public void run(String[] args) {
                 int argi = 0;
                 String cp = "";
+                String parent = null;
                 while (args[argi].startsWith("-")) {
                     if (args[argi].startsWith("-cp:")) {
                         cp = args[argi].substring("-cp:".length());
+                    } else if (args[argi].startsWith("-parent:")) {
+                        parent = args[argi].substring("-parent:".length());
                     } else {
-                        throw new BuildException("malformed option " + args[argi]);
+                    	throw new CommandException(this, "malformed option " + args[argi]);
                     }
                     argi++;
                 }
                 String userBaseDir = args[argi];
-                System.out.println("Compiling user project at " + userBaseDir);
+                log(brief, "[compiling user project at " + userBaseDir + "...]");
                 
-                Target compileTarget = addTarget(true, userBaseDir, "cldc imp", cp);
+                String dependencies =  "cldc imp";
+                if (parent != null) {
+                    dependencies = dependencies + " " + parent;
+                }
+                log(verbose, "[    dependencies=" + dependencies + " cp=" + cp +" ...]");
+
+                Target compileTarget = addTarget(true, userBaseDir, dependencies, cp);
                 compileTarget.run(NO_ARGS);
             }
         });
         
+        // Add the "JNAGen" command
+        addCommand(new JNAGenCommand(this));
+                
         // Add the "user-suite" command
-        addCommand(new Command(this, "user-suite") {
-            public String getDescription() {
-                return "link a user-project";
-            }
-            public void run(String[] args) {
-                int argi = 0;
-                String parent = "";
-                String cp = "-cp:.";
-                while (args[argi].startsWith("-")) {
-                    if (args[argi].startsWith("-parent:")) {
-                        parent = args[argi].substring("-parent:".length());
-                    } if (args[argi].startsWith("-cp:")) {
-                        cp = args[argi];
-                    } else {
-                        throw new BuildException("malformed option " + args[argi]);
-                    }
-                    argi++;
-                }
-               String squawkDir = args[argi];
-                String userBaseDir = args[argi];
-                String userModule = new File(userBaseDir).getName();
-                Command compileCommand = getCommand("user-compile");
-                String[] cmpArgs = new String[2];
-                cmpArgs[0] = cp;
-                cmpArgs[1] = userBaseDir;
-                compileCommand.run(cmpArgs);
-                
-                String suitepath = "";
-                try {
-                    suitepath =  new File(".").getCanonicalPath()  + ":" +  new File(userBaseDir).getCanonicalPath();
-                } catch (IOException e) {
-                    System.out.println("Bad suite path for " + userBaseDir);
-                    System.out.println(e);
-                }
-                if (parent.length() != 0) {
-                    suitepath = suitepath + ":" + parent;
-                }
-                System.out.println("linking user project at " + userBaseDir);
-                
-                Command romize = getCommand("romize");
-                String jarfile = userBaseDir+"/j2meclasses";
-                String[] rargs = new String[9];
-                rargs[0] ="-cp:" + jarfile;
-                 rargs[1] = "-suitepath:" + suitepath;
-                 rargs[2] = "-boot:squawk";
-                if (parent.length() == 0) {
-                    rargs[3] = "-metadata"; // dummay arg
-                } else {
-                    rargs[3] = "-parent:" + parent + "/" + parent;
-                }
-                rargs[4] = "-o:" + userBaseDir + "/" + userModule;
-                rargs[5] = "-v";
-                rargs[6] = "-metadata";
-                rargs[7] = userBaseDir + "/j2meclasses";
-                rargs[8] = userBaseDir + "/res";
-                romize.run(rargs);
-            }
-        });
+        addCommand(new UserCommand(this, "user-suite", "link a user-project"));
+        
+        // Add the "user-run" command
+        addCommand(new UserCommand(this, "user-run", "run a user-project"));
         
         // Add the "user-clean" command
         addCommand(new Command(this, "user-clean") {
             public String getDescription() {
                 return "clean a user-project";
             }
+
+            public void usage(String errMsg) {
+                if (errMsg != null) {
+                    System.err.println(errMsg);
+                }
+                System.err.println("Usage: user-clean module ");
+                System.err.println("where module is directory containing a \"src\" directory");
+            }
+                        
             public void run(String[] args) {
+                if (args.length < 1) {
+                    throw new CommandException(this, "module not specified");
+                } else if (args[0].indexOf('-') == 0) {
+                    throw new CommandException(this, "no options allowed for user-clean");
+                }
                 String userBaseDir = args[0];
-                System.out.println("Cleaning user project at " + userBaseDir);
+                log(brief, "[cleaning user project at " + userBaseDir + ']');
                 
-                Target compileTarget = addTarget(true, userBaseDir, "cldc imp");
+                Target compileTarget = addTarget(true, userBaseDir, "");
                 compileTarget.clean();
-                Build.delete(new File(userBaseDir, userBaseDir + ".suite"));
-                Build.delete(new File(userBaseDir, userBaseDir + ".suite.api"));
-                Build.delete(new File(userBaseDir, userBaseDir + ".suite.metadata"));
-                Build.delete(new File(userBaseDir, userBaseDir + ".sym"));
+                Command cmd = addLinkTarget(userBaseDir, null, userBaseDir, null);
+                cmd.clean();
             }
         });
+        
+        // Add the "uei" command
+        addCommand(new UEICommand(this));
                
     }
 
@@ -953,7 +1668,21 @@ public class Build {
      * @return the command registered with the given name or null if there is no such command
      */
     public Command getCommand(String name) {
-        return (Command)commands.get(name);
+        return commands.get(name);
+    }
+
+    /**
+     * Gets the command with a given name.
+     *
+     * @param name   the name of the command to get
+     * @return the command registered with the given name or null if there is no such command
+     */
+    public Command getCommandForced(String name) {
+        Command command = commands.get(name);
+        if (command == null) {
+            throw new BuildException("command not found: " + name);
+        }
+        return command;
     }
 
     /**
@@ -965,10 +1694,9 @@ public class Build {
      */
     public void runCommand(final String name, String[] args) {
         if (name.equals("<all>")) {
-            for (Iterator iterator = commands.values().iterator(); iterator.hasNext();) {
-                Object target = iterator.next();
-                if (target instanceof Target) {
-                    run((Target)target, NO_ARGS);
+            for (Command command: commands.values()) {
+                if (command instanceof Target) {
+                    run((Target) command, NO_ARGS);
                 }
             }
             runCommand("squawk.jar", NO_ARGS);
@@ -984,24 +1712,33 @@ public class Build {
     /**
      * Runs a command. The dependencies of the command are run first if {@link #checkDependencies} is <code>true</code>.
      * The command will not be run if <code>hasBeenRun(command) == true</code>.
+     * 
+     * Handles the -h -help command for all commands
      *
      * @param command  the command to run
      * @param args     its arguments
      */
     public void run(Command command, String[] args) {
+        if (args.length == 1 && ("-h".equals(args[0]) || "-help".equals(args[0]))) {
+            command.usage(null);
+            return;
+        }
+        
         if (checkDependencies) {
-            for (Iterator iterator = command.getDependencies(); iterator.hasNext(); ) {
-                Command dependency = (Command)iterator.next();
-                if (!runSet.contains(dependency)) {
+            for (String dependencyName: command.getDependencyNames()) {
+                Command dependency = getCommandForced(dependencyName);
+                if (!hasBeenRun(dependency, NO_ARGS)) {
                     run(dependency, NO_ARGS);
                 }
             }
         }
-        if (!runSet.contains(command)) {
+        if (!hasBeenRun(command, args)) {
             if (command instanceof Target) {
                 log(brief, "[building " + command.getName() + "...]");
             } else if (command instanceof GeneratorCommand) {
                 log(info, "[generating " + command.getName() + "...]");
+            } else if (command instanceof LinkTarget) {
+                log(info, "[linking " + command.getName() + "...]");
             } else {
                 log(brief, "[running " + command.getName() + "...]");
             }
@@ -1010,23 +1747,60 @@ public class Build {
             	for (int i=0; i < args.length; i++) {
                 	log(info, "  arg[" + i +"]: " + args[i]);
             	}
-            	log(info, "  description: " + command.getDescription());
             }
-            command.run(args);
-            runSet.add(command);
+            try {
+                command.run(args);
+            } catch (CommandException e) {
+                System.err.print("Error in arguments to " + command.getName() + ". ");
+                command.usage(e.getMessage());
+                throw e;
+            } catch (RuntimeException e) {
+                System.err.println("Exception while running command " + command);
+                throw e;
+            }
+            rememberRun(command, args);
 
-            for (Iterator iterator = command.getTriggeredCommands(); iterator.hasNext(); ) {
-                Command triggeredCommand = (Command)iterator.next();
+            for (String triggeredCommandName: command.getTriggeredCommandNames()) {
+                Command triggeredCommand = getCommandForced(triggeredCommandName);
                 run(triggeredCommand, NO_ARGS);
             }
+        }
+    }
 
+    private boolean isWantingPpcCompilerOnMac;
+
+    /**
+     * Record of command that has been run
+     */
+    static class CommandRun {
+        final Command command;
+        final String[] args;
+        final int cachedHash;
+
+        CommandRun(Command command, String[] args) {
+            this.command = command;
+            this.args = args;
+            this.cachedHash = command.hashCode() + Arrays.hashCode(args);
+        }
+
+        @Override
+        public int hashCode() {
+            return cachedHash;
+        }
+
+        public boolean equals(Object obj) {
+            if (obj instanceof CommandRun) {
+                CommandRun b = (CommandRun)obj;
+                return this.command.equals(b.command) && Arrays.equals(this.args, b.args);
+            }
+            return false;
         }
     }
 
     /**
      * The set of commands that have been run.
      */
-    private final Set<Command> runSet = new HashSet<Command>();
+    private Set<CommandRun> runSet = new HashSet<CommandRun>();
 
     /**
      * Clears the set of commands that have been run.
@@ -1041,8 +1815,17 @@ public class Build {
      * @param command   the command to test
      * @return true if <code>command</code> has not been run since the last call to {@link #clearRunSet}.
      */
-    public boolean hasBeenRun(Command command) {
-        return runSet.contains(command);
+    public boolean hasBeenRun(Command command, String[] args) {
+        return runSet.contains(new CommandRun(command, args));
+    }
+
+    /**
+     * Determines if a given command has been run.
+     *
+     * @param command   the command to remember
+     */
+    public void rememberRun(Command command, String[] args) {
+        runSet.add(new CommandRun(command, args));
     }
 
     public static final String[] NO_ARGS = {};
@@ -1109,6 +1892,7 @@ public class Build {
      *    normal. To me it looks like a bug, but, anyway, I am taking measure here.
      *
      * @param path the path to fix
+     * @return fixed URL
      */
     public String fixURL(String path) {
         if (getPlatform() instanceof Windows_X86) {
@@ -1261,7 +2045,7 @@ public class Build {
                     throw new BuildException("cannot remove file/directory " + file.getPath());
                 }
                 return true;
-    		};
+    		}
     	}).run(file);
     }
 
@@ -1303,25 +2087,26 @@ public class Build {
      * @throws BuildException if the <code>dir</code> is a file or clearing did not succeed
      */
     public static void clearFilesMarkedAsSvnIgnore(final File dir, String... except) throws BuildException {
-    	if (!dir.exists()) {
-    		return;
-    	}
+        if (!dir.exists()) {
+            return;
+        }
         if (!dir.isDirectory()) {
             throw new BuildException("cannot clear non-directory " + dir.getPath());
         }
-        List<File> ignoreEntries = SvnUtil.getIgnoreEntries(new File("."));
-        for (File file: ignoreEntries) {
-        	String name = file.getName();
-        	boolean delete = true;
-	        for (String doNotDeleteName: except) {
-	        	if (name.equals(doNotDeleteName)) {
-	        		delete = false;
-	        		break;
-	        	}
-	        }
-	        if (delete) {
-	        	delete(file);
-	        }
+        List<File> ignoreEntries = SvnUtil.getIgnoreEntries(dir);
+        ignoreEntries.remove(new File("./.hg"));
+        for (File file : ignoreEntries) {
+            String name = file.getName();
+            boolean delete = true;
+            for (String doNotDeleteName : except) {
+                if (name.equals(doNotDeleteName)) {
+                    delete = false;
+                    break;
+                }
+            }
+            if (delete) {
+                delete(file);
+            }
         }
     }
 
@@ -1334,17 +2119,48 @@ public class Build {
      * @throws BuildException if the copy failed
      */
     public static void cp(File from, File to, boolean append) {
+        cp(from, to, append, false);
+    }
+    
+    /**
+     * Copies a file. The parent directory of <code>to</code> is created if it doesn't exist.
+     *
+     * @param from    the source file
+     * @param to      the destination file
+     * @param append  if true, the content of <code>from</code> is appended to <code>to</code>
+     * @throws BuildException if the copy failed
+     */
+    public static void cp(File from, File to, boolean append, boolean commentOutOverrideAnnotation) {
         File toFileDir = to.getParentFile();
         mkdir(toFileDir);
         try {
-            DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(from)));
-            OutputStream os = new BufferedOutputStream(new FileOutputStream(to, append));
+            if (commentOutOverrideAnnotation) {
+                BufferedInputStream input = new BufferedInputStream(new FileInputStream(from));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(to, append));
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output));
 
-            byte[] content = new byte[(int)from.length()];
-            dis.readFully(content);
-            os.write(content);
-            dis.close();
-            os.close();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    int index = line.indexOf("@Override");
+                    if (index != -1) {
+                        line = line.substring(0, index -1) + "//" + line.substring(index);
+                    }
+                    writer.write(line);
+                    writer.newLine();
+                }
+                try {writer.close();} catch (IOException e) {}
+                try {reader.close();} catch (IOException e) {}
+            } else {
+                DataInputStream input = new DataInputStream(new BufferedInputStream(new FileInputStream(from)));
+                OutputStream output = new BufferedOutputStream(new FileOutputStream(to, append));
+
+                byte[] content = new byte[(int)from.length()];
+                input.readFully(content);
+                output.write(content);
+                try {input.close();} catch (IOException e) {}
+                try {output.close();} catch (IOException e) {}
+            }
         } catch (FileNotFoundException ex) {
             throw new BuildException("copying " + from + " to " + to + " failed", ex);
         } catch (IOException ex) {
@@ -1386,13 +2202,14 @@ public class Build {
 
     /**
      * Creates an instance of the builder.
+     * @param buildDotOverrideFileName the name of any file that overrides builder properties
      */
     public Build(String buildDotOverrideFileName) {
         File defaultProperties = new File("build.properties");
         if (defaultProperties.exists()) {
             properties = loadProperties(defaultProperties, null);
             if (buildDotOverrideFileName == null) {
-            	buildDotOverrideFileName = "build.override";
+                buildDotOverrideFileName = "build.override";
             } else {
                 specfifiedBuildDotOverrideFileName = buildDotOverrideFileName;
             }
@@ -1407,22 +2224,23 @@ public class Build {
         } else {
             throw new BuildException("could not find build.properties");
         }
-
+        dynamicProperties = new Properties();
         platform = Platform.createPlatform(this);
-        ccompiler = platform.createDefaultCCompiler();
-        jdk = new JDK(platform.getExecutableExtension());
+        // target ccompiler set later...
+        jdk = new JDK(platform);
         preprocessor = new Preprocessor();
         preprocessor.properties = properties;
         macroizer = new Macroizer();
         installBuiltinCommands();
         javaCompiler = new JavaCompiler(this);
+        isJava5SyntaxSupported = false;
+        if (getProperty("JAVA5SYNTAX") != null) {
+            isJava5SyntaxSupported = getBooleanProperty("JAVA5SYNTAX");
+        }
     }
-
-
+    
     /**
      * Prints some information describing the builder's configuration.
-     *
-     * @param out  where to print
      */
     private void printConfiguration() {
 
@@ -1435,10 +2253,15 @@ public class Build {
 
         if (verbose) {
             log(info, "Builder properties:");
-            Enumeration keys = properties.propertyNames();
-            while (keys.hasMoreElements()) {
-                String name = (String)keys.nextElement();
-                log(info, "    " + name + '=' + properties.getProperty(name));
+            ArrayList<?> keys = Collections.list(properties.propertyNames());
+            Collections.sort(keys, new Comparator<Object>() {
+				@Override
+				public int compare(Object o1, Object o2) {
+					return ((String) o1).compareToIgnoreCase((String) o2);
+				}
+			});
+            for (Object name: keys) {
+                log(info, "    " + name + '=' + properties.get(name));
             }
         }
     }
@@ -1458,9 +2281,18 @@ public class Build {
 		        String[] newArgs = new String[args.length - 1];
 		        System.arraycopy(args, 1, newArgs, 0, newArgs.length);
 		        args = newArgs;
-	        }
+	        } else if (arg.startsWith("-override")) {
+                if (args.length == 1) {
+                    throw new BuildException("Did not specify override file name for -override");
+                }
+                buildDotOverrideFileName = args[1];
+                String[] newArgs = new String[args.length - 2];
+                System.arraycopy(args, 2, newArgs, 0, newArgs.length);
+                args = newArgs;
+            }
         }
         Build builder = new Build(buildDotOverrideFileName);
+        System.out.println("Platform: " + builder.platform);
         try {
             builder.mainProgrammatic(args);
             System.out.println("Total time: " + ((System.currentTimeMillis() - start) / 1000) + "s");
@@ -1477,6 +2309,10 @@ public class Build {
                 }
             }
             System.exit(e.exitValue);
+        } catch (RuntimeException e) {
+            System.err.println("build failed with unexpected runtime exception:");
+            e.printStackTrace();
+            System.exit(-1);
         }
     }
 
@@ -1486,7 +2322,14 @@ public class Build {
      * @param args  the equivalent to the command line arguments
      */
     public void mainProgrammatic(String... args) {
-        args = extractBuilderArgs(args);
+        int startArgsIndex = 0;
+        if (args != null && args.length > 0) {
+            String arg = args[0];
+            if (arg.startsWith("-override:")) {
+                startArgsIndex++;
+            }
+        }
+        args = extractBuilderArgs(args, startArgsIndex);
         printConfiguration();
 
         String name = args[0];
@@ -1505,11 +2348,10 @@ public class Build {
      * Lists the builder's commands.
      */
     private void listCommands(boolean javaCompilationCommands, PrintStream out) {
-        for (Iterator iterator = commands.entrySet().iterator(); iterator.hasNext();) {
-            Map.Entry entry = (Map.Entry)iterator.next();
-            Command c = (Command)entry.getValue();
+        for (Map.Entry<String, Command> entry: commands.entrySet()) {
+            Command c = entry.getValue();
             if (javaCompilationCommands == (c instanceof Target)) {
-                String name = (String)entry.getKey();
+                String name = entry.getKey();
                 while (name.length() < 19) {
                     name += ' ';
                 }
@@ -1543,7 +2385,8 @@ public class Build {
         out.println("    -64                 build for a 64 bit system");
         out.println("    -nodeps             do not check dependencies (default for commands)");
         out.println("    -deps               check dependencies (default for targets)");
-        out.println("    -plugins:<file>     load commands from properties in 'file'");
+        out.println("    -plugins:<file_dir> load commands from properties in 'file', or from 'dir'/builder.properties");
+        out.println("    -override <file>");
         out.println("    -override:<file>    file to use to override the build.properties file found locally, defaults to build.override");
         out.println("                        MUST BE SPECIFIED AS FIRST BUILD-OPTION");
         out.println("    -D<name>=<value>    sets a builder property");
@@ -1552,7 +2395,6 @@ public class Build {
         out.println("--- Options only applying to targets ---");
         out.println();
         out.println("    -javac:<opts>       extra javac options (e.g. '-javac:-g:none')");
-        out.println("    -nojavamake         do not use javamake for compilation");
         out.println("    -doccheck           run javadoc checker after compilation");
         out.println("    -javadoc            generate complete javadoc after compilation");
         out.println("    -javadoc:api        generate API javadoc after compilation");
@@ -1576,6 +2418,7 @@ public class Build {
         out.println("    -profiling          enable profiling in the VM");
         out.println("    -assume             enable assertions in the VM");
         out.println("    -typemap            enable type checking in the VM");
+        out.println("    -ppccompiler        Hack to make Mac OS X Intel create a ppc arch exe");
         out.println();
         out.println();
         out.println();
@@ -1584,6 +2427,8 @@ public class Build {
         out.println();
         out.println("The supported commands are:");
         listCommands(false, out);
+        out.println();
+        out.println("All commands support a help option \"-h\"");
         out.println();
         out.println("If no command or target is given then all targets are brought up to date.");
     }
@@ -1598,11 +2443,11 @@ public class Build {
      */
     private Properties loadProperties(File file, Properties defaults) throws BuildException {
         try {
-            Properties properties;
+            Properties result;
             if (defaults == null) {
-                properties = new SubstitutionProperties();
+                result = new SubstitutionProperties();
             } else {
-                properties = new SubstitutionProperties(defaults) {
+                result = new SubstitutionProperties(defaults) {
                     private static final long serialVersionUID = 6268985530668173269L;
 
                     public Object put(Object key, Object value) {
@@ -1616,7 +2461,7 @@ public class Build {
             }
             FileInputStream inputStream =  new FileInputStream(file);
             try {
-                properties.load(inputStream);
+                result.load(inputStream);
             } finally {
                 inputStream.close();
             }
@@ -1624,7 +2469,7 @@ public class Build {
             if (file.lastModified() > propertiesLastModified) {
                 propertiesLastModified = file.lastModified();
             }
-            return properties;
+            return result;
         } catch (IOException e) {
             throw new BuildException("error loading properties from " + file, e);
         }
@@ -1637,7 +2482,8 @@ public class Build {
      * @param name  the name of the new C compiler to use
      */
     private void updateCCompiler(String name) {
-        CCompiler.Options options = ccompiler.options;
+        // CCompiler.Options options = ccompiler.options;
+        log(info, "Build.updateCCompiler(" + name + ")");
         if (name.equals("msc")) {
             ccompiler = new MscCompiler(this, platform);
         } else if (name.equals("gcc")) {
@@ -1646,12 +2492,15 @@ public class Build {
             ccompiler = new GccMacOSXCompiler(this, platform);
         } else if (name.equals("cc")) {
             ccompiler = new CcCompiler(this, platform);
+        } else if (name.equals("vxworks")) {
+            ccompiler = new GccVxWorksPPCCompiler(this, new VxWorks_PPC(this));
         } else {
             System.out.println("Unknown C compiler '" + name + "' - C compilation disabled");
             ccompiler = null;
             return;
         }
-        ccompiler.options = options;
+        log(info, "  new compiler=" + ccompiler.name);
+        // ccompiler.options = options;
     }
 
     /**
@@ -1660,26 +2509,46 @@ public class Build {
      *
      * @param name    the property's name
      * @param value   the property's new value
-     * @return isBooleanProperty specifies if this is a boolean property
+     * @param isBooleanProperty specifies if this is a boolean property
      */
-    private void updateProperty(String name, String value, boolean isBooleanProperty) {
-        String old = isBooleanProperty ? properties.getProperty(name, "true") : properties.getProperty(name);
+    private void updateProperty(String name, String value, boolean derivedProperty) {
+        String old = properties.getProperty(name);
         if (!value.equals(old)) {
             properties.setProperty(name, value);
-            propertiesLastModified = System.currentTimeMillis();
-            log(verbose, "[build properties updated]");
+            if (!derivedProperty) {
+                propertiesLastModified = System.currentTimeMillis();
+            }
+            log(verbose, "[build properties updated - " + name + "=" + value + "]");
         }
+        dynamicProperties.setProperty(name, value); // record these for later use...
     }
 
     /**
-     * Determines if a boolean property has the value "true". The value is implicitly
-     * true if it does not have an explicit value.
+     * Updates one of the build properties and updates the {@link propertiesLastModified} field
+     * if the new value differs from the old value.
+     *
+     * @param name    the property's name
+     * @param value   the property's new value
+     * @param isBooleanProperty specifies if this is a boolean property
+     */
+    private void updateProperty(String name, String value) {
+        updateProperty(name, value, false);
+    }
+
+    /**
+     * Determines if a boolean property has the value "true". The value must be "true" or "false" or
+     * a BuildException is thrown.
      *
      * @param name  the property's name
      * @return true if the property is true
      */
     public boolean getBooleanProperty(String name) {
-        return properties.getProperty(name, "true").equals("true");
+        String value = properties.getProperty(name);
+        if (value == null ||
+                (!value.equals("true") && !value.equals("false"))) {
+            throw new BuildException("Property '" + name + "' must be set to true or false");
+        }
+        return value.equals("true");
     }
 
     /**
@@ -1693,18 +2562,53 @@ public class Build {
     }
 
     /**
+     * Test to see if the given platform property is set.
+     * Set the value of all of the derived platform properties.
+     * 
+     * @param platformOption
+     */
+    private void tryPlatformType(CCompiler.Options cOptions, String platformOption) {
+        String derivedPropName = "PLATFORM_TYPE_" + platformOption;
+        if (getProperty("PLATFORM_TYPE").equals(platformOption)) {
+            if (cOptions.platformType != null) {
+                throw new BuildException("platform type already set to " + cOptions.platformType);
+            }
+            cOptions.platformType = platformOption;
+            cOptions.cflags += " -D" + derivedPropName + "=1";
+            updateProperty(derivedPropName, "true", true);
+            System.out.println("PLATFORM_TYPE=" + platformOption);
+        } else {
+            updateProperty(derivedPropName, "false", true);
+        }
+    }
+
+    /**
+     * Given the value of the GC property, define a derived
+     */
+    private void tryGCProperty(String collectorName) {
+        String derivedPropName = "GC_" + collectorName;
+        if (getProperty("GC").equals(collectorName)) {
+            updateProperty(derivedPropName, "true", true);
+            System.out.println(derivedPropName + "=true");
+        } else {
+            updateProperty(derivedPropName, "false", true);
+            System.out.println(derivedPropName + "=false");
+        }
+    }
+
+    /**
      * Parses and extracts the command line arguments passed to the builder that apply to the
      * builder in general as opposed to the command about to be run.
      *
      * @param args  the command line arguments
      * @return <code>args</code> after the builder specific args have been extracted
      */
-    private String[] extractBuilderArgs(String[] args) {
+    private String[] extractBuilderArgs(String[] args, int startIndex) {
 
         builderArgs.clear();
 
-        int argc = 0;
-        CCompiler.Options cOptions = ccompiler.options;
+        int argc = startIndex;
+        CCompiler.Options cOptions = new CCompiler.Options();
         boolean production = false;
 
         // Reset the default state for -tracing and -assume
@@ -1713,6 +2617,7 @@ public class Build {
 
         String depsFlag = null;
         boolean help = false;
+        String compName = null;
 
         while (args.length > argc) {
             String arg = args[argc];
@@ -1728,27 +2633,36 @@ public class Build {
                 try {
                     String name = arg.substring("-D".length(), arg.indexOf('='));
                     String value = arg.substring(arg.indexOf('=') + 1);
-                    updateProperty(name, value, false);
+                    updateProperty(name, value);
                 } catch (IndexOutOfBoundsException e) {
                     usage("malformed -D option: " + arg);
                     throw new BuildException("malformed option");
                 }
             } else if (arg.startsWith("-comp:")) {
-                String compName = arg.substring("-comp:".length()).toLowerCase();
-                updateCCompiler(compName);
+                compName = arg.substring("-comp:".length()).toLowerCase();
             } else if (arg.equals("-nocomp")) {
                 RomCommand rom = (RomCommand)getCommand("rom");
                 rom.enableCompilation(false);
             } else if (arg.equals("-comp")) {
                 RomCommand rom = (RomCommand)getCommand("rom");
                 rom.enableCompilation(true);
-            } else if (arg.equals("-nojavamake")) {
-                javaCompiler.javamake = false;
             } else if (arg.equals("-mac")) {
                 cOptions.macroize = true;
             } else if (arg.startsWith("-plugins:")) {
-                File pluginsFile = new File(arg.substring("-plugins:".length()));
-                processBuilderDotPropertiesFile(pluginsFile);
+                File pluginsSpecified = new File(arg.substring("-plugins:".length()));
+                List<File> dotPropertiesFiles = new ArrayList<File>();
+                if (pluginsSpecified.isFile()) {
+                    dotPropertiesFiles.add(pluginsSpecified);
+                } else {
+                    File pluginsFile = new File(pluginsSpecified, "builder.properties");
+                    if (pluginsFile.isFile() && pluginsFile.exists()) {
+                        dotPropertiesFiles.add(pluginsFile);
+                    } else {
+                        addPossibleModuleDir(pluginsSpecified);
+                        addSiblingBuilderDotPropertiesFiles(pluginsSpecified, dotPropertiesFiles);
+                    }
+                }
+                processBuilderDotPropertiesFiles(dotPropertiesFiles);
             } else if (arg.startsWith("-cflags:")) {
                 cOptions.cflags += " " + arg.substring("-cflags:".length());
             } else if (arg.startsWith("-jpda:")) {
@@ -1810,6 +2724,14 @@ public class Build {
                 depsFlag = "-nodeps";
             } else if (arg.equals("-h")) {
                 help = true;
+            } else if (arg.equals("-ppccompiler")) {
+                if (!platform.isMacOsX()) {
+                    throw new BuildException("Can only force ppccompiler on Mac OS X");
+                }
+                isWantingPpcCompilerOnMac = true;
+                ccompiler = platform.createDefaultCCompiler();
+                log(info, "  forcing ppc compile with " + ccompiler.name);
+                ccompiler.options = cOptions;
             } else {
                 usage("Unknown option "+arg);
                 throw new BuildException("invalid option");
@@ -1826,27 +2748,27 @@ public class Build {
         // Synchronize MACROIZE property with '-mac'
         if (cOptions.macroize != getBooleanProperty("MACROIZE")) {
             cOptions.macroize |= getBooleanProperty("MACROIZE");
-            updateProperty("MACROIZE", cOptions.macroize ? "true" : "false", true);
+            updateProperty("MACROIZE", cOptions.macroize ? "true" : "false");
         }
 
         // Synchronize SQUAWK_64 property with '-64'
         if (cOptions.is64 != getBooleanProperty("SQUAWK_64")) {
             cOptions.is64 |= getBooleanProperty("SQUAWK_64");
-            updateProperty("SQUAWK_64", cOptions.is64 ? "true" : "false", true);
+            updateProperty("SQUAWK_64", cOptions.is64 ? "true" : "false");
         }
         preprocessor.processS64 = getBooleanProperty("SQUAWK_64");
 
         // Synchronize KERNEL_SQUAWK property with '-kernel'
         if (cOptions.kernel != getBooleanProperty("KERNEL_SQUAWK")) {
             cOptions.kernel |= getBooleanProperty("KERNEL_SQUAWK");
-            updateProperty("KERNEL_SQUAWK", cOptions.kernel ? "true" : "false", true);
+            updateProperty("KERNEL_SQUAWK", cOptions.kernel ? "true" : "false");
         }
         
         
           // Synchronize NATIVE_VERIFICATION property with '-nativeVerification'
         if (cOptions.nativeVerification != getBooleanProperty("NATIVE_VERIFICATION")) {
             cOptions.nativeVerification |= getBooleanProperty("NATIVE_VERIFICATION");
-            updateProperty("NATIVE_VERIFICATION", cOptions.nativeVerification ? "true" : "false", true);
+            updateProperty("NATIVE_VERIFICATION", cOptions.nativeVerification ? "true" : "false");
         }
 
         // Synchronize ASSERTIONS_ENABLED
@@ -1874,18 +2796,66 @@ public class Build {
             properties.setProperty("LISP2_BITMAP", "false");
         }
 
+        if (cOptions.is64 != getBooleanProperty("SQUAWK_64")) {
+            cOptions.is64 |= getBooleanProperty("SQUAWK_64");
+        }
+
+        String optimize;
+        optimize = properties.getProperty("O1");
+        if (optimize !=null && optimize.equals("true")) {
+            cOptions.o1 = true;
+        }
+        optimize = properties.getProperty("O2");
+        if (optimize !=null && optimize.equals("true")) {
+            cOptions.o2 = true;
+        }
+        optimize = properties.getProperty("O3");
+        if (optimize !=null && optimize.equals("true")) {
+            cOptions.o2 = true;
+            cOptions.o3 = true;
+        }
+
         // The -tracing, and -assume options are turned on by default if -production was not specified
-        if (!production) {
+        String productionProperty = properties.getProperty("PRODUCTION");
+        if (!production && (productionProperty == null || !productionProperty.equals("true"))) {
             cOptions.tracing = true;
             cOptions.assume = true;
         }
+
+        // set up compiler:
+        if (compName == null) {
+            ccompiler = platform.createDefaultCCompiler();
+        } else {
+            updateCCompiler(compName);
+        }
+        ccompiler.options = cOptions;
+
+        // Natve IO is not implemented yet for windows, so force to delegating...
+        if (getPlatform() instanceof Windows_X86 && !ccompiler.isCrossPlatform()) {
+            if (!getProperty("PLATFORM_TYPE").equals(Options.DELEGATING)) {
+                properties.setProperty("PLATFORM_TYPE", Options.DELEGATING);
+                log(true, "[Forcing PLATFORM_TYPE to DELEGATING on Windows]");
+            }
+        }
+        
+        tryPlatformType(cOptions, Options.BARE_METAL);
+        tryPlatformType(cOptions, Options.DELEGATING);
+        tryPlatformType(cOptions, Options.NATIVE);
+        tryPlatformType(cOptions, Options.SOCKET);
+        if (cOptions.platformType == null) {
+            throw new BuildException("PLATFORM_TYPE build property not specified");
+        }
+
+        tryGCProperty("com.sun.squawk.Lisp2Collector");
+        tryGCProperty("com.sun.squawk.Lisp2GenerationalCollector");
+        tryGCProperty("com.sun.squawk.CheneyCollector");
 
         // If no arguments were supplied, then
         if (argc == args.length) {
 
             checkDependencies = true;
             if (depsFlag != null) {
-                checkDependencies = (depsFlag == "-deps");
+                checkDependencies = (depsFlag.equals("-deps"));
             }
 
             return new String[] { "<all>" };
@@ -1893,9 +2863,12 @@ public class Build {
             String[] cmdAndArgs = new String[args.length - argc];
             System.arraycopy(args, argc, cmdAndArgs, 0, cmdAndArgs.length);
 
-            checkDependencies = (getCommand(args[argc]) instanceof Target);
+            Command cmd = getCommand(args[argc]);
+            checkDependencies = (cmd instanceof Target || 
+                                 cmd instanceof LinkTarget||
+                                 cmd instanceof JNAGenCommand);
             if (depsFlag != null) {
-                checkDependencies = (depsFlag == "-deps");
+                checkDependencies = (depsFlag.equals("-deps"));
             }
 
             return cmdAndArgs;
@@ -1923,6 +2896,11 @@ public class Build {
      * The selector used for finding the HTML files in a directory.
      */
     public static final FileSet.Selector HTML_SELECTOR = new FileSet.SuffixSelector(".html");
+
+    /**
+     * The selector used for finding the C files in a directory.
+     */
+    public static final FileSet.Selector C_SOURCE_SELECTOR = new FileSet.SuffixSelector(".c");
 
     /**
      * Runs javadoc over a set of Java source files.
@@ -1959,7 +2937,7 @@ public class Build {
 
         javaCompiler.javadoc((" -d "+javadocDir+
              (classPath == null ? "" : " -classpath " + classPath) +
-             " -taglet com.sun.squawk.builder.ToDoTaglet -tagletpath build.jar:build-commands.jar " +
+             " -taglet com.sun.squawk.builder.ToDoTaglet -tagletpath build-commands.jar " +
              linkOptions +
              (runJavadocAPI ? "" : " -private") +
              " -quiet" +
@@ -2029,9 +3007,8 @@ public class Build {
      */
     private void runDocTools(String classPath, File baseDir, File[] srcDirs) {
         boolean preprocessed = srcDirs.length == 1 && srcDirs[0].getName().equals("preprocessed");
-        List packageList = new ArrayList();
-        for (int i = 0; i != srcDirs.length; ++i) {
-            File srcDir = srcDirs[i];
+        List<String> packageList = new ArrayList<String>();
+        for (File srcDir: srcDirs) {
             extractPackages(new FileSet(srcDir, JAVA_SOURCE_SELECTOR), packageList);
         }
         String packages = join(packageList, 0, packageList.size(), " ");
@@ -2046,8 +3023,7 @@ public class Build {
                 for (int i = 0; i != srcDirs.length; ++i) {
                     File srcDir = srcDirs[i];
                     FileSet htmlFiles = new FileSet(srcDir, HTML_SELECTOR);
-                    for (Iterator iterator = htmlFiles.list().iterator(); iterator.hasNext(); ) {
-                        File htmlFile = (File)iterator.next();
+                    for (File htmlFile: htmlFiles.list()) {
                         File toHtmlFile = htmlFiles.replaceBaseDir(htmlFile, preprocessedDir);
                         cp(htmlFile, toHtmlFile, false);
                     }
@@ -2062,13 +3038,11 @@ public class Build {
                 for (int i = 0; i != srcDirs.length; ++i) {
                     File srcDir = srcDirs[i];
                     DirSet docFileDirs = new DirSet(srcDir, new FileSet.NameSelector("doc-files"));
-                    for (Iterator iterator = docFileDirs.list().iterator(); iterator.hasNext(); ) {
-                        File docFileDir = (File)iterator.next();
+                    for (File docFileDir: docFileDirs.list()) {
                         if (docFileDir.isDirectory()) {
                             File toDocFileDir = docFileDirs.replaceBaseDir(docFileDir, new File(baseDir, "javadoc"));
                             FileSet docFiles = new FileSet(docFileDir, (FileSet.Selector)null);
-                            for (Iterator j = docFiles.list().iterator(); j.hasNext(); ) {
-                                File docFile = (File)j.next();
+                            for (File docFile: docFiles.list()) {
                                 if (docFile.getPath().indexOf("CVS") == -1) {
                                     File toDocFile = docFiles.replaceBaseDir(docFile, toDocFileDir);
                                     cp(docFile, toDocFile, false);
@@ -2081,7 +3055,24 @@ public class Build {
         }
     }
 
-
+    /**
+     * Compiles a set of Java sources into class files with a Java source compiler. The sources
+     * are initially {@link Preprocessor preprocessed} if <code>preprocess == true</code> and
+     * the output is written into the "preprocessed" directory. The sources are then compiled
+     * with the Java compiler into the "classes" directory. If <code>j2me == true</code> then
+     * the class files in "classes" are preverified and written to "j2meclasses".
+     *
+     * @param   compileClassPath the class path to compile against
+     * @param   preverifyClassPath the class path to preverify against
+     * @param   baseDir    the base directory for generated directories (i.e. "preprocessed", "classes" and "j2meclasses")
+     * @param   srcDirs    the set of directories that are searched recursively for the Java source files to be compiled
+     * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
+     * @param   extraArgs  extra javac arguments
+     * @param   preprocess runs the {@link Preprocessor} over the sources if true
+     */
+    public void javac(String compileClassPath, String preverifyClassPath, File baseDir, File[] srcDirs, boolean j2me, List<String> extraArgs, boolean preprocess) {
+        this.javac(compileClassPath, preverifyClassPath, baseDir, srcDirs, j2me, extraArgs, preprocess, false);
+    }
 
     /**
      * Compiles a set of Java sources into class files with a Java source compiler. The sources
@@ -2090,18 +3081,21 @@ public class Build {
      * with the Java compiler into the "classes" directory. If <code>j2me == true</code> then
      * the class files in "classes" are preverified and written to "j2meclasses".
      *
-     * @param   classPath  the class path
+     * @param   compileClassPath the class path to compile against
+     * @param   preverifyClassPath the class path to preverify against
      * @param   baseDir    the base directory for generated directories (i.e. "preprocessed", "classes" and "j2meclasses")
-     * @param   srcDirs the set of directories that are searched recursively for the Java source files to be compiled
+     * @param   srcDirs    the set of directories that are searched recursively for the Java source files to be compiled
      * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
+     * @param   extraArgs  extra javac arguments
      * @param   preprocess runs the {@link Preprocessor} over the sources if true
-     * @return the directory the compiled classes were written to
+     * @param   noJava5    do not allow Java 5 syntax
      */
-    public void javac(String classPath, File baseDir, File[] srcDirs, boolean j2me, String version, List extraArgs, boolean preprocess) {
+    public void javac(String compileClassPath, String preverifyClassPath, File baseDir, File[] srcDirs, boolean j2me, List<String> extraArgs, boolean preprocess, boolean noJava5) {
+        boolean doJava5 = isJava5SyntaxSupported() && !noJava5;
 
         // Preprocess the sources if required
         if (preprocess) {
-            srcDirs = new File[] { preprocess(baseDir, srcDirs, j2me) };
+            srcDirs = new File[] { preprocess(baseDir, srcDirs, j2me, false) };
         }
 
         // Get the javac output directory
@@ -2109,56 +3103,91 @@ public class Build {
 
         // Prepare and run the Java compiler
         javaCompiler.reset();
-        if (j2me) {
+        if (!doJava5 && j2me) {
             // This is required to make the preverifier happy
-            javaCompiler.arg("-target", "1.2").
-                         arg("-source", "1.3");
-        } else {
-            if (version != null) {
-                javaCompiler.arg("-target", version).
-                             arg("-source", version);
-            } else {
-                javaCompiler.arg("-target", "1.5").
-                             arg("-source", "1.5");
-            }
+            javaCompiler.arg("-target", "1.2");
+            javaCompiler.arg("-source", "1.3");
         }
-
         if (extraArgs != null) {
-            for (Iterator iter = extraArgs.iterator(); iter.hasNext(); ) {
-                String arg = (String)iter.next();
+            for (String arg: extraArgs) {
                 javaCompiler.arg(arg);
             }
         }
 
         javaCompiler.arg("-g").args(javacOptions);
-        javaCompiler.compile(classPath, classesDir, srcDirs, j2me);
+        javaCompiler.compile(compileClassPath, classesDir, srcDirs, j2me);
+        
+        if (doJava5 && j2me) {
+            classesDir = retroweave(baseDir, classesDir);
+        }
 
         // Run the doccheck and javadoc utils
         if (runDocCheck || runJavadoc) {
-            runDocTools(classPath, baseDir, srcDirs);
+            runDocTools(compileClassPath, baseDir, srcDirs);
         }
 
         // Run the preverifier for a J2ME compilation
         if (j2me) {
-            preverify(classPath, baseDir);
+            preverify(preverifyClassPath, baseDir);
         }
     }
-
+    
+    /**
+     * Retroweave a given set of Java class files.
+     *
+     * @param   baseDir       the directory under which the "weaved" directory will be created
+     * @param   classesDir    the set of directories that are searched recursively for the .class files that will be weaved
+     * @return the retroweaved output directory
+     */
+    public File retroweave(File baseDir, File classesDir) {
+        final File retroweavedDir = mkdir(baseDir, "weaved");
+        log(info, "[running 'retroweave " + classesDir + " into " + retroweavedDir + "...]");
+        SquawkRetroWeaver weaver = new SquawkRetroWeaver();
+        weaver.retroweave(classesDir, retroweavedDir, new WeaveListener() {
+            public void weavingStarted(String msg) {
+                log(verbose, "  " + msg);
+            }
+            public void weavingCompleted(String msg) {
+                log(verbose, "  " + msg);
+            }
+            public void weavingError(String msg) {
+                throw new BuildException("Weaving Error: " + msg);
+            }
+            public void weavingPath(String sourcePath) {
+                log(verbose, sourcePath);
+            }
+        });
+        return retroweavedDir;
+    }
+    
     /**
      * Preprocess a given set of Java source files.
      *
      * @param   baseDir    the directory under which the "preprocessed" directory exists
      * @param   srcDirs    the set of directories that are searched recursively for the source files to be compiled
      * @param   j2me       specifies if the classes being compiled are to be deployed on a J2ME platform
+     * @param   vm2c       use true if preprocessing as part of vm2c compile
      * @return the preprocessor output directory
      */
-    public File preprocess(File baseDir, File[] srcDirs, boolean j2me) {
+    public File preprocess(File baseDir, File[] srcDirs, boolean j2me, boolean vm2c) {
         // Get the preprocessor output directory
-        final File preprocessedDir = mkdir(baseDir, "preprocessed");
+        final File preprocessedDir;
+        boolean resetJava5Syntax = false;
+        if (vm2c && !isJava5SyntaxSupported()) {
+            log(brief, "[preprocessing with forced JAVA5SYNTAX for vm2c]");
+            preprocessedDir = mkdir(baseDir, RomCommand.PREPROCESSED_FOR_VM2C_DIR_NAME);
+            updateProperty("JAVA5SYNTAX", "true");
+            isJava5SyntaxSupported = true;
+            resetJava5Syntax = true;
+        } else {
+            preprocessedDir = mkdir(baseDir, "preprocessed");
+        }
 
         // Preprocess the sources
         preprocessor.processAssertions = j2me;
         preprocessor.verbose = verbose;
+        // @TODO: Should be true for desktop builds. host == target?
+        preprocessor.showLineNumbers = true;
 
         for (int i = 0; i != srcDirs.length; ++i) {
 
@@ -2181,10 +3210,29 @@ public class Build {
             FileSet.Selector selector = new FileSet.AndSelector(JAVA_SOURCE_SELECTOR, outOfDate);
             FileSet fs = new FileSet(sourceDir, selector);
             preprocessor.execute(fs, preprocessedDir);
+
+            FileSet htmlFiles = new FileSet(sourceDir, HTML_SELECTOR);
+            for (Iterator iterator = htmlFiles.list().iterator(); iterator.hasNext();) {
+                File htmlFile = (File) iterator.next();
+                File toHtmlFile = htmlFiles.replaceBaseDir(htmlFile, preprocessedDir);
+                cp(htmlFile, toHtmlFile, false);
+            }
+
         }
+
+        if (resetJava5Syntax) {
+            updateProperty("JAVA5SYNTAX", "false");
+            isJava5SyntaxSupported = false;
+        }
+
         return preprocessedDir;
     }
-
+    
+    private String stripSuffix(String filename) {
+        int index = filename.lastIndexOf('.');
+        return filename.substring(0, index);
+    }
+        
     /**
      * Run the CLDC preverifier over a set of classes in the "classes" directory
      * and write the resulting classes to the "j2meclasses" directory.
@@ -2196,7 +3244,7 @@ public class Build {
 
 
         // Get the preverifier input and output directories
-        File classesDir = new File(baseDir, "classes");
+        File classesDir = isJava5SyntaxSupported()?new File(baseDir, "weaved"):new File(baseDir, "classes");
         File j2meclassesDir = mkdir(baseDir, "j2meclasses");
 
         // See if any of the classes actually need re-preverifying
@@ -2215,9 +3263,9 @@ public class Build {
         if (classPath == null) {
             classPath = "";
         } else {
-            classPath = "-classpath " + toPlatformPath(classPath, true);
+            classPath = " -classpath " + toPlatformPath(classPath, true);
         }
-        exec(platform.preverifier() + " " + classPath + " -d " + j2meclassesDir + " " + new File(baseDir, "classes"));
+        exec(platform.preverifier() + (verbose?" -verbose ":"") + classPath + " -d " + j2meclassesDir + " " + classesDir);
     }
 
     /*---------------------------------------------------------------------------*\
@@ -2229,7 +3277,7 @@ public class Build {
      * functionality of the jar command line tool when using the 'c' switch.
      *
      * @param out      the jar file to create
-     * @param files    the files to put in the jar file
+     * @param fileSets    the files to put in the jar file
      * @param manifest the entries that will used to create manifest in the jar file.
      *                 If this value is null, then no manifest will be created
      */
@@ -2244,14 +3292,9 @@ public class Build {
                 }
             }
             ZipOutputStream zos = manifest == null ? new JarOutputStream(fos) : new JarOutputStream(fos, manifest);
-
-            for (int i = 0; i < fileSets.length; i++) {
-                FileSet fs = fileSets[i];
-                for (Iterator iterator = fs.list().iterator(); iterator.hasNext(); ) {
-                    File file = (File)iterator.next();
+            for (FileSet fs: fileSets) {
+                for (File file: fs.list()) {
                     String entryName = fs.getRelativePath(file).replace(File.separatorChar, '/');
-
-
                     ZipEntry e = new ZipEntry(entryName);
                     e.setTime(file.lastModified());
                     if (file.length() == 0) {
@@ -2273,6 +3316,36 @@ public class Build {
             zos.close();
         } catch (IOException e) {
             throw new BuildException("IO error creating jar file", e);
+        }
+    }
+
+    public void extractJar(File source, File destination) {
+        try {
+            JarFile jarFile = new JarFile(source);
+            Enumeration<JarEntry> entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                File file = new File(destination, entry.getName());
+                if (entry.isDirectory()) {
+                    file.mkdirs();
+                } else {
+                    file.getParentFile().mkdirs();
+                    InputStream in = new BufferedInputStream(jarFile.getInputStream(entry));
+                    OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+                    byte[] buffer = new byte[2048];
+                    for (;;) {
+                        int nBytes = in.read(buffer);
+                        if (nBytes <= 0)
+                            break;
+                        out.write(buffer, 0, nBytes);
+                    }
+                    out.flush();
+                    out.close();
+                    in.close();
+                }
+            }
+        } catch (IOException e) {
+            throw new BuildException("IO error extracting jar file", e);
         }
     }
 
@@ -2399,4 +3472,17 @@ public class Build {
         }
     }
 
+    /**
+     * Return true if Java5 syntax should be supported.
+     * 
+     * @return
+     */
+    public boolean isJava5SyntaxSupported() {
+        return isJava5SyntaxSupported;
+    }
+    
+    public boolean isWantingPpcCompilerOnMac() {
+        return isWantingPpcCompilerOnMac;
+    }
+    
 }

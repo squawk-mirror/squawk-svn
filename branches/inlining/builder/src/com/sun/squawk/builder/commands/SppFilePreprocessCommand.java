@@ -46,8 +46,12 @@ public class SppFilePreprocessCommand extends Command {
         return "preprocesses one or more *.spp files";
     }
 
-    private void usage(String errMsg) {
-        PrintStream out = System.out;
+    public void usage(String errMsg) {
+        PrintStream out = System.err;
+        
+        if (errMsg != null) {
+            out.println(errMsg);
+        }
 
         out.println();
         out.println("usage: spp files...");
@@ -113,23 +117,22 @@ public class SppFilePreprocessCommand extends Command {
      */
     public void run(String[] args) {
         if (args.length == 0) {
-            usage(null);
-            return;
+            throw new CommandException(this, "no files specified");    
         }
 
         Preprocessor preprocessor = env.getPreprocessor();
         Macroizer macroizer = env.getMacroizer();
         CCompiler ccompiler = env.getCCompiler();
 
-        List generatedFiles = new ArrayList();
-        for (int i = 0; i != args.length; ++i) {
-            File file = new File(args[i]);
+        List<File> generatedFiles = new ArrayList<File>();
+        for (String arg: args) {
+            File file = new File(arg);
             preprocess(file, generatedFiles, preprocessor, macroizer, ccompiler.options.macroize);
         }
 
         env.log(env.verbose, "Generated the following files:");
-        for (Iterator iterator = generatedFiles.iterator(); iterator.hasNext(); ) {
-            env.log(env.verbose, "    " + iterator.next());
+        for (File file: generatedFiles) {
+            env.log(env.verbose, "    " + file);
         }
 
     }

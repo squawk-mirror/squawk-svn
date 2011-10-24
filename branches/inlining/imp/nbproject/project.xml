@@ -34,7 +34,21 @@
                     <encoding>UTF-8</encoding>
                 </source-folder>
             </folders>
-            <ide-actions/>
+            <ide-actions>
+                <action name="test">
+                    <target>test</target>
+                </action>
+                <action name="build">
+                    <target>jar</target>
+                </action>
+                <action name="clean">
+                    <target>clean</target>
+                </action>
+                <action name="rebuild">
+                    <target>clean</target>
+                    <target>jar</target>
+                </action>
+            </ide-actions>
             <view>
                 <items>
                     <source-folder style="packages">
@@ -53,7 +67,12 @@
                         <location>build.xml</location>
                     </source-file>
                 </items>
-                <context-menu/>
+                <context-menu>
+                    <ide-action name="build"/>
+                    <ide-action name="rebuild"/>
+                    <ide-action name="clean"/>
+                    <ide-action name="test"/>
+                </context-menu>
             </view>
             <subprojects/>
         </general-data>
@@ -73,6 +92,7 @@
             <compilation-unit>
                 <package-root>test-desktop/src</package-root>
                 <unit-tests/>
+                <classpath mode="compile">../squawk_classes.jar:test-desktop/lib/jmock2-SNAPSHOT.jar:test-desktop/lib/jmock2-junit3-SNAPSHOT.jar:test-desktop/lib/jmock2-junit4-SNAPSHOT.jar:test-desktop/lib/hamcrest-library-SNAPSHOT.jar:test-desktop/lib/hamcrest-api-SNAPSHOT.jar</classpath>
                 <source-level>1.5</source-level>
             </compilation-unit>
         </java-data>

@@ -35,7 +35,8 @@ import java.io.IOException;
 public class MscCompiler extends CCompiler {
 	public static final String VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE = "VS80COMNTOOLS";
 	public static final String VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE = "VS90COMNTOOLS";
-    
+    public static final String MS_PLATFORM_SDK_VARIABLE = "Mstools";
+
     protected String clCommandString;
 
     public MscCompiler(Build env, Platform platform) {
@@ -57,7 +58,6 @@ public class MscCompiler extends CCompiler {
         if (options.macroize)           { buf.append("/DMACROIZE ");       }
         if (options.assume)             { buf.append("/DASSUME ");         }
         if (options.typemap)            { buf.append("/DTYPEMAP ");        }
-        if (options.ioport)             { buf.append("/DIOPORT ");         }
 
         if (options.kernel) {
             throw new BuildException("-kernel option not supported by MscCompiler");
@@ -75,32 +75,58 @@ public class MscCompiler extends CCompiler {
             throw new BuildException("-64 option not supported by MscCompiler");
         }
 
-        buf.append("/DIOPORT ");
-
         buf.append("/DPLATFORM_BIG_ENDIAN=" + platform.isBigEndian()).append(' ');
         buf.append("/DPLATFORM_UNALIGNED_LOADS=" + platform.allowUnalignedLoads()).append(' ');
 
         return buf.append(options.cflags).append(' ').toString();
     }
 
+    private String getDirFromEnv(String var) {
+        String value = System.getProperty(var);
+        if (value == null) {
+            value = System.getenv(var);
+            if (value != null) {
+                env.log(env.verbose, "Found env variable: " + var + "=" + value);
+                if (new File(value).exists()) {
+                    return value;
+                } else {
+                    env.log(env.verbose, "directory does not exist: " + value);
+                }
+            }
+        } else {
+            env.log(env.verbose, "Found property variable: " + var + "=" + value);
+
+            if (new File(value).exists()) {
+                return value;
+            } else {
+                env.log(env.verbose, "directory does not exist: " + value);
+            }
+        }
+        env.log(env.verbose, "No value for variable: " + var);
+        return null;
+    }
+
     public String getClCommandString() {
         if (clCommandString == null) {
+            final String[] envvars = {
+                VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE,
+                VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE,
+                MS_PLATFORM_SDK_VARIABLE};
+
             clCommandString = "cl";
-            String toolsDirectory = System.getProperty(VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE);
-            if (toolsDirectory == null) {
-            	toolsDirectory = System.getProperty(VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE);
+            String toolsDirectory = null;
+            for (int i = 0; i < envvars.length; i++) {
+                toolsDirectory = getDirFromEnv(envvars[i]);
+                if (toolsDirectory != null) {
+                        break;
+                    }
             }
-            if (toolsDirectory == null) {
-            	toolsDirectory = System.getenv(VISUAL_STUDIO_90_TOOLS_ENVIRONMENT_VARIABLE);
-            }
-            if (toolsDirectory == null) {
-            	toolsDirectory = System.getenv(VISUAL_STUDIO_80_TOOLS_ENVIRONMENT_VARIABLE);
-            }
+           
             if (toolsDirectory == null) {
             	toolsDirectory = "";
             }
             try {
-                String command = "\"" + toolsDirectory + "vsvars32.bat\" && " + clCommandString;
+                String command = "cmd /C \"\"" + toolsDirectory + "vsvars32.bat\" && " + clCommandString + "\"";
             	env.log(env.verbose, "Trying to find compiler command with: " + command);
                 // Try the command to see if it works, if it does work then we want to use it
                 Runtime.getRuntime().exec(command);
@@ -140,7 +166,7 @@ public class MscCompiler extends CCompiler {
             exec = " /Fe" + output + " /LD " + Build.join(objects) + " /link wsock32.lib /IGNORE:4089";
         } else {
             output = out + platform.getExecutableExtension();
-            exec = " /Fe" + output + " " + Build.join(objects) + " /link wsock32.lib /IGNORE:4089";
+            exec = " /Fe" + output + " " + Build.join(objects) + " /link /OPT:REF wsock32.lib /IGNORE:4089";
         }
         env.exec(getClCommandString() + " " + exec);
         return new File(output);
