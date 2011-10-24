@@ -1,31 +1,33 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
 #define MAX_STREAMS 4
 
-// Optionally allow squawk to be invoked from Java code, instead of as C "main".
-#define ENABLE_INVOKE_FROM_JAVA 0
+#if (defined(ASSUME) && ASSUME != 0) | TRACE
+#define INTERPRETER_STATS 1
+#endif /* ASSUME */
 
 /**
  * This struct encapsulates all the globals in the Squawk VM. This allows
@@ -65,23 +67,25 @@ typedef struct globalsStruct {
     int         _currentStream;              /* The currently selected stream */
     int         _internalLowResult;          /* Value for INTERNAL_LOW_RESULT */
 
-#ifndef FLASH_MEMORY
-    jclass      _channelIO_clazz;            /* JNI handle to com.sun.squawk.vm.ChannelIO. */
-    jmethodID   _channelIO_execute;          /* JNI handle to com.sun.squawk.vm.ChannelIO.execute(...) */
-#endif
-
 #if KERNEL_SQUAWK
     /* Nothing yet... */
 #endif
 
-#ifdef IOPORT
+#if PLATFORM_TYPE_DELEGATING
+    jclass      _channelIO_clazz;            /* JNI handle to com.sun.squawk.vm.ChannelIO. */
+    jmethodID   _channelIO_execute;          /* JNI handle to com.sun.squawk.vm.ChannelIO.execute(...) */
+#endif
+
+#if PLATFORM_TYPE_SOCKET
     char       *_ioport;                     /* The [host and] port number of the optional I/O server. */
     int         _iosocket;                   /* The socket number of the optional I/O server. */
     int         _result_low;                 /* The low 32 bits of the last result */
     int         _result_high;                /* The high 32 bits of the last result */
     jlong       _io_ops_time;
     int         _io_ops_count;
-#endif
+#endif /* PLATFORM_TYPE_SOCKET */
+
+    void*       _nativeFuncPtr;               /* Ptr to the function that is being called via NativeUnsafe.call, or null */
 
 #ifdef PROFILING
     int         _sampleFrequency;            /* The profile sample frequency */
@@ -100,18 +104,24 @@ typedef struct globalsStruct {
     int         _statsFrequency;             /* The statistics output frequency */
 #endif /* TRACE */
 
+#if defined(PROFILING) | TRACE
+    jlong       _lastStatCount;
+#endif /* PROFILING */
+
     Address     _cachedClassState[CLASS_CACHE_SIZE > 0 ? CLASS_CACHE_SIZE : 1];
     Address     _cachedClass     [CLASS_CACHE_SIZE > 0 ? CLASS_CACHE_SIZE : 1];
+#ifdef INTERPRETER_STATS
     int         _cachedClassAccesses;
     int         _cachedClassHits;
+#endif /* INTERPRETER_STATS */
 
     Address    *_pendingMonitors;
     int         _pendingMonitorStackPointer;
+#ifdef INTERPRETER_STATS
     int         _pendingMonitorAccesses;
     int         _pendingMonitorHits;
+#endif /* INTERPRETER_STATS */
 
-    jlong       _lastStatCount;
-    boolean     _notrap;
 } Globals;
 
 
@@ -131,15 +141,11 @@ Globals kernelGlobals;    /* The kernel mode execution context */
 
 #define defineGlobalContext(c,x) c._##x
 
+#if PLATFORM_TYPE_DELEGATING
 JNIEnv     *JNI_env;                    /* The pointer to the table of JNI function pointers. */
-#if ENABLE_INVOKE_FROM_JAVA
-boolean     isCalledFromJava;           /* Flags whether or not Squawk was launched via a call from Java. */
-#else
-#define     isCalledFromJava 0      /* disabled */
-#endif /* ENABLE_INVOKE_FROM_JAVA */
 
-jmp_buf     vmStartScope;               /* The frame in which the Squawk VM was started from Java. */
 JavaVM     *jvm;                        /* Handle to the JVM created via the Invocation API. This will be null if Squawk was called from Java code. */
+#endif
 
 #ifdef OLD_IIC_MESSAGES
 Address     freeMessages;               /* The pool of unused message structures */
@@ -160,6 +166,7 @@ int         kernelSignalCounter;        /* Count for number of signals received 
 boolean     kernelSendNotify;           /* Control whether to notify potential (user) waiters on return */
 #endif /* KERNEL_SQUAWK */
 
+boolean     notrap;
 
 /*=======================================================================*\
  *                             Virtual globals                           *
@@ -194,41 +201,43 @@ boolean     kernelSendNotify;           /* Control whether to notify potential (
 #define Oops                                defineGlobal(Oops)
 #define Buffers                             defineGlobal(Buffers)
 #define BufferCount                         defineGlobal(BufferCount)
-// #define JNI_env                             defineGlobal(JNI_env)
-// #define isCalledFromJava                    defineGlobal(isCalledFromJava)
-// #define vmStartScope                        defineGlobal(vmStartScope)
-// #define jvm                                 defineGlobal(jvm)
 
 #if KERNEL_SQUAWK
     /* Nothing yet... */
 #endif
 
-#ifdef IOPORT
+#if PLATFORM_TYPE_SOCKET
 #define ioport                              defineGlobal(ioport)
 #define iosocket                            defineGlobal(iosocket)
 #define result_low                          defineGlobal(result_low)
 #define result_high                         defineGlobal(result_high)
 #define io_ops_time                         defineGlobal(io_ops_time)
 #define io_ops_count                        defineGlobal(io_ops_count)
-#endif
+#endif /* PLATFORM_TYPE_SOCKET */
 
 #define cachedClassState                    defineGlobal(cachedClassState)
 #define cachedClass                         defineGlobal(cachedClass)
+#ifdef INTERPRETER_STATS
 #define cachedClassAccesses                 defineGlobal(cachedClassAccesses)
 #define cachedClassHits                     defineGlobal(cachedClassHits)
+#endif /* INTERPRETER_STATS */
 
 #define pendingMonitors                     defineGlobal(pendingMonitors)
 #define pendingMonitorStackPointer          defineGlobal(pendingMonitorStackPointer)
+#ifdef INTERPRETER_STATS
 #define pendingMonitorAccesses              defineGlobal(pendingMonitorAccesses)
 #define pendingMonitorHits                  defineGlobal(pendingMonitorHits)
+#endif /* INTERPRETER_STATS */
 
 #define streams                             defineGlobal(streams)
 #define currentStream                       defineGlobal(currentStream)
 
-#ifndef FLASH_MEMORY
+#if PLATFORM_TYPE_DELEGATING
 #define channelIO_clazz                     defineGlobal(channelIO_clazz)
 #define channelIO_execute                   defineGlobal(channelIO_execute)
-#endif
+#endif /* PLATFORM_TYPE_DELEGATING */
+
+#define nativeFuncPtr                       defineGlobal(nativeFuncPtr)
 
 #define STREAM_COUNT                        (sizeof(Streams) / sizeof(FILE*))
 
@@ -242,9 +251,11 @@ boolean     kernelSendNotify;           /* Control whether to notify potential (
 #define getBranchCount()                    getLongCounter(branchCountHigh, branchCountLow)
 #define getTraceStart()                     getLongCounter(traceStartHigh, traceStartLow)
 #define getTraceEnd()                       getLongCounter(traceEndHigh, traceEndLow)
-#define setTraceStart(x)                    setLongCounter(traceStartHigh, traceStartLow, (x)); if ((x) == 0) { tracing = true; }
+#define setTraceStart(x)                    setLongCounter(traceStartHigh, traceStartLow, (x)); if ((x) == 0) { com_sun_squawk_VM_tracing = true; }
 #define setTraceEnd(x)                      setLongCounter(traceEndHigh, traceEndLow, (x))
 #define statsFrequency                      defineGlobal(statsFrequency)
+#define total_extends                       defineGlobal(total_extends)
+#define total_slots                         defineGlobal(total_slots)
 #else
 #define getBranchCount()                    ((jlong)-1L)
 #endif /* TRACE */
@@ -252,16 +263,12 @@ boolean     kernelSendNotify;           /* Control whether to notify potential (
 #ifdef PROFILING
 #define sampleFrequency                     defineGlobal(sampleFrequency)
 #define instructionCount                    defineGlobal(instructionCount)
-#endif
+#endif /* PROFILING */
 
-#if TRACE
-#define total_extends                       defineGlobal(total_extends)
-#define total_slots                         defineGlobal(total_slots)
-#endif
-
+#if defined(PROFILING) | TRACE
 #define lastStatCount                       defineGlobal(lastStatCount)
-#define notrap                              defineGlobal(notrap)
-
+#endif /* PROFILING */
+    
 /**
  * Initialize/re-initialize the globals to their defaults.
  */
@@ -288,7 +295,7 @@ int initializeGlobals(Globals *globals) {
     traceServiceThread = true;
 #endif /* TRACE */
 
-#ifdef IOPORT
+#if PLATFORM_TYPE_SOCKET
     ioport = null;
     iosocket = -1;
 #endif
@@ -339,14 +346,14 @@ int setStream(int stream) {
     currentStream = stream;
     if (streams[currentStream] == null) {
         switch (currentStream) {
-#ifndef FLASH_MEMORY
+#if com_sun_squawk_Klass_ENABLE_DYNAMIC_CLASSLOADING
             case com_sun_squawk_VM_STREAM_SYMBOLS: {
                 streams[currentStream] = fopen("squawk_dynamic.sym", "w");
                 break;
             }
-#endif /* FLASH_MEMORY */
+#endif /* ENABLE_DYNAMIC_CLASSLOADING */
             default: {
-                void fatalVMError(char *msg);
+                NORETURN void fatalVMError(char *msg);
                 fatalVMError("Bad INTERNAL_SETSTREAM");
             }
         }
@@ -377,4 +384,18 @@ void finalizeStreams() {
  */
 #define setContext(v, t)           (v = (t)gp)
 #define isCurrentContext(v, t)     ((v) == (t)gp)
+
+
+typedef int (*funcPtr0)();
+typedef int (*funcPtr1)(int);
+typedef int (*funcPtr2)(int, int); 
+typedef int (*funcPtr3)(int, int, int); 
+typedef int (*funcPtr4)(int, int, int, int);
+typedef int (*funcPtr5)(int, int, int, int, int); 
+typedef int (*funcPtr6)(int, int, int, int, int, int);
+typedef int (*funcPtr7)(int, int, int, int, int, int, int);
+typedef int (*funcPtr8)(int, int, int, int, int, int, int, int);
+typedef int (*funcPtr9)(int, int, int, int, int, int, int, int, int);
+typedef int (*funcPtr10)(int, int, int, int, int, int, int, int, int, int);
+
 

@@ -22,6 +22,9 @@
  * information or have any questions.
  */
 
+
+/*************** NOTE: this file is included when PLATFORM_TYPE_SOCKET=true **************************/
+
 #include <sys/types.h>
 #include <string.h>
 
@@ -32,6 +35,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #endif
+
+/*---------------------------- Code from ioport.c ----------------------------*/
 
 /**
  * Setup the socket to the external I/O server.
@@ -193,7 +198,7 @@ static void writeIOPObjectPrim(int cno, void *addr, int length) {
     } else if (cno == CID_INT_ARRAY) {
         writeIOPIntArray(addr, length);
     } else {
-        fatalVMError("createJVMObject:: Invalid reference type");
+        fatalVMError("writeIOPObjectPrim:: Invalid reference type");
     }
 }
 
@@ -367,3 +372,72 @@ static int ioport_execute(
     return status;
 }
 
+/*---------------------------- IO Impl ----------------------------*/
+
+/**
+ * Initializes the IO subsystem.
+ */
+void IO_initialize() {
+
+    /*
+     * If an I/O port was set in the globals then this is used for I/O and the
+     * other parameters are ingorned.
+     */
+    if (!ioport) {
+        fatalVMError("io port not specified. Use -Xioport option");
+    }
+}
+
+/**
+ * Executes an operation on a given channel for an isolate.
+ *
+ * @param  context the I/O context
+ * @param  op      the operation to perform
+ * @param  channel the identifier of the channel to execute the operation on
+ * @param  i1
+ * @param  i2
+ * @param  i3
+ * @param  i4
+ * @param  i5
+ * @param  i6
+ * @param  send
+ * @param  receive
+ * @return the operation result
+ */
+ static void ioExecute(void) {
+    int     context = com_sun_squawk_ServiceOperation_context;
+    int     op      = com_sun_squawk_ServiceOperation_op;
+    int     channel = com_sun_squawk_ServiceOperation_channel;
+    int     i1      = com_sun_squawk_ServiceOperation_i1;
+    int     i2      = com_sun_squawk_ServiceOperation_i2;
+    int     i3      = com_sun_squawk_ServiceOperation_i3;
+    int     i4      = com_sun_squawk_ServiceOperation_i4;
+    int     i5      = com_sun_squawk_ServiceOperation_i5;
+    int     i6      = com_sun_squawk_ServiceOperation_i6;
+    Address send    = com_sun_squawk_ServiceOperation_o1;
+    Address receive = com_sun_squawk_ServiceOperation_o2;
+
+    Address s1;
+    Address r1;
+    int res;
+
+    /*
+     * If an I/O port was specified then use the external I/O server.
+     */
+    res = ioport_execute(context, op, channel, i1, i2, i3, i4, i5, i6, send, receive);
+
+    com_sun_squawk_ServiceOperation_result = res;
+}
+
+#if KERNEL_SQUAWK
+/**
+ * Posts an event via ChannelIO to wake up any waiters.
+ */
+static void ioPostEvent(void) {
+    /*
+     * If an I/O port was specified then use the external I/O server.
+     */
+    assume (ioport != null);
+    ioport_execute(-1, ChannelConstants_GLOBAL_POSTEVENT, -1, 0, 0, 0, 0, 0, 0, null, null);
+}
+#endif

@@ -1,24 +1,25 @@
 /*
- * Copyright 2005-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -81,17 +82,18 @@ INLINE void returnAddressResult(Address value) {
  * Execute a channel operation.
  */
 void cioExecute(void) {
-    int     context = com_sun_squawk_ServiceOperation_context;
+/*  int     context = com_sun_squawk_ServiceOperation_context; */
     int     op      = com_sun_squawk_ServiceOperation_op;
-    int     channel = com_sun_squawk_ServiceOperation_channel;
+/*  int     channel = com_sun_squawk_ServiceOperation_channel; */
     int     i1      = com_sun_squawk_ServiceOperation_i1;
     int     i2      = com_sun_squawk_ServiceOperation_i2;
-    int     i3      = com_sun_squawk_ServiceOperation_i3;
+ /* int     i3      = com_sun_squawk_ServiceOperation_i3;
     int     i4      = com_sun_squawk_ServiceOperation_i4;
     int     i5      = com_sun_squawk_ServiceOperation_i5;
     int     i6      = com_sun_squawk_ServiceOperation_i6;
+  */
     Address o1      = com_sun_squawk_ServiceOperation_o1;
-    Address o2      = com_sun_squawk_ServiceOperation_o2;
+/*  Address o2      = com_sun_squawk_ServiceOperation_o2; */
     FILE   *vmOut   = streams[currentStream];
 
     switch (op) {
@@ -103,8 +105,7 @@ void cioExecute(void) {
         }
 
         case ChannelConstants_INTERNAL_PRINTSTRING: {
-            int i;
-            printJavaString(o1, vmOut, null, 0);
+            printJavaString(o1, vmOut);
             break;
         }
 
@@ -120,25 +121,20 @@ void cioExecute(void) {
             break;
         }
 
-/*if[FLOATS]*/
+/* use this as a proxy for /*if[FLOATS], which can't be used because this file isn't an .spp file */
+#ifdef F_POS_INFINITY
         case ChannelConstants_INTERNAL_PRINTDOUBLE: {
-            fprintf(vmOut, format("%D"), makeLong(i1, i2));
+            fprintf(vmOut, format("%D"), lb2d(makeLong(i1, i2)));
             fflush(vmOut);
             break;
         }
 
         case ChannelConstants_INTERNAL_PRINTFLOAT: {
-            fprintf(vmOut, "%f", i1);
+            fprintf(vmOut, "%f", ib2f(i1));
             fflush(vmOut);
             break;
         }
-/*else[FLOATS]*/
-//      case ChannelConstants_INTERNAL_PRINTDOUBLE:
-//      case ChannelConstants_INTERNAL_PRINTFLOAT: {
-//          fatalVMError("floats not supported");
-//          break;
-//      }
-/*if[FLOATS]*/
+#endif
 
         case ChannelConstants_INTERNAL_PRINTUWORD: {
             jlong val = makeLong(i1, i2);
@@ -171,11 +167,28 @@ void cioExecute(void) {
             break;
         }
 
+        case ChannelConstants_INTERNAL_PRINTBYTES: {
+            Address bytes = o1;
+            int offset = i1;
+            int len = i2;
+            int blen = (int)getArrayLength(bytes);
+            int i;
+            /*fprintf(stderr, "IPB: %d:%d\n", offset, len);*/
+            assumeAlways(offset >= 0 && len >= 0);
+            assumeAlways(offset + len <= blen);
+            for (i = 0; i < len; i++) {
+                fprintf(vmOut, "%c", getByte(bytes, offset + i));
+            }
+            fflush(vmOut);
+            break;
+        }
+
         case ChannelConstants_INTERNAL_PRINTCONFIGURATION: {
             fprintf(stderr, "native VM build flags: %s\n", BUILD_FLAGS);
             break;
         }
 
+#if DEBUG_CODE_ENABLED
         case ChannelConstants_INTERNAL_PRINTGLOBALS: {
             printGlobals();
             fflush(vmOut);
@@ -187,10 +200,11 @@ void cioExecute(void) {
             fprintf(vmOut, "%s", getGlobalOopName(i1));
 #else
             fprintf(vmOut, "Global oop:%d", i1);
-#endif
+#endif /* TRACE */
             fflush(vmOut);
             break;
         }
+#endif /* DEBUG_CODE_ENABLED */
 
         case ChannelConstants_INTERNAL_GETPATHSEPARATORCHAR: {
             com_sun_squawk_ServiceOperation_result = pathSeparatorChar;
@@ -201,13 +215,6 @@ void cioExecute(void) {
             com_sun_squawk_ServiceOperation_result = fileSeparatorChar;
             break;
         }
-
-/*      Moved to native method:
-        case ChannelConstants_INTERNAL_COPYBYTES:  {
-            copyBytes(o1, i2, o2, i3, i1, i4 != 0);
-            break;
-        }
-*/
 
         case ChannelConstants_INTERNAL_GETTIMEMICROS_HIGH: {
             returnLongResult(sysTimeMicros());
@@ -229,16 +236,11 @@ void cioExecute(void) {
             break;
         }
 
-        case ChannelConstants_INTERNAL_MATH: {
-            fatalVMError("Unimplemented internal channel I/O operation");
-        }
-
 #ifdef OLD_IIC_MESSAGES
         case ChannelConstants_INTERNAL_ALLOCATE_MESSAGE_BUFFER: {
             deferInterruptsAndDo(
                 allocateMessageBuffer();
             );
-//printf("ALLOCATE_MESSAGE_BUFFER result = %d\n", com_sun_squawk_ServiceOperation_addressResult);
             break;
         }
 
@@ -246,14 +248,11 @@ void cioExecute(void) {
             deferInterruptsAndDo(
                 freeMessageBuffer(o2);
             );
-//printf("FREE_MESSAGE_BUFFER %d\n", o2);
             break;
         }
 
         case ChannelConstants_INTERNAL_SEND_MESSAGE_TO_SERVER: {
             sendMessage(o1, o2, i1, &toServerMessages, &toServerWaiters);
-//printf("SEND_MESSAGE_TO_SERVER key = %d addr = %d result = %d\n", o1, o2, com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
 #if KERNEL_SQUAWK
             /*
              * We could use a special _TO_KERNEL type for messages
@@ -269,22 +268,16 @@ void cioExecute(void) {
 
         case ChannelConstants_INTERNAL_RECEIVE_MESSAGE_FROM_CLIENT: {
             receiveMessage(o1, &toServerMessages, &toServerWaiters);
-//printf("RECEIVE_MESSAGE_FROM_CLIENT result = %d\n", com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
             break;
         }
 
         case ChannelConstants_INTERNAL_SEND_MESSAGE_TO_CLIENT: {
             sendMessage(o1, o2, i1, &toClientMessages, &toClientWaiters);
-//printf("SEND_MESSAGE_TO_CLIENT key = %d addr = %d result = %d\n", o1, o2, com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
             break;
         }
 
         case ChannelConstants_INTERNAL_RECEIVE_MESSAGE_FROM_SERVER: {
             receiveMessage(o1, &toClientMessages, &toClientWaiters);
-//printf("RECEIVE_MESSAGE_FROM_SERVER result = %d\n", com_sun_squawk_ServiceOperation_addressResult);
-//dumpOutMessageQueues();
             break;
         }
 
@@ -306,33 +299,22 @@ void cioExecute(void) {
             }
             break;
         }
-
-#else /* OLD_IIC_MESSAGES */
-
-	 /* case ChannelConstants_GLOBAL_WAITFOREVENT:
-        case ChannelConstants_GLOBAL_GETEVENT:
-		 ... handled by default case below
-	 */
-
 #endif /* OLD_IIC_MESSAGES */
 
+        /* WARNING! NOT 64-bit safe! */
+        case ChannelConstants_INTERNAL_NATIVE_PLATFORM_NAME: {
+            com_sun_squawk_ServiceOperation_result = (int)sysPlatformName();
+            break;
+        }
 
 #if NATIVE_VERIFICATION
-        case ChannelConstants_COMPUTE_SHA1_FOR_MEMORY_REGION:{
-			int address=i1;
-			int numberOfBytes=i2;
-			unsigned char* buffer_to_write_sha_hash_into = o1;
-			//printf("In cio.c.ioexecute\r\n");
-			//printf("ChannelConstants_COMPUTE_SHA_FOR_MEMORY_REGION:\n address: %x\nbuffer_to-write_sha_hash_into %x\nnumberofbyte: %d\r\n",address,buffer_to_write_sha_hash_into,numberOfBytes);
-			sha_for_memory_region(buffer_to_write_sha_hash_into,address,numberOfBytes);
-		}
-			break;
-#else
-    case ChannelConstants_COMPUTE_SHA1_FOR_MEMORY_REGION:{
-			fprintf(vmOut,"Internal Error: vmcore/cio.c called with op COMPUTE_SHA1_FOR_MEMORY_REGION, but was compiled with NATIVE_VERIFICATION=false.");
-            fflush(vmOut);
-		}
-			break;
+        case ChannelConstants_INTERNAL_COMPUTE_SHA1_FOR_MEMORY_REGION:{
+            int address=i1;
+            int numberOfBytes=i2;
+            unsigned char* buffer_to_write_sha_hash_into = o1;
+            sha_for_memory_region(buffer_to_write_sha_hash_into,address,numberOfBytes);
+            break;
+        }
 #endif
         default: {
             ioExecute();

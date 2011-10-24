@@ -22,42 +22,26 @@
  * information or have any questions.
  */
 
-#define TRUE 1
-#define FALSE 0
+/*
+ * Platform dependent floating point code. Included by vm/fp/global.h 
+ */
 
-#include <stdlib.h>
-#include <sys/time.h>
-#include <dlfcn.h>
-#include <jni.h>
 
-/* The package that conmtains the native code to use for a "NATIVE" platform type*/
-#define sysPlatformName() "macosx"
+#ifndef _OS_MATH_H
+#define	_OS_MATH_H
 
-#include "os_posix.c"
+#ifdef	__cplusplus
+extern "C" {
+#endif
 
-/* This "standard" C function is not provided on Mac OS X */
-char* strsignal(int signum) {
-    switch (signum) {
-        case SIGABRT:     return "SIGABRT";
-        case SIGFPE:      return "SIGFPE";
-        case SIGILL:      return "SIGILL";
-        case SIGINT:      return "SIGINT";
-        case SIGSEGV:     return "SIGSEGV";
-        case SIGTERM:     return "SIGTERM";
-        default:          return "<unknown signal>";
-    }
-}
+#  if _MSC_VER < 1400 /* fmodf is defined in MSC version 14.00 and greater */
+INLINE float  fmodf(float a, float b)      { return (float)fmod(a, b);                 }
+#  endif
 
-/* defined in os_main.c */
-static char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName);
 
-#if PLATFORM_TYPE_DELEGATING
-jint createJVM(JavaVM **jvm, void **env, void *args) {
-    return JNI_CreateJavaVM(jvm, env, args) == 0;
+#ifdef	__cplusplus
 }
 #endif
 
+#endif	/* _OS_MATH_H */
 
-#define osloop()        /**/
-#define osbackbranch()  /**/
-#define osfinish()      /**/

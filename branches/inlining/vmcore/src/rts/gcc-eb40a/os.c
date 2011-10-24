@@ -32,6 +32,9 @@
 #define SERVICE_CHUNK_SIZE (8*1024)
 #define IODOTC "eb40a-io.c"
 
+#define TRUE 1
+#define FALSE 0
+
 #include <stdlib.h>
 #include <sys/time.h>
 typedef long long int64_t;
@@ -59,11 +62,6 @@ jlong sysTimeMillis(void) {
 
 jlong sysTimeMicros() {
     return sysTimeMillis() * 1000;
-}
-
-void startTicker(int interval) {
-    fprintf(stderr, "Profiling not implemented");
-    exit(0);
 }
 
 void wait() {
@@ -219,13 +217,54 @@ void updateLEDStatus() {
  * Support for util.h
  */
 
-long sysconf(int code) {
-    if (code == _SC_PAGESIZE) {
-        return 4;
-    } else {
-        return -1; // failure
-    }
+/**
+ * Gets the page size (in bytes) of the system.
+ *
+ * @return the page size (in bytes) of the system
+ *
+ * NOTE: Really 8KB or 64KB on SPOT, not 4 bytes, right?
+ */
+#define sysGetPageSize() 4
+
+/**
+ * Sets a region of memory read-only or reverts it to read & write.
+ *
+ * @param start    the start of the memory region
+ * @param end      one byte past the end of the region
+ * @param readonly specifies if read-only protection is to be enabled or disabled
+ */
+INLINE sysToggleMemoryProtection(char* start, char* end, boolean readonly) {}
+
+/**
+ * Allocate a page-aligned chunk of memory of the given size.
+ * 
+ * @param size size in bytes to allocate
+ * @return pointer to allocated memory or null.
+ */
+INLINE void* sysValloc(size_t size) {
+    return valloc(size);
 }
+
+/**
+ * Free chunk of memory allocated by sysValloc
+ * 
+ * @param ptr to to chunk allocated by sysValloc
+ */
+INLINE void sysVallocFree(void* ptr) {
+    free(ptr);
+}
+
+/** 
+ * Return another path to find the bootstrap suite with the given name.
+ * On some platforms the suite might be stored in an odd location
+ * 
+ * @param bootstrapSuiteName the name of the boostrap suite
+ * @return full or partial path to alternate location, or null
+ */
+INLINE char* sysGetAlternateBootstrapSuiteLocation(char* bootstrapSuiteName) { return NULL; }
+
+/* The package that conmtains the native code to use for a "NATIVE" platform type*/
+ #define sysPlatformName() "Spot"
 
 INLINE void osloop() {
 	//no-op on spot platform

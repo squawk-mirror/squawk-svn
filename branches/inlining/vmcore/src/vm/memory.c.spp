@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -34,6 +35,9 @@
 #define INLINE_UNALIGNED 
 #endif /* PLATFORM_UNALIGNED_LOADS */
 
+#ifndef PLATFORM_UNALIGNED_64_LOADS
+#define PLATFORM_UNALIGNED_64_LOADS PLATFORM_UNALIGNED_LOADS
+#endif
 
     /*-----------------------------------------------------------------------*\
      *                           Memory access verification                  *
@@ -141,7 +145,8 @@ INLINE boolean setArrayLength(Address _oop, int _size);
             /*if (!isInTypedMemoryRange($ea)) {
                 fprintf(stderr, format("access outside of 'memory' chunk: %A\n"), $ea);
                 return;
-            };*/
+             }
+             */
 
             return (char *)$ea + memorySize;
         }
@@ -356,31 +361,18 @@ INLINE boolean setArrayLength(Address _oop, int _size);
 //#define BAD_VALUE 99786999
 
 #ifdef BAD_ADDRESS
-        /**
-         * Checks to see if a specific address was written to and print it if it was.
-         *
-         * @param ea    the address of the last write to memory
-         * @param size  the number of bytes written
-         * @param addr  the address to check for
-         */
-        void checkOneAddress(Address ea, int size, Address addr) {
-            ByteAddress start  = (ByteAddress)ea;
-            ByteAddress end    = start + size;
-            ByteAddress target = (ByteAddress)addr;
-            if (target >= start && target < end) {
-                UWord value = ((UWord *)target)[0];
-                fprintf(stderr, format("*******************  [%A] = %A [bcount=%L]\n"), target, value, getBranchCount());
-#ifdef BAD_VALUE
-                if (value == BAD_VALUE) {
-                    fprintf(stderr, format("Stopping because bad value %A written in the range [%A .. %A)\n"), value, start, end);
-                    stopVM(-1);
-                }
-#endif
-            }
-        }
+void checkOneAddress(Address ea, int size, Address addr);
 #else
 #define checkOneAddress(ea, size, addr)
 #endif /* BAD_ADDRESS */
+
+#ifdef com_sun_squawk_CheneyCollector
+#define cheneyCheck(ea) assume(cheneyStartMemoryProtect == 0 || \
+                   lo(ea, cheneyStartMemoryProtect) || \
+                   hieq(ea, cheneyEndMemoryProtect))
+#else
+#define cheneyCheck(ea)
+#endif /* com_sun_squawk_CheneyCollector */
 
         /**
          * Performs a number of checks on a given part of memory immediately after
@@ -391,9 +383,7 @@ INLINE boolean setArrayLength(Address _oop, int _size);
          */
 /*DEF*/ void checkPostWrite(Address $ea, int $size) {
             checkOneAddress($ea, $size, (Address)BAD_ADDRESS);
-            assume(cheneyStartMemoryProtect == 0 ||
-                   lo($ea, cheneyStartMemoryProtect) ||
-                   hieq($ea, cheneyEndMemoryProtect));
+            cheneyCheck($ea);
         }
 
         /**
@@ -581,13 +571,16 @@ INLINE boolean setArrayLength(Address _oop, int _size);
          * @param type   the type of the value about to be written to the effective address
          * @param value  the value
          */
+#if SQUAWK_64
 /*MAC*/ void setUWordTyped(Address $base, Offset $offset, char $type, UWord $value) {
-            if (sizeof(UWord) == sizeof(int)) {
-                setIntTyped($base, $offset, $type, (UWord)$value);
-            } else {
-                setLongTyped($base, $offset, $type, (UWord)$value);
-            }
+            setLongTyped($base, $offset, $type, (UWord)$value);
         }
+#else
+/*MAC*/ void setUWordTyped(Address $base, Offset $offset, char $type, UWord $value) {
+            setIntTyped($base, $offset, $type, (UWord)$value);
+        }
+#endif
+
 
         /*-----------------------------------------------------------------------*\
          *                           Memory access interface                     *
@@ -669,12 +662,11 @@ INLINE boolean setArrayLength(Address _oop, int _size);
 //              void setBitFor(Address);
 /*end[MACROIZE]*/
                 Address ea;
-
-                if (sizeof(UWord) == sizeof(int)) {
-                    ea = (&((int *)$base)[$offset]);
-                } else {
-                    ea = (&((long *)$base)[$offset]);
-                }
+/*if[SQUAWK_64]*/
+                ea = (&((long *)$base)[$offset]);
+/*else[SQUAWK_64]*/
+//              ea = (&((int *)$base)[$offset]);
+/*end[SQUAWK_64]*/
 
                 assume(!com_sun_squawk_GC_collecting || loeq(ea, com_sun_squawk_GC_heapStart) || hi(ea, com_sun_squawk_GC_heapEnd));
                 setBitFor(ea);
@@ -702,7 +694,7 @@ INLINE boolean setArrayLength(Address _oop, int _size);
          * @param value  the value to write
          */
 /*MAC*/ void setLongAtWord(Address $base, Offset $offset, jlong $value) {
-            if (SQUAWK_64 || PLATFORM_UNALIGNED_LOADS) {
+            if (SQUAWK_64 || PLATFORM_UNALIGNED_64_LOADS) {
                 setLongAtWordTyped($base, $offset, AddressType_LONG, $value);
             } else {
                 const int highOffset = (PLATFORM_BIG_ENDIAN) ? $offset     : $offset + 1;
@@ -723,7 +715,7 @@ INLINE boolean setArrayLength(Address _oop, int _size);
 INLINE_UNALIGNED void setUnalignedShort(Address base, Offset offset, int value) {
             signed char *ea = &((signed char *)base)[offset];
 
-            if (PLATFORM_UNALIGNED_LOADS /* || isAligned((UWord)ea, 2) */) {
+            if (PLATFORM_UNALIGNED_LOADS) {
                  setShortTyped(ea, 0, AddressType_SHORT, (short)value);
             } else {
                 int b0 =  value       & 0xFF;
@@ -749,7 +741,7 @@ INLINE_UNALIGNED void setUnalignedShort(Address base, Offset offset, int value) 
          */
 INLINE_UNALIGNED void setUnalignedInt(Address base, Offset offset, int value) {
             signed char *ea = &((signed char *)base)[offset];
-            if (PLATFORM_UNALIGNED_LOADS /*|| isAligned((UWord)ea, 4) */) {
+            if (PLATFORM_UNALIGNED_LOADS) {
                  setIntTyped(ea, 0, AddressType_INT, value);
             } else {
                 int b0 =  value        & 0xFF;
@@ -780,7 +772,7 @@ INLINE_UNALIGNED void setUnalignedInt(Address base, Offset offset, int value) {
          */
 INLINE_UNALIGNED void setUnalignedLong(Address base, Offset offset, jlong value) {
             signed char *ea = &((signed char *)base)[offset];
-            if (PLATFORM_UNALIGNED_LOADS || isAligned((UWord)ea, 8)) {
+            if (PLATFORM_UNALIGNED_64_LOADS || isAligned((UWord)ea, 8)) {
                 setLongTyped(ea, 0, AddressType_LONG, value);
             } else {
                 /* optimize for 32-bit registers */
@@ -913,7 +905,7 @@ INLINE_UNALIGNED void setUnalignedLong(Address base, Offset offset, jlong value)
          * @return the value
          */
 /*MAC*/ jlong getLongAtWord(Address $base, Offset $offset) {
-            if (SQUAWK_64 || PLATFORM_UNALIGNED_LOADS) {
+            if (SQUAWK_64 || PLATFORM_UNALIGNED_64_LOADS) {
                 return getLongAtWordTyped($base, $offset, AddressType_LONG);
             } else {
                 const int highOffset = (PLATFORM_BIG_ENDIAN) ? $offset     : $offset + 1;
@@ -933,31 +925,6 @@ INLINE_UNALIGNED void setUnalignedLong(Address base, Offset offset, jlong value)
         }
 
         /**
-         * Special for popLong.
-         *
-         */
-#if !SQUAWK_64
-NOINLINE jlong getLongAtWordSpecial_pp(Address p1, Address p2) {
-            if (C_PARMS_LEFT_TO_RIGHT) {
-                return getLongAtWord(p1, 0);
-            } else if (C_PARMS_RIGHT_TO_LEFT) {
-                return getLongAtWord(p2, 0);
-            } else {
-                return getLongAtWord(p1<p2 ? p1 : p2, 0);
-            }
-        }
-NOINLINE jlong getLongAtWordSpecial_mm(Address p1, Address p2) {
-            if (C_PARMS_LEFT_TO_RIGHT) {
-                return getLongAtWord(p2, 0);
-            } else if (C_PARMS_RIGHT_TO_LEFT) {
-                return getLongAtWord(p1, 0);
-            } else {
-                return getLongAtWord(p1<p2 ? p1 : p2, 0);
-            }
-        }
-#endif
-
-        /**
          * Gets a signed 16 bit value from memory.
          *
          * @param base   the base address
@@ -966,7 +933,7 @@ NOINLINE jlong getLongAtWordSpecial_mm(Address p1, Address p2) {
          */
 INLINE_UNALIGNED int getUnalignedShort(Address base, Offset offset) {
             signed char *ea = &((signed char *)base)[offset];
-            if (PLATFORM_UNALIGNED_LOADS || isAligned((UWord)ea, 2)) {
+            if (PLATFORM_UNALIGNED_LOADS) {
                  return getShortTyped(ea, 0, AddressType_ANY);
             } else {
                 if (PLATFORM_BIG_ENDIAN) {
@@ -990,7 +957,7 @@ INLINE_UNALIGNED int getUnalignedShort(Address base, Offset offset) {
          */
 INLINE_UNALIGNED int getUnalignedInt(Address base, Offset offset) {
             signed char *ea = &((signed char *)base)[offset];
-            if (PLATFORM_UNALIGNED_LOADS || isAligned((UWord)ea, 4)) {
+            if (PLATFORM_UNALIGNED_LOADS) {
                 return getIntTyped(ea, 0, AddressType_ANY);
             } else {
                 int b1 = getUByteTyped(ea, 0, AddressType_ANY);
@@ -1048,7 +1015,7 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          */
 /*MAC*/ void swap2(Address $address) {
             char type = (TYPEMAP ? getType($address) : AddressType_UNDEFINED);
-            if (!isAligned((UWord)$address, 2)) {
+            if (!(PLATFORM_UNALIGNED_LOADS || isAligned((UWord)$address, 2))) {
                 int b0 = getUByteTyped($address, 0, AddressType_ANY);
                 int b1 = getUByteTyped($address, 1, AddressType_ANY);
                 setByteTyped($address, 0, AddressType_ANY, (char)b1);
@@ -1069,7 +1036,7 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          */
         void swap4(Address address) {
             char type = (TYPEMAP ? getType(address) : AddressType_UNDEFINED);
-            if (!isAligned((UWord)address, 4)) {
+            if (!(PLATFORM_UNALIGNED_LOADS || isAligned((UWord)address, 4))) {
                 int b0 = getUByteTyped(address, 0, AddressType_ANY);
                 int b1 = getUByteTyped(address, 1, AddressType_ANY);
                 int b2 = getUByteTyped(address, 2, AddressType_ANY);
@@ -1096,11 +1063,7 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          */
         void swap8(Address address) {
             char type = (TYPEMAP ? getType(address) : AddressType_UNDEFINED);
-            if (!isAligned((UWord)address, 8)) {
-                /*
-                 * Is "& 0xff" necessary? getUByteTyped is already unsigned...
-                 * It's OK, gcc did the right thing (other compilers prob. do too).
-                 */
+            if (!(PLATFORM_UNALIGNED_LOADS || isAligned((UWord)address, 8))) {
                 int b0 = getUByteTyped(address, 0, AddressType_ANY);
                 int b1 = getUByteTyped(address, 1, AddressType_ANY);
                 int b2 = getUByteTyped(address, 2, AddressType_ANY);
@@ -1143,7 +1106,7 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          * @param dataSize  the size (in bytes) of the value
          */
 /*MAC*/ void swap(Address $address, int $dataSize) {
-/*fprintf(stderr, format("swap(%A, %d)\n"), $address, $dataSize);*/
+            /*fprintf(stderr, format("swap(%A, %d)\n"), $address, $dataSize);*/
             switch ($dataSize) {
                 case 1:               break;
                 case 2: swap2($address); break;
@@ -1184,12 +1147,13 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
             }
         }
 
-/*MAC*/ void traceAllocation(boolean $passed, int $size) {
-            fprintf(stderr, "%s allocating object: size=%d, alloc free=%d, total free=%d\n",
-                    ($passed ? "succeeded" : "failed"),
+/*MAC*/ void traceAllocation(Address $oop, int $size) {
+            fprintf(stderr, "%s allocating object: size=%d, alloc free=%d, total free=%d, ptr=%d\n",
+                    (($oop != 0) ? "succeeded" : "failed"),
                     $size,
                     Address_diff(com_sun_squawk_GC_allocEnd, com_sun_squawk_GC_allocTop),
-                    Address_diff(com_sun_squawk_GC_heapEnd, com_sun_squawk_GC_allocTop));
+                    Address_diff(com_sun_squawk_GC_heapEnd, com_sun_squawk_GC_allocTop),
+                    (Offset)$oop);
         }
 
         /**
@@ -1199,17 +1163,17 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          * @param   arrayLength the number of elements in the array being allocated or -1 if a non-array object is being allocated
          * @return a pointer to a well-formed object or null if the allocation failed
          */
-/*MAC*/ Address allocate(int $size, Address $klass, int $arrayLength) {
+        Address allocate(int size, Address klass, int arrayLength) {
             Address block = com_sun_squawk_GC_allocTop;
             Offset available = Address_diff(com_sun_squawk_GC_allocEnd, block);
             Address oop;
-            assume($size >= 0);
+            assume(size >= 0);
 		
-            if (unlikely(lt(available, $size))) {
+            if (unlikely(lt(available, size))) {
 
                 if (available < 0) {
                     /* The last allocation overflowed the allocEnd boundary */
-/*traceAllocation(false, $size);*/
+                    /*traceAllocation(null, size);*/
                     return null;
                 } else {
                     /*
@@ -1219,27 +1183,27 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
                      * the allocation space would never succeed.
                      */
                     available = Address_diff(com_sun_squawk_GC_heapEnd, block);
-                    if (lt(available, $size)) {
-/*traceAllocation(false, $size);*/
+                    if (lt(available, size)) {
+                        /*traceAllocation(null, size);*/
                         return null;
                     }
                 }
             }
 
-            if ($arrayLength == -1) {
+            if (arrayLength == -1) {
                 oop = Address_add(block, HDR_basicHeaderSize);
-                setObject(oop, HDR_klass, $klass);
+                setObject(oop, HDR_klass, klass);
             } else {
                 oop = Address_add(block, HDR_arrayHeaderSize);
-                setObject(oop, HDR_klass, $klass);
-                if (!setArrayLength(oop, $arrayLength)) {
+                setObject(oop, HDR_klass, klass);
+                if (!setArrayLength(oop, arrayLength)) {
                     return 0;
                 }
             }
-            com_sun_squawk_GC_allocTop = Address_add(block, $size);
+            com_sun_squawk_GC_allocTop = Address_add(block, size);
             zeroWords(oop, com_sun_squawk_GC_allocTop);
-            newCount++;
-/*traceAllocation(true, $size);*/
+            com_sun_squawk_GC_newCount++;
+            /*traceAllocation(oop, size);*/
             return oop;
         }
 
@@ -1254,9 +1218,9 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          */
 /*MAC*/ Address allocateFast(int $size, Address $klass, int $arrayLength) {
             if (
-                com_sun_squawk_GC_excessiveGC == true        ||
+                com_sun_squawk_GC_excessiveGC != false       ||
                 com_sun_squawk_GC_allocationEnabled == false ||
-                (com_sun_squawk_GC_GC_TRACING_SUPPORTED && com_sun_squawk_GC_traceFlags != 0)
+                (com_sun_squawk_GC_GC_TRACING_SUPPORTED && (com_sun_squawk_GC_traceFlags & com_sun_squawk_GC_TRACE_ALLOCATION) != 0)
                ) {
                 return null; /* Force call to Java code */
             }
@@ -1296,13 +1260,38 @@ INLINE_UNALIGNED jlong getUnalignedLong(Address base, Offset offset) {
          * Copies bytes using memmove.
          */
         void copyBytes(Address src, int srcPos, Address dst, int dstPos, int length, boolean nvmDst) {
-//fprintf(stderr, format("copying  %d bytes from %A at offset %d to %A at offset %d nvmDst=%d\n"), length, src, srcPos, dst, dstPos, nvmDst);
+            /*fprintf(stderr, format("copying  %d bytes from %A at offset %d to %A at offset %d nvmDst=%d\n"), length, src, srcPos, dst, dstPos, nvmDst);*/
             if (nvmDst) {
-                toggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, false);
+                sysToggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, false);
             }
             memmove(Address_add(dst, dstPos), Address_add(src, srcPos), length);
             checkPostWrite(Address_add(dst, dstPos), length);
             if (nvmDst) {
-                toggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
+                sysToggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
             }
         }
+
+#ifdef BAD_ADDRESS
+        /**
+         * Checks to see if a specific address was written to and print it if it was.
+         *
+         * @param ea    the address of the last write to memory
+         * @param size  the number of bytes written
+         * @param addr  the address to check for
+         */
+        void checkOneAddress(Address ea, int size, Address addr) {
+            ByteAddress start  = (ByteAddress)ea;
+            ByteAddress end    = start + size;
+            ByteAddress target = (ByteAddress)addr;
+            if (target >= start && target < end) {
+                UWord value = ((UWord *)target)[0];
+                fprintf(stderr, format("*******************  [%A] = %A [bcount=%L]\n"), target, value, getBranchCount());
+#ifdef BAD_VALUE
+                if (value == BAD_VALUE) {
+                    fprintf(stderr, format("Stopping because bad value %A written in the range [%A .. %A)\n"), value, start, end);
+                    stopVM(-1);
+                }
+#endif
+            }
+        }
+#endif /* BAD_ADDRESS */

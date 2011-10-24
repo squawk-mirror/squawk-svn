@@ -48,6 +48,12 @@ UWord loadBootstrapSuiteFromFlash(
     *hash = (int)getUWord(javabytecodesbase, 1);
     UWord size=getUWord(javabytecodesbase, 2);
     *romStart=(void *)(javabytecodesbase + NUMBER_OF_BYTES_IN_BYTECODE_HEADER);
+    
+    diagnosticWithValue("javabytecodesbase: ", (int) javabytecodesbase);
+    diagnosticWithValue("rootOffset: ", (int) *suite);
+    diagnosticWithValue("hash: ", getUWord(javabytecodesbase, 0));
+    diagnosticWithValue("suite size: ", size);
+    diagnosticWithValue("romStart: ", (int) *romStart);
     return size;
 }
 
@@ -239,7 +245,7 @@ UWord loadBootstrapSuite(const char *file,
     fileSize = getFileSize(file);
     if (fileSize == -1) {
         fprintf(stderr, "Bootstrap suite file '%s' not found\n", file);
-        fatalVMError("bootstrap suite file not found");
+        fatalVMError("");
     } else if (size < fileSize) {
         fatalVMError("buffer size is too small for bootstrap suite");
     }
@@ -253,7 +259,7 @@ UWord loadBootstrapSuite(const char *file,
      * Read 'magic'
      */
     if (DataInputStream_readInt(&dis, "magic") != 0xdeadbeef) {
-        fatalVMError("magic in bootstrap suite is incorrect");
+        fatalVMError("bad magic in bootstrap suite");
     }
 
     /*

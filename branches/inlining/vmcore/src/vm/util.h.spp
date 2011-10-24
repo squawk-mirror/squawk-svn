@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -39,6 +40,7 @@
 #if SDA_DEBUGGER
 #define DB_MAX_BPS 100
 extern int sda_bp_set_or_stepping; // TRUE if we have any breakpoints set or are in a stepping mode
+#define set_sda_bp_set_or_stepping(_isolate_) sda_bp_set_or_stepping = sda_updateBreakpointCache(_isolate_)
 
 /* Null terminated array of instruction pointers for the breakpoints set in the current isolate. */
 extern ByteAddress sda_breakpoints[DB_MAX_BPS + 1];
@@ -49,11 +51,11 @@ void sda_clearStepState(Address thread);
 Address getInterpreterInvokedFrame(UWordAddress beginFP, UWordAddress endFP);
 void dumpSteppingInfo(Offset ipOffset, Offset fpOffset, Address stepInfo);
 #else
-#define sda_updateBreakpointCache(isolate) false
+#define set_sda_bp_set_or_stepping(_isolate_) FALSE
 /*if[!MACROIZE]*/
-int sda_bp_set_or_stepping; // TRUE if we have any breakpoints set or are in a stepping mode [optimisation]
+#define sda_bp_set_or_stepping FALSE
 /*end[MACROIZE]*/
-#endif
+#endif /* SDA_DEBUGGER */
 
 #ifdef __GNUC__
 #define likely(x) __builtin_expect ((x), 1)
@@ -61,61 +63,29 @@ int sda_bp_set_or_stepping; // TRUE if we have any breakpoints set or are in a s
 #else
 #define likely(x) (x)
 #define unlikely(x) (x)
-#endif
+#endif /* __GNUC__ */
 
 /*---------------------------------------------------------------------------*\
  *                               mprotect                                    *
 \*---------------------------------------------------------------------------*/
 
-/**
- * Gets the page size (in bytes) of the system.
- *
- * @return the page size (in bytes) of the system
+/* defined in os.c:
+ *     sysGetPageSize()
+ *     sysToggleMemoryProtection()
  */
-int getSystemPageSize(void) {
-#ifdef _MSC_VER
-    SYSTEM_INFO systemInfo;
-    GetSystemInfo(&systemInfo);
-    return systemInfo.dwPageSize;
-#else
-    return sysconf(_SC_PAGESIZE);
-#endif /* _MSC_VER */
-}
-
-/**
- * Sets a region of memory read-only or reverts it to read & write.
- *
- * @param start    the start of the memory region
- * @param end      one byte past the end of the region
- * @param readonly specifies if read-only protection is to be enabled or disabled
- */
-void toggleMemoryProtection(Address start, Address end, boolean readonly) {
-#ifndef FLASH_MEMORY
-    UWord len = Address_diff(end, start);
-#ifdef _MSC_VER
-    unsigned long old;
-//fprintf(stderr, format("toggle memory protection: start=%A len=%d end=%A readonly=%s\n"), start, len, end,  readonly ? "true" : "false");
-    if (VirtualProtect(start, len, readonly ? PAGE_READONLY : PAGE_READWRITE, &old) == 0) {
-        fprintf(stderr, format("Could not toggle memory protection: errno=%d addr=%A len=%d readonly=%s\n"), GetLastError(), start, len, readonly ? "true" : "false");
-    }
-#else
-    if (mprotect(start, len, readonly ? PROT_READ : PROT_READ | PROT_WRITE) != 0) {
-        fprintf(stderr, "Could not toggle memory protection: %s\n", strerror(errno));
-    }
-#endif /* _MSC_VER */
-#endif /* FLASH_MEMORY */
-}
 
 /*---------------------------------------------------------------------------*\
  *                                  Errors                                   *
 \*---------------------------------------------------------------------------*/
 
+NORETURN void fatalInterpreterError0(char *msg, int opcode, int _iparm, ByteAddress _ip, UWordAddress _fp, UWordAddress _sp, char* file, int line);
+
 /**
  * Exits the VM with an error message.
  */
-NORETURN void fatalVMError(char *msg) {
+NORETURN void fatalVMError0(char *msg, boolean cleanup) {
     static boolean inFatalVMError = false;
-    void stopVM(int);
+    NORETURN void stopVM0(int, boolean);
 
     if (msg == null) {
         msg = "fatal VM error";
@@ -131,16 +101,29 @@ NORETURN void fatalVMError(char *msg) {
 #if TRACE
         printStackTrace(msg);
 #endif
+/*if[MACROIZE]*/
+/*else[MACROIZE]*/
+//      fatalInterpreterError0("Last interpreter values:\n", -1, iparm, ip, fp, sp, "-", -1);
+/*end[MACROIZE]*/
     }
-    stopVM(-1);
+    stopVM0(-1, false);
+}
+
+/**
+ * Exits the VM with an error message.
+ */
+NORETURN void fatalVMError(char *msg) {
+    fatalVMError0(msg, true);
 }
 
 #define shouldNotReachHere() { fprintf(stderr, "shouldNotReachHere -- %s:%d\n", __FILE__, __LINE__); fatalVMError(""); }
 
 #if defined(ASSUME) && ASSUME != 0
 #define assume(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__); fatalVMError(""); }
+#define assumeInterp(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__); fatalInterpreterError(""); }
 #else
 #define assume(x) /**/
+#define assumeInterp(x) /**/
 #endif /* ASSUME */
 
 /**
@@ -148,27 +131,26 @@ NORETURN void fatalVMError(char *msg) {
  */
 #define assumeAlways(x) if (!(x))  { fprintf(stderr, "Assertion failed: \"%s\", at %s:%d\n", #x, __FILE__, __LINE__); fatalVMError(""); }
 
-NORETURN void fatalInterpreterError0(char *msg, int opcode, ByteAddress _ip, UWordAddress _fp, UWordAddress _sp, char* file, int line);
-
 /**
  * Exits the VM with an error message including various interpreter state.
  */
 /*if[MACROIZE]*/
 #define fatalInterpreterError(_msg) \
-    fatalInterpreterError0(_msg, opcode, ip, fp, sp, __FILE__, __LINE__)
+    fatalInterpreterError0(_msg, opcode, iparm, ip, fp, sp, __FILE__, __LINE__)
 /*else[MACROIZE]*/
 //#define fatalInterpreterError(_msg) \
-//  fatalInterpreterError0(_msg,      0, ip, fp, sp, __FILE__, __LINE__)
+//  fatalInterpreterError0(_msg,      0, iparm, ip, fp, sp, __FILE__, __LINE__)
 /*end[MACROIZE]*/
 
-#ifndef FLASH_MEMORY
-#include <signal.h>
-void signalHandler(int signum) {
-    char* strsignal(int signum);
-    fprintf(stderr, "caught signal %d\n", signum);
-    fatalVMError(strsignal(signum));
-}
-#endif // FLASH_MEMORY
+/*if[DEBUG_CODE_ENABLED]*/
+#define DEBUG_CODE_ENABLED 1
+/*else[DEBUG_CODE_ENABLED]*/
+//#define DEBUG_CODE_ENABLED 0
+/*end[DEBUG_CODE_ENABLED]*/
+
+void printJavaStrSafely(Address value, char* valueName);
+
+void printRange(char* label, void* start, void* end);
 
 /*---------------------------------------------------------------------------*\
  *                               alignment                                   *
@@ -332,7 +314,7 @@ NOINLINE int    d2f(jlong l)                 { return f2ib((float)lb2d(l));     
  *                                Math functions                             *
 \*---------------------------------------------------------------------------*/
 
-INLINE jlong math(int op, jlong rs1_l, jlong rs2_l) {
+jlong math(int op, jlong rs1_l, jlong rs2_l) {
     double rs1 = lb2d(rs1_l);
     double rs2 = lb2d(rs2_l);
     double res = 0.0;

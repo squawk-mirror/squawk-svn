@@ -1,29 +1,28 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
-#define TRUE 1
-#define FALSE 0
 
 // Size of class to class state cache.
 #define CLASS_CACHE_SIZE 6
@@ -33,7 +32,42 @@
 
 #include "platform.h"
 #include "buildflags.h"
+
+
+/**
+ * Forward definition of printf/fprintf helper function.
+ */
+const char *format(const char* fmt);
+
+/* used by io.c...*/
+#include "io_native.h"
+
 #include "os.c"
+
+#ifndef DIAGNOSTICS_ENABLED
+/* for ARM, defined in arm-library, otherwise do it here. */
+
+#if defined(ASSUME) && ASSUME != 0
+#define DIAG_INTRO	"[DIAG] "
+void diagnosticPrimWithValue(char* msg, int len, int val) {
+    printf("%s %.*s %#x\r\n", DIAG_INTRO, len, msg, val);
+    fflush(stdout);
+}
+void diagnostic(char * msg) {
+	diagnosticPrimWithValue(msg, strlen(msg), 0);
+}
+void diagnosticWithValue(char * msg, int val) {
+	diagnosticPrimWithValue(msg, strlen(msg), val);
+}
+#else  /* no assume */
+#define diagnostic(a) /**/
+#define diagnosticWithValue(a,b) /**/
+#endif /* no assume */
+#endif /* DIAGNOSTICS_ENABLED */
+
+#ifndef DEBUG_STARTUP
+#define DEBUG_STARTUP 0
+#endif
 
 // Single or user and kernel Squawk systems.
 #ifndef KERNEL_SQUAWK
@@ -49,13 +83,16 @@
 #define TRACE true
 #endif
 
-#ifndef IODOTC
-#define IODOTC "io.c"
+#if PLATFORM_TYPE_DELEGATING
+#define IODOTC "io_delegating.c"
+#elif PLATFORM_TYPE_NATIVE
+#define IODOTC "io_native.c"
+#elif PLATFORM_TYPE_SOCKET
+#define IODOTC "io_socket.c"
+#elif PLATFORM_TYPE_BARE_METAL
+ /* There is no OS or Java VM to talk to, so don't bother with code in io.c.*/
 #else
-/*
- * IODOTC was defined in os.c, so we are in FLASH_MEMORY mode.
- * There is no OS or Java VM to talk to, so don't bother with code in io.c.
- */ 
+#error "unspecified platform type"
 #endif
 
 #if defined(TYPEMAP) && TYPEMAP != 0
@@ -91,10 +128,13 @@ void printStackTracePrim(int opcode, ByteAddress traceIP, UWordAddress traceFP, 
 #define printStackTracePrim(opcode, traceIP, traceFP, msg, mnemonic)
 #endif /* TRACE */
 
+static Address lookupKlass(int cid);
+static Address lookupStaticMethod(int cid, int methodOffset);
+
 /*
     This is the 'slow' Squawk VM that is implemented in C. The techniques used in
     this VM are such that it should be expected that it will be several times slower
-    than other VMs implemented in C. Its purpose is only to have an initial Squawk3G
+    than other VMs implemented in C. Its purpose is only to have an initial Squawk
     implementation running quickly, and to provide a reference implementation
     to test the final system against.
 
@@ -157,18 +197,28 @@ void printStackTracePrim(int opcode, ByteAddress traceIP, UWordAddress traceFP, 
  * The default GC chunk, NVM and RAM sizes.
  */
 #ifndef SERVICE_CHUNK_SIZE
-#ifdef com_sun_squawk_GC_VIRTUAL_STACK_SIZE
-#define SERVICE_CHUNK_SIZE com_sun_squawk_GC_VIRTUAL_STACK_SIZE
-#else
 #define SERVICE_CHUNK_SIZE (24*1024)
 #endif
-#endif
+
 #define TWOWORDS (HDR_BYTES_PER_WORD * 2)
 #define SERVICE_CHUNK_SIZE_MINUS2WORDS (SERVICE_CHUNK_SIZE - TWOWORDS)
+
+#ifndef DEFAULT_RAM_SIZE
 #define DEFAULT_RAM_SIZE   (8*1024*1024)
+#endif
+
+/*
+ * Note that DEFAULT_NVM_SIZE = 0 means don't support nvm at all
+ */
+#ifndef DEFAULT_NVM_SIZE
 #define DEFAULT_NVM_SIZE   (8*1024*1024)
+#endif
 #define TIMEQUANTA 1000
+
+#ifndef MAX_BUFFERS
 #define MAX_BUFFERS 10
+#endif
+
 #define MAX_JVM_ARGS 20
 
 /**
@@ -179,15 +229,11 @@ const jlong MAX_UJLONG = (jlong)0x7fffffff << 32 | 0xffffffff;
 #define TRACESTART MAX_UJLONG
 #endif
 
-/**
- * Forward definition of printf/fprintf helper function.
- */
-const char *format(const char* fmt);
-
 /*
  * Forward declaration of VM exit routine.
  */
-void stopVM(int);
+NORETURN void stopVM0(int, boolean);
+NORETURN void stopVM(int);
 
 /*
  * Include all the globals.
@@ -426,25 +472,17 @@ void *newBuffer(UWord size, const char *desc, boolean fatalIfFail) {
     /*
      * Adjust size so that it is a multiple of the page size of the machine
      */
-    int pageSize = getSystemPageSize();
+    int pageSize = sysGetPageSize();
     int actualSize = (size + (pageSize - 1)) & ~(pageSize - 1);
 
-#ifdef _MSC_VER
-    buffer = VirtualAlloc(0, actualSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-#else
-	//#ifdef sun
-    //buffer = malloc(actualSize);    this may have been work-around for solaris bug 4846556, now fixed.
-	//#else
-    buffer = valloc(actualSize);
-	//#endif /* sun */
-#endif /* _MSC_VER */
+    buffer = sysValloc(actualSize);
+
 //fprintf(stderr, format("newBuffer: desc=%s, size=%A, actualSize=%O buffer=%A\n"), desc, size, actualSize, buffer);
     /*
      * Ensure that the resulting buffer is word aligned (which is surely guaranteed
      * if it is page aligned!)
      */
     assume(isWordAligned((UWord)buffer));
-
 
     if (buffer == null) {
         if (fatalIfFail) {
@@ -482,11 +520,7 @@ void freeBuffer(Address buffer) {
     while (i != BufferCount) {
         if (Buffers[i] == buffer) {
 //fprintf(stderr, format("freeBuffer: buffer=%A\n"), buffer);
-#ifdef _MSC_VER
-            VirtualFree(buffer, 0, MEM_RELEASE);
-#else
-            free(buffer);
-#endif /* _MSC_VER */
+            sysVallocFree(buffer);
         } else {
             Buffers[insert] = Buffers[i];
             insert++;
@@ -526,9 +560,11 @@ void freeBuffers() {
  */
 #include "bytecodes.c"
 
-/*if[VM2C]*/
+/*
+ * Include java code translated into C code.
+ */
 #include "vm2c.c"
-/*end[VM2C]*/
+
 
 #if KERNEL_SQUAWK
 /*
@@ -704,42 +740,45 @@ static void printCacheStats() {
     fprintf(stderr, "----------------------------------");
 #ifdef PROFILING
     count = instructionCount-lastStatCount;
-    fprintf(stderr, " %d.%02d M Instructions ", count/1000000, (count % 1000000) / 10000);
+    fprintf(stderr, " %lld.%02lld M Instructions ", count/1000000, (count % 1000000) / 10000);
     lastStatCount = instructionCount;
 #else
 #if TRACE
     count = getBranchCount()-lastStatCount;
-    fprintf(stderr, " %d.02%d M Branches ", count/1000000, (count % 1000000) / 10000);
+    fprintf(stderr, " %lld.02%lld M Branches ", count/1000000, (count % 1000000) / 10000);
     lastStatCount = getBranchCount();
 #endif /* TRACE */
 #endif /* PROFILING */
     fprintf(stderr, "----------------------------------");
 
+#ifdef INTERPRETER_STATS
     if (count > 0) {
         fprintf(stderr, "\nTotals - ");
-        printCacheStat(" Class",   cachedClassAccesses,           count);
-        printCacheStat(" Monitor", pendingMonitorAccesses,        count);
-        printCacheStat(" Exit",    com_sun_squawk_GC_monitorExitCount, count);
-        printCacheStat(" New",     pendingMonitorAccesses,        count);
+        fprintf(stderr, " Class: %d",   cachedClassAccesses);
+        fprintf(stderr, " Monitor: %d", pendingMonitorAccesses);
+        fprintf(stderr, " Exit: %d",    com_sun_squawk_GC_monitorExitCount);
+        fprintf(stderr, " New: %d",     com_sun_squawk_GC_newCount);
     }
 
     fprintf(stderr, "\nHits   - ");
-
     printCacheStat(" Class",   cachedClassHits,                  cachedClassAccesses);
     printCacheStat(" Monitor", pendingMonitorHits,               pendingMonitorAccesses);
     printCacheStat(" Exit",    com_sun_squawk_GC_monitorReleaseCount, com_sun_squawk_GC_monitorExitCount);
-    printCacheStat(" New",     newHits,                          newCount);
+    printCacheStat(" New",     com_sun_squawk_GC_newHits,        com_sun_squawk_GC_newCount);
     fprintf(stderr, "\n");
-
     cachedClassHits = cachedClassAccesses = 0;
     pendingMonitorHits = pendingMonitorAccesses = 0;
+#else /* INTERPRETER_STATS */
+    fprintf(stderr, "\n");
+#endif /* INTERPRETER_STATS */
+
     com_sun_squawk_GC_monitorExitCount = com_sun_squawk_GC_monitorReleaseCount = 0;
-    newCount = newHits = 0;
+    com_sun_squawk_GC_newCount = com_sun_squawk_GC_newHits = 0;
 
 #if TRACE
     if (total_extends > 0) {
         fprintf(stderr, format("Extends: %d (slots as %% of extends = %d.%02d%%)\n"), total_extends, AS_PERCENT(total_slots, total_extends));
-	}
+    }
 #endif /* TRACE */
     fprintf(stderr, format("GCs: %d full, %d partial\n"), com_sun_squawk_GC_fullCollectionCount, com_sun_squawk_GC_partialCollectionCount);
 }
@@ -752,52 +791,77 @@ static void printCacheStats() {
  * @param exitCode the exit code
  */
 NORETURN void stopVM(int exitCode) {
-    finalizeStreams();
-    freeBuffers();
-    fprintf(stderr, "\n\n");
+    stopVM0(exitCode, true);
+}
+
+/**
+ * Stops the VM running.
+ *
+ * @param exitCode the exit code
+ */
+NORETURN void stopVM0(int exitCode, boolean cleanup) {
+    static boolean inStop = false;
+
+/*
+if ( com_sun_squawk_VM_isBlocked) {
+fprintf(stderr, "VM is in a blocking system call!!! WILL CRASH????");
+}
+*/
+
+    if (!inStop) {
+        inStop = true;
+        finalizeStreams();
+
+        if (cleanup) {
+            freeBuffers();
+        }
+/*if[!EMULATOR_LAUNCHER]*/
+        fprintf(stderr, "\n\n");
 #ifndef FLASH_MEMORY
-    printCacheStats();
+        printCacheStats();
 #endif /* !FLASH_MEMORY */
-    fprintf(stderr, "** VM stopped");
+        fprintf(stderr, "** VM stopped");
 #ifdef PROFILING
-    fprintf(stderr, format(" after %L instructions"), instructionCount);
+        fprintf(stderr, format(" after %L instructions"), instructionCount);
 #endif /* PROFILING */
 #if TRACE
-    fprintf(stderr, format(" after %L branches"), getBranchCount());
+        fprintf(stderr, format(" after %L branches"), getBranchCount());
 #endif /* TRACE */
-    fprintf(stderr, format(": exit code = %d ** "), exitCode);
-#ifdef IOPORT
-    if (ioport != null) {
-        jlong average = (io_ops_count == 0 ? 0 : io_ops_time / io_ops_count);
-        fprintf(stderr, format(" (average time for %d I/O operation: %L ms)"), io_ops_count, average);
-    }
+        fprintf(stderr, format(": exit code = %d ** "), exitCode);
+#if PLATFORM_TYPE_SOCKET
+        if (ioport != null) {
+            jlong average = (io_ops_count == 0 ? 0 : io_ops_time / io_ops_count);
+            fprintf(stderr, format(" (average time for %d I/O operation: %L ms)"), io_ops_count, average);
+        }
 #endif
-    fprintf(stderr, "\n");
-    fflush(stderr);
+        fprintf(stderr, "\n");
+        fflush(stderr);
+/*else[EMULATOR_LAUNCHER]*/
+/*end[EMULATOR_LAUNCHER]*/
 
 #ifdef DB_DEBUG
-    db_vm_exiting();
+        db_vm_exiting();
 #endif
-
+    }
 #ifdef _MSC_VER
     if (notrap) {
         _asm{ int 3 };
     }
 #endif
 
-    if (isCalledFromJava) {
-        longjmp(vmStartScope, exitCode);
-    } else {
-        osfinish();
-        exit(exitCode);
-    }
+#if PLATFORM_TYPE_NATIVE
+    IO_shutdown();
+#endif
 
+    osfinish();
+	inStop = false;
+    exit(exitCode);
 }
 
 /**
  * Shows the usage message for passing flags to the embedded JVM.
  */
-#ifndef FLASH_MEMORY
+#if PLATFORM_TYPE_DELEGATING
 void jvmUsage() {
     printf("    -J<flag>       pass <flag> to the embedded Java VM. Some common usages include:\n");
     printf("                       -J-Xdebug -J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9999\n");
@@ -805,24 +869,29 @@ void jvmUsage() {
     printf("                       -J-Dcio.tracing=true [enables tracing in embedded JVM]\n");
     printf("                       -J-Dcio.logging=true [enables logging in embedded JVM]\n");
 }
-#endif
+#endif /* PLATFORM_TYPE_DELEGATING */
 
 /**
  * Shows the usage message.
  */
 void usage() {
-    printf("    -Xmx:<size>    set Squawk RAM size (default=%dKb)\n", DEFAULT_RAM_SIZE/1024);
-    printf("    -Xmxnvm:<size> set Squawk NVM size (default=%dKb)\n", DEFAULT_NVM_SIZE/1024);
-    printf("    -Xboot:<file>  load bootstrap suite from file (default=squawk.suite)\n");
-    printf("    -Xtgc:<n>      set GC trace flags where 'n' is the sum of:\n");
-    printf("                     1: minimal trace info of mem config and GC events\n");
+    printf("Usage: \n");
+    printf("    -Xmx:<size>    set RAM size (%dKb)\n", DEFAULT_RAM_SIZE/1024);
+#if DEFAULT_NVM_SIZE
+    printf("    -Xmxnvm:<size> set NVM size (%dKb)\n", DEFAULT_NVM_SIZE/1024);
+#endif
+    printf("    -Xboot:<file>  load bootstrap suite from file (squawk.suite)\n");
+    printf("    -Xtgc:<n>      set GC trace flags:\n");
+    printf("                     1: trace mem config and GC events\n");
+#if com_sun_squawk_GC_GC_TRACING_SUPPORTED
     printf("                     2: trace allocations\n");
     printf("                     4: detailed trace of garbage collector\n");
     printf("                     8: detailed trace of object graph copying\n");
     printf("                    16: heap trace before each GC\n");
     printf("                    32: heap trace after each GC\n");
     printf("                    64: include heap contents in heap trace\n");
-    printf("    -Xtgca:<n>     start GC tracing at the 'n'th collection (default=0)\n");
+#endif
+    printf("    -Xtgca:<n>     start GC tracing at collection 'n' (0)\n");
 #if TRACE
     printf("    -Xts:<n>       start tracing after 'n' backward branches\n");
     printf("    -Xte:<n>       stop tracing after 'n' backward branches\n");
@@ -840,9 +909,9 @@ void usage() {
 #endif /* OSPROF */
 #endif /* PROFILING */
 
-#ifdef IOPORT
+#if PLATFORM_TYPE_SOCKET
     printf("    -Xioport:[host:]port  connect to an I/O server via a socket\n");
-#endif /* IOPORT */
+#endif /* PLATFORM_TYPE_SOCKET */
 
 #if KERNEL_SQUAWK
     printf("    -Xkernel[:<n>] support async handling of interrupts (with signal number <n>)\n");
@@ -851,11 +920,11 @@ void usage() {
 
 #ifndef FLASH_MEMORY
     printf("    -Xnotrap       don't trap VM crashes\n");
-
-    if (!isCalledFromJava) {
-        jvmUsage();
-    }
 #endif /* FLASH_MEMORY */
+
+#if PLATFORM_TYPE_DELEGATING
+    jvmUsage();
+#endif /* PLATFORM_TYPE_DELEGATING */
 }
 
 /**
@@ -953,6 +1022,15 @@ int writeCStringArray(int length, char **array, int offset) {
     return offset;
 }
 
+/** 
+ * Return another path to find the bootstrap suite with the given name.
+ * On some platforms the suite might be stored in an odd location
+ * 
+ * @param bootstrapSuiteName the name of the boostrap suite
+ * @return full or partial path to alternate location, or null
+ */
+static char* getAlternateBootstrapSuiteLocation(char* bootstrapSuiteName);
+
 /**
  * Sets up the memory buffer.
  * 
@@ -993,8 +1071,7 @@ int writeCStringArray(int length, char **array, int offset) {
  * @param argc      the number of components in argv
  */
 Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *bootstrapSuiteFile) {
-
-    int pageSize = getSystemPageSize();
+    int pageSize = sysGetPageSize();
 
     int serviceChunkSize = SERVICE_CHUNK_SIZE;
     int realMemorySize;
@@ -1003,12 +1080,26 @@ Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *boot
     int argvTotalSize = calculateSizeForCopyOfCStringArray(argc, argv);
     int offset;
 
+    diagnosticWithValue("setupMemory: ram size", ramSize);
+    diagnosticWithValue("setupMemory: nvmSize size", nvmSize);
+
 #ifdef FLASH_MEMORY
     memorySize = roundUp(ramSize - (pageSize-1), pageSize);
     ramSize = memorySize - roundUp(serviceChunkSize, pageSize) - roundUp(argvTotalSize, pageSize) - roundUp(nvmSize, pageSize);
+    diagnosticWithValue("ram size", ramSize);
+	diagnosticWithValue("page size", pageSize);
+	diagnosticWithValue("memory size", memorySize);
     assume(!TYPEMAP);
-#else
+#else /* FLASH_MEMORY */
     memorySize = getFileSize(bootstrapSuiteFile);
+    if (memorySize == -1) {
+        char* altName = sysGetAlternateBootstrapSuiteLocation(bootstrapSuiteFile);
+        if (altName) {
+            printf("bootstrap suite not found, trying %s\n", altName);
+            bootstrapSuiteFile = altName;
+            memorySize = getFileSize(bootstrapSuiteFile);
+        }
+    }
     memorySize = roundUp(memorySize + ramSize, pageSize);
     memorySize = roundUp(memorySize + nvmSize, pageSize);
     memorySize = roundUp(memorySize + serviceChunkSize, pageSize);
@@ -1024,8 +1115,17 @@ Address setupMemory(int ramSize, int nvmSize, int argc, char *argv[], char *boot
 #ifdef FLASH_MEMORY
     bootstrapSize = loadBootstrapSuiteFromFlash(bootstrapSuiteFile, &com_sun_squawk_VM_romStart, &suite, &com_sun_squawk_VM_bootstrapHash);
     com_sun_squawk_VM_bootstrapStart = com_sun_squawk_VM_romStart;
-	com_sun_squawk_VM_romEnd = (Address)(FLASH_BASE_ADDR + FLASH_BASE_SIZE);
-#else
+
+#ifdef VIRTUAL_ADDRESS_SPACE_LOWER_BOUND
+    // on SPOTs and machines with MMU, flash memory may be virtually allocated to a larger range than specified by get_flash_base() + get_flash_size()
+    assume((Address)VIRTUAL_ADDRESS_SPACE_LOWER_BOUND > com_sun_squawk_VM_romStart);
+    com_sun_squawk_VM_romEnd = (Address)VIRTUAL_ADDRESS_SPACE_UPPER_BOUND;
+    //com_sun_squawk_VM_romEnd = (Address)(FLASH_BASE_ADDR + FLASH_BASE_SIZE);
+#else /* VIRTUAL_ADDRESS_SPACE_LOWER_BOUND */
+    com_sun_squawk_VM_romEnd = (Address)(get_flash_base() + get_flash_size());
+#endif /* VIRTUAL_ADDRESS_SPACE_LOWER_BOUND */
+    
+#else /* FLASH_MEMORY */
     // ROM starts at the begining of the VM's memory buffer
     com_sun_squawk_VM_romStart = com_sun_squawk_VM_bootstrapStart = memory;
     bootstrapSize = loadBootstrapSuite(bootstrapSuiteFile, memory, memorySize, &suite, &com_sun_squawk_VM_bootstrapHash);
@@ -1062,14 +1162,18 @@ val2 = getUnalignedInt(com_sun_squawk_GC_ramStart, 0);
 fprintf(stderr, "&&&& Special int val2 = %lx\n", val2);
 */
 
+    com_sun_squawk_VM_bootstrapSuite = suite;
 
     // The stack for the service thread starts on the next page after the end of RAM.
     // The length of the stack in logical slots is written into the first word of the
     // block allocate for the stack. This length is later used in Thread.initializeThreading()
     // to format the stack as a Java object of type Klass.LOCAL_ARRAY
     com_sun_squawk_VMThread_serviceStack = Address_add(roundUp((UWord)com_sun_squawk_GC_ramEnd, pageSize), TWOWORDS);
-    setUWord(com_sun_squawk_VMThread_serviceStack, HDR_length, SERVICE_CHUNK_SIZE_MINUS2WORDS / HDR_BYTES_PER_WORD);
+    setArrayLength(com_sun_squawk_VMThread_serviceStack, SERVICE_CHUNK_SIZE_MINUS2WORDS / HDR_BYTES_PER_WORD);
     setUWord(com_sun_squawk_VMThread_serviceStack, SC_guard, 0);
+    setObject(com_sun_squawk_VMThread_serviceStack, SC_owner, 0);
+    setObject(com_sun_squawk_VMThread_serviceStack, SC_lastFP, 0);
+    setUWord(com_sun_squawk_VMThread_serviceStack, SC_lastBCI, 0);
 
     // The command line arguments for the JAM start on the next page after the end of the stack for the service thread.
     com_sun_squawk_VM_argc = argc;
@@ -1085,22 +1189,18 @@ fprintf(stderr, "&&&& Special int val2 = %lx\n", val2);
     assume(isWordAligned((UWord)com_sun_squawk_GC_ramStart));
     assume(isWordAligned((UWord)com_sun_squawk_VMThread_serviceStack));
 
-    if (com_sun_squawk_GC_traceFlags != 0) {
-        fprintf(stderr, format("ROM relocated to %A\n"), com_sun_squawk_VM_romStart);
-        fprintf(stderr, format("Memory start    = %A\n"), memory);
-        fprintf(stderr, format("Memory end      = %A\n"), memoryEnd);
+    if (DEBUG_STARTUP || com_sun_squawk_GC_traceFlags != 0) {
+        fprintf(stderr, format("ROM relocated to %x\n"), com_sun_squawk_VM_romStart);
+        printRange("ROM       ", (char*)com_sun_squawk_VM_romStart, (char*)com_sun_squawk_VM_romEnd);
+        printRange("Suite     ", (char*)suite, (char*)((char*) suite + bootstrapSize));
+        printRange("Memory    ", (char*)memory, (char*)memoryEnd);
 #if TYPEMAP
-        fprintf(stderr, format("Type map start  = %A\n"), getTypePointer(memory));
-        fprintf(stderr, format("Type map end    = %A\n"), getTypePointer(memoryEnd));
+        printRange("Type map  ", (char*)getTypePointer(memory), (char*)getTypePointer(memoryEnd));
 #endif /* TYPEMAP */
-        fprintf(stderr, format("ROM start       = %A\n"), com_sun_squawk_VM_romStart);
-        fprintf(stderr, format("ROM end         = %A\n"), com_sun_squawk_VM_romEnd);
-        fprintf(stderr, format("NVM start       = %A\n"), com_sun_squawk_GC_nvmStart);
-        fprintf(stderr, format("NVM end         = %A\n"), com_sun_squawk_GC_nvmEnd);
-        fprintf(stderr, format("RAM start       = %A\n"), com_sun_squawk_GC_ramStart);
-        fprintf(stderr, format("RAM end         = %A\n"), com_sun_squawk_GC_ramEnd);
-        fprintf(stderr, format("serviceStack    = %A\n"), com_sun_squawk_VMThread_serviceStack);
-        fprintf(stderr, format("Bootstrap suite = %A\n"), suite);
+        printRange("NVM       ", (char*)com_sun_squawk_GC_nvmStart, (char*)com_sun_squawk_GC_nvmEnd);
+        printRange("RAM       ", (char*)com_sun_squawk_GC_ramStart, (char*)com_sun_squawk_GC_ramEnd);
+        printRange("ServiceStk", (char*)com_sun_squawk_VMThread_serviceStack, (char*)Address_add(com_sun_squawk_VMThread_serviceStack, SERVICE_CHUNK_SIZE_MINUS2WORDS));
+        printRange("argv      ", (char*)com_sun_squawk_VM_argv, (char*)Address_add(memory, offset));
     }
 
     return suite;
@@ -1164,6 +1264,103 @@ void preprocessArgs(char *argv[], int *argc,
 }
 #endif /* KERNEL_SQUAWK */
 
+#ifndef FLASH_MEMORY
+/********* SIGNAL HANDLING *********
+ * Use OS provided signal handling to catch interrupts, bus errors, and segmentation violations.
+ **********************************/
+#include <signal.h>
+
+#if _MSC_VER // the old way
+
+void signalHandler(int signum) {
+    char* strsignal(int signum);
+    /* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
+    fprintf(stderr, "\ncaught signal %d\n", signum);
+    fatalVMError(strsignal(signum));
+}
+
+void setupSignals() {
+    signal(SIGSEGV, signalHandler);
+#ifndef _MSC_VER
+    signal(SIGBUS,  signalHandler);
+#endif
+    signal(SIGINT,  signalHandler);
+}
+
+
+#else   // the new way
+
+#include <dlfcn.h>
+
+
+void termHandler(int signum, siginfo_t * pInfo, void * pContext) {
+/* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
+    fprintf(stderr, "\nSquawk VM caught signal %d\nTERMINATIN©G\n", signum);
+  
+    fatalVMError(strsignal(signum));
+
+}
+
+void crashHandler(int signum, siginfo_t * pInfo, void * pContext) {
+    /* WARNING: ARE THESE SAFE TO CALL FROM A SIGNAL HANDLER??? */
+    fprintf(stderr, "\nSquawk VM caught signal %d\nCRASH\n", signum);
+
+    fprintf(stderr, "    si_code: 0x%x\n", pInfo->si_code);
+#ifdef VXWORKS
+    fprintf(stderr, "    si_value.sival_int: 0x%x\n", pInfo->si_value.sival_int);
+#else
+    fprintf(stderr, "    si_errno: %d\n", pInfo->si_errno);
+    fprintf(stderr, "    si_addr: %p\n", pInfo->si_addr);
+#endif
+
+    if (nativeFuncPtr == NULL) {
+        fprintf(stderr, "    Not in callout to native function.\n");
+    } else {
+        fprintf(stderr, "    In callout to native function: %p\n", nativeFuncPtr);
+         Dl_info dlinfo;
+         if (dladdr(nativeFuncPtr, &dlinfo)) {
+            fprintf(stderr, "   named: %s\n", dlinfo.dli_sname);
+         } else {
+            fprintf(stderr, "   named: unknown\n");
+         }
+    }
+    fprintf(stderr, "Resuming system signal handler...\n");
+}
+
+void setupSignals() {
+    struct sigaction sa;
+    
+    nativeFuncPtr = NULL;
+
+    sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
+    sa.sa_sigaction = crashHandler;
+
+    if(sigaction(SIGSEGV, &sa, NULL)) {
+      perror("sigaction");
+      exit(0);
+   }
+
+#ifndef _MSC_VER
+    if(sigaction(SIGBUS, &sa, NULL)) {
+      perror("sigaction");
+      exit(0);
+   }
+#endif
+    
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = termHandler;
+    if(sigaction(SIGINT, &sa, NULL)) {
+      perror("sigaction");
+      exit(0);
+   }
+
+}
+
+
+
+#endif  // the new way
+#endif // FLASH_MEMORY
+
 
 /**
  * Process the command line arguments.
@@ -1182,6 +1379,9 @@ Address processArgs(char *argv[], const int argc) {
     int nvmSize = DEFAULT_NVM_SIZE;
     int ramSize = DEFAULT_RAM_SIZE;
 
+    diagnostic("in processArgs");
+
+/*if[!EMULATOR_LAUNCHER]*/
 #ifdef PROFILING
     fprintf(stderr, "*************** Profiling version ***************\n");
 #endif
@@ -1196,76 +1396,83 @@ Address processArgs(char *argv[], const int argc) {
 
     while (oldIndex != argc) {
         char *arg = argv[oldIndex];
+        char *wholeArg = arg;
+
         if (arg[0] != '-') {
             break; /* finished VM options part */
         }
 
-        if (arg[1] != 'X' && (isCalledFromJava || arg[1] != 'J')) {
-            argv[newIndex++] = arg;
-        } else {
-            if (arg[1] == 'X') {
-                arg += 2; /* skip the '-X' */
-#ifdef IOPORT
-                if (startsWith(arg, "ioport:")) {
-                    ioport = arg + 7;
-                } else
+        if (arg[1] == 'X') {
+            arg += 2; /* skip the '-X' */
+#if PLATFORM_TYPE_SOCKET
+            if (startsWith(arg, "ioport:")) {
+                ioport = arg + 7;
+            } else
 #endif
-                if (startsWith(arg, "mxnvm:")) {
-                    nvmSize = parseQuantity(arg+6, "-Xmxnvm:");
-                } else if (startsWith(arg, "mx:")) {
-                    ramSize = roundDownToWord(parseQuantity(arg+3, "-Xmx:"));
-                } else if (startsWith(arg, "boot:")) {
-                    bootstrapSuiteFile = arg + 5;
-                } else if (startsWith(arg, "tgca:")) {
-                    com_sun_squawk_GC_traceThreshold = parseQuantity(arg+5, "-Xtgca:");
-                } else if (startsWith(arg, "tgc:")) {
-                    com_sun_squawk_GC_traceFlags = parseQuantity(arg+4, "-Xtgc:");
+#if DEFAULT_NVM_SIZE
+            if (startsWith(arg, "mxnvm:")) {
+                nvmSize = parseQuantity(arg+6, wholeArg);
+            } else
+#endif
+            if (startsWith(arg, "mx:")) {
+                ramSize = roundDownToWord(parseQuantity(arg+3, wholeArg));
+            } else if (startsWith(arg, "boot:")) {
+                bootstrapSuiteFile = arg + 5;
+            } else if (startsWith(arg, "tgca:")) {
+                com_sun_squawk_GC_traceThreshold = parseQuantity(arg+5, wholeArg);
+            } else if (startsWith(arg, "tgc:")) {
+                com_sun_squawk_GC_traceFlags = parseQuantity(arg+4, wholeArg);
 #ifndef FLASH_MEMORY
-                } else if (equals(arg, "notrap")) {
-                    notrap = true;
+            } else if (equals(arg, "notrap")) {
+                notrap = true;
 #endif /* FLASH_MEMORY */
 #if TRACE
-                } else if (equals(arg, "tnoservice")) {
-                    traceServiceThread = false;
-                } else if (equals(arg, "terr")) {
-                    traceFile = stderr;
-                } else if (startsWith(arg, "ts:")) {
-                    setTraceStart(parseQuantityLong(arg+3, "-Xts:"));
-                } else if (startsWith(arg, "te:")) {
-                    setTraceEnd(parseQuantityLong(arg+3, "-Xte:"));
-                } else if (startsWith(arg, "tr:")) {
-                    jlong start = parseQuantityLong(arg+3, "-Xtr:");
-                    setTraceStart(start);
-                    setTraceEnd(start + 1000);
-                } else if (startsWith(arg, "stats:")) {
-                    statsFrequency = parseQuantity(arg+6, "-Xstats:");
-                    if (statsFrequency == 0) {
-                        fprintf(stderr,"-Xstats:0 is invalid\n");
-                        stopVM(-1);
-                    }
+            } else if (equals(arg, "tnoservice")) {
+                traceServiceThread = false;
+            } else if (equals(arg, "terr")) {
+                traceFile = stderr;
+            } else if (startsWith(arg, "ts:")) {
+                setTraceStart(parseQuantityLong(arg+3, wholeArg));
+            } else if (startsWith(arg, "te:")) {
+                setTraceEnd(parseQuantityLong(arg+3, wholeArg));
+            } else if (startsWith(arg, "tr:")) {
+                jlong start = parseQuantityLong(arg+3, wholeArg);
+                setTraceStart(start);
+                setTraceEnd(start + 1000);
+            } else if (startsWith(arg, "stats:")) {
+                statsFrequency = parseQuantity(arg+6, wholeArg);
+                if (statsFrequency == 0) {
+                    fprintf(stderr,"-Xstats:0 is invalid\n");
+                    stopVM(-1);
+                }
 #endif /* TRACE */
 #ifdef PROFILING
-                } else if (startsWith(arg, "prof:")) {
-                    sampleFrequency = parseQuantity(arg+5, "-Xprof:");
-                    if (sampleFrequency == 0) {
-                        fprintf(stderr,"-Xprof:0 is invalid\n");
-                        stopVM(-1);
-                    }
+            } else if (startsWith(arg, "prof:")) {
+                sampleFrequency = parseQuantity(arg+5, wholeArg);
+                if (sampleFrequency == 0) {
+                    fprintf(stderr,"-Xprof:0 is invalid\n");
+                    stopVM(-1);
+                }
 #endif /* PROFILING */
-                } else {
-                    if (arg[0] != 0) {
-                        fprintf(stderr,"Unrecognised option: -X%s\n", arg);
-                    }
-                    usage();
-                    stopVM(0);
-                }
             } else {
-                /* '-J' flag */
-                if (javaVMArgsCount >= MAX_JVM_ARGS) {
-                    fatalVMError("too many '-J' flags");
+                if (arg[0] != 0) {
+                    fprintf(stderr,"Unrecognised option: %s\n", wholeArg);
                 }
-                javaVMArgs[javaVMArgsCount++] = arg + 2;
+                usage();
+                stopVM(0);
             }
+        } else if (PLATFORM_TYPE_DELEGATING && arg[1] == 'J') {
+            /* '-J' flag */
+            if (javaVMArgsCount >= MAX_JVM_ARGS) {
+                fatalVMError("too many '-J' flags");
+            }
+            javaVMArgs[javaVMArgsCount++] = arg + 2;
+#ifdef __APPLE__
+        } else if (startsWith(arg, "-psn")) {
+            // skip this (process id number?)
+#endif /* __APPLE__ */
+        } else {
+            argv[newIndex++] = arg;
         }
         oldIndex++;
     }
@@ -1274,25 +1481,28 @@ Address processArgs(char *argv[], const int argc) {
     while (oldIndex != argc) {
         argv[newIndex++] = argv[oldIndex++];
     }
+/*else[EMULATOR_LAUNCHER]*/
+//    newIndex = argc;
+/*end[EMULATOR_LAUNCHER]*/
 
 #ifndef FLASH_MEMORY
     if (!notrap) {
-        signal(SIGSEGV, signalHandler);
-#ifndef _MSC_VER
-        signal(SIGBUS,  signalHandler);
-#endif
-        signal(SIGINT,  signalHandler);
+        setupSignals();
     } else {
         printf("Trap handling disabled\n");
     }
 #endif /* FLASH_MEMORY */
 
+#if PLATFORM_TYPE_DELEGATING
     /*
      * Startup the embedded Hotspot VM if Squawk was not launched via a JNI call
      */
-    if (!isCalledFromJava) {
-        CIO_initialize(null, "squawk.jar", javaVMArgs, javaVMArgsCount);
-    }
+    CIO_initialize("squawk.jar", javaVMArgs, javaVMArgsCount);
+#elif PLATFORM_TYPE_NATIVE
+    IO_initialize();
+#elif PLATFORM_TYPE_SOCKET
+    IO_initialize();
+#endif
 
     /*
      * Set up the buffer that will be used for the ROM, NVM and RAM, remaining.
@@ -1359,9 +1569,9 @@ void verifyBuildFlags() {
     }
 
     if (MONITOR_CACHE_SIZE > com_sun_squawk_VMThread_MAXDEPTH) {
-	// this should never happen, but check once at startup, instead of
-	// at every lock operation.
-	fprintf(stderr, "MONITOR_CACHE_SIZE is too large for maximum lock depth\n");
+        // this should never happen, but check once at startup, instead of
+        // at every lock operation.
+        fprintf(stderr, "MONITOR_CACHE_SIZE is too large for maximum lock depth\n");
         stopVM(-1);
     }
 }
@@ -1375,12 +1585,12 @@ void verifyBuildFlags() {
 Address Squawk_setup(int argc, char *argv[]) {
 
     Address bootstrapSuite;
-    void CIO_initialize(JNIEnv *env, char *classPath, char** jvmArgs, int jvmArgc);
 
     /*
      * Sanity check.
      */
     assume(sizeof(UWord) == sizeof(Address));
+    diagnostic("in Squawk_setup");
 
     /*
      * Check that the build flags were correct.
@@ -1400,8 +1610,10 @@ Address Squawk_setup(int argc, char *argv[]) {
     /*
      * Make ROM and NVM be read-only
      */
-    toggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
-    toggleMemoryProtection(com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, true);
+    sysToggleMemoryProtection(com_sun_squawk_GC_nvmStart, com_sun_squawk_GC_nvmEnd, true);
+    sysToggleMemoryProtection(com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, true);
+
+    initMethods();
 
     /*
      * Return the bootstrap suite.
@@ -1451,7 +1663,9 @@ void Squawk_continue(Globals *gp) {
     ByteAddress  ip;                /* The instruction pointer. */
     UWordAddress fp;                /* The frame pointer. */
     UWordAddress sp;                /* The stack pointer. */
+#if SDA_DEBUGGER
     int sda_bp_set_or_stepping = false;     /* TRUE if we have any breakpoints set or are in a stepping mode [optimisation] */
+#endif /* SDA_DEBUGGER */
 #endif /* MACROIZE */
 
     ip = saved_ip;                  /* Restore the instruction pointer. */
@@ -1500,7 +1714,7 @@ void Squawk_continue(Globals *gp) {
 
 
 #if TRACE
-        if (tracing) {
+        if (com_sun_squawk_VM_tracing) {
             trace(ipCopy, fp, sp);
         }
 #endif /* TRACE */
@@ -1546,66 +1760,13 @@ void Squawk_continue(Globals *gp) {
     }
 }
 
-extern int printValueInRange(Address value, char* valueName, Address low, Address high, char* rangeName);
-extern void printStrSafely(Address value, char* valueName, Address low, Address high, char* rangeName);
-
-/**
- * Exits the VM with an error message including various interpreter state.
- */
-extern  void fatalInterpreterError0(char *msg, int opcode, ByteAddress _ip, UWordAddress _fp, UWordAddress _sp, char* file, int line) {
-    Address stackHigh = com_sun_squawk_GC_ramEnd;
-    boolean userStack = FALSE;
-
-    fprintf(stderr, "fatalInterpreterError %s -- %s:%d\n", msg, file, line);
-    fprintf(stderr, "    opcode: %x\n", opcode);
-    if (opcode != (opcode & 0xFF)) {
-           fprintf(stderr, "    opcode overflowed!\n");
-    }
-#ifdef FLASH_MEMORY
-    printValueInRange(_ip, "ip", com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, "code");
-#else
-    printValueInRange(_ip, "ip", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "code");
-#endif
-
-    printValueInRange(ss,  "stack", com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM");
-
-    if (ss == com_sun_squawk_VMThread_serviceStack) {
-         fprintf(stderr, "    current stack is service stack\n");
-         stackHigh = Address_add(ss, getArrayLength(ss) * HDR_BYTES_PER_WORD);
-    } else if (inRAM(ss)) {
-         int cid = com_sun_squawk_Klass_id(getClass(ss));
-         stackHigh = Address_add(ss, getArrayLength(ss) * HDR_BYTES_PER_WORD);
-         if (cid == CID_LOCAL_ARRAY) {
-             userStack = TRUE;
-         } else {
-              fprintf(stderr, "        current stack has bad class id: %x\n", cid);
-         }
-    }
-
-    printValueInRange(_sp, "sp", sl, stackHigh, "current stack");
-    printValueInRange(_fp, "fp", sl, stackHigh, "current stack");
-
-    if (userStack) {
-        Address thread = getObject(ss, SC_owner);
-        Address isolate = com_sun_squawk_VMThread_isolate(thread);
-
-        printValueInRange(thread, "thread", com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM");
-        printStrSafely(com_sun_squawk_VMThread_name(thread), "thread name", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "RAM or ROM");
-
-        if (printValueInRange(isolate, "isolate", com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM")) {
-            printStrSafely(com_sun_squawk_Isolate_mainClassName(isolate), "isolate main class", 
-                com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM");
-            printStrSafely(com_sun_squawk_Isolate_args(isolate), "isolate args", 
-                com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM");
-        }
-    }
-
-    fatalVMError("");
+void printRange(char* label, void* start, void* end) {
+    fprintf(stderr, "%s  : %p~%p [size:%d]\r\n", label, start, end, ((char*)end - (char*)start));
 }
 
 int printValueInRange(Address value, char* valueName, Address low, Address high, char* rangeName) {
     int result = (value >= low && value < high);
-    fprintf(stderr, "    %s: %x. Is %sin %s range %x .. %x\n", valueName, value, (result ? "" : "NOT "), rangeName, low, high);
+    fprintf(stderr, "    %s: %p. Is %sin %s range %p .. %p\n", valueName, value, (result ? "" : "NOT "), rangeName, low, high);
     return result;
 }
 
@@ -1615,12 +1776,134 @@ void printStrSafely(Address value, char* valueName, Address low, Address high, c
     if (value == 0) {
         fprintf(stderr, "NULL.\n");
     } else if (result) {
-        printJavaString(value, stderr, null, 0);
+        printJavaString(value, stderr);
         fprintf(stderr, "\n");
     } else {
-        fprintf(stderr, "%x is NOT in %s range %x .. %x\n", value, rangeName, low, high);
+        fprintf(stderr, "%p is NOT in %s range %p .. %p\n", value, rangeName, low, high);
     }
 }
+
+void printJavaStrSafely(Address value, char* valueName) {
+    printStrSafely(value, valueName, com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "RAM or ROM");
+}
+
+
+/**
+ * Exits the VM with an error message including various interpreter state.
+ */
+extern  void fatalInterpreterError0(char *msg, int opcode, int _iparm, ByteAddress _ip, UWordAddress _fp, UWordAddress _sp, char* file, int line) {
+    Address stackHigh = com_sun_squawk_GC_ramEnd;
+    boolean userStack = FALSE;
+
+    fprintf(stderr, "fatalInterpreterError %s -- %s:%d\n", msg, file, line);
+    fprintf(stderr, "    opcode: 0x%x\n", opcode);
+#if com_sun_squawk_Klass_DEBUG_CODE_ENABLED
+    if (opcode != (opcode & 0xFF)) {
+           fprintf(stderr, "    opcode overflowed!\n");
+    }
+#endif
+    fprintf(stderr, "    iparm: 0x%x\n", _iparm);
+
+    if (com_sun_squawk_GC_collecting) {
+        fprintf(stderr, "    in GC\n");
+    }
+
+#if com_sun_squawk_Klass_ENABLE_DYNAMIC_CLASSLOADING
+    printValueInRange(_ip, "ip", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "code");
+#else
+    printValueInRange(_ip, "ip", com_sun_squawk_VM_romStart, com_sun_squawk_VM_romEnd, "code");
+#endif
+
+    if (ss == com_sun_squawk_VMThread_serviceStack) {
+        fprintf(stderr, "    stack: %p. current stack is service stack\n", ss);
+    } else if (printValueInRange(ss, "stack", com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM")) {
+        int cid = com_sun_squawk_Klass_id(getClass(ss));
+        if (cid == CID_LOCAL_ARRAY) {
+            userStack = TRUE;
+        } else {
+            fprintf(stderr, "stack has bad class id: %x\n", cid);
+        }
+    }
+    stackHigh = Address_add(ss, getArrayLength(ss) * HDR_BYTES_PER_WORD);
+    printValueInRange(_sp, "sp", sl, stackHigh, "current stack");
+    printValueInRange(_fp, "fp", sl, stackHigh, "current stack");
+
+    if (userStack) {
+        Address thread = getObject(ss, SC_owner);
+
+        printValueInRange(thread, "thread", com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM");
+        printStrSafely(com_sun_squawk_VMThread_name(thread), "thread name", com_sun_squawk_VM_romStart, com_sun_squawk_GC_ramEnd, "RAM or ROM");
+#if com_sun_squawk_Klass_DEBUG_CODE_ENABLED
+        {
+            Address isolate = com_sun_squawk_VMThread_isolate(thread);
+            if (printValueInRange(isolate, "isolate", com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM")) {
+                printStrSafely(com_sun_squawk_Isolate_mainClassName(isolate), "isolate main class",
+                               com_sun_squawk_GC_ramStart, com_sun_squawk_GC_ramEnd, "RAM");
+            }
+        }
+#endif
+    } else {
+        if (com_sun_squawk_GC_collecting) {
+            fprintf(stderr, "    in garbage collection\n");
+        }
+    }
+    
+    if (!com_sun_squawk_VM_extendsEnabled) {
+        fprintf(stderr, "    stack extension disabled\n");
+    }
+
+    fatalVMError("");
+}
+
+/*if[FLOATS]*/
+void fpTest() {
+    float f0 = 0.0;
+    float f1 = 1.0;
+    double d0 = 0.0;
+    double d1 = 1.0;
+    FILE *vmOut = streams[currentStream];
+
+        fprintf(vmOut, format("f0 = %i\n"), f2ib(f0));
+    fprintf(vmOut, format("f1 = %i\n"), f2ib(f1));
+    fprintf(vmOut, format("f0 + f0 = %i\n"), f2ib(f0 + f0));
+    fprintf(vmOut, format("f0 + f1 = %i\n"), f2ib(f0 + f1));
+    fprintf(vmOut, format("f0 * f1 = %i\n"), f2ib(f0 * f1));
+    fprintf(vmOut, format("f1 * f1 = %i\n"), f2ib(f1 * f1));
+    fprintf(vmOut, format("f1 + f1 = %i\n"), f2ib(f1 + f1));
+fflush(vmOut);
+
+    fprintf(vmOut, format("f0 = %f\n"), f0);fflush(vmOut);
+    fprintf(vmOut, format("f1 = %f\n"), f1);fflush(vmOut);
+    fprintf(vmOut, format("f0 + f0 = %f\n"), (f0 + f0));fflush(vmOut);
+    fprintf(vmOut, format("f0 + f1 = %f\n"), (f0 + f1));fflush(vmOut);
+    fprintf(vmOut, format("f0 * f1 = %f\n"), (f0 * f1));fflush(vmOut);
+    fprintf(vmOut, format("f1 * f1 = %f\n"), (f1 * f1));fflush(vmOut);
+    fprintf(vmOut, format("f1 + f1 = %f\n"), (f1 + f1));fflush(vmOut);
+
+    fprintf(vmOut, format("d0 = %D\n"), d0);fflush(vmOut);
+    fprintf(vmOut, format("d1 = %D\n"), d1);fflush(vmOut);
+    fprintf(vmOut, format("d0 + d0 = %D\n"), (d0 + d0));fflush(vmOut);
+    fprintf(vmOut, format("d0 + d1 = %D\n"), (d0 + d1));fflush(vmOut);
+    fprintf(vmOut, format("d0 * d1 = %D\n"), (d0 * d1));fflush(vmOut);
+    fprintf(vmOut, format("d1 * d1 = %D\n"), (d1 * d1));fflush(vmOut);
+    fflush(vmOut);
+
+    if (f0 == 0.0) {
+        fprintf(vmOut, "passed 1\n");
+    } else {
+        fprintf(vmOut, "failed 1\n");
+    }
+
+        if (f1 > f0) {
+        fprintf(vmOut, "passed 2\n");
+    } else {
+        fprintf(vmOut, "failed 2\n");
+    }
+
+}
+/*else[FLOATS]*/
+//#define fpTest()
+/*end[FLOATS]*/
 
 /**
  * Runs the VM.
@@ -1629,8 +1912,9 @@ void printStrSafely(Address value, char* valueName, Address low, Address high, c
  * @param argv the parameter argument vector
  */
 void Squawk_run(int argc, char *argv[]) {
-
     Address bootstrapSuite = Squawk_setup(argc, argv);
+    
+//fpTest();
 
 #ifdef MACROIZE
     ByteAddress  ip = 0;            /* The instruction pointer. */
@@ -1687,69 +1971,10 @@ void Squawk_main(int argc, char *argv[]) {
         Squawk_kernelMain(kernelArgsCount, kernelArgs);
     }
 #endif /* KERNEL_SQUAWK */
-
+    diagnostic("in Squawk_main");
     Squawk_run(argc, argv);
     fatalVMError("return from interpreter loop in non-kernel mode");
 }
-
-#if ENABLE_INVOKE_FROM_JAVA
-/**
- * Starts the Squawk VM via a JNI call from a Java launcher. This alternative mechanism is
- * useful when the channel code running on the JVM needs to be debugged in a JPDA debugger.
- * It is also useful on platforms where the Invocation API doesn work properly.
- *
- * @param env      the table of JNI method pointers
- * @param launcher handle to the receiver object for this invocation
- * @param args     a Java byte array containing all the command line arguments formatted as
- *                 0-delimited ASCII C strings
- * @param argc     the number of command line arguments contained in 'args'
- */
-JNIEXPORT int JNICALL Java_com_sun_squawk_vm_Main_squawk(JNIEnv *env, jobject launcher, jbyteArray args, jint argc) {
-    int ignore = initializeGlobals(&userGlobals);
-    int size = (*env)->GetArrayLength(env, args);
-    signed char *buf = newBuffer(size, "Java_com_sun_squawk_vm_Main_squawk::buf", true);
-    signed char **argv = newBuffer(argc, "Java_com_sun_squawk_vm_Main_squawk::argv", true);
-    int i = 0, pos = 0;
-    boolean atNextArg = true;
-    int exitCode;
-
-    /*
-     * Copy the Java byte array contents into 'buf'
-     */
-    (*env)->GetByteArrayRegion(env, args, 0, size, buf);
-
-    /*
-     * Find the individual strings in 'args' and set the pointers in 'argv' accordingly
-     */
-    while (pos != size) {
-        if (atNextArg) {
-            argv[i++] = buf + pos;
-            atNextArg = false;
-        } else if (buf[pos] == 0) {
-            atNextArg = true;
-        }
-        pos++;
-    }
-
-    assume(i == argc);
-    CIO_initialize(env, null, null, -1);
-
-    /**
-     * Register the handle to the 'exit' method of com.sun.squawk.vm.Main.
-     */
-    isCalledFromJava = true;
-
-    if ((exitCode = setjmp(vmStartScope)) == 0) {
-        Squawk_main(argc, (char**)argv);
-    }
-    return exitCode;
-}
-#endif /* ENABLE_INVOKE_FROM_JAVA */
-
-#ifdef IOSERVER
-#include "ioserver.c"
-#endif /* IOSERVER */
-
 
 /**
  * Program entrypoint.
@@ -1757,124 +1982,100 @@ JNIEXPORT int JNICALL Java_com_sun_squawk_vm_Main_squawk(JNIEnv *env, jobject la
  * @param argc the number of command line parameters
  * @param argv the parameter argument vector
  */
-int os_main(int argc, char *argv[]) {
+int Squawk_main_wrapper(int argc, char *argv[]) {
     int ignore = initializeGlobals(&userGlobals);
-    char *executable = argv[0];
+    
+/*if[!EMULATOR_LAUNCHER]*/
+/*else[EMULATOR_LAUNCHER]*/
+//    char *executable = argv[0];
+//
+//    int executableLength = strlen(executable);
+//    char *executablePath, *executableName;
+//    char *delimiter;
+//
+//    executablePath = strncpy(calloc(executableLength + 1, sizeof(char)), executable, executableLength);
+//    delimiter = strrchr(executablePath, (char) fileSeparatorChar);
+//
+//    if (delimiter != NULL) {
+//        int nameLength;
+//
+//        delimiter++;
+//        nameLength = strlen(delimiter);
+//        executableName = strncpy(calloc(nameLength + 1, sizeof(char)), delimiter, nameLength);
+//        *delimiter = '\0';  // Terminate executablePath
+//    } else {
+//        executableName = executablePath;
+//        executablePath = calloc(1, sizeof(char));
+//    }
+//
+//    if (strlen(executablePath) > 0) {
+//        // hack: changes to the directory containing the emulator so that it
+//        // can access local files
+//        chdir(executablePath);
+//    }
+//
+//    free(executablePath);
+//    free(executableName);
+/*end[EMULATOR_LAUNCHER]*/
+    diagnostic("in Squawk_main_wrapper");
 
     /*
-     * Loose the first argument (the path to the executable program).
+     * Lose the first argument (the path to the executable program).
      */
     argv++;
     argc--;
 
-#ifdef IOSERVER
-    if (strstr(executable, "ioserver") != null) {
-        return IOServer_main(argc, argv);
-    }
-#endif /* IOSERVER */
     Squawk_main(argc, argv);
+    
     return 0;
 }
 
 /**
- *
- *  The apple specific startup routine.
- *
+ * Some platforms have non-standard startup requirements. If so, define os_main() to handle
+ * the issues.
  */
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(VXWORKS)
+#include "os_main.c"
+#endif
 
-/* Datatype so that parameters can be passed between threads */
-typedef struct mainParametersStruct {
-        int argc;
-        char **argv;
-} mainParameters;
-
-
-/**
- * Starts the Squawk VM in it's own thread
- *
- * @param  options  contains the parameters to pass to the real main
- */
-static void* Squawk_startup(void *options) {
-        mainParameters* o = (mainParameters*)options;
-        os_main(o->argc, o->argv);
-}
-
-/**
- * Call back for dummy source used to make sure the CFRunLoop doesn't exit right away
- * This callback is called when the source has fired.
- *
- * @param  info
- */
-void sourceCallBack (void *info) {}
-
-/**
- * Apple specific initialization of the IO subsystem. This function creates a new thread in which to run Squawk
- * and the embedded JVM and leaves the initial thread in an empty main loop.
- *
- * @param  argc  the command line arguments
- * @param  argv  number of command line arguments
- */
+#ifndef VXWORKS
 int main(int argc, char *argv[]) {
-    CFRunLoopSourceContext sourceContext;
+    diagnostic("In main - squawk.c");
+#ifdef __APPLE__
+    os_main(argc, argv);
+#else
+    return Squawk_main_wrapper(argc, argv);
+#endif /* !__APPLE__ */
+}
+#endif /* VXWORKS */
 
-    /* Start the thread that runs the VM. */
-    pthread_t squawkThread;
-
-    /* Grab parameters to pass to thread */
-    mainParameters* launchOptions = (mainParameters*)malloc(sizeof(mainParameters));
-    launchOptions->argc = argc;
-    launchOptions->argv = argv;
-
-    /* create a new pthread copying the stack size of the initial pthread */
-    struct rlimit limit;
-    size_t stack_size = 0;
-    int rc = getrlimit(RLIMIT_STACK, &limit);
-    if (rc == 0) {
-        if (limit.rlim_cur != 0LL) {
-            stack_size = (size_t)limit.rlim_cur;
-        }
-    }
-    pthread_attr_t thread_attr;
-    pthread_attr_init(&thread_attr);
-    pthread_attr_setscope(&thread_attr, PTHREAD_SCOPE_SYSTEM);
-    pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
-    if (stack_size > 0) {
-        pthread_attr_setstacksize(&thread_attr, stack_size);
-    }
-
-    /* Start the thread that will execute the Squawk VM. */
-    pthread_create(&squawkThread, &thread_attr, Squawk_startup, launchOptions);
-    pthread_attr_destroy(&thread_attr);
-
-    /* Create a a sourceContext to be used by our source that makes */
-    /* sure the CFRunLoop doesn't exit right away */
-    sourceContext.version = 0;
-    sourceContext.info = NULL;
-    sourceContext.retain = NULL;
-    sourceContext.release = NULL;
-    sourceContext.copyDescription = NULL;
-    sourceContext.equal = NULL;
-    sourceContext.hash = NULL;
-    sourceContext.schedule = NULL;
-    sourceContext.cancel = NULL;
-    sourceContext.perform = &sourceCallBack;
-
-    /* Create the Source from the sourceContext */
-    CFRunLoopSourceRef sourceRef = CFRunLoopSourceCreate (NULL, 0, &sourceContext);
-
-    /* Use the constant kCFRunLoopCommonModes to add the source to the set of objects */
-    /* monitored by all the common modes */
-    CFRunLoopAddSource (CFRunLoopGetCurrent(),sourceRef,kCFRunLoopCommonModes);
-
-    /* Park this thread in the runloop */
-    CFRunLoopRun();
-
-    return 0;
+/**
+ * lookup a klass from the bootstrap suite
+ * @param cid
+ * @return klass
+ */
+static Address lookupKlass(int cid) {
+    Address classes;
+    Address class;
+    assume(com_sun_squawk_VM_bootstrapSuite != null);
+    assume(inROM(com_sun_squawk_VM_bootstrapSuite));
+    //diagnosticWithValue("bootstrapSuite: ", com_sun_squawk_VM_bootstrapSuite);
+    classes = com_sun_squawk_Suite_classes(com_sun_squawk_VM_bootstrapSuite);
+    //diagnosticWithValue("com_sun_squawk_Suite_classes: ", classes);
+    assume(inROM(classes));
+    boundsAssume(classes, cid);
+    class = getObject(classes, cid);
+    return class;
 }
 
-#else
-    int main(int argc, char *argv[]) {
-        return os_main(argc, argv);
-    }
-#endif  /* __APPLE__ */
+static Address lookupStaticMethod(int cid, int methodOffset) {
+    Address klass;
+    Address method;
+    //fprintf(stderr, "Lookup of %d in class %d = ", methodOffset, cid);
+    klass = lookupKlass(cid);
+    assume(inROM(klass));
+    method = getStaticMethod(klass, methodOffset);
+    assume(inCode(method));
+    //fprintf(stderr, "%x\n", method);
+    return method;
+}
