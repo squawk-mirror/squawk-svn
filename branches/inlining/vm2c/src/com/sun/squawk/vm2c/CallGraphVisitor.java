@@ -21,12 +21,10 @@
  * Park, CA 94025 or visit www.sun.com if you need additional
  * information or have any questions.
  */
-
 package com.sun.squawk.vm2c;
 
 import java.util.*;
 
-import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Symbol.*;
 import com.sun.squawk.vm2c.ProcessedMethod.*;
 
@@ -40,7 +38,6 @@ public class CallGraphVisitor {
     private static final Object WHITE = null;
     private static final Object GREY = new Object();
     private static final Object BLACK = new Object();
-
     private final Map<ProcessedMethod, Object> colours;
 
     /**
@@ -51,7 +48,7 @@ public class CallGraphVisitor {
      *        successive call graph traversals
      */
     public CallGraphVisitor(boolean idempotentScans) {
-        colours = idempotentScans ? null : new HashMap<ProcessedMethod,Object>();
+        colours = idempotentScans ? null : new HashMap<ProcessedMethod, Object>();
     }
 
     /**
@@ -71,30 +68,55 @@ public class CallGraphVisitor {
         return colours.keySet();
     }
 
+    private static boolean isEarlyMethod(ProcessedMethod method) {
+        return method.getInliningMode() == ProcessedMethod.MUST_INLINE ||
+                method.isMacro || method.hasProxy;
+    }
+
     private void scan(ProcessedMethod caller, Map<MethodSymbol, ProcessedMethod> methods,
-                      Map<ProcessedMethod, Object> colours, Stack<CallSite> calls)
-    {
+            Map<ProcessedMethod, Object> colours, Stack<CallSite> calls) {
         Object colour = colours.get(caller);
         if (colour == WHITE) {
             colours.put(caller, GREY);
 
-            // Emit callees first
+
             if (caller.error == null) {
+                // do inline first:
                 for (CallSite call : caller.calls) {
                     ProcessedMethod callee = methods.get(call.callee);
-                    if (callee != null) {
+                    if (callee != null && isEarlyMethod(callee)) {
+                        calls.push(new CallSite(callee.sym, caller.sym, call.call));
+                        scan(callee, methods, colours, calls);
+                        calls.pop();
+                    }
+                }
+                
+            // Emit callees first
+            if (isEarlyMethod(caller)) {
+                doVisitMethod(caller, colours, calls);
+            }
+
+                for (CallSite call : caller.calls) {
+                    ProcessedMethod callee = methods.get(call.callee);
+                    if (callee != null && !isEarlyMethod(callee)) {
                         calls.push(new CallSite(callee.sym, caller.sym, call.call));
                         scan(callee, methods, colours, calls);
                         calls.pop();
                     }
                 }
             }
-            if (colours.get(caller) == GREY) {
-                visitMethod(caller, Collections.unmodifiableList(calls));
-                colours.put(caller, BLACK);
-            }
+
+            doVisitMethod(caller, colours, calls);
         }
     }
 
-    public void visitMethod(ProcessedMethod method, List<CallSite> calls) {}
+    private void doVisitMethod(ProcessedMethod method, Map<ProcessedMethod, Object> colours, List<CallSite> calls) {
+        if (colours.get(method) == GREY) {
+            visitMethod(method, Collections.unmodifiableList(calls));
+            colours.put(method, BLACK);
+        }
+    }
+
+    public void visitMethod(ProcessedMethod method, List<CallSite> calls) {
+    }
 }

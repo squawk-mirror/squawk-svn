@@ -204,11 +204,13 @@ public final class SDA extends Debugger {
      * Stop debugging the debuggee isolate
      */
     private void cleanupForDetach() {
+/*if[ENABLE_SDA_DEBUGGER]*/
         // Clear all breakpoints
         debuggeeIsolate.updateBreakpoints(null);
         eventManager.clear(0, 0);
         eventManager.quit();
         DebuggerSupport.setDebugger(debuggeeIsolate, this, false);
+/*end[ENABLE_SDA_DEBUGGER]*/
     }
 
     /**
@@ -727,7 +729,7 @@ public final class SDA extends Debugger {
             ReferenceTypeID typeID = getIDForClass(definingKlass);
             Location location = new Location(JDWP.getTypeTag(definingKlass), typeID, methodID, event.location.bci.toPrimitive());
             out.writeLocation(location, "location");
-            if (Log.debug()) {
+            if (Log.DEBUG_ENABLED && Log.debug()) {
                 Log.log("   Breakpoint in : " + definingKlass + "." + methodID + ":" + event.location.bci.toPrimitive());
             }
         }
@@ -741,13 +743,15 @@ public final class SDA extends Debugger {
         /**
          * @see EventRequest#EventRequest(PacketInputStream, EventManager.VMAgent, int)
          */
-        public SingleStep(int id, PacketInputStream in) throws SDWPException, IOException {
+        SingleStep(int id, PacketInputStream in) throws SDWPException, IOException {
             super(id, in, JDWP.EventKind_SINGLE_STEP);
 
-            if (Log.debug()) {
+            if (Log.DEBUG_ENABLED && Log.debug()) {
                 Log.log("[SingleStep] Creating SingleStep...");
             }
             step = getStep();
+            
+/*if[ENABLE_SDA_DEBUGGER]*/
             VMThread steppingThread = objectManager.getThreadForID(step.threadID);
 
             // Cannot issue a single step for a thread until a previous single step has completed.
@@ -777,7 +781,7 @@ public final class SDA extends Debugger {
             sdpOut.writeMethodID(DebuggerSupport.getIDForMethodBody(definingClass, start.mp), "method");
             sdpOut.writeLong(start.bci.toPrimitive(), "bci");
             sdp.sendCommand(sdpCommand);
-            if (Log.debug()) {
+            if (Log.DEBUG_ENABLED && Log.debug()) {
                 Log.log("[SingleStep] Received reply from proxy, constructing stepInfo");
             }
             /* Read reply packet and call on debugger to pass this on to the stepThread */
@@ -789,6 +793,7 @@ public final class SDA extends Debugger {
             int afterDupBCI = (int)sdpIn.readLong("afterDupBCI");
 
             steppingThread.setStep(new Debugger.SingleStep(start.frame, start.bci, targeBCI, dupBCI, afterDupBCI, step.size, step.depth));
+/*end[ENABLE_SDA_DEBUGGER]*/
         }
 
         /**
@@ -802,6 +807,7 @@ public final class SDA extends Debugger {
          * {@inheritDoc}
          */
         public void cleared() {
+/*if[ENABLE_SDA_DEBUGGER]*/
             try {
                 VMThread steppingThread = objectManager.getThreadForID(step.threadID);
                 steppingThread.clearStep();
@@ -811,6 +817,7 @@ public final class SDA extends Debugger {
                     Log.log("cannot find thread while clearing single step");
                 }
             }
+/*end[ENABLE_SDA_DEBUGGER]*/
         }
 
         /**
@@ -851,7 +858,7 @@ public final class SDA extends Debugger {
             Location location = new Location(JDWP.getTypeTag(definingKlass), typeID, methodID, event.location.bci.toPrimitive());
             out.writeLocation(location, "location");
 
-            if (Log.debug()) {
+            if (Log.DEBUG_ENABLED && Log.debug()) {
                 Log.log("   Stepped to : " + definingKlass + "." + methodID + ":" + event.location.bci.toPrimitive());
             }
         }
@@ -946,7 +953,7 @@ public final class SDA extends Debugger {
             Location location = new Location(JDWP.getTypeTag(definingKlass), typeID, methodID, event.location.bci.toPrimitive());
             out.writeLocation(location, "location");
 
-            if (Log.debug()) {
+            if (Log.DEBUG_ENABLED && Log.debug()) {
                 Log.log("   Throw from : " + definingKlass + "." + methodID + ":" + event.location.bci.toPrimitive());
             }
             // exception:
@@ -962,7 +969,7 @@ public final class SDA extends Debugger {
                 ReferenceTypeID catchTypeID = getIDForClass(catchType);
                 location = new Location(JDWP.getTypeTag(catchType), catchTypeID, catchMethodID, event.catchLocation.bci.toPrimitive());
                 out.writeLocation(location, "catchLocation");
-                if (Log.debug()) {
+                if (Log.DEBUG_ENABLED && Log.debug()) {
                     Log.log("   Catch at : " + catchType + "." + catchMethodID + ":" + event.catchLocation.bci.toPrimitive());
                 }
             }
@@ -1049,6 +1056,7 @@ public final class SDA extends Debugger {
      * Updates the list of set breakpoints in the debuggee isolate.
      */
     public void updateBreakpoints() {
+/*if[ENABLE_SDA_DEBUGGER]*/
         Enumeration e = eventManager.getEventsOfKind(JDWP.EventKind_BREAKPOINT);
         if (!e.hasMoreElements()) {
             debuggeeIsolate.updateBreakpoints(null);
@@ -1096,7 +1104,7 @@ public final class SDA extends Debugger {
             VM.println(bps[i].ip);
         }
 /*end[DEBUG_CODE_ENABLED]*/
-
+/*end[ENABLE_SDA_DEBUGGER]*/
     }
 
     /*-----------------------------------------------------------------------*\
@@ -1111,7 +1119,7 @@ public final class SDA extends Debugger {
     }
 
     private static final String DEFAULT_APPCLASSPATH = "file://.";
-    private static final String DEFAULT_URL = "serversocket://:2800;acceptTimeout=2000";
+    private static final String DEFAULT_URL = "serversocket://:2800"; //;acceptTimeout=2000";
 
     /**
      * Prepends "file://" to an arg if it does not contain a ':' character.
@@ -1148,8 +1156,10 @@ public final class SDA extends Debugger {
             try {
                 if (arg.charAt(0) != '-') {
                     break;
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
                 } else if (arg.startsWith("-cp:")) {
                     appClassPath = arg.substring("-cp:".length());
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
                 } else if (arg.startsWith("-suite:")) {
                     appSuite = arg.substring("-suite:".length());
                     // If the -suite arg does not look like a URI, convert it
@@ -1269,8 +1279,10 @@ public final class SDA extends Debugger {
         out.println("Usage: SDA [-options] class [args...]");
         out.println("where options include:");
         out.println();
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
         out.println("    -cp:<path>       specifies the class path for the application");
         out.println("                     (default is " + DEFAULT_APPCLASSPATH + ")");
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         out.println("    -suite:<suite>   specifies the suite containing the application");
         out.println("    -url:<url>       specifies the URL of the channel that the debug agent will");
         out.println("                     listen on for a connection from a debugger proxy.");

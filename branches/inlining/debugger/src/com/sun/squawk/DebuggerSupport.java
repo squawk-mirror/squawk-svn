@@ -24,8 +24,6 @@
 
 package com.sun.squawk;
 
-import com.sun.squawk.ExecutionPoint;
-
 import com.sun.squawk.debugger.*;
 import com.sun.squawk.debugger.DataType.*;
 import com.sun.squawk.util.*;
@@ -44,6 +42,7 @@ public class DebuggerSupport {
      * @return the JDWP.ThreadStatus value
      */
     public static int getThreadJDWPState(VMThread vmThread) {
+/*if[ENABLE_SDA_DEBUGGER]*/
         int combinedState = vmThread.getInternalStatus();
         int inqueue = (combinedState) & 0xFF;
 
@@ -54,7 +53,7 @@ public class DebuggerSupport {
                 case VMThread.Q_CONDVAR:
                 case VMThread.Q_ISOLATEJOIN:
                 case VMThread.Q_JOIN:            return JDWP.ThreadStatus_WAIT;
-                case 0:
+                case VMThread.Q_NONE:
                 case VMThread.Q_RUN:
                 case VMThread.Q_EVENT:           return JDWP.ThreadStatus_RUNNING;
                 case VMThread.Q_HIBERNATEDRUN:   return JDWP.ThreadStatus_ZOMBIE;
@@ -63,6 +62,10 @@ public class DebuggerSupport {
         } else {
             return JDWP.ThreadStatus_ZOMBIE;
         }
+/*else[ENABLE_SDA_DEBUGGER]*/
+//        return JDWP.ThreadStatus_ZOMBIE;
+/*end[ENABLE_SDA_DEBUGGER]*/
+
     }
 
     /**
@@ -306,27 +309,8 @@ public class DebuggerSupport {
         Object[] table = isStatic ? klass.getStaticMethods() : klass.getVirtualMethods();
         Assert.that(0 <= offset && offset < table.length);
         Object method = table[offset];
-        Assert.that(isValidMethodBody(method));
+        Assert.that(VM.isValidMethodBody(method));
         return method;
-    }
-
-    /**
-     * Return the length of <code>methodBody</code> (the byte code array) in bytes.
-     *
-     * @param methodBody Object
-     * @return number of bytecodes
-     */
-    public static int getMethodBodyLength(Object methodBody) {
-        Assert.that(isValidMethodBody(methodBody));
-        if (VM.isHosted()) {
-            return ( (MethodBody) methodBody).getCode().length;
-        } else {
-            return GC.getArrayLength(methodBody);
-        }
-    }
-
-    private static boolean isValidMethodBody(final Object methodBody) {
-        return (methodBody != null) && ((VM.isHosted() && methodBody instanceof MethodBody) || (GC.getKlass(methodBody) == Klass.BYTECODE_ARRAY));
     }
 
     /**
@@ -337,7 +321,7 @@ public class DebuggerSupport {
      * @return the JDWP identifier for <code>methodBody</code>
      */
     public static MethodID getIDForMethodBody(Klass definingClass, final Object methodBody) {
-        Assert.that(isValidMethodBody(methodBody));
+        Assert.that(VM.isValidMethodBody(methodBody));
         Assert.that(definingClass == getDefiningClass(methodBody));
         Object [] methods = definingClass.getVirtualMethods();
         for (int i = 0; i != methods.length; i++) {
@@ -363,7 +347,11 @@ public class DebuggerSupport {
      */
     public static boolean isAtExceptionBreakpoint(VMThread vmThread) {
         Assert.that(vmThread != null);
+/*if[ENABLE_SDA_DEBUGGER]*/
         return vmThread.getHitBreakpoint() != null && vmThread.getHitBreakpoint().getException() != null;
+/*else[ENABLE_SDA_DEBUGGER]*/
+//      return false;
+/*end[ENABLE_SDA_DEBUGGER]*/
     }
 
     /*-----------------------------------------------------------------------*\
@@ -449,8 +437,8 @@ public class DebuggerSupport {
                 inspector.inspectFrame(mp, bci, thisFrame, frame);
                 if (inspector.doSlots) {
 
-                    int localCount = isInnerMostActivation ? 1 : MethodBody.decodeLocalCount(mp);
-                    int parameterCount = MethodBody.decodeParameterCount(mp);
+                    int localCount = isInnerMostActivation ? 1 : MethodHeader.decodeLocalCount(mp);
+                    int parameterCount = MethodHeader.decodeParameterCount(mp);
                     Klass[] typeMap = inspector.getTypeMap(thisFrame, mp, parameterCount);
 //VM.print("localCount: ");
 //    VM.println(localCount);
@@ -516,7 +504,7 @@ public class DebuggerSupport {
 //            if (fp.isZero()) {
 //                return 0;
 //            } else {
-//                if (MethodBody.isInterpreterInvoked(mp)) {
+//                if (MethodHeader.isInterpreterInvoked(mp)) {
 //                    return thisFrame + 1;
 //                }
 //            }
@@ -585,7 +573,7 @@ public class DebuggerSupport {
                 }
                 inspector.inspectSlot(isParameter, (isTwoWordLongLocal ? slot + 1 : slot), type, value);
                 
-                if (setter != null && setter.shouldSetSlot(slot, type)) {
+                if (setter != null && setter.shouldSetSlot((isTwoWordLongLocal ? slot + 1 : slot), type)) {
                     long newVal = setter.newPrimValue();
                     if (skipSlot) {
                         if (DEBUG_STACK_INSPECTION) {
@@ -621,6 +609,7 @@ public class DebuggerSupport {
      * @param attach    specifies if this in an attach or detach operation
      */
     public static void setDebugger(Isolate isolate, Debugger debugger, boolean attach) {
+/*if[ENABLE_SDA_DEBUGGER]*/
         Assert.that(debugger != null);
         if (attach) {
             if (isolate.getDebugger() != null) {
@@ -633,6 +622,7 @@ public class DebuggerSupport {
             }
             isolate.setDebugger(null);
         }
+/*end[ENABLE_SDA_DEBUGGER]*/
     }
 
     /**
@@ -717,7 +707,7 @@ public class DebuggerSupport {
         /**
          * Figure out the type map for the given frameNo and method pointer.
          * 
-         * The default implemention decodes the typemap in the method object, but that only includes
+         * The default implementation decodes the typemap in the method object, but that only includes
          * ref/prim types (Object vs int). The debugger agent (SDA) gets more specific type info from the 
          * the debugger proxy.
          * 
@@ -727,12 +717,12 @@ public class DebuggerSupport {
          * @return a klass array with one klass per physical word (eg. longs and doubles will have two entries)
          */
         public Klass[] getTypeMap(int frameNo, Object mp, int parameterCount) {
-            return MethodBody.decodeTypeMap(mp);
+            return MethodHeader.decodeTypeMap(mp);
         }
     }
 
     /**
-     * A SlotSetter is a kind of StackInspcetor that can set the value of a slot
+     * A SlotSetter is a kind of StackInspector that can set the value of a slot
      */
     public abstract static class SlotSetter extends StackInspector {
 
@@ -757,11 +747,13 @@ public class DebuggerSupport {
         
         /**
          * Returns the new primitive value for the slot last checked by shouldSetSlot.
+         * @return new value
          */
         public abstract long newPrimValue();
                 
         /**
          * Returns the new reference value for the slot last checked by shouldSetSlot.
+         * @return new value
          */
         public abstract Object newObjValue();
 
