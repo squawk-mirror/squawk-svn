@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -198,17 +199,19 @@ public class ObjectMemoryMapper {
         out.println("                    append to end of class path");
         out.println("    -cp/p:<directories and jar/zip files separated by '"+File.pathSeparatorChar+"'>");
         out.println("                    prepend in front of class path");
+        out.println("    -suitepath:<directories separated by '"+File.pathSeparatorChar+"'>");
+        out.println("                    path where suite files can be found");
         out.println("    -o:<file>       dump to 'file' (default=<object_memory_file>.map)");
         out.println("    -all            dump the complete chain of object memories");
         out.println("    -r:<file>       uses file or relocation info (default=squawk.reloc)");
         out.println("    -endian:<value> convert object memories to this endianess (default is endianess of object_memory_file)");
         out.println("    -nofielddefs    do not show field definitions");
-        out.println("    -noobjects    do not show objects, arrays, method bytecodes, etc");
         out.println("    -show:<class>   only show details for the specified class (can appear multiple times in the command line)");
         out.println("    -summary        only show class and package sizes");
 /*if[TYPEMAP]*/
         out.println("    -notypemap      omit typemap info");
 /*end[TYPEMAP]*/
+        out.println("    -verbose, -v        provide more output while running");
         out.println("    -h              show this help message");
     }
     
@@ -345,6 +348,9 @@ public class ObjectMemoryMapper {
                 prependClassPath = arg.substring("-cp/p:".length());
             } else if (arg.startsWith("-cp/a:")) {
                 appendClassPath = arg.substring("-cp/a:".length());
+            } else if (arg.startsWith("-suitepath:")) {
+                String path = arg.substring("-suitepath:".length());
+                ObjectMemoryLoader.setFilePath(path);
             } else if (arg.startsWith("-r:")) {
                 relocationFile = arg.substring("-r:".length());
             } else if (arg.startsWith("-o:")) {
@@ -394,6 +400,10 @@ public class ObjectMemoryMapper {
                 showAllClassesAndPackages = false; // only show info for specified class(es)
                 showObjects = false;
                 fieldDefs = null;
+            } else if (arg.equals("-verbose") | arg.equals("-v")) {
+                    System.setProperty("translator.verbose", "true");
+                    VM.setVerbose(true);
+                    VM.setVeryVerbose(true);
             } else if (arg.equals("-h")) {
                 usage(null);
                 return false;
@@ -940,7 +950,28 @@ public class ObjectMemoryMapper {
         OwnerStats[] stats  = mapToArray(ClassOwnerStats.allKlassStats);
         Arrays.sort(stats, new OwnerStats.CompareByName());
         
-        out.println("Class statistics (bytes):");
+        out.println("# classes:" + stats.length);
+        out.println("Class statistics sorted alphabetically (bytes):");
+        for (int i = 0; i < stats.length; i++) {
+            OwnerStats stat = stats[i];
+            out.println(stat.name + ": " + stat.size);
+        }
+        Arrays.sort(stats, new Comparer(){
+            public int compare(Object o1, Object o2) {
+                OwnerStats stat1 = (OwnerStats) o1;
+                OwnerStats stat2 = (OwnerStats) o2;
+                if (stat1.size == stat2.size) {
+                    return 0;
+                }
+                if (stat1.size < stat2.size) {
+                    return +1;
+                }
+                return -1;
+            }
+        });
+        out.println();
+        out.println("# classes:" + stats.length);
+        out.println("Class statistics sorted by size (bytes):");
         for (int i = 0; i < stats.length; i++) {
             OwnerStats stat = stats[i];
             out.println(stat.name + ": " + stat.size);
@@ -1312,7 +1343,8 @@ public class ObjectMemoryMapper {
                 buf.append(declaredType.getName());
             } else {
                 Klass actualType = GC.getKlass(ref);
-                buf.append(actualType.getName());
+                String actualtypeName = actualType.getName();
+                buf.append(actualtypeName);
                 switch (actualType.getSystemID()) {
                     case CID.KLASS: {
                         pad(buf, 70);
@@ -1338,7 +1370,16 @@ public class ObjectMemoryMapper {
                             buf.append(ch);
                         }
                         buf.append('"');
+                        break;
                     }
+                    default:
+                        if (actualtypeName.startsWith("com.sun.squawk.")) {
+                            if (actualtypeName.equals("com.sun.squawk.KlassMetadata") || actualtypeName.equals("com.sun.squawk.KlassMetadata$Full")) {
+                                Address definedClassRef = NativeUnsafe.getAddress(ref, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_KlassMetadata$definedClass));
+                                pad(buf, 70);
+                                buf.append("// for klass ").append(VM.asKlass(definedClassRef).getName());
+                            }
+                        }
                 }
             }
         }
@@ -1427,9 +1468,9 @@ public class ObjectMemoryMapper {
      */
     private String getMethodHeaderText(Object oop) {
         StringBuffer sb    = new StringBuffer();
-        int localCount     = MethodBody.decodeLocalCount(oop);
-        int parameterCount = MethodBody.decodeParameterCount(oop);
-        int maxStack       = MethodBody.decodeStackCount(oop);
+        int localCount     = MethodHeader.decodeLocalCount(oop);
+        int parameterCount = MethodHeader.decodeParameterCount(oop);
+        int maxStack       = MethodHeader.decodeStackCount(oop);
 
         sb.append("p="+parameterCount+" l="+localCount+" s="+maxStack);
         totalMethodLocals += localCount;
@@ -1456,17 +1497,15 @@ public class ObjectMemoryMapper {
             } else {
                totalMinfoSize += 1;
             }
-            if (MethodBody.decodeExceptionTableSize(oop) >= 128 ) {
+            if (MethodHeader.decodeExceptionTableSize(oop) >= 128 ) {
                totalMinfoSize += 2;
             } else {
                totalMinfoSize += 1;
             }
-            if (MethodBody.decodeRelocationTableSize(oop) >= 128 ) {
-               totalMinfoSize += 2;
-            } else {
-               totalMinfoSize += 1;
-            }
-            if (MethodBody.decodeTypeTableSize(oop) >= 128 ) {
+
+            totalMinfoSize += 1;
+
+            if (MethodHeader.decodeTypeTableSize(oop) >= 128 ) {
                totalMinfoSize += 2;
             } else {
                totalMinfoSize += 1;
@@ -1476,7 +1515,7 @@ public class ObjectMemoryMapper {
         // Format the oopmap.
         if (parameterCount+localCount > 0) {
             sb.append(" map=");
-            int offset = MethodBody.decodeOopmapOffset(oop);
+            int offset = MethodHeader.decodeOopmapOffset(oop);
             for (int i = 0 ; i < parameterCount+localCount ; i++) {
                 int pos = i / 8;
                 int bit = i % 8;
@@ -1489,7 +1528,7 @@ public class ObjectMemoryMapper {
         // Format the type map.
         if (parameterCount+localCount > 0) {
             sb.append(" types=");
-            Klass[] types = MethodBody.decodeTypeMap(oop);
+            Klass[] types = MethodHeader.decodeTypeMap(oop);
             for (int i = 0; i != types.length; ++i) {
                 String name = types[i].getName();
                 int index = name.indexOf("java.lang.");
@@ -1505,28 +1544,27 @@ public class ObjectMemoryMapper {
 
 
         // Format the exception table (if any).
-        int exceptionTableSize = MethodBody.decodeExceptionTableSize(oop);
+        int exceptionTableSize = MethodHeader.decodeExceptionTableSize(oop);
         totalMethodExceptionTableSize += (exceptionTableSize); //in bytes
         if (exceptionTableSize != 0) {
             sb.append(" exceptionTable={");
-            int size   = MethodBody.decodeExceptionTableSize(oop);
-            int offset = MethodBody.decodeExceptionTableOffset(oop);
+            int size   = MethodHeader.decodeExceptionTableSize(oop);
+            int offset = MethodHeader.decodeExceptionTableOffset(oop);
             VMBufferDecoder dec = new VMBufferDecoder(oop, offset);
             long end = offset + size;
             VM.asKlass(NativeUnsafe.getObject(oop, HDR.methodDefiningClass));
             while (dec.getOffset() < end) {
-                sb.append(" [start="+dec.readUnsignedInt()).
-                    append(" end="+dec.readUnsignedInt()).
-                    append(" handler="+dec.readUnsignedInt()).
+                sb.append(" [start="+dec.readUnsignedShort()).
+                    append(" end="+dec.readUnsignedShort()).
+                    append(" handler="+dec.readUnsignedShort()).
                     append(" catch_type="+dec.readUnsignedShort()).
                     append("]");
             }
             sb.append(" }");
         }
-        totalRelocationTableSize += MethodBody.decodeRelocationTableSize(oop);
-        totalTypeTableSize += MethodBody.decodeTypeTableSize(oop); //in bytes
+        totalTypeTableSize += MethodHeader.decodeTypeTableSize(oop); //in bytes
         
-        if (MethodBody.isInterpreterInvoked(oop)) {
+        if (MethodHeader.isInterpreterInvoked(oop)) {
             sb.append(" INTERPRETER_INVOKED");
         }
         return sb.toString();
@@ -1837,7 +1875,7 @@ public class ObjectMemoryMapper {
      * Prints a line for a stack chunk slot corresponding to a local variable or parameter.
      *
      * @param lp     the address of the local variable or parameter
-     * @param type   the type of the local variable or parameter as specified by {@link MethodBody.decodeTypeMap(Object)}
+     * @param type   the type of the local variable or parameter as specified by {@link MethodHeader.decodeTypeMap(Object)}
      * @param name   the name of the local variable or parameter
      */
     private void printLocalOrParameterLine(Address lp, Klass type, String name) {
@@ -1874,9 +1912,9 @@ public class ObjectMemoryMapper {
             append(" ----------");
         out.println(buf);
 
-        int localCount     = isInnerMostActivation ? 1 : MethodBody.decodeLocalCount(mp);
-        int parameterCount = MethodBody.decodeParameterCount(mp);
-        Klass[] typeMap     = MethodBody.decodeTypeMap(mp);
+        int localCount     = isInnerMostActivation ? 1 : MethodHeader.decodeLocalCount(mp);
+        int parameterCount = MethodHeader.decodeParameterCount(mp);
+        Klass[] typeMap     = MethodHeader.decodeTypeMap(mp);
         int typeIndex = typeMap.length;
 
 

@@ -67,7 +67,7 @@ public class VM {
      * @param omf  the file to test
      * @return true if the object memory in <code>omf</code> is big, false otherwise
      */
-    static boolean isBigEndian(File omf) {
+    public static boolean isBigEndian(File omf) {
         try {
             DataInputStream dis = new DataInputStream(new FileInputStream(omf));
             boolean result = ObjectMemoryLoader.loadHeader(dis, "file://" + omf.getPath()).isBigEndian();
@@ -84,7 +84,7 @@ public class VM {
      * @param classPath   the class search path
      */
     static void initializeTranslator(String classPath) {
-        Suite suite = new Suite("-open-", null);
+        Suite suite = new Suite("-open-", null, Suite.EXTENDABLE_LIBRARY);
         Isolate isolate = new Isolate(null, null, suite);
         VM.setCurrentIsolate(isolate);
 
@@ -160,6 +160,10 @@ public class VM {
         return verbose;
     }
 
+    public static void setVerbose(boolean verbose) {
+        VM.verbose = verbose;
+    }
+
     /**
      * Gets the flag indicating if the VM is running in verbose mode.
      *
@@ -167,6 +171,10 @@ public class VM {
      */
     public static boolean isVeryVerbose() {
         return veryverbose;
+    }
+
+    public static void setVeryVerbose(boolean veryverbose) {
+        VM.veryverbose = veryverbose;
     }
 
     /**
