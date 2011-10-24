@@ -1,3 +1,4 @@
+
 @rem
 @rem Copyright  1990-2007 Sun Microsystems, Inc. All Rights Reserved.
 @rem DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
@@ -50,6 +51,6 @@ shift
 goto gatherArgs
 
 :doneGatherArgs
-java -jar build.jar %ARGS%
+"%JAVA_HOME%\bin\java" -jar build.jar %ARGS%
 
 :exit
