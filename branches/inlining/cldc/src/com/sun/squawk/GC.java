@@ -1,29 +1,31 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
 package com.sun.squawk;
 
+import com.sun.squawk.microedition.io.FileConnection;
 import java.io.*;
 import javax.microedition.io.*;
 
@@ -33,7 +35,13 @@ import com.sun.squawk.vm.*;
 import java.util.Enumeration;
 
 
-
+/**
+ * Pure static class that handles object creation and GC control and monitoring.
+ * 
+ * The particular GC implementation used is a subclass of {@link GarbageCollector}. Many of
+ * the "public" methods of this class are actually "suite-private". See the file "squawk.library.properties"
+ * for the list of exported methods.
+ */
 public class GC implements GlobalStaticFields {
     
     /**
@@ -67,7 +75,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return a reference to the installed collector
      */
-    static GarbageCollector getCollector() {
+    public static GarbageCollector getCollector() {
         return collector;
     }
 
@@ -157,6 +165,8 @@ public class GC implements GlobalStaticFields {
 
     /**
      * GC tracing flag specifying basic tracing.
+     * 
+     * This trace level should always be enabled (not dependent on GC_TRACING_SUPPORTED)
      */
     static final int TRACE_BASIC = 1;
 
@@ -209,12 +219,13 @@ public class GC implements GlobalStaticFields {
      *         or the collection count threshold has been met
      */
     static boolean isTracing(int option) {
-        if ((GarbageCollector.HEAP_TRACE || GC.GC_TRACING_SUPPORTED) && (traceFlags & option) != 0) {
-            final int basicOptions = (TRACE_BASIC | TRACE_ALLOCATION);
-            if ((option & basicOptions) != 0) {
+        if ((traceFlags & option & TRACE_BASIC) != 0) {
+            return true;
+        } else if ((GarbageCollector.HEAP_TRACE || GC.GC_TRACING_SUPPORTED) && (traceFlags & option) != 0) {
+            if ((traceFlags & option & TRACE_ALLOCATION) != 0) {
                 return true;
             } else {
-                return (collector == null || getCollectionCount() >= traceThreshold);
+                return (collector == null || getTotalCount() >= traceThreshold);
             }
         } else {
             return false;
@@ -308,7 +319,9 @@ public class GC implements GlobalStaticFields {
         if (VM.isVeryVerbose()) {
             PrintStream out = null;
             try {
-                out = new PrintStream(Connector.openOutputStream("file://squawk.reloc"));
+                FileConnection f = (FileConnection)Connector.open("file://squawk.reloc");
+                f.create();
+                out = new PrintStream(f.openOutputStream());
                 for (int i = 0; i != readOnlyObjectMemories.length; ++i) {
                     om = readOnlyObjectMemories[i];
                     out.println(om.getURI() + "=" + om.getStart().toUWord().toPrimitive());
@@ -514,6 +527,16 @@ public class GC implements GlobalStaticFields {
     private static Address allocEnd;
 
     /**
+     * Count of all objects allocated (may wrap)
+     */
+    static int newCount;
+
+    /**
+     * Count of all allocations that were fulfilled by interpreter loop. Not updated in all build configurations.
+     */
+    static int newHits;
+
+    /**
      * Initialize the memory system when hosted
      */
     static void initialize() throws HostedPragma {
@@ -543,8 +566,8 @@ public class GC implements GlobalStaticFields {
         Assert.that(!VM.isHosted());
 
         // Get the pointers rounded correctly.
-        Assert.always(ramStart.eq(ramStart.roundUpToWord()), "RAM limit is not word aligned");
-        Assert.always(ramEnd.eq(ramEnd.roundDownToWord()), "RAM limit is not word aligned");
+        Assert.always(ramStart.eq(ramStart.roundUpToWord())); // "RAM limit is not word aligned"
+        Assert.always(ramEnd.eq(ramEnd.roundDownToWord()));   // "RAM limit is not word aligned"
 
         // Temporarily set the main allocation point to the start-end addresses
         // supplied. This allows permanent objects to be allocated outside the
@@ -584,21 +607,14 @@ public class GC implements GlobalStaticFields {
     }
 
     /**
-     * @return the number of bytes allocated since the last GC.
+     * Get the number of bytes allocated since the last GC.
      *
      * May be inaccurate during a copyObjectGraph operation.
+     * 
+     * @return bytes
      */
-    static int getBytesAllocatedSinceLastGC() {
+    public static int getBytesAllocatedSinceLastGC() {
         return allocTop.diff(allocStart).toInt();
-    }
-    
-    /**
-     * @return the number of bytes allocated from the beginning of the JVM.
-     *
-     * Watch out for overflow.
-     */
-    public static long getBytesAllocatedTotal() {
-        return getCollector().getTotalBytesAllocatedCheckPoint() + getBytesAllocatedSinceLastGC();
     }
 
     /**
@@ -631,9 +647,10 @@ public class GC implements GlobalStaticFields {
 
     /**
      * Determines if a given object is in RAM.
-     *
-     * @vm2c code( fatalVMError("hosted-only method"); return false; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fatalVMError(\"hosted-only method\"); return false;")
+/*end[JAVA5SYNTAX]*/
     static boolean inRamHosted(Object object) throws HostedPragma {
         return !(object instanceof Address);
     }
@@ -711,10 +728,18 @@ public class GC implements GlobalStaticFields {
      * @param newState the new abled/disabled state of the garbage collector
      * @return the garbage collector's state before this call
      */
-    static boolean setGCEnabled(boolean newState) {
+    public static boolean setGCEnabled(boolean newState) {
         boolean oldState = gcEnabled;
         gcEnabled = newState;
         return oldState;
+    }
+
+    /**
+     * Is Garnage collection enabled?
+     * @return true if GC enabled.
+     */
+    public static boolean isGCEnabled() {
+        return gcEnabled;
     }
 
     /**
@@ -809,7 +834,7 @@ public class GC implements GlobalStaticFields {
                 VM.println("]");
             }
         } else {
-            if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_BASIC)) {
+            if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_ALLOCATION)) {
                 VM.print("[Failed allocation of ");
                 VM.print(size);
                 VM.print(" bytes, klass = ");
@@ -840,7 +865,7 @@ public class GC implements GlobalStaticFields {
     private static Object allocate(int size, Object klass, int arrayLength) {
         Object oop = (excessiveGC && !VMThread.currentThread().isServiceThread()) ? null : allocatePrim(size, klass, arrayLength);
         if (oop == null) {
-            Assert.always(VM.isThreadingInitialized(), "insufficient memory to start VM");
+            Assert.always(VM.isThreadingInitialized()); // "insufficient memory to start VM"
             if (gcEnabled) {
                 VM.collectGarbage(false);
                 oop = allocatePrim(size, klass, arrayLength);
@@ -849,8 +874,24 @@ public class GC implements GlobalStaticFields {
                     VM.collectGarbage(true);
                     oop = allocatePrim(size, klass, arrayLength);
                 }
+            } else {
+                VM.println("ALLOCATION WHILE GC is DISABLED!");
             }
             if (oop == null) {
+                if (GC.GC_TRACING_SUPPORTED) {
+                    VM.print("allocate size: ");
+                    VM.print(size);
+                    VM.print(", klass: ");
+                    VM.print(((Klass) klass).getInternalName());
+                    VM.print(", arrayLength: ");
+                    VM.print(arrayLength);
+                    VM.println();
+                    VM.print("bytes free: ");
+                    VM.printOffset(allocEnd.diff(allocTop));
+                    VM.print(" in alloc space, ");
+                    VM.printOffset(heapEnd.diff(allocTop));
+                    VM.println(" in total");
+                }
                 throw VM.getOutOfMemoryError();
             }
         }
@@ -869,15 +910,6 @@ public class GC implements GlobalStaticFields {
 
         // Trace.
         long free = freeMemory();
-        if (isTracing(TRACE_BASIC)) {
-            VM.print("** Collecting garbage ** (collection count: ");
-            VM.print(getCollectionCount());
-//            VM.print(", backward branch count:");
-//            VM.print(VM.getBranchCount());
-            VM.print(", free memory:");
-            VM.print(free);
-            VM.println(" bytes)");
-        }
 
         // Prunes 'dead' isolates from weakly linked global list of isolates.
         VM.pruneIsolateList();
@@ -909,23 +941,29 @@ public class GC implements GlobalStaticFields {
 
         if (isTracing(TRACE_BASIC)) {
             long afterFree = freeMemory();
-            VM.print("** ");
-            if (!fullCollection) {
-                VM.print("Partial ");
+            if (fullCollection) {
+                VM.print("[Full GC ");
             } else {
-                VM.print("Full ");
+                VM.print("[GC ");
             }
-            VM.print("collection finished ** (free memory:");
+
+            if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_COLLECTION)) {
+                VM.print("[count : ");
+                VM.print(getTotalCount());
+                VM.print(", backward branch count: ");
+                VM.print(VM.getBranchCount());
+                VM.print("] ");
+            }
+            VM.print(free);
+            VM.print("->");
             VM.print(afterFree);
-            VM.print(" bytes [");
-            VM.print((afterFree * 100) / totalMemory());
-            VM.print("%], reclaimed ");
-            VM.print(afterFree - free);
-            VM.print(" bytes, backward branch count:");
-            VM.print(VM.getBranchCount());
-            VM.print(", time:");
-            VM.print(collector.getLastCollectionTime());
-            VM.println("ms)");
+            VM.print("(");
+            VM.print(totalMemory());
+            VM.print("), ");
+            VM.print(collector.getLastGCTime());
+            VM.print("ms");
+            collector.verbose();
+            VM.println("]");
         }
 
         // Update the relevant collection counter
@@ -951,41 +989,49 @@ public class GC implements GlobalStaticFields {
         return ((size / HDR.BYTES_PER_WORD) + 7) / 8;
     }
 
-    /**
-     * @see VM#copyObjectGraph(Object)
-     */
-    static void copyObjectGraph(Address object, ObjectMemorySerializer.ControlBlock cb) {
-        /*
-         * Trace.
-         */
-        if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_OBJECT_GRAPH_COPYING)) {
-            VM.print("** Copying object graph rooted by ");
-            VM.print(GC.getKlass(object).getName());
-            VM.print(" instance @ ");
-            VM.printAddress(object);
-            VM.print(" ** (collection count: ");
-            VM.print(getCollectionCount());
-            VM.print(", backward branch count:");
-            VM.print(VM.getBranchCount());
-            VM.println(")");
-        }
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//    /**
+//     * @see VM#copyObjectGraph(Object)
+//     */
+//    static void copyObjectGraph(Address object, ObjectMemorySerializer.ControlBlock cb) {
+//        /*
+//         * Trace.
+//         */
+//        if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_OBJECT_GRAPH_COPYING)) {
+//            VM.print("** Copying object graph rooted by ");
+//            VM.print(GC.getKlass(object).getName());
+//            VM.print(" instance @ ");
+//            VM.printAddress(object);
+//            VM.print(" ** (collection count: ");
+//            VM.print(getTotalCount());
+//            VM.print(", backward branch count:");
+//            VM.print(VM.getBranchCount());
+//            VM.println(")");
+//        }
+//
+//        /*
+//         * Set the collector re-entry guard.
+//         */
+//        Assert.always(!collecting);
+//        collecting = true;
+//
+//        Address copiedObjects = collector.copyObjectGraph(object, cb, allocTop);
+//
+//        /*
+//         * Unset the collector re-entry guard.
+//         */
+//        collecting = false;
+//
+//        // Update the fields of the control block that weren't updated by the collector
+//        Assert.always(copiedObjects.isZero() || !cb.start.isZero(), "collector must have recorded base address for internal pointers in copied object graph");
+//        cb.memory = (byte[])copiedObjects.toObject();
+//    }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
-        /*
-         * Set the collector re-entry guard.
-         */
-        Assert.always(!collecting);
-        collecting = true;
-
-        Address copiedObjects = collector.copyObjectGraph(object, cb, allocTop);
-
-        /*
-         * Unset the collector re-entry guard.
-         */
-        collecting = false;
-
-        // Update the fields of the control block that weren't updated by the collector
-        Assert.always(copiedObjects.isZero() || !cb.start.isZero(), "collector must have recorded base address for internal pointers in copied object graph");
-        cb.memory = (byte[])copiedObjects.toObject();
+    private static void encodeLengthWordError() throws NotInlinedPragma {
+			VM.println("encodeLengthWord");
+            throw VM.getOutOfMemoryError();
     }
 
     /**
@@ -999,7 +1045,7 @@ public class GC implements GlobalStaticFields {
         // an out of memory error is the cleanest way to handle this situtation
         // in the rare case that there was enough memory to allocate the array
         if (length > 0x3FFFFFF) {
-            throw VM.getOutOfMemoryError();
+            encodeLengthWordError();
         }
         return UWord.fromPrimitive((length << HDR.headerTagBits) | HDR.arrayHeaderTag);
     }
@@ -1039,9 +1085,10 @@ public class GC implements GlobalStaticFields {
      *
      * @param object the object
      * @return its class
-     *
-     * @vm2c proxy( getClass )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="getClass")
+/*end[JAVA5SYNTAX]*/
     public static Klass getKlass(Object object)  throws ForceInlinedPragma {
         Assert.that(object != null);
         Address classOrAssociation = NativeUnsafe.getAddress(object, HDR.klass);
@@ -1097,27 +1144,29 @@ public class GC implements GlobalStaticFields {
     static Object newInstance(Klass klass) {
         Object oop = allocate((klass.getInstanceSize() * HDR.BYTES_PER_WORD) + HDR.basicHeaderSize, klass, -1);
 
-/*if[FINALIZATION]*/
-        /*
-         * If the object requires finalization and it is in RAM then allocate
-         * a Finalizer for it. (Objects in ROM or NVM cannot be finalized.)
-         */
-        if (!VM.isHosted() && klass.hasFinalizer() && GC.inRam(oop)) {
-            collector.addFinalizer(new Finalizer(oop));
-        }
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//        /*
+//         * If the object requires finalization and it is in RAM then allocate
+//         * a Finalizer for it. (Objects in ROM or NVM cannot be finalized.)
+//         */
+//        if (!VM.isHosted() && klass.hasFinalizer() && GC.inRam(oop)) {
+//            collector.addFinalizer(new Finalizer(oop));
+//        }
 /*end[FINALIZATION]*/
         return oop;
     }
 
-/*if[FINALIZATION]*/
-    /**
-     * Eliminate a finalizer.
-     *
-     * @param obj the object of the finalizer
-     */
-    static void eliminateFinalizer(Object obj) {
-        collector.eliminateFinalizer(obj);
-    }
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//    /**
+//     * Eliminate a finalizer.
+//     *
+//     * @param obj the object of the finalizer
+//     */
+//    static void eliminateFinalizer(Object obj) {
+//        collector.eliminateFinalizer(obj);
+//    }
 /*end[FINALIZATION]*/
 
     /**
@@ -1137,6 +1186,7 @@ public class GC implements GlobalStaticFields {
         */
         int bodySize = length * dataSize;
         if (bodySize < 0) {
+            VM.println("newArray neg size");
             throw VM.getOutOfMemoryError();
         }
 
@@ -1186,14 +1236,14 @@ public class GC implements GlobalStaticFields {
     }
 
     /**
-     * Get a new stack. This method is guaranteed not to call the garbage collector.
+     * Get a new stack. This method may call the garbage collector.
      *
      * @param   length  the number of words that the new stack should contain.
      * @param   owner   the owner of the new stack
      * @return a pointer to the new stack or null if the allocation fails
      */
     static Object newStack(int length, VMThread owner) {
-        int size = roundUpToWord(HDR.arrayHeaderSize + length * Klass.LOCAL.getDataSize());
+        int size = roundUpToWord(HDR.arrayHeaderSize + (length * HDR.BYTES_PER_WORD));
         Object stack = allocatePrim(size, Klass.LOCAL_ARRAY, length);
         if (stack != null) {
             NativeUnsafe.setObject(stack, SC.owner, owner);
@@ -1210,7 +1260,7 @@ public class GC implements GlobalStaticFields {
      */
      static void stackCopy(Object srcChunk, Object dstChunk) {
 
-         if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_BASIC)) {
+         if (GC.GC_TRACING_SUPPORTED && isTracing(TRACE_ALLOCATION)) {
              VM.print("GC::stackCopy - srcChunk = ");
              VM.printAddress(srcChunk);
              VM.print(" dstChunk = ");
@@ -1305,8 +1355,8 @@ public class GC implements GlobalStaticFields {
     }
     
     /**
-     * GC may temporarily encode a ptrs's value so it os not a valid ptr.
-     * Try to dect this case.
+     * GC may temporarily encode a ptrs's value so it is not a valid ptr.
+     * Try to detect this case.
      * @param ptr
      * @return true if ptr looks like a valid pointer
      */
@@ -1449,7 +1499,7 @@ public class GC implements GlobalStaticFields {
          * Write the symbol table entries.
          */
 /*if[!FLASH_MEMORY]*/
-        if (isHosted || VM.isVerbose() || VM.getCurrentIsolate().getMainClassName().equals("com.sun.squawk.SuiteCreator")) {
+        if (isHosted || VM.isVerbose()) {
             Method method = body.getDefiningMethod();
             String name = method.toString();
             String file = body.getDefiningClass().getSourceFilePath();
@@ -1767,7 +1817,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return the count of partial-heap collections.
      */
-    static int getPartialCollectionCount() {
+    public static int getPartialCount() {
         return partialCollectionCount;
     }
 
@@ -1776,7 +1826,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return the count of full-heap collections.
      */
-    static int getFullCollectionCount() {
+    public static int getFullCount() {
         return fullCollectionCount;
     }
     
@@ -1785,7 +1835,7 @@ public class GC implements GlobalStaticFields {
      *
      * @return the total count of collections.
      */
-    static int getCollectionCount() {
+    public static int getTotalCount() {
         return fullCollectionCount + partialCollectionCount;
     }
 
@@ -1868,10 +1918,12 @@ public class GC implements GlobalStaticFields {
      * @return the address of the block of memory allocated for <code>object</code>
      */
     static Address oopToBlock(Klass klass, Address object) {
-        if (Klass.getSystemID(klass) == CID.BYTECODE_ARRAY) {
-            return MethodBody.oopToBlock(object);   // Method
-        } else if (Klass.isSquawkArray(klass)) {
-            return object.sub(HDR.arrayHeaderSize); // Array
+        if (Klass.isSquawkArray(klass)) {
+            if (Klass.getSystemID(klass) == CID.BYTECODE_ARRAY) {
+                return MethodHeader.oopToBlock(object);   // Method
+            } else {
+                return object.sub(HDR.arrayHeaderSize); // Array
+            }
         } else {
             return object.sub(HDR.basicHeaderSize); // Instance
         }
@@ -1950,7 +2002,7 @@ public class GC implements GlobalStaticFields {
      *
      * @param   strings  the table to which the strings are to be added
      */
-    static void getStrings(SquawkHashtable strings) {
+    static String findInRomString(String string) {
 
         Isolate isolate = VM.getCurrentIsolate();
 
@@ -1960,11 +2012,14 @@ public class GC implements GlobalStaticFields {
             Assert.that(suite != null);
             parent = suite.getReadOnlyObjectMemory();
             suite = suite.getParent();
+            if (suite == null) {
+                return null;
+            }
         }
 
         int percent = 0;
         if (GC.GC_TRACING_SUPPORTED && VM.isVeryVerbose()) {
-            VM.print("Building String intern table from read-only memory");
+            VM.print("Scanning String objects from read-only memory");
         }
         
         while (parent != null) {
@@ -1972,7 +2027,9 @@ public class GC implements GlobalStaticFields {
             for (Address block = parent.getStart(); block.lo(end); ) {
                 Address object = GC.blockToOop(block);
                 if (object.toObject() instanceof String) {
-                    strings.put(object.toObject(), object.toObject());
+                    if (object.toObject().equals(string)) {
+                        return (String) object.toObject();
+                    }
                 }
               
                 if (GC.GC_TRACING_SUPPORTED && VM.isVeryVerbose()) {
@@ -1992,6 +2049,7 @@ public class GC implements GlobalStaticFields {
         if (GC.GC_TRACING_SUPPORTED && VM.isVeryVerbose()) {
             VM.println(" done");
         }
+        return null;
     }
     
     /*---------------------------------------------------------------------------*\
@@ -2007,7 +2065,7 @@ public class GC implements GlobalStaticFields {
      */
     public static void initHeapStats() {
         if (heapstats == null) {
-            heapstats = new SquawkHashtable(500);
+            SquawkHashtable table = new SquawkHashtable(500);
             
             Suite[] suites = getSuites();
             for (int i = 0; i < suites.length; i++) {
@@ -2015,14 +2073,15 @@ public class GC implements GlobalStaticFields {
                 int classCount = s.getClassCount();
                 for (int j = 0; j < classCount; j++) {
                     Klass k = s.getKlass(j);
-                    if (k.isInstantiable()) {
-                        Assert.always(heapstats.get(s.getKlass(j)) == null);
-                        heapstats.put(s.getKlass(j), new ClassStat());
+                    if (k != null && k.isInstantiable()) {
+                        Assert.always(table.get(s.getKlass(j)) == null);
+                        table.put(s.getKlass(j), new ClassStat());
                     }
                 }
             }
             
-            heapstats.put(DYNAMIC_CLASSES, new ClassStat());
+            table.put(DYNAMIC_CLASSES, new ClassStat());
+            heapstats = table;
         }
     }
     
@@ -2049,7 +2108,7 @@ public class GC implements GlobalStaticFields {
     }
     
     /**
-     * Print represenation of obj to VM.print stream using as little memory as possible.
+     * Print representation of obj to VM.print stream using as little memory as possible.
      * Currently only handles strings, string buffers, and some arrays.
      * 
      * @param obj
@@ -2075,16 +2134,26 @@ public class GC implements GlobalStaticFields {
             VM.print(", length: ");
             VM.print(GC.getArrayLength(obj));
 
-            if (obj instanceof char[]) {
+            if (Klass.getSystemID(klass) == CID.CHAR_ARRAY) {
                 char[] cha = (char[]) obj;
                 VM.print(", ");
                 for (int i = 0; i < cha.length; i++) {
                     VM.print(cha[i]);
                 }
+            } else if (Klass.getSystemID(klass) == CID.GLOBAL_ARRAY) {
+                VM.print("Static variables for ");
+                Klass owner = VM.asKlass(NativeUnsafe.getObject(obj, CS.klass));
+                VM.print(owner.getInternalName());
+            } else if (Klass.getSystemID(klass) == CID.LOCAL_ARRAY) {
+                VM.print("Local variables ");
             } else {
                 VM.print(" @");
                 VM.printAddress(obj);
             }
+       } else if (obj instanceof Monitor) {
+            Monitor mon = (Monitor) obj;
+            VM.print("Monitor for ");
+            printObject(mon.object);
         } else {
             VM.print(klass.getInternalName());
             VM.print(" size: ");
@@ -2093,6 +2162,13 @@ public class GC implements GlobalStaticFields {
             VM.printAddress(obj);
         }
         VM.println();
+    }
+
+    static void printObject(Object obj) {
+        Klass klass = GC.getKlass(obj);
+        int blkSize = GC.getBodySize(klass, Address.fromObject(obj));
+        int objSize = blkSize + (klass.isArray() ? HDR.arrayHeaderSize : HDR.basicHeaderSize);
+        printObject(obj, klass, objSize);
     }
     
    /**
@@ -2103,6 +2179,7 @@ public class GC implements GlobalStaticFields {
      */
     static int getObjectBytes(Object object) {
         Klass klass = GC.getKlass(object);
+        Assert.that(Klass.getSystemID(klass) != CID.BYTECODE_ARRAY); //  Doesn't calculate headers sizes for methods correctly
         int blkSize = GC.getBodySize(klass, Address.fromObject(object));
         return blkSize + (klass.isArray() ? HDR.arrayHeaderSize : HDR.basicHeaderSize);
     }
@@ -2114,17 +2191,112 @@ public class GC implements GlobalStaticFields {
      * @return the size in bytes
      */
     static int getObjectBytes(Klass klass) {
+        Assert.that(Klass.getSystemID(klass) != CID.BYTECODE_ARRAY); //  Doesn't calculate headers sizes for methods correctly
         int size = klass.getInstanceSize() << HDR.LOG2_BYTES_PER_WORD;
         return size += HDR.basicHeaderSize;
     }
+
+//    static class DoIsSuiteUsedRefsBlock extends DoBlock {
+//        Address start;
+//        Address end;
+//        ObjectMemory suiteOM;
+//        boolean used;
+//        boolean verbose;
+//        Object referer;
+//
+//        DoIsSuiteUsedRefsBlock(Suite suite, boolean verbose) {
+//            this.suiteOM = suite.getReadOnlyObjectMemory();
+//            this.used = false;
+//            this.verbose = verbose;
+//            this.referer = null;
+//        }
+//
+//        public Object value(Object object) {
+//            if (suiteOM.containsAddress(Address.fromObject(object))) {
+//                used = true;
+//                if (verbose) {
+//                    VM.print("Suite is referenced by ");
+//                    printObject(object, GC.getKlass(object), 0);
+//                    if (referer != null) {
+//                        VM.print(" from ");
+//                        printObject(referer, GC.getKlass(referer), 0);
+//                    }
+//                }
+//            }
+//            return object;
+//        }
+//
+//    }
+//
+//    static class DoIsSuiteUsedObjectsBlock extends DoBlock {
+//        DoIsSuiteUsedRefsBlock refBlock;
+//
+//        DoIsSuiteUsedObjectsBlock(DoIsSuiteUsedRefsBlock refBlock) {
+//            this.refBlock = refBlock;
+//        }
+//
+//        public Object value(Object object) {
+//            // readOnlyObjectMemories points to all suites, so skip over it...
+//            if (object != readOnlyObjectMemories) {
+//                refBlock.referer = object;
+//                allReferencesDo(object, refBlock);
+//                refBlock.referer = null;
+//            }
+//            return object;
+//        }
+//
+//    }
+//
+//    static boolean isSuiteParent(Suite suite) {
+//        boolean result = false;
+//        Suite[] suites = getSuites();
+//        for (int i = 0; i < suites.length; i++) {
+//            if (suites[i].getParent() == suite) {
+//                result = true;
+//                break;
+//            }
+//        }
+//        suites = null;
+//        return result;
+//    }
+//
+//    /**
+//     * Check to see if a Suite is in use by scanning roots and objects in heap looking for a reference to an object in the given suite.
+//     *
+//     * @param suite
+//     * @return true if the suite is in use
+//     */
+//    public static boolean isSuiteUsed(Suite suite, boolean verbose) {
+//        if (isSuiteParent(suite)) {
+//            if (verbose) {
+//                VM.println("Suite is a parent of another suite");
+//            }
+//            return true;
+//        }
+//
+//        DoIsSuiteUsedRefsBlock refsBlock = new DoIsSuiteUsedRefsBlock(suite, verbose);
+//        DoIsSuiteUsedObjectsBlock objsBlock = new DoIsSuiteUsedObjectsBlock(refsBlock);
+//
+//        GC.collectGarbage(true);
+//
+//        refsBlock.referer = "Global statics";
+//        allReferencesInRootsDo(refsBlock);
+//        refsBlock.referer = null;
+//        if (refsBlock.used) {
+//            return true;
+//        }
+//
+//        allObjectsFromDo(null, objsBlock);
+//        return refsBlock.used;
+//    }
     
     /**
-     * Do actual heap walk, from start object, or whole heap is startObj is null.
-     * Collect statistics in heapstats table.
-     * 
+     * Perform doBlock with all objects starting from startObject.
+     *
      * @param startObj the object to start walking from , or null
+     * @param doBlock callback to perform on each object
      */
-    static void collectHeapStats(Object startObj, boolean printInstances) {
+    public static void allObjectsFromDo(Object startObj, DoBlock doBlock) {
         Address start;
         if (startObj == null) {
             start = heapStart;
@@ -2139,6 +2311,267 @@ public class GC implements GlobalStaticFields {
         int oldFullCollectionCount = fullCollectionCount;
 
         Address end = allocTop;
+
+        for (Address block = start; block.lo(end); ) {
+            Address object = GC.blockToOop(block);
+            Klass klass = GC.getKlass(object);
+            int blkSize = GC.getBodySize(klass, object);
+            doBlock.value(object.toObject());
+            if ((oldPartialCollectionCount != partialCollectionCount) ||
+                (oldFullCollectionCount != fullCollectionCount)) {
+                throw new IllegalStateException("GC during heap walk");
+            }
+            block = object.add(blkSize);
+        }
+    }
+    
+//    /**
+//     * Traverses the references in the roots (single-level)
+//     *
+//     * @param doBlock  the callback to apply to each oop in the traversed objects
+//     */
+//    private static void allReferencesInRootsDo(DoBlock doBlock) {
+//        for (int i = 0 ; i < VM.getGlobalOopCount() ; i++) {
+//            Object object = VM.getGlobalOop(i);
+//            if (object != null) {
+//                doBlock.value(object);
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Perform doBlock on all references in object.
+//     *
+//     * @param object the object to inspect
+//     */
+//    public static void allReferencesDo(Object object, DoBlock doBlock) {
+//        Klass klass = getKlass(object);
+//        doBlock.value(klass);
+//
+//        // Visit the rest of the pointers
+//        if (Klass.isSquawkArray(klass)) {
+//            allReferencesInArrayObjectDo(object, klass, doBlock);
+//        } else {
+//            allReferencesInNonArrayObjectDo(object, klass, doBlock);
+//        }
+//    }
+//
+//    private static void allReferencesInArrayObjectDo(Object object, Klass klass, DoBlock doBlock) {
+//        switch (Klass.getSystemID(klass)) {
+//            case CID.BOOLEAN_ARRAY:
+//            case CID.BYTE_ARRAY:
+//            case CID.CHAR_ARRAY:
+//            case CID.DOUBLE_ARRAY:
+//            case CID.FLOAT_ARRAY:
+//            case CID.INT_ARRAY:
+//            case CID.LONG_ARRAY:
+//            case CID.SHORT_ARRAY:
+//            case CID.UWORD_ARRAY:
+//            case CID.ADDRESS_ARRAY:
+//            case CID.STRING:
+//            case CID.STRING_OF_BYTES: {
+//                break;
+//            }
+//            case CID.BYTECODE_ARRAY: {
+//                doBlock.value(NativeUnsafe.getObject(object, HDR.methodDefiningClass));// this won't happen if not ENABLE_DYNAMIC_CLASSLOADING
+//                break;
+//            }
+//            case CID.GLOBAL_ARRAY: {
+//                Klass gaklass = VM.asKlass(NativeUnsafe.getObject(object, CS.klass));
+//                Assert.that(gaklass != null);
+//                // All the pointer static fields precede the non-pointer fields
+//                int end = CS.firstVariable + Klass.getRefStaticFieldsSize(gaklass);
+//                for (int i = 0; i < end; i++) {
+//                    Object slot = NativeUnsafe.getObject(object, i);
+//                    if (slot != null) {
+//                        doBlock.value(slot);
+//                    }
+//                }
+//                break;
+//            }
+//            case CID.LOCAL_ARRAY: {
+//                allReferencesInStackChunkDo(object, doBlock);
+//                break;
+//            }
+//            default: { // Pointer array
+//                int length = GC.getArrayLengthNoCheck(object);
+//                for (int i = 0; i < length; i++) {
+//                    Object slot = NativeUnsafe.getObject(object, i);
+//                    if (slot != null) {
+//                        doBlock.value(slot);
+//                    }
+//                }
+//                break;
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Traverses the oops in a stack chunk.
+//     *
+//     * @param chunk    the stack chunk to traverse
+//     * @param doBlock  the callback to apply to each oop in the traversed objects
+//     * @param header   specifies if the header part of the stack chunk should be traversed
+//     */
+//    private static void allReferencesInStackChunkDo(Object chunk, DoBlock doBlock) {
+//        GC.checkSC(chunk);
+//        Address fp = NativeUnsafe.getAddress(chunk, SC.lastFP);
+//
+//        /*
+//         * Traverse the pointers in the header part of the stack chunk
+//         */
+//        doBlock.value(NativeUnsafe.getObject(chunk, SC.owner));
+//
+//        /*
+//         * Update the pointers in each activation frame
+//         */
+//        boolean isInnerMostActivation = true;
+//        while (!fp.isZero()) {
+//            allReferencesInActivationDo(fp, isInnerMostActivation, doBlock);
+//            fp = VM.getPreviousFP(fp);
+//            isInnerMostActivation = false;
+//        }
+//    }
+//
+//    /**
+//     * Traverses the oops in an activation record.
+//     *
+//     * @param fp                     the frame pointer
+//     * @param isInnerMostActivation  specifies if this is the inner most activation frame on the chunk
+//     *                               in which case only the first local variable (i.e. the method pointer) is scanned
+//     * @param doBlock                the callback to apply to each traversed oop
+//     */
+//    private static void allReferencesInActivationDo(Address fp, boolean isInnerMostActivation, DoBlock doBlock) {
+//        Address mp  = NativeUnsafe.getAddress(fp, FP.method);
+//
+//        /*
+//         * Get the method pointer and setup to go through the parameters and locals.
+//         */
+//        int localCount     = isInnerMostActivation ? 1 : MethodHeader.decodeLocalCount(mp.toObject());
+//        int parameterCount = MethodHeader.decodeParameterCount(mp.toObject());
+//        int mapOffset      = MethodHeader.decodeOopmapOffset(mp.toObject());
+//        int bitOffset      = -1;
+//        int byteOffset     = 0;
+//
+//        /*
+//         * Parameters.
+//         */
+//        int varOffset = FP.parm0;
+//        while (parameterCount-- > 0) {
+//            bitOffset++;
+//            if (bitOffset == 8) {
+//                bitOffset = 0;
+//                byteOffset++;
+//            }
+//            int bite = NativeUnsafe.getByte(mp, mapOffset+byteOffset);
+//            boolean isOop = ((bite >>> bitOffset)&1) != 0;
+//            if (isOop) {
+//                Object slot = NativeUnsafe.getObject(fp, varOffset);
+//                if (slot != null) {
+//                    doBlock.value(slot);
+//                }
+//            }
+//            varOffset++; // Parameters go upwards
+//        }
+//
+//        /*
+//         * Locals.
+//         */
+//        varOffset = FP.local0;
+//        while (localCount-- > 0) {
+//            bitOffset++;
+//            if (bitOffset == 8) {
+//                bitOffset = 0;
+//                byteOffset++;
+//            }
+//            int bite = NativeUnsafe.getByte(mp, mapOffset + byteOffset);
+//            boolean isOop = ((bite >>> bitOffset) & 1) != 0;
+//            if (isOop) {
+//                Object slot = NativeUnsafe.getObject(fp, varOffset);
+//                if (slot != null) {
+//                    doBlock.value(slot);
+//                }
+//            }
+//            varOffset--; // Locals go downwards
+//        }
+//    }
+//
+//    /**
+//     * Traverses all the oops within a non-array object.
+//     *
+//     * @param object   the object being traversed
+//     * @param klass    the class of <code>object</code>. If the class has been forwarded, then this is its pre-forwarding address.
+//     * @param doBlock  the callback to apply to each pointer in <code>object</code>
+//     */
+//    private static void allReferencesInNonArrayObjectDo(Object object, Klass klass, DoBlock doBlock) {
+//        Address oopMap;
+//        UWord oopMapWord;
+//
+//        int instanceSize = Klass.getInstanceSize(klass);
+//        oopMapWord = NativeUnsafe.getUWord(klass, (int)FieldOffsets.com_sun_squawk_Klass$oopMapWord);
+//        if (instanceSize > HDR.BITS_PER_WORD) {
+//            oopMap = NativeUnsafe.getAddress(klass, (int)FieldOffsets.com_sun_squawk_Klass$oopMap);
+//
+//            int oopMapLength = ((instanceSize + HDR.BITS_PER_WORD) - 1) / HDR.BITS_PER_WORD;
+//            for (int i = 0; i != oopMapLength; ++i) {
+//                int/*S64*/ word = NativeUnsafe.getUWord(oopMap, i).toPrimitive();
+//                allReferencesInNonArrayObjectForBitmapWordDo(object, doBlock, word, i * HDR.BITS_PER_WORD);
+//            }
+//        } else {
+//            int/*S64*/ word = oopMapWord.toPrimitive();
+//            allReferencesInNonArrayObjectForBitmapWordDo(object, doBlock, word, 0);
+//        }
+//    }
+//
+//    /**
+//     * Traverses the oops within an object whose bits are set in a given oop map word.
+//     *
+//     * @param object   the object being traversed
+//     * @param doBlock  the callback to apply to each pointer in <code>object</code>
+//     * @param word     a word from an oop map describing where the pointers are in <code>object</code>
+//     * @param offset   the offset of the first field in <code>object</code> mapped by <code>word</code>
+//     */
+//    private static void allReferencesInNonArrayObjectForBitmapWordDo(Object object, DoBlock doBlock, int/*S64*/ word, int offset) {
+//        while (word != 0) {
+//            if ((word & 1) != 0) {
+//                Object slot = NativeUnsafe.getObject(object, offset);
+//                if (slot != null) {
+//                    doBlock.value(slot);
+//                }
+//            }
+//            offset++;
+//            word = word >>> 1;
+//        }
+//    }
+    
+    /**
+     * Do actual heap walk, from start object, or whole heap is startObj is null.
+     * Collect statistics in heapstats table.
+     * 
+     * @param startObj the object to start walking from , or null
+     */
+    static void collectHeapStats(Object startObj, Object endObject, boolean printInstances) {
+        Address start;
+        Address end;
+        if (startObj == null) {
+            start = heapStart;
+        } else {
+            if (!inRam(startObj)) {
+                throw new IllegalArgumentException();
+            }
+            start = GC.oopToBlock(GC.getKlass(startObj), Address.fromObject(startObj));
+        }
+        if (endObject == null) {
+            end = allocTop;
+        } else {
+            if (!inRam(endObject)) {
+                throw new IllegalArgumentException();
+            }
+            end = GC.oopToBlock(GC.getKlass(endObject), Address.fromObject(endObject));
+        }
+
+        int oldPartialCollectionCount = partialCollectionCount;
+        int oldFullCollectionCount = fullCollectionCount;
 
         for (Address block = start; block.lo(end); ) {
             Address object = GC.blockToOop(block);
@@ -2165,30 +2598,6 @@ public class GC implements GlobalStaticFields {
         }
     }
     
-    /**
-     * print an estimate the number of bytes used by this hastable, not including keys and values.
-     * 
-     * @param tbl
-     */
-    public static void printEstimatedHashtableSize(SquawkHashtable tbl) {
-        Klass entryKlass = null;
-        Klass classStatKlass = Klass.asKlass(ClassStat.class);
-        Object internalTbl = tbl.getEntryTable();
-        int size = tbl.size();
-        try {
-            entryKlass = Klass.forName("com.sun.squawk.util.HashtableEntry");
-        } catch (ClassNotFoundException ex) {
-            Assert.shouldNotReachHere();
-        }
-
-        VM.println("The above includes these objects used to calculate class stats:");
-        VM.println("Class:\t Count: \t Bytes:");
-        print1Stat(GC.getKlass(tbl).toString(), 1, GC.getObjectBytes(tbl));
-        print1Stat(GC.getKlass(internalTbl).toString(), 1, GC.getObjectBytes(internalTbl));
-        print1Stat(entryKlass.toString(), size, size * GC.getObjectBytes(entryKlass));
-        print1Stat(classStatKlass.toString(), size, size * GC.getObjectBytes(classStatKlass));
-    }
-    
     private static void print1Stat(String key, int count, int size) {
         System.out.print(key);
         System.out.print(": \t");
@@ -2198,18 +2607,19 @@ public class GC implements GlobalStaticFields {
         System.out.println();
     }
     
-    /**
+   /**
      * Do actual heap walk, from start object, or whole heap is startObj is null.
      * Count how many instances, and how many bytes are used, by all objects that are the same aage or youngre than
      * startObj. Print out statistics of each class that has at least one instance in the set found in the heap walk.
      * Statistics are NOT sorted.
-     * 
+     *
      * @param startObj the object to start walking from , or null
      * @param printInstances if true, print information about each object before printing statistics
      */
     public static void printHeapStats(Object startObj, boolean printInstances) {
+        Object endObjectMarker = new Object();
         initHeapStats();
-        
+
         Enumeration e = heapstats.elements();
         while (e.hasMoreElements()) {
             ClassStat cs = (ClassStat) e.nextElement();
@@ -2219,8 +2629,8 @@ public class GC implements GlobalStaticFields {
         if (printInstances) {
             VM.println("Instances in heap:");
         }
-        collectHeapStats(startObj, printInstances);
-        
+        collectHeapStats(startObj, endObjectMarker, printInstances);
+
 
         VM.println("Class:\t Count: \t Bytes:");
         e = heapstats.keys();
@@ -2231,8 +2641,7 @@ public class GC implements GlobalStaticFields {
                 print1Stat(key.toString(), cs.count, cs.size);
             }
         }
-        
-        printEstimatedHashtableSize(heapstats);
+        heapstats = null;
     }
     
 }

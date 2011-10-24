@@ -30,7 +30,7 @@ import java.io.*;
 /**
  * A MulticastOutputStream can be configured to send its output to zero or more named output streams.
  * An instance of MulticastOutputStream is what is returned when opening an output stream via
- * the "multicast://" protocol.
+ * the "multicastoutput://" protocol.
  * <p>
  * <b>Note that this implementation is not synchronized.</b> If
  * multiple threads access a <tt>MulticastOutputStream</tt> instance concurrently, and at
@@ -147,6 +147,9 @@ public final class MulticastOutputStream extends OutputStream {
      * @return  the previous output stream identified by <code>name</code> or null if there wasn't one
      */
     public OutputStream add(String name, OutputStream out) {
+        if (name == null || out == null) {
+            throw new IllegalArgumentException();
+        }
         return (OutputStream)streams.put(name, out);
     }
 

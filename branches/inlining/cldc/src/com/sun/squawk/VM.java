@@ -1,52 +1,63 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
 package com.sun.squawk;
 
+/*if[!PLATFORM_TYPE_BARE_METAL]*/
+import com.sun.cldc.jna.TaskExecutor;
+/*end[PLATFORM_TYPE_BARE_METAL]*/
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Stack;
 
 /*if[OLD_IIC_MESSAGES]*/
 //import com.sun.squawk.io.ServerConnectionHandler;
 /*end[OLD_IIC_MESSAGES]*/
+/*if[NEW_IIC_MESSAGES]*/
 import com.sun.squawk.io.mailboxes.Mailbox;
+/*end[NEW_IIC_MESSAGES]*/
 import com.sun.squawk.peripheral.PeripheralRegistry;
+import com.sun.squawk.platform.Platform;
+import com.sun.squawk.platform.SystemEvents;
 import com.sun.squawk.pragma.GlobalStaticFields;
 import com.sun.squawk.pragma.InterpreterInvokedPragma;
 import com.sun.squawk.pragma.NotInlinedPragma;
+import com.sun.squawk.pragma.AllowInlinedPragma;
+import com.sun.squawk.pragma.HostedPragma;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.util.IntHashtable;
 import com.sun.squawk.util.SquawkHashtable;
 import com.sun.squawk.util.SquawkVector;
 import com.sun.squawk.vm.ChannelConstants;
-import com.sun.squawk.vm.Global;
 import com.sun.squawk.vm.HDR;
 import com.sun.squawk.vm.Native;
 import com.sun.squawk.vm.SC;
 import com.sun.squawk.vm.FieldOffsets;
+import com.sun.squawk.util.Arrays;
 
 /**
  * This is a Squawk VM specific class that is used to communicate between
@@ -96,6 +107,11 @@ public class VM implements GlobalStaticFields {
      * Address of the start of the object memory containing the bootstrap suite.
      */
     private static Address bootstrapStart;
+
+    /**
+     * Address of the bootstrap suite.
+     */
+    private static Address bootstrapSuite;
 
     /**
      * Address of the first byte after the end of the object memory containing the bootstrap suite.
@@ -188,11 +204,13 @@ public class VM implements GlobalStaticFields {
      * The name of the class to invoke main on when an isolate is being initialized.
      */
     private static String isolateInitializer;
-    
+
+/*if[NEW_IIC_MESSAGES]*/
     /**
      * Global hashtable of registered mailboxes.
      */
     private static SquawkHashtable registeredMailboxes;
+/*end[NEW_IIC_MESSAGES]*/
     
     /**
      * 
@@ -223,7 +241,18 @@ public class VM implements GlobalStaticFields {
      * If VM.outPrint() ever fails to print to System.err, then set to true, and print to VM.print.
      */
     private static boolean safePrintToVM;
+
+    /**
+     * System-global cache of TaskExecutors
+     */
+    private static Stack taskCache;
+
+    /**
+     * If true (1), then interpreter-level tracing is on.
+     */
+    private static int tracing;
     
+//    private static boolean isBlocked;
     
     /*=======================================================================*\
      *                          VM callback routines                         *
@@ -272,6 +301,8 @@ public class VM implements GlobalStaticFields {
          */
         GC.copyCStringArray(argv, args);
 
+        taskCache = new Stack();
+
         /*
          * Start the isolate guarded with an exception handler. Once the isolate
          * has been started enter the service operation loop.
@@ -280,6 +311,7 @@ public class VM implements GlobalStaticFields {
             exceptionsEnabled = true;
             shutdownHooks = new CallbackManager(true);
             currentIsolate.primitiveThreadStart();
+            VMThread.initializeThreading2();
             ServiceOperation.execute();
         } catch (Throwable ex) {
             fatalVMError();
@@ -396,7 +428,7 @@ public class VM implements GlobalStaticFields {
         if (reportedArray != null) {
             Object array = reportedArray;
             reportedArray = null;
-            throw new ArrayIndexOutOfBoundsException("on " + GC.getKlass(array).getInternalName() + " of length " + GC.getArrayLength(array) + " with index " + reportedIndex);
+            throw new ArrayIndexOutOfBoundsException(makeArrayExceptionMessage(array));
         } else {
             throw new ArrayIndexOutOfBoundsException();
         }
@@ -417,44 +449,16 @@ public class VM implements GlobalStaticFields {
     }
 
     /**
-     * Set write barrier bit for the store of a reference to an array.
-     *
-     * @param array the array
-     * @param index the array index
-     * @param value the value to be stored into the array
+     * Throws an ArrayStoreException.
      */
-    static void arrayOopStore(Object array, int index, Object value) throws InterpreterInvokedPragma {
-        Klass arrayKlass = GC.getKlass(array);
-        Assert.that(arrayKlass.isArray());
-        Assert.that(value != null);
-        Klass componentType = arrayKlass.getComponentType();
-
-        /*
-         * Klass.isAssignableFrom() will not work before class Klass is initialized. Use the
-         * synchronizationEnabled flag to show that the system is ready for this.
-         */
-        if (synchronizationEnabled == false || componentType.isAssignableFrom(GC.getKlass(value))) {
-            NativeUnsafe.setObject(array, index, value);
+    static void arrayStoreException() throws InterpreterInvokedPragma {
+        if (reportedArray != null) {
+            Object array = reportedArray;
+            reportedArray = null;
+            throw new ArrayStoreException(makeArrayExceptionMessage(array));
         } else {
             throw new ArrayStoreException();
         }
-    }
-
-    /**
-     * Find the virtual slot number for an object that corresponds to the slot in an interface.
-     *
-     * @param obj     the receiver
-     * @param iklass  the interface class
-     * @param islot   the virtual slot of the interface method
-     * @return the virtual slot of the receiver
-     */
-    static int findSlot(Object obj, Klass iklass, int islot) throws InterpreterInvokedPragma {
-/*if[FAST_INVOKEINTERFACE]*/
-        throw Assert.shouldNotReachHere();
-/*else[FAST_INVOKEINTERFACE]*/
-//        Klass klass = GC.getKlass(obj);
-//        return klass.findSlot(iklass, islot);
-/*end[FAST_INVOKEINTERFACE]*/
     }
 
     /**
@@ -480,103 +484,37 @@ public class VM implements GlobalStaticFields {
     }
 
     /**
-     * Test to see if an object is an instance of a class.
+     * throw a class cast exceptionCheck when an object can't be cast to a class.
      *
      * @param obj the object (not null)
-     * @param klass the class (not null)
-     * @return true if is can
-     */
-    static boolean _instanceof(Object obj, Klass klass) throws InterpreterInvokedPragma {
-        Assert.that(obj != null && klass != null);
-        return klass.isAssignableFrom(GC.getKlass(obj));
-    }
-
-    /**
-     * Check that an object can be cast to a class.
-     *
-     * @param obj the object (not null)
-     * @param klass the class
-     * @return the same object
+     * @param klass the expected class
      * @exception ClassCastException if the case is illegal
      */
-    static Object checkcast(Object obj, Klass klass) throws InterpreterInvokedPragma {
+    static void checkcastException(Object obj, Klass klass) throws InterpreterInvokedPragma {
         Assert.that(obj != null);
-        if (!klass.isAssignableFrom(GC.getKlass(obj))) {
-            throw new ClassCastException("Expected object of type " + klass.getName() + " but got object of type " + GC.getKlass(obj).getName());
-        }
-        return obj;
-    }
-
-    /**
-     * Lookup the position of a value in a sorted array of numbers.
-     *
-     * @param key the value to look for
-     * @param array the array
-     * @return the index or -1 if the lookup fails
-     */
-    static int lookup_b(int key, byte[] array) throws InterpreterInvokedPragma {
-        int low = 0;
-        int high = array.length - 1;
-        while (low <= high) {
-            int mid = (low + high) / 2;
-            int val = array[mid];
-            if (key < val) {
-                high = mid - 1;
-            } else if (key > val) {
-                low = mid + 1;
-            } else {
-                return mid;
+        if (Klass.DEBUG_CODE_ENABLED) {
+            println("=== temp extra debugging info ===");
+            print("target class: ");
+            printAddress(klass);
+            println();
+            Klass srcKlass = GC.getKlass(obj);
+            print("source class: ");
+            printAddress(srcKlass);
+            println();
+            Klass[] interfaces = srcKlass.getInterfaces();
+            if (interfaces != null) {
+                println("implements interfaces:");
+                for (int i = 0; i < interfaces.length; i++) {
+                    print("    ");
+                    print(interfaces[i].toString());
+                    print("    ");
+                    printAddress(interfaces[i]);
+                    println();
+                }
             }
         }
-        return -1;
-    }
 
-    /**
-     * Lookup the position of a value in a sorted array of numbers.
-     *
-     * @param key the value to look for
-     * @param array the array
-     * @return the index or -1 if the lookup fails
-     */
-    static int lookup_s(int key, short[] array) throws InterpreterInvokedPragma {
-        int low = 0;
-        int high = array.length - 1;
-        while (low <= high) {
-            int mid = (low + high) / 2;
-            int val = array[mid];
-            if (key < val) {
-                high = mid - 1;
-            } else if (key > val) {
-                low = mid + 1;
-            } else {
-                return mid;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Lookup the position of a value in a sorted array of numbers.
-     *
-     * @param key the value to look for
-     * @param array the array
-     * @return the index or -1 if the lookup fails
-     */
-    static int lookup_i(int key, int[] array) throws InterpreterInvokedPragma {
-        int low = 0;
-        int high = array.length - 1;
-        while (low <= high) {
-            int mid = (low + high) / 2;
-            int val = array[mid];
-            if (key < val) {
-                high = mid - 1;
-            } else if (key > val) {
-                low = mid + 1;
-            } else {
-                return mid;
-            }
-        }
-        return -1;
+        throw new ClassCastException("Expected object of type " + klass + " but got object of type " + GC.getKlass(obj));
     }
 
     /**
@@ -629,7 +567,7 @@ public class VM implements GlobalStaticFields {
      *
      * @param value1 the value1 operand
      * @param value2 the value2 operand
-     * @return 0, 1, or -1 accorting to the spec
+     * @return 0, 1, or -1 according to the spec
      */
     static int _lcmp(long value1, long value2) throws InterpreterInvokedPragma {
         if (value1 > value2) {
@@ -722,6 +660,179 @@ public class VM implements GlobalStaticFields {
             }
         }
         return array;
+    }
+
+    /** Pass in value of "reportedArray", and use value of "reportedIndex" to generate a more detailed exception message.
+     *
+     * @param array the value of "reportedArray"
+     * @return message string
+     */
+    private static String makeArrayExceptionMessage(Object array) {
+        return "on " + GC.getKlass(array).getInternalName() + " of length " + GC.getArrayLength(array) + " with index " + reportedIndex;
+    }
+
+    /*=======================================================================*\
+     *                Converted VM callback routines                         *
+     *                                                                       *
+     * These methods are always converted to C code, and are                 *
+     * only to be called by the interpreter loop, not by user code.          *
+     *                                                                       *
+    \*=======================================================================*/
+
+    /**
+     * Test to see if an object is an instance of a class.
+     *
+     * @param obj the object (not null)
+     * @param klass the class (not null)
+     * @return true if is can
+     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="VM_instanceof")  // ONLY C-VERSION IS CALLED - NOT CALLED BY JAVA CODE
+/*end[JAVA5SYNTAX]*/
+    static boolean _instanceof(Object obj, Klass klass) throws AllowInlinedPragma, HostedPragma  {
+        Assert.that(obj != null && klass != null);
+        return klass.isAssignableFrom(GC.getKlass(obj));
+    }
+
+    /**
+     * Find the virtual slot number for an object that corresponds to the slot in an interface.
+     *
+     * @param obj     the receiver
+     * @param iklass  the interface class
+     * @param islot   the virtual slot of the interface method
+     * @return the virtual slot of the receiver
+     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="VM_findSlot")  // ONLY C-VERSION IS CALLED - NOT CALLED BY JAVA CODE
+/*end[JAVA5SYNTAX]*/
+    static int findSlot(Object obj, Klass iklass, int islot) throws AllowInlinedPragma, HostedPragma {
+        Klass klass = GC.getKlass(obj);
+        int result = klass.findSlot(iklass, islot);
+        return result;
+    }
+
+    /**
+     * Check that value can be assigned to array
+     *
+     * @param array the array
+     * @param value the value to be stored into the array
+     * @return 1 if error occurred. Caller will arrange to throw exception
+     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="VM_arrayOopStoreCheck")  // ONLY C-VERSION IS CALLED - NOT CALLED BY JAVA CODE
+/*end[JAVA5SYNTAX]*/
+    static int arrayOopStoreCheck(Object array, int index, Object value) throws AllowInlinedPragma, HostedPragma {
+        Klass arrayKlass = GC.getKlass(array);
+        Assert.that(arrayKlass.isArray());
+        Assert.that(value != null);
+        Klass componentType = arrayKlass.getComponentType();
+
+        /*
+         * Klass.isAssignableFrom() will not work before class Klass is initialized. Use the
+         * synchronizationEnabled flag to show that the system is ready for this.
+         */
+        if (synchronizationEnabled == false || componentType.isAssignableFrom(GC.getKlass(value))) {
+            return 0;
+        } else {
+            reportedArray = array;
+            reportedIndex = index;
+            return 1;
+        }
+    }
+
+    /**
+     * Read a static reference variable.
+     *
+     * @param klass  the class of the variable
+     * @param offset the offset (in words) to the variable
+     * @return the value
+     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="VM_getClassState")  // ONLY C-VERSION IS CALLED - NOT CALLED BY JAVA CODE
+/*end[JAVA5SYNTAX]*/
+    static Object getClassState(Klass klass) throws AllowInlinedPragma, HostedPragma {
+        return currentIsolate.getClassStateForInterpreter(klass);
+    }
+
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="VM_lookup_b")  // ONLY C-VERSION IS CALLED - NOT CALLED BY JAVA CODE
+/*end[JAVA5SYNTAX]*/
+    /**
+     * Lookup the position of a value in a sorted array of numbers.
+     *
+     * @param key the value to look for
+     * @param array the array
+     * @return the index or -1 if the lookup fails
+     */
+    static int lookup_b(int key, byte[] array) throws NotInlinedPragma, HostedPragma {
+        int low = 0;
+        int high = array.length - 1;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            int val = array[mid];
+            if (key < val) {
+                high = mid - 1;
+            } else if (key > val) {
+                low = mid + 1;
+            } else {
+                return mid;
+            }
+        }
+        return -1;
+    }
+
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="VM_lookup_s")  // ONLY C-VERSION IS CALLED - NOT CALLED BY JAVA CODE
+/*end[JAVA5SYNTAX]*/
+    /**
+     * Lookup the position of a value in a sorted array of numbers.
+     *
+     * @param key the value to look for
+     * @param array the array
+     * @return the index or -1 if the lookup fails
+     */
+    static int lookup_s(int key, short[] array) throws NotInlinedPragma, HostedPragma {
+        int low = 0;
+        int high = array.length - 1;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            int val = array[mid];
+            if (key < val) {
+                high = mid - 1;
+            } else if (key > val) {
+                low = mid + 1;
+            } else {
+                return mid;
+            }
+        }
+        return -1;
+    }
+
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="VM_lookup_i")  // ONLY C-VERSION IS CALLED - NOT CALLED BY JAVA CODE
+/*end[JAVA5SYNTAX]*/
+    /**
+     * Lookup the position of a value in a sorted array of numbers.
+     *
+     * @param key the value to look for
+     * @param array the array
+     * @return the index or -1 if the lookup fails
+     */
+    static int lookup_i(int key, int[] array) throws NotInlinedPragma, HostedPragma {
+        int low = 0;
+        int high = array.length - 1;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            int val = array[mid];
+            if (key < val) {
+                high = mid - 1;
+            } else if (key > val) {
+                low = mid + 1;
+            } else {
+                return mid;
+            }
+        }
+        return -1;
     }
 
     /*-----------------------------------------------------------------------*\
@@ -891,11 +1002,27 @@ public class VM implements GlobalStaticFields {
 
     }
     
+    private static boolean insaneFP(Object stack, Address fp) {
+        Offset fpOffset = fp.diff(Address.fromObject(stack));
+        int size = GC.getArrayLengthNoCheck(stack) * HDR.BYTES_PER_WORD;
+        if (fpOffset.ge(Offset.zero()) && fpOffset.lt(Offset.fromPrimitive(size))) {
+            return false;
+        } else {
+            VM.print("Illegal frame pointer during stack decoding: ");
+            VM.print(fpOffset.toPrimitive());
+            VM.println();
+            return true;
+        }
+
+    }
+    
     /**
      * Returns an array of stack trace elements, each representing one stack frame in the current call stack.
      * The zeroth element of the array represents the top of the stack, which is the frame of the caller's
      * method. The last element of the array represents the bottom of the stack, which is the first method
      * invocation in the sequence.
+     * 
+     * NOTE: This method may retun null ExecutionPoints in the aray if an error occurs while decoding the stack. 
      *
      * @param thread the thread to inspect
      * @param count  how many frames from the stack to reify, starting from the frame
@@ -904,17 +1031,24 @@ public class VM implements GlobalStaticFields {
      * @return the reified call stack
      */
     private static ExecutionPoint[] reifyStack0(VMThread thread, Address fpBase, int count) {
-        
-        if (fpBase.isZero()) {
+        Object stack = thread.getStack();
+
+        if (fpBase.isZero() || insaneFP(stack, fpBase)) {
             return new ExecutionPoint[0];
         }
-        
+
         /*
          * Count the number of frames and allocate the array.
          */
-        Object stack = thread.getStack();
+        Assert.always(stack != null);
+        Offset fpBaseOffset = fpBase.diff(Address.fromObject(stack));
         int frames = 0;
-        Address fp = fpBase;
+        Address fp;
+        
+        /*
+         * Count the number of frames in GC free zone.
+         */
+        fp = fpBase;
 
         // Skip frame for this method
         fp = VM.getPreviousFP(fp);
@@ -923,6 +1057,10 @@ public class VM implements GlobalStaticFields {
             frames++;
             fp = VM.getPreviousFP(fp);
         }
+        
+        // GC might invalidate these ocasionally, so let's do it explicitly:
+        fpBase = Address.zero();
+        fp     = Address.zero();
 
         // Skip unrequested frames
         if (count >= 0 && count < frames) {
@@ -933,13 +1071,16 @@ public class VM implements GlobalStaticFields {
             return new ExecutionPoint[0];
         }
 
+        // WARNING: Allocation may cause GC, which will invalidate all Addresses.
         ExecutionPoint[] trace = new ExecutionPoint[frames];
 
-        fp = fpBase;
+        fp = Address.fromObject(stack).addOffset(fpBaseOffset); // recompute Address
         for (int i = 0; i != frames; ++i) {
             Address ip = VM.getPreviousIP(fp);
             fp = VM.getPreviousFP(fp);
-            Assert.always(!fp.isZero());
+            if (insaneFP(stack, fp)) {
+                return trace;
+            }
             Object mp = VM.getMP(fp);
             Offset bci = ip.diff(Address.fromObject(mp));
 
@@ -947,6 +1088,7 @@ public class VM implements GlobalStaticFields {
             // a collection and so the fp need's to be saved as a
             // stack offset and restored after the allocation
             Offset fpOffset = fp.diff(Address.fromObject(stack));
+            fp = Address.zero(); // GC might invalidate this ocasionally, so let's do it explicitly:
             trace[i] = new ExecutionPoint(fpOffset, bci, mp);
             fp = Address.fromObject(stack).addOffset(fpOffset);
         }
@@ -1073,8 +1215,8 @@ hbp.dumpState();
              * Setup the preallocated VMBufferDecoder to decode the header
              * of the method for the frame being tested.
              */
-            int size   = MethodBody.decodeExceptionTableSize(mp);
-            int offset = MethodBody.decodeExceptionTableOffset(mp);
+            int size   = MethodHeader.decodeExceptionTableSize(mp);
+            int offset = MethodHeader.decodeExceptionTableOffset(mp);
             vmbufferDecoder.reset(mp, offset);
             int end = offset + size;
 
@@ -1086,9 +1228,9 @@ hbp.dumpState();
              * Iterate through the handlers for this method.
              */
             while (vmbufferDecoder.getOffset() < end) {
-                start_bci     = UWord.fromPrimitive(vmbufferDecoder.readUnsignedInt());
-                end_bci       = UWord.fromPrimitive(vmbufferDecoder.readUnsignedInt());
-                handler_bci   = UWord.fromPrimitive(vmbufferDecoder.readUnsignedInt());
+                start_bci     = UWord.fromPrimitive(vmbufferDecoder.readUnsignedShort());
+                end_bci       = UWord.fromPrimitive(vmbufferDecoder.readUnsignedShort());
+                handler_bci   = UWord.fromPrimitive(vmbufferDecoder.readUnsignedShort());
                 int handler  = vmbufferDecoder.readUnsignedShort();
 
                 /*
@@ -1212,7 +1354,7 @@ hbp.dumpState();
      *
      * @return true if running in a hosted environment, ie in a JSE VM
      */
-    public static boolean isHosted() {
+    public static boolean isHosted() throws AllowInlinedPragma {
         return false;
     }
 
@@ -1262,29 +1404,32 @@ hbp.dumpState();
      *
      * @param fp   a frame pointer
      * @return the pointer to the frame that is the calling context for <code>fp</code>
-     *
-     * @vm2c code( return getObject(_fp, FP_returnFP); )
      */
-    native static Address getPreviousFP(Address fp);
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="return getObject(_fp, FP_returnFP);")
+/*end[JAVA5SYNTAX]*/
+    native static Address getPreviousFP(Address fp) throws AllowInlinedPragma;
 
     /**
      * Gets the previous instruction pointer from a frame pointer.
      *
      * @param fp the frame pointer
      * @return the previous instruction pointer
-     *
-     * @vm2c code( return getObject(_fp, FP_returnIP); )
      */
-    native static Address getPreviousIP(Address fp);
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="return getObject(_fp, FP_returnIP);")
+/*end[JAVA5SYNTAX]*/
+    native static Address getPreviousIP(Address fp) throws AllowInlinedPragma;
 
     /**
      * Set the previous frame pointer.
      *
      * @param fp the frame pointer
      * @param pfp the previous frame pointer
-     *
-     * @vm2c code( setObject(_fp, FP_returnFP, pfp); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="setObject(_fp, FP_returnFP, pfp);")
+/*end[JAVA5SYNTAX]*/
     native static void setPreviousFP(Address fp, Address pfp);
 
     /**
@@ -1292,10 +1437,26 @@ hbp.dumpState();
      *
      * @param fp the frame pointer
      * @param pip the previous instruction pointer
-     *
-     * @vm2c code( setObject(_fp, FP_returnIP, pip); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="setObject(_fp, FP_returnIP, pip);")
+/*end[JAVA5SYNTAX]*/
     native static void setPreviousIP(Address fp, Address pip);
+
+    /**
+     * Return the length of <code>methodBody</code> (the byte code array) in bytes.
+     *
+     * @param methodBody Object
+     * @return number of bytecodes
+     */
+    public static int getMethodBodyLength(Object methodBody) {
+        Assert.that(isValidMethodBody(methodBody));
+        return GC.getArrayLength(methodBody);
+    }
+
+    static boolean isValidMethodBody(final Object methodBody) {
+        return (methodBody != null) && (GC.getKlass(methodBody) == Klass.BYTECODE_ARRAY);
+    }
 
     /*-----------------------------------------------------------------------*\
      *                          Oop/int convertion                           *
@@ -1306,9 +1467,10 @@ hbp.dumpState();
      *
      * @param object the object to be cast
      * @return the object cast to be a Klass
-     *
-     * @vm2c macro( ((Address)object) )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="((Address)object)")
+/*end[JAVA5SYNTAX]*/
     native static Klass asKlass(Object object);
 
     /**
@@ -1320,23 +1482,14 @@ hbp.dumpState();
     native static int hashcode(Object anObject);
 
     /**
-     * Allocate a segment of virtual memory to be used as a stack.
-     * If sucessfull the memory returnd is such that the all but
-     * the second page is accessable. The MMU is setup to disable access
-     * to the second page in order to provide a guard for accidential
-     * stack overflow.
-     *
-     * @param   size the size of the memory
-     * @return  the allocated memory or zero if none was available
-     */
-    native static Address allocateVirtualStack(int size);
-
-    /**
      * Add to the VM's class state cache
      *
      * @param   klass the class
      * @param   state the class state
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="addClassState")
+/*end[JAVA5SYNTAX]*/
     native static void addToClassStateCache(Klass klass, Object state);
 
     /**
@@ -1364,9 +1517,11 @@ hbp.dumpState();
     /**
      * Execute the equivalent of the lcmp instruction on page 312 of the JVMS.
      *
+     * NOTE: THIS NATIVE IS DIRECTLY GENERATED BY NativeGen.java, and is called by translated code.
+     *
      * @param value1 the value1 operand
      * @param value2 the value2 operand
-     * @return 0, 1, or -1 accorting to the spec
+     * @return 0, 1, or -1 according to the spec
      */
     //native static int lcmp(long value1, long value2);
 
@@ -1375,9 +1530,10 @@ hbp.dumpState();
      *
      * @param object the object to be cast
      * @return the object cast to be a Klass
-     *
-     * @vm2c macro( (object) )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="(object)")
+/*end[JAVA5SYNTAX]*/
     static Klass asKlass(Address object) {
         return VM.asKlass(object.toObject());
     }
@@ -1409,23 +1565,25 @@ hbp.dumpState();
      * types as roots.
      */
 
-    /**
-     * Gets the number of global integer variables.
-     *
-     * @return  the number of global integer variables
-     *
-     * @vm2c macro( GLOBAL_INT_COUNT )
-     */
-    native static int getGlobalIntCount();
+//    /**
+//     * Gets the number of global integer variables.
+//     *
+//     * @return  the number of global integer variables
+//     */
+///*if[JAVA5SYNTAX]*/
+//    @Vm2c(macro="GLOBAL_INT_COUNT")
+///*end[JAVA5SYNTAX]*/
+//    native static int getGlobalIntCount();
 
     /**
      * Gets the value of an global integer variable.
      *
      * @param  index   index of the entry in the global integer table
      * @return the value of entry <code>index</code> in the global integer table
-     *
-     * @vm2c macro( Ints[index] )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="Ints[index]")
+/*end[JAVA5SYNTAX]*/
     native static int getGlobalInt(int index);
 
     /**
@@ -1433,28 +1591,31 @@ hbp.dumpState();
      *
      * @param  value   the value to set
      * @param  index   index of the entry to update in the global integer table
-     *
-     * @vm2c code( Ints[index] = value; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="Ints[index] = value;")
+/*end[JAVA5SYNTAX]*/
     native static void setGlobalInt(int value, int index);
 
-    /**
-     * Gets the number of global pointer variables.
-     *
-     * @return  the number of global pointer variables
-     *
-     * @vm2c macro( GLOBAL_ADDR_COUNT )
-     */
-    native static int getGlobalAddrCount();
+//    /**
+//     * Gets the number of global pointer variables.
+//     *
+//     * @return  the number of global pointer variables
+//     */
+///*if[JAVA5SYNTAX]*/
+//    @Vm2c(macro="GLOBAL_ADDR_COUNT")
+///*end[JAVA5SYNTAX]*/
+//    native static int getGlobalAddrCount();
 
     /**
      * Gets the value of an global pointer variable.
      *
      * @param  index   index of the entry in the global pointer table
      * @return the value of entry <code>index</code> in the global pointer table
-     *
-     * @vm2c macro( Addrs[index] )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="Addrs[index]")
+/*end[JAVA5SYNTAX]*/
     native static Address getGlobalAddr(int index);
 
     /**
@@ -1462,18 +1623,20 @@ hbp.dumpState();
      *
      * @param  value   the value to set
      * @param  index   index of the entry to update in the global pointer table
-     *
-     * @vm2c code( Addrs[index] = value; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="Addrs[index] = value;")
+/*end[JAVA5SYNTAX]*/
     native static void setGlobalAddr(Address value, int index);
 
     /**
      * Gets the number of global object pointer variables.
      *
      * @return  the number of global object pointer variables
-     *
-     * @vm2c macro( GLOBAL_OOP_COUNT )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="GLOBAL_OOP_COUNT")
+/*end[JAVA5SYNTAX]*/
     native static int getGlobalOopCount();
 
     /**
@@ -1481,9 +1644,10 @@ hbp.dumpState();
      *
      * @param  index   index of the entry in the global object pointer table
      * @return the value of entry <code>index</code> in the global object pointer table
-     *
-     * @vm2c macro(  Oops[index] )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="Oops[index]")
+/*end[JAVA5SYNTAX]*/
     native static Object getGlobalOop(int index);
 
     /**
@@ -1491,18 +1655,20 @@ hbp.dumpState();
      *
      * @param  value   the value to set
      * @param  index   index of the entry to update in the global object pointer table
-     *
-     * @vm2c code( Oops[index] = value; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="Oops[index] = value;")
+/*end[JAVA5SYNTAX]*/
     native static void setGlobalOop(Object value, int index);
 
     /**
      * Gets the address of the global object pointer table.
      *
      * @return  the address of the global object pointer table
-     *
-     * @vm2c code( return Oops; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="return Oops;")
+/*end[JAVA5SYNTAX]*/
     native static Address getGlobalOopTable();
 
 
@@ -1539,9 +1705,9 @@ hbp.dumpState();
      */
     public static int setStream(int stream) {
 /*if[FLASH_MEMORY]*/
-        Assert.always(stream >= STREAM_STDOUT && stream <= STREAM_STDERR, "invalid stream specifier");
+        Assert.always(stream >= STREAM_STDOUT && stream <= STREAM_STDERR); // "invalid stream specifier"
 /*else[FLASH_MEMORY]*/
-//        Assert.always(stream >= STREAM_STDOUT && stream <= STREAM_SYMBOLS, "invalid stream specifier");
+//        Assert.always(stream >= STREAM_STDOUT && stream <= STREAM_SYMBOLS); // "invalid stream specifier"
 /*end[FLASH_MEMORY]*/
         return setStream0(stream);
     }
@@ -1551,48 +1717,12 @@ hbp.dumpState();
      *
      * @param stream  the stream to use for the print... methods
      * @return the current stream used for VM printing
-     *
-     * @vm2c proxy( setStream )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="setStream")
+/*end[JAVA5SYNTAX]*/
     private static int setStream0(int stream) {
         return execSyncIO(ChannelConstants.INTERNAL_SETSTREAM, stream);
-    }
-
-    /**
-     * Prints a character to the VM stream.
-     *
-     * @param ch      the character to print
-     * @vm2c code( fprintf(streams[currentStream], "%c", ch);
-     *             fflush(streams[currentStream]); )
-     */
-    static void printChar(char ch) {
-        execSyncIO(ChannelConstants.INTERNAL_PRINTCHAR, ch);
-    }
-
-    /**
-     * Prints an integer to the VM stream.
-     *
-     * @param val     the integer to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], "%i", val);
-     *             fflush(streams[currentStream]); )
-     */
-    static void printInt(int val) {
-        execSyncIO(ChannelConstants.INTERNAL_PRINTINT, val);
-    }
-
-    /**
-     * Prints a long to the VM stream.
-     *
-     * @param val     the long to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%L"), val);
-     *             fflush(streams[currentStream]); )
-     */
-    static void printLong(long val) {
-        int i1 = (int)(val >>> 32);
-        int i2 = (int)val;
-        execSyncIO(ChannelConstants.INTERNAL_PRINTLONG, i1, i2);
     }
 
     /**
@@ -1600,13 +1730,17 @@ hbp.dumpState();
      * value depending on the underlying platform.
      *
      * @param val     the word to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%A"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%A\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printUWord(UWord val) {
-        int i1 = (int)(val.toPrimitive() >> 32);
-        int i2 = (int)val.toPrimitive();
+/*if[!SQUAWK_64]*/
+        final int i1 = 0;
+/*else[SQUAWK_64]*/
+//      final int i1 = (int)(val.toPrimitive() >> 32);
+/*end[SQUAWK_64]*/
+        final int i2 = (int)val.toPrimitive();
         execSyncIO(ChannelConstants.INTERNAL_PRINTUWORD, i1, i2);
     }
 
@@ -1615,60 +1749,29 @@ hbp.dumpState();
      * value depending on the underlying platform.
      *
      * @param val     the offset to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%O"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%O\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printOffset(Offset val) {
-        int i1 = (int)(val.toPrimitive() >> 32);
-        int i2 = (int)val.toPrimitive();
+/*if[!SQUAWK_64]*/
+        final int i1 = 0;
+/*else[SQUAWK_64]*/
+//      final int i1 = (int)(val.toPrimitive() >> 32);
+/*end[SQUAWK_64]*/
+        final int i2 = (int)val.toPrimitive();
         execSyncIO(ChannelConstants.INTERNAL_PRINTOFFSET, i1, i2);
     }
-
-    /**
-     * Prints a string to the VM stream.
-     *
-     * @param str     the string to print
-     *
-     * @vm2c code( printJavaString(str, streams[currentStream], null, 0);
-     *             fflush(streams[currentStream]); )
-     */
-    static void printString(String str) {
-        executeCIO(-1, ChannelConstants.INTERNAL_PRINTSTRING, -1, 0, 0, 0, 0, 0, 0, str, null);
-    }
-
-/*if[FLOATS]*/
-    /**
-     * Prints a float to the VM stream.
-     *
-     * @param val     the float to print
-     */
-    static void printFloat(float val) {
-        execSyncIO(ChannelConstants.INTERNAL_PRINTFLOAT, (int)val);
-    }
-
-    /**
-     * Prints a double to the VM stream.
-     *
-     * @param val     the double to print
-     */
-    static void printDouble(double dval) {
-        long val = (long)dval;
-        int i1 = (int)(val >>> 32);
-        int i2 = (int)val;
-        execSyncIO(ChannelConstants.INTERNAL_PRINTDOUBLE, i1, i2);
-    }
-/*end[FLOATS]*/
 
     /**
      * Prints an address to the VM stream. This will be formatted as an unsigned 32 bit or 64 bit
      * value depending on the underlying platform.
      *
      * @param val     the address to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%A"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%A\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printAddress(Object val) {
         executeCIO(-1, ChannelConstants.INTERNAL_PRINTADDRESS, -1, 0, 0, 0, 0, 0, 0, val, null);
     }
@@ -1678,22 +1781,41 @@ hbp.dumpState();
      * value depending on the underlying platform.
      *
      * @param val     the address to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], format("%A"), val);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%A\"), val); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void printAddress(Address val) {
         printAddress(val.toObject());
     }
 
     /**
+     * Prints bytes (as C chars) to the VM stream.
+     *
+     * @param      b     the data.
+     * @param      off   the start offset in the data.
+     * @param      len   the number of bytes to write.
+     */
+    public static void printBytes(byte b[], int off, int len) {
+        if (b == null) {
+            throw new NullPointerException();
+        }
+        Arrays.boundsCheck(b.length, off, len);
+        if (len == 0) {
+            return;
+        }
+        executeCIO(-1, ChannelConstants.INTERNAL_PRINTBYTES, -1, off, len, 0, 0, 0, 0, b, null);
+    }
+
+/*if[DEBUG_CODE_ENABLED]*/
+    /**
      * Prints the name of a global oop to the VM stream.
      *
      * @param index   the index of the variable to print
-     *
-     * @vm2c code( fprintf(streams[currentStream], "Global oop:%d", index);
-     *             fflush(streams[currentStream]); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], \"Global oop:%d\", index); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     static void printGlobalOopName(int index) {
         execSyncIO(ChannelConstants.INTERNAL_PRINTGLOBALOOPNAME, index);
     }
@@ -1704,6 +1826,7 @@ hbp.dumpState();
     static void printGlobals() {
         execSyncIO(ChannelConstants.INTERNAL_PRINTGLOBALS, 0);
     }
+/*end[DEBUG_CODE_ENABLED]*/
 
     /**
      * Prints a line detailing the build-time configuration of the VM.
@@ -1714,10 +1837,12 @@ hbp.dumpState();
 
     /**
      * Prints the string representation of an object to the VM stream.
+     * Do NOT pass a SquawkPrimitive type (Address, Offset, UWord).
      *
      * @param obj   the object whose toString() result is to be printed
      */
     public static void printObject(Object obj) {
+        Assert.that(!GC.getKlass(obj).isSquawkPrimitive());
         print(String.valueOf(obj));
     }
 
@@ -1726,8 +1851,11 @@ hbp.dumpState();
      *
      * @param x the value
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], \"%c\", x); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void print(char x) {
-        printChar(x);
+        execSyncIO(ChannelConstants.INTERNAL_PRINTCHAR, x);
     }
 
     /**
@@ -1735,8 +1863,11 @@ hbp.dumpState();
      *
      * @param x the string
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="printJavaString(x, streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void print(String x) {
-        printString(x);
+        executeCIO(-1, ChannelConstants.INTERNAL_PRINTSTRING, -1, 0, 0, 0, 0, 0, 0, x, null);
     }
 
     /**
@@ -1744,8 +1875,11 @@ hbp.dumpState();
      *
      * @param x the value
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], \"%i\", x); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void print(int x) {
-        printInt(x);
+        execSyncIO(ChannelConstants.INTERNAL_PRINTINT, x);
     }
 
     /**
@@ -1753,8 +1887,13 @@ hbp.dumpState();
      *
      * @param x the value
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fprintf(streams[currentStream], format(\"%L\"), x); fflush(streams[currentStream]);")
+/*end[JAVA5SYNTAX]*/
     public static void print(long x) {
-        printLong(x);
+        int i1 = (int)(x >>> 32);
+        int i2 = (int)x;
+        execSyncIO(ChannelConstants.INTERNAL_PRINTLONG, i1, i2);
     }
 
 /*if[FLOATS]*/
@@ -1764,7 +1903,7 @@ hbp.dumpState();
      * @param x the value
      */
     public static void print(float x) {
-        printFloat(x);
+        execSyncIO(ChannelConstants.INTERNAL_PRINTFLOAT, VM.floatToIntBits(x));
     }
 
     /**
@@ -1773,7 +1912,10 @@ hbp.dumpState();
      * @param x the value
      */
     public static void print(double x) {
-        printDouble(x);
+        long val = VM.doubleToLongBits(x);
+        int i1 = (int)(val >>> 32);
+        int i2 = (int)val;
+        execSyncIO(ChannelConstants.INTERNAL_PRINTDOUBLE, i1, i2);
     }
 /*end[FLOATS]*/
 
@@ -1792,7 +1934,7 @@ hbp.dumpState();
      * @param x the value
      */
     public static void println(char x) {
-        printChar(x);
+        print(x);
         println();
     }
 
@@ -1802,7 +1944,7 @@ hbp.dumpState();
      * @param x the string
      */
     public static void println(String x) throws NotInlinedPragma {
-        printString(x);
+        print(x);
         println();
     }
 
@@ -1812,7 +1954,7 @@ hbp.dumpState();
      * @param x the value
      */
     public static void println(int x) throws NotInlinedPragma {
-        printInt(x);
+        print(x);
         println();
     }
 
@@ -1832,7 +1974,7 @@ hbp.dumpState();
      * @param x the value
      */
     public static void println(long x) throws NotInlinedPragma {
-        printLong(x);
+        print(x);
         println();
     }
 
@@ -1843,7 +1985,7 @@ hbp.dumpState();
      * @param x the value
      */
     public static void println(float x) throws NotInlinedPragma {
-        printFloat(x);
+        print(x);
         println();
     }
 
@@ -1853,7 +1995,7 @@ hbp.dumpState();
      * @param x the value
      */
     public static void println(double x) throws NotInlinedPragma {
-        printDouble(x);
+        print(x);
         println();
     }
 /*end[FLOATS]*/
@@ -1864,6 +2006,22 @@ hbp.dumpState();
     public static void println() throws NotInlinedPragma {
         print("\n");
     }
+
+
+
+/*if[KERNEL_SQUAWK]*/
+    /**
+     * Pauses the interpreter in kernel mode. Calling this is turned into a OPC_PAUSE
+     * bytecode by the translator.
+     */
+    native static void pause();
+
+    /**
+     * Determines if the VM in currently in the kernel context.
+     *
+     * @return true if the VM in currently in the kernel context
+     */
+    native static boolean isInKernel();
 
     /*-----------------------------------------------------------------------*\
      *               Native functions for interrupts                         *
@@ -1886,33 +2044,13 @@ hbp.dumpState();
     native static void sendInterrupt(int signum);
     native static void setupAlarmInterval(int start, int period);
     native static long getInterruptStatus(int interrupt, int id);
+/*end[KERNEL_SQUAWK]*/
 
     /*-----------------------------------------------------------------------*\
      *                        Miscellaneous functions                        *
     \*-----------------------------------------------------------------------*/
 
     public static native void finalize(Object o);
-
-    /**
-     * Pauses the interpreter in kernel mode. Calling this is turned into a OPC_PAUSE
-     * bytecode by the translator.
-     */
-    native static void pause();
-
-    /**
-     * Determines if the VM in currently in the kernel context.
-     *
-     * @return true if the VM in currently in the kernel context
-     */
-    native static boolean isInKernel();
-
-    /**
-     * A call to this method is inserted by the translator when a call to an undefined
-     * native method if found.
-     */
-    static void undefinedNativeMethod() {
-        throw new Error("Undefined native method");
-    }
 
     /**
      * Gets the address of the start of the object memory in ROM.
@@ -2022,9 +2160,10 @@ hbp.dumpState();
 
     /**
      * Halts the VM because of a fatal condition.
-     *
-     * @vm2c code( fatalVMError(""); )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="fatalVMError(\"\");")
+/*end[JAVA5SYNTAX]*/
     public native static void fatalVMError();
     
     /**
@@ -2061,9 +2200,10 @@ hbp.dumpState();
      *
      * @return the number of backward branch instructions the VM has executed or -1 if instruction
      *         profiling is disabled
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     public native static long getBranchCount();
 
     /**
@@ -2080,7 +2220,7 @@ hbp.dumpState();
      * Start the VM tracing if tracing support is enabled.
      */
     public static void startTracing() {
-        setGlobalInt(1, Global.getOffset(Global.tracing));
+        tracing = 1;
     }
 
     /**
@@ -2111,64 +2251,76 @@ hbp.dumpState();
     }
 
     /**
-     * Create a Channel I/O context.
-     *
-     * @param hibernatedContext the handle for a hibernated I/O session
-     * @return the channel I/O context
-     */
-    static int createChannelContext(byte[] hibernatedContext) {
-        return execSyncIO(ChannelConstants.GLOBAL_CREATECONTEXT, 0, 0, 0, 0, 0, 0, hibernatedContext, null);
-    }
-
-    /**
      * Delete a channel I/O context.
      *
      * @param context the channel I/O context
      */
     static void deleteChannelContext(int context) {
-        execSyncIO(context, ChannelConstants.CONTEXT_DELETE, 0, 0);
+        if (Platform.IS_DELEGATING || Platform.IS_SOCKET) {
+            execSyncIO(context, ChannelConstants.CONTEXT_DELETE, 0, 0);
+        }
     }
 
     /**
-     * Hibernate a channel context.
+     * Create a Channel I/O context.
      *
-     * @param context the channel I/O handle
-     * @return        the serialized IO sub-system
-     * @throws IOException if something went wrong when serializing the IO sub-system
+     * @param hibernatedContext the handle for a hibernated I/O session, or null
+     * @return the channel I/O context
      */
-    static byte[] hibernateChannelContext(int context) throws IOException {
-
-        // Get buffer size
-        int bufferSize = execSyncIO(context, ChannelConstants.CONTEXT_HIBERNATE, 0, 0);
-
-        // Check that serialization succeeded
-        if (bufferSize < 0) {
-            raiseChannelException(context);
-        }
-
-        // Get cio data
-        try {
-            byte[] cioData = new byte[bufferSize];
-            int result = execSyncIO(context, ChannelConstants.CONTEXT_GETHIBERNATIONDATA, 0, cioData.length, 0, 0, 0, 0, null, cioData);
-            if (result != ChannelConstants.RESULT_OK) {
-                if (result == ChannelConstants.RESULT_EXCEPTION) {
-                    raiseChannelException(context);
-                }
-                throw new IOException("Bad result from hibernateChannelContext "+ result);
-            }
-            return cioData;
-        } catch (OutOfMemoryError e) {
-            throw new IOException("insufficient memory to serialize IO state");
+    static int createChannelContext(byte[] hibernatedContext) {
+        if (Platform.IS_DELEGATING || Platform.IS_SOCKET) {
+            return execSyncIO(ChannelConstants.GLOBAL_CREATECONTEXT, 0, 0, 0, 0, 0, 0, hibernatedContext, null);
+        } else {
+            return ChannelConstants.CHANNEL_GENERIC;
         }
     }
+
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+
+//
+//    /**
+//     * Hibernate a channel context.
+//     *
+//     * @param context the channel I/O handle
+//     * @return        the serialized IO sub-system
+//     * @throws IOException if something went wrong when serializing the IO sub-system
+//     */
+//    static byte[] hibernateChannelContext(int context) throws IOException {
+//
+//        // Get buffer size
+//        int bufferSize = execSyncIO(context, ChannelConstants.CONTEXT_HIBERNATE, 0, 0);
+//
+//        // Check that serialization succeeded
+//        if (bufferSize < 0) {
+//            raiseChannelException(context);
+//        }
+//
+//        // Get cio data
+//        try {
+//            byte[] cioData = new byte[bufferSize];
+//            int result = execSyncIO(context, ChannelConstants.CONTEXT_GETHIBERNATIONDATA, 0, cioData.length, 0, 0, 0, 0, null, cioData);
+//            if (result != ChannelConstants.RESULT_OK) {
+//                if (result == ChannelConstants.RESULT_EXCEPTION) {
+//                    raiseChannelException(context);
+//                }
+//                throw new IOException("Bad result from hibernateChannelContext "+ result);
+//            }
+//            return cioData;
+//        } catch (OutOfMemoryError e) {
+//            throw new IOException("insufficient memory to serialize IO state");
+//        }
+//    }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
     /**
      * Gets the current time.
      *
      * @return the time in microseconds
-     *
-     * @vm2c proxy( sysTimeMicros )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="sysTimeMicros")
+/*end[JAVA5SYNTAX]*/
     public static long getTimeMicros() {
         // Must get high word first as it causes the value to be setup that will be accessed via the INTERNAL_LOW_RESULT call
         long high = execSyncIO(ChannelConstants.INTERNAL_GETTIMEMICROS_HIGH, 0);
@@ -2180,9 +2332,10 @@ hbp.dumpState();
      * Gets the current time.
      *
      * @return the time in milliseconds
-     *
-     * @vm2c proxy( sysTimeMillis )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="sysTimeMillis")
+/*end[JAVA5SYNTAX]*/
     public static long getTimeMillis() {
 /*if[!FLASH_MEMORY]*/
     	// Must get high word first as it causes the value to be setup that will be accessed via the INTERNAL_LOW_RESULT call
@@ -2227,7 +2380,11 @@ hbp.dumpState();
      *                           As such, this method <b>must not</b> use any local variables.
      */
     public static void collectGarbage(boolean forceFullGC)  throws NotInlinedPragma {
-        executeGC(forceFullGC);
+        if (VMThread.currentThread().isServiceThread()) {
+            GC.collectGarbage(forceFullGC);
+        } else {
+            executeGC(forceFullGC);
+        }
     }
 
     /**
@@ -2238,36 +2395,61 @@ hbp.dumpState();
      *                  its metadata
      * @throws OutOfMemoryError if there was insufficient memory to do the copy
      */
-    static ObjectMemorySerializer.ControlBlock copyObjectGraph(Object object) {
-        Assert.always(GC.inRam(object));
+    static ObjectMemorySerializer.ControlBlock copyObjectGraph(Object object) throws HostedPragma {
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+        Assert.shouldNotReachHere();
+        return null;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//        Assert.always(GC.inRam(object));
+//
+//        /*
+//         * Free up as much memory as possible.
+//         */
+//        collectGarbage(true);
+//
+//        ObjectMemorySerializer.ControlBlock cb = new ObjectMemorySerializer.ControlBlock();
+//
+//        int graphSize = (int)(GC.totalMemory() - GC.freeMemory());
+//        byte[] bits = new byte[GC.calculateOopMapSizeInBytes(graphSize)];
+//        cb.oopMap = new com.sun.squawk.util.BitSet(bits);
+//        executeCOG(object, cb);
+//
+//        if (cb.memory == null) {
+//            throw VM.getOutOfMemoryError();
+//        }
+//
+//        // Adjust the oop map to be exactly the right size
+//        byte[] memory = cb.memory;
+//        byte[] newBits = new byte[GC.calculateOopMapSizeInBytes(memory.length)];
+//        GC.arraycopy(bits, 0, newBits, 0, newBits.length);
+//        cb.oopMap = new com.sun.squawk.util.BitSet(newBits);
+//
+//        return cb;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
+    }
 
-        /*
-         * Free up as much memory as possible.
-         */
-        collectGarbage(true);
+    static boolean executingHooks;
 
-        ObjectMemorySerializer.ControlBlock cb = new ObjectMemorySerializer.ControlBlock();
-
-        int graphSize = (int)(GC.totalMemory() - GC.freeMemory());
-        byte[] bits = new byte[GC.calculateOopMapSizeInBytes(graphSize)];
-        cb.oopMap = new com.sun.squawk.util.BitSet(bits);
-        executeCOG(object, cb);
-
-        if (cb.memory == null) {
-            throw VM.getOutOfMemoryError();
+    private static void cleanupTaskExecutors() {
+/*if[!PLATFORM_TYPE_BARE_METAL]*/
+        for (int i = 0; i < taskCache.size(); i++) {
+            TaskExecutor te = (TaskExecutor) taskCache.elementAt(i);
+            te.cancelTaskExecutor();
         }
 
-        // Adjust the oop map to be exactly the right size
-        byte[] memory = cb.memory;
-        byte[] newBits = new byte[GC.calculateOopMapSizeInBytes(memory.length)];
-        GC.arraycopy(bits, 0, newBits, 0, newBits.length);
-        cb.oopMap = new com.sun.squawk.util.BitSet(newBits);
-
-        return cb;
+        while (!taskCache.isEmpty()) {
+            for (int i = 0; i < taskCache.size(); /*nothing*/) {
+                TaskExecutor te = (TaskExecutor) taskCache.elementAt(i);
+                if (te.deleteTaskExecutor() == 0) {
+                    taskCache.removeElementAt(i);
+                } else {
+                    i++;
+                }
+            }
+        }
+/*end[PLATFORM_TYPE_BARE_METAL]*/
     }
-    
-    static boolean executingHooks;
-        
+
     /**
      * Halt the VM in the normal way. Any registered shutdown hooks will be run.
      *
@@ -2282,8 +2464,16 @@ hbp.dumpState();
         }
         
         executingHooks = true;
-        
+        if (VM.isVerbose()) {
+            System.out.println("Running top-level shutdown hooks:");
+        }
         shutdownHooks.runHooks();
+        // system-wide shutdown
+        cleanupTaskExecutors();
+
+        if (VM.isVerbose()) {
+            System.out.println("Done running top-level shutdown hooks.");
+        }
         haltVM(code);
     }
     
@@ -2382,7 +2572,7 @@ hbp.dumpState();
     public static void addShutdownHook(Isolate iso, Runnable hook) {
         // thread-safe in Squawk only! This is a system class.
         if (executingHooks) {
-            throw new IllegalStateException("Shutdown in progress");
+            throw new IllegalStateException();
         }
         
         shutdownHooks.add(iso, hook);
@@ -2409,13 +2599,13 @@ hbp.dumpState();
      */
     public static boolean removeShutdownHook(Isolate iso, Runnable hook) {
         if (executingHooks) {
-            throw new IllegalStateException("Shutdown in progress");
+            throw new IllegalStateException();
         }
         
         return shutdownHooks.remove(iso, hook);
     }
     
-        /**
+    /**
      * Registers a new virtual-machine shutdown hook.
      *
      * <p> The Java virtual machine <i>shuts down</i> in response to two kinds
@@ -2497,7 +2687,7 @@ hbp.dumpState();
     public static void addShutdownHook(Thread hook) {
         // thread-safe in Squawk only! This is a system class.
         if (executingHooks) {
-            throw new IllegalStateException("Shutdown in progress");
+            throw new IllegalStateException();
         }
         
         shutdownHooks.add(VMThread.asVMThread(hook).getIsolate(), hook);
@@ -2521,10 +2711,18 @@ hbp.dumpState();
      */
     public static boolean removeShutdownHook(Thread hook) {
         if (executingHooks) {
-            throw new IllegalStateException("Shutdown in progress");
+            throw new IllegalStateException();
         }
         
         return shutdownHooks.remove(VMThread.asVMThread(hook).getIsolate(), hook);
+    }
+
+    /**
+     * Return a system global Stack of cached TaskExecutors. Only for use by the JNA implementation.
+     * @return Stack of TaskExecutors
+     */
+    public static Stack getTaskCache() {
+        return taskCache;
     }
 
     /**
@@ -2536,10 +2734,23 @@ hbp.dumpState();
      * @param      dstPos       the byte offset into dst.
      * @param      length       the number of bytes to be copied.
      * @param      nvmDst       the destination buffer is in NVM
+     */
+
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
+    public native static void copyBytes(Address src, int srcPos, Address dst, int dstPos, int length, boolean nvmDst);
+
+    /**
+     * Set memory region to value.
+     *
+     * @param      dst          the destination address.
+     * @param      length       the number of bytes to be copied.
+     * @param      value        the value to set
      *
      * @vm2c proxy
      */
-    native static void copyBytes(Address src, int srcPos, Address dst, int dstPos, int length, boolean nvmDst);
+    public native static void setBytes(Address dst, byte value, int length);
     
     /**
      * VM-private version of System.arraycopy for arrays that does little error checking.
@@ -2851,17 +3062,10 @@ hbp.dumpState();
      *
      * @param      start        the start address of the memory area
      * @param      end          the end address of the memory area
-     *
-     * @vm2c code( if (ASSUME || TYPEMAP) {
-     *                 while (start < end) {
-     *                     if (ASSUME) {
-     *                         *((UWord *)start) = DEADBEEF;
-     *                     }
-     *                     setType(start, AddressType_UNDEFINED, HDR_BYTES_PER_WORD);
-     *                     start = (UWord *)start + 1;
-     *                 }
-     *             } )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="if (ASSUME || TYPEMAP) { while (start < end) { if (ASSUME) { *((UWord *)start) = DEADBEEF; } setType(start, AddressType_UNDEFINED, HDR_BYTES_PER_WORD); start = (UWord *)start + 1; } }")
+/*end[JAVA5SYNTAX]*/
     native static void deadbeef(Address start, Address end);
     
     /** 
@@ -2871,13 +3075,20 @@ hbp.dumpState();
      *           object. This can't create a ptr from old->young gen, which is what write barrier is looking for.
      *           Don't copy this code for other purposes! 
      *
-     * @param original the iobject to copy
+     * @param original the object to copy
      * @return a copy of the original object.
      */
     public static Object shallowCopy(Object original) {
         Klass klass = GC.getKlass(original);
-        Object copy = GC.newInstance(klass); // dst is new object
-        VM.copyBytes(Address.fromObject(original), 0, Address.fromObject(copy), 0, klass.getInstanceSize() * HDR.BYTES_PER_WORD, false);
+        Object copy;
+        if (klass.isArray()) {
+            int length = GC.getArrayLength(original);
+            copy = GC.newArray(klass, length);
+            System.arraycopy(original, 0, copy, 0, length);
+        } else {
+            copy = GC.newInstance(klass); // dst is new object
+            VM.copyBytes(Address.fromObject(original), 0, Address.fromObject(copy), 0, klass.getInstanceSize() * HDR.BYTES_PER_WORD, false);
+        }
         return copy;
     }
 
@@ -3001,7 +3212,11 @@ hbp.dumpState();
         if (exc != VM.getOutOfMemoryError() && trace != null) {
             for (int i = 0; i != trace.length; ++i) {
                 VM.print("    ");
-                trace[i].printToVM();
+                if (trace[i] != null) {
+                    trace[i].printToVM();
+                } else {
+                    VM.print("undecipherable");
+                }
             }
         }
     }
@@ -3211,13 +3426,10 @@ hbp.dumpState();
 
     /**
      * Gets the result of the last service operation.
-     *
-     * @vm2c code(
-                    int res = com_sun_squawk_ServiceOperation_result;
-                    com_sun_squawk_ServiceOperation_result = 0xDEADBEEF;
-                    return res;
-                );
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="int res = com_sun_squawk_ServiceOperation_result; com_sun_squawk_ServiceOperation_result = 0xDEADBEEF; return res;")
+/*end[JAVA5SYNTAX]*/
     private native static int serviceResult();
 
     /**
@@ -3228,6 +3440,14 @@ hbp.dumpState();
     /*-----------------------------------------------------------------------*\
      *                      Non-blocking I/O                                 *
     \*-----------------------------------------------------------------------*/
+
+    private static void checkOpcode(int opcode) {
+/*if[DEBUG_CODE_ENABLED]*/
+        if (opcode < 0 || opcode > ChannelConstants.LAST_OPCODE) {
+            throw new Error("Unknown Channel opcode: " + opcode);
+        }
+/*end[DEBUG_CODE_ENABLED]*/
+    }
 
     /**
      * Executes a non-blocking I/O operation whose result is guaranteed to be available immediately.
@@ -3246,6 +3466,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     public static int execSyncIO(int op, int i1, int i2, int i3, int i4, int i5, int i6, Object send, Object receive) {
+        checkOpcode(op);
         executeCIO(-1, op, -1, i1, i2, i3, i4, i5, i6, send, receive);
         return serviceResult();
     }
@@ -3269,6 +3490,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     public static int execSyncIO(int context, int op, int i1, int i2, int i3, int i4, int i5, int i6, Object send, Object receive) {
+        checkOpcode(op);
         executeCIO(context, op, -1, i1, i2, i3, i4, i5, i6, send, receive);
         return serviceResult();
     }
@@ -3281,6 +3503,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     public static int execSyncIO(int op, int i1) {
+        checkOpcode(op);
         executeCIO(-1, op, -1, i1, 0, 0, 0, 0, 0, null, null);
         return serviceResult();
     }
@@ -3294,6 +3517,7 @@ hbp.dumpState();
      * @return          the integer result value
      */
     static int execSyncIO(int op, int i1, int i2) {
+        checkOpcode(op);
         executeCIO(-1, op, -1, i1, i2, 0, 0, 0, 0, null, null);
         return serviceResult();
     }
@@ -3309,6 +3533,7 @@ hbp.dumpState();
      * @return           the result status
      */
     static int execSyncIO(int context, int op, int i1, int i2) {
+        checkOpcode(op);
         executeCIO(context, op, -1, i1, i2, 0, 0, 0, 0, null, null);
         return serviceResult();
     }
@@ -3342,33 +3567,14 @@ hbp.dumpState();
      */
     private static void raiseChannelException(int context) throws IOException {
         String name = getExceptionMessage(context);
-        Object exception = null;
-        try {
-            Class exceptionClass = Class.forName(name);
-            try {
-                exception = exceptionClass.newInstance();
-            } catch (IllegalAccessException ex1) {
-            } catch (InstantiationException ex1) {
-            }
-        } catch (ClassNotFoundException ex) {
-        }
-        if (exception != null) {
-            if (exception instanceof IOException) {
-                throw (IOException)exception;
-            } else if (exception instanceof RuntimeException) {
-                throw (RuntimeException)exception;
-            } else if (exception instanceof Error) {
-                throw (Error)exception;
-            }
-        }
-        throw new IOException(name);
+        throw new IOException("Channel Exception: " + name);
     }
 
     /**
      * Executes a I/O operation that may block. This requires at least 2 calls to the IO sub-system: the first to execute the operation
      * and the second to get the status of the operation (success = 0, failure < 0 or blocked > 0). If the status is success, then a
      * third call to the IO sub-system is made to retrieve the result of the operation. If the status indicates that an exception
-     * occcurred in the IO sub-system, then an IOException is thrown. If the status indicates that the IO sub-system is blocked,
+     * occurred in the IO sub-system, then an IOException is thrown. If the status indicates that the IO sub-system is blocked,
      * then the status value is used as an event number to block the current thread and put it on a queue of threads waiting for an event.
      *
      * @param op        the opcode
@@ -3386,9 +3592,10 @@ hbp.dumpState();
      */
     public static int execIO(int op, int channel, int i1, int i2, int i3, int i4, int i5, int i6, Object send, Object receive) throws IOException {
         int context = currentIsolate.getChannelContext();
-        if (context == 0) {
+        if ((Platform.IS_DELEGATING || Platform.IS_SOCKET) && context == 0) {
             throw new IOException("No native I/O peer for isolate");
         }
+        checkOpcode(op);
         for (;;) {
             executeCIO(context, op, channel, i1, i2, i3, i4, i5, i6, send, receive);
             int result = serviceResult();
@@ -3398,10 +3605,12 @@ hbp.dumpState();
                 if (result == ChannelConstants.RESULT_EXCEPTION) {
                     raiseChannelException(context);
                 }
-                throw new IOException("Bad result from cioExecute "+ result);
+                throw new IOException("Bad result from execIO on op " + op + " result "+ result);
             } else {
                 VMThread.waitForEvent(result);
+/*if[ENABLE_ISOLATE_MIGRATION]*/
                 context = currentIsolate.getChannelContext(); // Must reload in case of hibernation.
+/*end[ENABLE_ISOLATE_MIGRATION]*/
             }
         }
     }
@@ -3461,58 +3670,45 @@ hbp.dumpState();
         return (high << 32) | (low & 0x00000000FFFFFFFFL);
     }
 
-/*if[!FLASH_MEMORY]*/
-    /**
-     * Executes an I/O operation on the graphics channel and return the result.
-     *
-     * @param op        the opcode
-     * @param i1        an integer parameter
-     * @param i2        an integer parameter
-     * @param i3        an integer parameter
-     * @param i4        an integer parameter
-     * @param i5        an integer parameter
-     * @param i6        an integer parameter
-     * @param send      a outgoing reference parameter
-     * @param receive   an incoming reference parameter (i.e. an array of some type)
-     * @return the event code to wait on or zero
-     */
-    public static int execGraphicsIO(int op, int i1, int i2, int i3, int i4, int i5, int i6, Object send, Object receive) {
-        try {
-            int chan = currentIsolate.getGuiOutputChannel();
-            return execIO(op, chan, i1, i2, i3, i4, i5, i6, send, receive);
-        } catch(IOException ex) {
-            throw new RuntimeException("Error executing graphics channel: " + ex);
-        }
-    }
-
-    /**
-     * Gets the next available event on the GUI input channel, blocking until there is one.
-     *
-     * @return the GUI event value
-     */
-    public static long getGUIEvent() {
-        try {
-            int channel = currentIsolate.getGuiInputChannel();
-            return VM.execIOLong(ChannelConstants.READLONG, channel, 0, 0, 0, 0, 0, 0, null, null);
-        } catch(IOException ex) {
-            throw new RuntimeException("Error executing event channel: " + ex);
-        }
-    }
-/*else[FLASH_MEMORY]*/ 
+/*if[!ENABLE_CHANNEL_GUI]*/
+/*else[ENABLE_CHANNEL_GUI]*/
 //    /**
-//     * Not used on embedded devices.
+//     * Executes an I/O operation on the graphics channel and return the result.
+//     *
+//     * @param op        the opcode
+//     * @param i1        an integer parameter
+//     * @param i2        an integer parameter
+//     * @param i3        an integer parameter
+//     * @param i4        an integer parameter
+//     * @param i5        an integer parameter
+//     * @param i6        an integer parameter
+//     * @param send      a outgoing reference parameter
+//     * @param receive   an incoming reference parameter (i.e. an array of some type)
+//     * @return the event code to wait on or zero
 //     */
 //    public static int execGraphicsIO(int op, int i1, int i2, int i3, int i4, int i5, int i6, Object send, Object receive) {
-//        throw Assert.shouldNotReachHere();
+//        try {
+//            int chan = currentIsolate.getGuiOutputChannel();
+//            return execIO(op, chan, i1, i2, i3, i4, i5, i6, send, receive);
+//        } catch(IOException ex) {
+//            throw new RuntimeException("Error executing graphics channel: " + ex);
+//        }
 //    }
 //
 //    /**
-//     * Not used on embedded devices.
+//     * Gets the next available event on the GUI input channel, blocking until there is one.
+//     *
+//     * @return the GUI event value
 //     */
 //    public static long getGUIEvent() {
-//        throw Assert.shouldNotReachHere();
+//        try {
+//            int channel = currentIsolate.getGuiInputChannel();
+//            return VM.execIOLong(ChannelConstants.READLONG, channel, 0, 0, 0, 0, 0, 0, null, null);
+//        } catch(IOException ex) {
+//            throw new RuntimeException("Error executing event channel: " + ex);
+//        }
 //    }
-/*end[FLASH_MEMORY]*/
+/*end[ENABLE_CHANNEL_GUI]*/ 
     
 /*if[FLASH_MEMORY]*/
     /**
@@ -3606,7 +3802,7 @@ hbp.dumpState();
      */
     public static int getChannel(int type) throws IOException {
         int context = currentIsolate.getChannelContext();
-        if (context == 0) {
+        if ((Platform.IS_DELEGATING || Platform.IS_SOCKET) && context == 0) {
             throw new IOException("no native I/O peer for isolate");
         }
         return execSyncIO(context, ChannelConstants.CONTEXT_GETCHANNEL, type, 0);
@@ -3622,10 +3818,35 @@ hbp.dumpState();
      */
     public static void freeChannel(int channel) throws IOException {
         int context = currentIsolate.getChannelContext();
-        if (context == 0) {
+        if ((Platform.IS_DELEGATING || Platform.IS_SOCKET) && context == 0) {
             throw new IOException("no native I/O peer for isolate");
         }
         executeCIO(context, ChannelConstants.CONTEXT_FREECHANNEL, channel, 0, 0, 0, 0, 0, 0, null, null);
+    }
+
+    /**
+     * Set the maximum time that the system will wait in select.
+     * Used in PLATFORM_TYPE=NATIVE builds.
+     *
+     * @param max max wait time in ms. Must be > 0.
+     */
+    public static void setMaxSelectWait(long max) {
+        SystemEvents sysEvents = VMThread.getSystemEvents();
+        if (sysEvents != null) {
+            sysEvents.setMaxWait(max);
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    /**
+     * Set the maximum time that system will wait for IO, interrupts, etc.
+     * WARNING: This can break system sleeping, and should only be used in emergencies.
+     *
+     * @param max max wait time in ms. Must be > 0.
+     */
+    public static void setMaxSystemWait(long max) {
+        VMThread.setMaxSystemWait(max);
     }
 
 /*if[!OLD_IIC_MESSAGES]*/
@@ -3695,118 +3916,6 @@ hbp.dumpState();
         }
         
         /**
-         *  Get the total time taken by all garbage collections.
-         *
-         * @return the total GC time in milliseconds
-         */
-        public static long getTotalGCTime() {
-            return GC.getCollector().getTotalGCTime();
-        }
-        
-        /**
-         *  Get the total time taken by all full garbage collections.
-         *
-         * @return the full GC time in milliseconds
-         */
-        public static long getTotalFullGCTime() {
-            return GC.getCollector().getTotalFullGCTime();
-        }
-        
-        /**
-         *  Get the total time taken by all partial garbage collections.
-         *
-         * @return the partial GC time in milliseconds
-         */
-        public static long getTotalPartialGCTime() {
-            return GC.getCollector().getTotalPartialGCTime();
-        }
-        
-        /**
-         * Get the time taken by the last garbage collection.
-         *
-         * @return the last GC time in milliseconds
-         */
-        public static long getLastGCTime() {
-            return GC.getCollector().getLastCollectionTime();
-        }
-        
-        /**
-         * Get the time taken by the slowest garbage collection.
-         *
-         * @return the longest GC time in milliseconds
-         */
-        public static long getMaxGCTime() {
-            return Math.max(getMaxFullGCTime(), getMaxPartialGCTime());
-        }
-        
-        /**
-         * Get the time taken by the slowest full garbage collection.
-         *
-         * @return the longest full GC time in milliseconds
-         */
-        public static long getMaxFullGCTime() {
-            return GC.getCollector().getMaxFullCollectionTime();
-        }
-        
-        /**
-         * Get the time taken by the slowest partial garbage collection.
-         *
-         * @return the longest partial GC time in milliseconds
-         */
-        public static long getMaxPartialGCTime() {
-            return GC.getCollector().getMaxPartialCollectionTime();
-        }
-        
-        /**
-         * Get the total number of full garbage collections since reboot.
-         *
-         * @return full gc count
-         */
-        public static int getFullGCCount() {
-            return GC.getFullCollectionCount();
-        }
-        
-        /**
-         * Get the total number of partial garbage collections since reboot.
-         *
-         * @return partial gc count
-         */
-        public static int getPartialGCCount() {
-            return GC.getPartialCollectionCount();
-        }
-        
-        /**
-         * Get the number of bytes freed in the last collection.
-         *
-         * @return bytes freed
-         */
-        public static long getBytesLastFreed() {
-            return GC.getCollector().getBytesLastFreed();
-        }
-        
-        /**
-         * Get the number of bytes freed since reboot.<p>
-         *
-         * Watch out for overflow.
-         *
-         * @return total bytes freed
-         */
-        public static long getBytesFreedTotal() {
-            return GC.getCollector().getBytesFreedTotal();
-        }
-        
-        /**
-         *Get the number of bytes allocated since reboot.<p>
-         *
-         * Watch out for overflow.
-         *
-         * @return total bytes allocated
-         */
-        public static long getBytesAllocatedTotal() {
-            return GC.getBytesAllocatedTotal();
-        }
-        
-        /**
          * Get the number of objects allocated since reboot.
          *
          * Watch out for overflow.
@@ -3814,7 +3923,7 @@ hbp.dumpState();
          * @return total objects allocated
          */
         public static int getObjectsAllocatedTotal() {
-            return VM.getGlobalInt(Global.getOffset(Global.newCount));
+            return GC.newCount;
         }
         
         /**
@@ -3971,19 +4080,20 @@ hbp.dumpState();
          * @param values must have length of at least {@link #NUM_STAT_VALUES}.
          */
         public static void readAllValues(long[] values) {
+            GarbageCollector gc = GC.getCollector();
             values[STAT_WALL_TIME]               = VM.getTimeMillis();
             values[STAT_WAIT_TIME]               = VM.Stats.getTotalWaitTime();
-            values[STAT_GC_TIME]                 = VM.Stats.getTotalGCTime();
-            values[STAT_FULL_GC_TIME]            = VM.Stats.getTotalFullGCTime();
-            values[STAT_PARTIAL_GC_TIME]         = VM.Stats.getTotalPartialGCTime();
-            values[STAT_LAST_GC_TIME]            = VM.Stats.getLastGCTime();
-            values[STAT_MAX_FULLGC_TIME]         = VM.Stats.getMaxFullGCTime();
-            values[STAT_MAX_PARTGC_TIME]         = VM.Stats.getMaxPartialGCTime();
-            values[STAT_FULL_GC_COUNT]           = VM.Stats.getFullGCCount();
-            values[STAT_PARTIAL_GC_COUNT]        = VM.Stats.getPartialGCCount();
-            values[STAT_BYTES_LAST_FREED]        = VM.Stats.getBytesLastFreed();
-            values[STAT_BYTES_TOTAL_FREED]       = VM.Stats.getBytesFreedTotal();
-            values[STAT_BYTES_TOTAL_ALLOCATED]   = VM.Stats.getBytesAllocatedTotal();
+            values[STAT_GC_TIME]                 = gc.getTotalGCTime();
+            values[STAT_FULL_GC_TIME]            = gc.getTotalFullGCTime();
+            values[STAT_PARTIAL_GC_TIME]         = gc.getTotalPartialGCTime();
+            values[STAT_LAST_GC_TIME]            = gc.getLastGCTime();
+            values[STAT_MAX_FULLGC_TIME]         = gc.getMaxFullGCTime();
+            values[STAT_MAX_PARTGC_TIME]         = gc.getMaxPartialGCTime();
+            values[STAT_FULL_GC_COUNT]           = GC.getFullCount();
+            values[STAT_PARTIAL_GC_COUNT]        = GC.getPartialCount();
+            values[STAT_BYTES_LAST_FREED]        = gc.getBytesLastFreed();
+            values[STAT_BYTES_TOTAL_FREED]       = gc.getBytesFreedTotal();
+            values[STAT_BYTES_TOTAL_ALLOCATED]   = gc.getBytesAllocatedTotal();
             values[STAT_OBJECTS_TOTAL_ALLOCATED] = VM.Stats.getObjectsAllocatedTotal();
             values[STAT_THREADS_ALLOCATED]       = VM.Stats.getThreadsAllocatedCount();
             values[STAT_THREAD_SWITCH_COUNT]     = VM.Stats.getThreadSwitchCount();
@@ -4108,7 +4218,7 @@ hbp.dumpState();
     }
 
     /**
-     * Gets the value of an {@link Suite#PROPERTIES_MANIFEST_RESOURCE_NAME} property embedded in the suite.
+     * Gets the value of a manifest property embedded in the suite (from META-INF/MANIFEST.MF).
      *
      * @param name the name of the property whose value is to be retrieved
      * @return the property value
@@ -4184,15 +4294,16 @@ hbp.dumpState();
         currentIsolate = isolate;
     }
 
-/*if[FINALIZATION]*/
-    /**
-     * Eliminates a finalizer.
-     *
-     * @param obj the object of the finalizer
-     */
-    public static void eliminateFinalizer(Object obj) {
-        GC.eliminateFinalizer(obj);
-    }
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//    /**
+//     * Eliminates a finalizer.
+//     *
+//     * @param obj the object of the finalizer
+//     */
+//    public static void eliminateFinalizer(Object obj) {
+//        GC.eliminateFinalizer(obj);
+//    }
 /*end[FINALIZATION]*/
 
     /*=======================================================================*\
@@ -4218,7 +4329,12 @@ hbp.dumpState();
      * @param name   the fully qualified name of the native method
      * @return the identifier for the method or -1 if the method does not exist or cannot be dynamically bound to
      */
-    public static int lookupNative(String name) {
+    public static int lookupNative(String name) 
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
+        throws HostedPragma
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+    {
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
         String table = Native.LINKABLE_NATIVE_METHODS;
         String last = null;
         int id = 0;
@@ -4243,6 +4359,7 @@ hbp.dumpState();
             last = entryName;
             id++;
         }
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         return -1;
     }
 
@@ -4254,8 +4371,8 @@ hbp.dumpState();
      * @param klass         the class to consider
      * @return true if the class symbols should be stripped
      */
-    public static boolean stripSymbols(Klass klass) {
-        return false;
+    public static boolean isExported(Klass klass) {
+        return true;
     }
 
     /**
@@ -4266,8 +4383,8 @@ hbp.dumpState();
      * @param member        the method or field to consider
      * @return true if the class symbols should be stripped
      */
-    public static boolean stripSymbols(Member member) {
-        return false;
+    public static boolean isExported(Member member) {
+        return true;
     }
     
     /**
@@ -4276,7 +4393,7 @@ hbp.dumpState();
      * @param member        the method or field to consider
      * @return true if the class symbols should be stripped
      */
-    public static boolean isInternal(Member member) {
+    public static boolean isCrossSuitePrivate(Member member) {
         return false;
     }
     
@@ -4286,8 +4403,38 @@ hbp.dumpState();
      * @param klass         the class to consider
      * @return true if the class symbols should be stripped
      */
-    public static boolean isInternal(Klass klass) {
+    public static boolean isCrossSuitePrivate(Klass klass) {
         return false;
+    }
+
+   /**
+     * Determines if the klass is loaded dynamically by find class, so should never be stripped.
+     *
+     * @param klass         the class to consider
+     * @return true if the class symbols should be stripped
+     */
+    public static boolean isDynamic(Klass klass) {
+        return false;
+    }
+
+    /**
+     * Determines if the klass is internal (not exported, CROSS_SUITE_PRIVATE, or dynamic)
+     *
+     * @param klass         the class to consider
+     * @return true if the class symbols should be stripped
+     */
+    public static boolean isInternal(Klass klass) {
+	    return false;
+    }
+
+    /**
+     * Determines if the member is internal (not exported or CROSS_SUITE_PRIVATE)
+     *
+     * @param member        the method or field to consider
+     * @return true if the class symbols should be stripped
+     */
+    public static boolean isInternal(Member member) {
+	    return false;
     }
 
     /**
@@ -4327,7 +4474,8 @@ hbp.dumpState();
     static void setIsolateInitializerClassName(String initializer) {
         isolateInitializer = initializer;
     }
-    
+
+/*if[NEW_IIC_MESSAGES]*/
     /*=======================================================================*\
      *               Inter-isolate communication support                     *
     \*=======================================================================*/
@@ -4367,7 +4515,6 @@ hbp.dumpState();
         }
         
         registeredMailboxes.remove(name);
-
     }
 
     /*
@@ -4379,6 +4526,7 @@ hbp.dumpState();
         }
         return null;
     }
+/*end[NEW_IIC_MESSAGES]*/
 
     /**
      * Answer the time in millis until another thread is runnable. Will return
@@ -4459,4 +4607,11 @@ hbp.dumpState();
 		return value;
 	}
 
+//    public static void setBlocked(boolean b) {
+//        isBlocked = b;
+//    }
+//
+//    public static boolean isBlocked() {
+//        return isBlocked;
+//    }
 }

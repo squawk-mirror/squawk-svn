@@ -125,6 +125,9 @@ public final class ServiceOperation implements GlobalStaticFields {
                     if (VMThread.extendStack(i1)) {
                         break;
                     }
+/*if[DEBUG_CODE_ENABLED]*/
+                    VM.println("VMThread.extendStack() failed!");
+/*end[DEBUG_CODE_ENABLED]*/
                     pendingException = VM.getOutOfMemoryError(); // and drop through to THROW
                 }
                 case THROW: {
@@ -135,10 +138,13 @@ public final class ServiceOperation implements GlobalStaticFields {
                     GC.collectGarbage(i1 != 0);
                     break;
                 }
-                case COPY_OBJECT_GRAPH: {
-                    GC.copyObjectGraph(o1, (ObjectMemorySerializer.ControlBlock)o2.toObject());
-                    break;
-                }
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//                case COPY_OBJECT_GRAPH: {
+//                    GC.copyObjectGraph(o1, (ObjectMemorySerializer.ControlBlock)o2.toObject());
+//                    break;
+//                }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
                 case CHANNELIO: {
                     cioExecute();
                     break;
@@ -153,7 +159,7 @@ public final class ServiceOperation implements GlobalStaticFields {
         }
         } finally {
             // This should not happen, but am tracking odd failure...
-        VM.println("NOTE: Exiting ServiceOPeration.execute()");
+            VM.println("NOTE: Exiting ServiceOperation.execute()");
         }
     }
 

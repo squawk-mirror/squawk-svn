@@ -205,7 +205,7 @@ class Float /*extends Number*/ {
      * Returns a hashcode for this Float.
      */
     public int hashCode() {
-        return floatToIntBits(value);
+        return VM.floatToIntBits(value);
     }
 
     /**
@@ -218,7 +218,7 @@ class Float /*extends Number*/ {
      * @return      true if the objects are the same; false otherwise.
      */
     public boolean equals(Object obj) {
-        return (obj != null) && (obj instanceof Float) && (floatToIntBits(((Float)obj).value) == floatToIntBits(value));
+        return (obj != null) && (obj instanceof Float) && (VM.floatToIntBits(((Float)obj).value) == VM.floatToIntBits(value));
     }
 
     /**
@@ -233,6 +233,13 @@ class Float /*extends Number*/ {
      */
     public static float intBitsToFloat(int bits) {
         return VM.intBitsToFloat(bits);
+    }
+
+/*if[JAVA5SYNTAX]*/
+    @Java5Marker
+/*end[JAVA5SYNTAX]*/
+    public static Float valueOf(final float val) {
+        return new Float(val);
     }
 
 }

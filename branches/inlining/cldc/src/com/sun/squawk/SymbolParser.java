@@ -320,7 +320,10 @@ final class SymbolParser extends ByteBufferDecoder {
         /*
          * It turns out that the TCK has .class files that use the getstatic bytecode to reference static constants, such as Double.MIN_VALUE.
          * In order to have the TCK pass, we need to keep these constants around.  Note that adding these constants seemed to add
-         * 4 K to size of squawk.suite.
+         * 7 K to size of squawk.suite.
+         * 
+         * WAIT - doesnt tanslator transform the getstatic into a constant anyway?
+         * NO - it has to leave the getstatic to get the exception thrown. Could transform to error func though...
          */
 //        if (fieldType != null && Modifier.hasConstant(modifiers) && fieldType.isPrimitive() && Modifier.isFinal(modifiers)) {
 //            return false;
@@ -334,11 +337,6 @@ final class SymbolParser extends ByteBufferDecoder {
     }
 
     /**
-     * Synchronization lock for {@link #strip}.
-     */
-    private static final Object PRUNE_LOCK = new Object();
-
-    /**
      * Prunes the symbols based on a given suite type.
      *
      * @param klass  the enclosing class
@@ -346,28 +344,26 @@ final class SymbolParser extends ByteBufferDecoder {
      * @param types  the collection to which the types in the signatures of the remaining members should be added
      * @return the stripped symbols
      */
-    byte[] strip(Klass klass, int type, SquawkVector types) {
-        synchronized(PRUNE_LOCK) {
-            if (symbolsBuffer == null) {
-                symbolsBuffer = new ByteBufferEncoder();
-                membersBuffer = new ByteBufferEncoder();
-            }
-            symbolsBuffer.reset();
-
-            // Place holder for flags
-            int flagsPos = symbolsBuffer.count;
-            symbolsBuffer.addUnsignedByte(0);
-
-            int flags = 0;
-            flags |= stripFields(klass, type, INSTANCE_FIELDS, types);
-            flags |= stripFields(klass, type, STATIC_FIELDS, types);
-            flags |= stripMethods(klass, type, VIRTUAL_METHODS, types);
-            flags |= stripMethods(klass, type, STATIC_METHODS, types);
-
-            symbolsBuffer.buffer[flagsPos] = (byte)flags;
-
-            return symbolsBuffer.toByteArray();
+    synchronized byte[] strip(Klass klass, int type, SquawkVector types) {
+        if (symbolsBuffer == null) {
+            symbolsBuffer = new ByteBufferEncoder();
+            membersBuffer = new ByteBufferEncoder();
         }
+        symbolsBuffer.reset();
+
+        // Place holder for flags
+        int flagsPos = symbolsBuffer.count;
+        symbolsBuffer.addUnsignedByte(0);
+
+        int flags = 0;
+        flags |= stripFields(klass, type, INSTANCE_FIELDS, types);
+        flags |= stripFields(klass, type, STATIC_FIELDS, types);
+        flags |= stripMethods(klass, type, VIRTUAL_METHODS, types);
+        flags |= stripMethods(klass, type, STATIC_METHODS, types);
+
+        symbolsBuffer.buffer[flagsPos] = (byte) flags;
+
+        return symbolsBuffer.toByteArray();
     }
 
     /**
@@ -387,7 +383,7 @@ final class SymbolParser extends ByteBufferDecoder {
             for (int i = 0; i != count; ++i) {
                 select(category, i);
                 Klass fieldType = getSignatureType(getSignatureAt(0));
-                if (retainMember(type, modifiers, fieldType) && !VM.stripSymbols(klass.getField(i, category == STATIC_FIELDS))) {
+                if (retainMember(type, modifiers, fieldType) && VM.isExported(klass.getField(i, category == STATIC_FIELDS))) {
                     if (!keptAtLeastOne) {
                         symbolsBuffer.addUnsignedByte(category);
                         keptAtLeastOne = true;
@@ -447,9 +443,9 @@ final class SymbolParser extends ByteBufferDecoder {
                 int pragmas = getPragmas();
                 String name = getName();
                 if (!PragmaException.isHosted(pragmas) &&               // strip methods called only in hosted VM mode
-                    (PragmaException.isInterpreterInvoked(pragmas) ||   // KEEP methods called from the interpreter */
-                    retainMember(type, modifiers, null)) &&
-                    !VM.stripSymbols(klass.getMethod(i, isStatic)))
+                    !PragmaException.isInterpreterInvoked(pragmas) &&   // strip methods called from the interpreter
+                    retainMember(type, modifiers, null) &&
+                    VM.isExported(klass.getMethod(i, isStatic)))
                 {
                     // keeping this method:
                     if (!keptAtLeastOne) {
@@ -471,7 +467,7 @@ final class SymbolParser extends ByteBufferDecoder {
                 } else {
                     // Stripping this method:
                     if ((Modifier.isAbstract(modifiers) || klass.isInterface())
-                        && !Modifier.isSuitePrivate(klass.getModifiers())) {
+                        && !(Modifier.isPackagePrivate(modifiers) || Modifier.isSuitePrivate(klass.getModifiers()))) {
                         // If a class with abstract methods, or an interface, is exported from a suite, but the abstract methods are not exported,
                         // then there is no way to extend or implement the exported class or interface.
                         throw new IllegalStateException("Can't strip method " + name + " because it is abstract in a class exported from a suite: " + klass);

@@ -28,6 +28,7 @@ import java.io.*;
 import javax.microedition.io.*;
 import com.sun.squawk.io.*;
 import com.sun.squawk.*;
+import com.sun.squawk.util.Arrays;
 
 /**
  * Connection to the J2ME debug stream
@@ -54,7 +55,7 @@ public class Protocol extends ConnectionBase
      */
      public Connection open(String protocol, String name, int mode, boolean timeouts) throws IOException {
          err = name.equals("err");
-         if (!err && !name.equals("")) {
+         if (!err && name.length() != 0) {
              throw new IllegalArgumentException( "Bad protocol option:" + name);
          }
          return this;
@@ -92,7 +93,7 @@ class PrivateOutputStream extends OutputStream {
      *
      * @param  p  pointer to the parent connection
      */
-    public PrivateOutputStream(Protocol p) {
+    PrivateOutputStream(Protocol p) {
         parent = p;
     }
 
@@ -112,11 +113,43 @@ class PrivateOutputStream extends OutputStream {
         int old;
         if (parent.err) {
             old = VM.setStream(VM.STREAM_STDERR);
-            VM.print((char)b);
         } else {
             old = VM.setStream(VM.STREAM_STDOUT);
-            VM.print((char)b);
         }
+            VM.print((char)b);
+        VM.setStream(old);
+        }
+
+   /**
+     * Writes <code>len</code> bytes from the specified byte array
+     * starting at offset <code>off</code> to this output stream.
+     * <p>
+     * If <code>b</code> is <code>null</code>, a
+     * <code>NullPointerException</code> is thrown.
+     * <p>
+     * If <code>off</code> is negative, or <code>len</code> is negative, or
+     * <code>off+len</code> is greater than the length of the array
+     * <code>b</code>, then an <tt>IndexOutOfBoundsException</tt> is thrown.
+     *
+     * @param      b     the data.
+     * @param      off   the start offset in the data.
+     * @param      len   the number of bytes to write.
+     * @exception  IOException  if an I/O error occurs. In particular,
+     *             an <code>IOException</code> is thrown if the output
+     *             stream is closed.
+     */
+    public void write(byte b[], int off, int len) throws IOException {
+        Arrays.boundsCheck(b.length, off, len);
+        if (len == 0) {
+            return;
+        }
+        int old;
+        if (parent.err) {
+            old = VM.setStream(VM.STREAM_STDERR);
+        } else {
+            old = VM.setStream(VM.STREAM_STDOUT);
+        }
+        VM.printBytes(b, off, len);
         VM.setStream(old);
     }
 

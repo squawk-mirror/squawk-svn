@@ -117,9 +117,10 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
      *
      * @param start   the start of the memory range for which the bits are to be cleared
      * @param end     the end of the memory range for which the bits are to be cleared
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native void clearBitsFor(Address start, Address end);
 
     /**
@@ -127,9 +128,10 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
      *
      * @param ea   the address for which the corresponding bitmap word is required
      * @return     the address of the bitmap word that contains the bit for <code>ea</code>
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native Address getAddressOfBitmapWordFor(Address ea);
 
     /**
@@ -137,18 +139,20 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
      *
      * @param bitmapWordAddress  the address of a word in the bitmap
      * @return the address corresponding to the first bit in the word at <code>bitmapWordAddress</code>
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native Address getAddressForBitmapWord(Address bitmapWordAddress);
 
     /**
      * Sets the appropriate bit in the bitmap for a given address.
      *
      * @param ea      the effective address for which the corresponding bit is to be set
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native void setBitFor(Address ea);
 
     /**
@@ -156,18 +160,20 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
      *
      * @param start   the start of the memory range for which the bits are to be set
      * @param end     the end of the memory range for which the bits are to be set
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native void setBitsFor(Address start, Address end);
 
     /**
      * Clears the appropriate bit in the bitmap for a given address.
      *
      * @param ea      the effective address for which the corresponding bit is to be set
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native void clearBitFor(Address ea);
 
     /**
@@ -175,9 +181,10 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
      *
      * @param ea      the effective address for which the corresponding bit to be tested
      * @return true if the bit for <code>ea</code> is set
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native boolean testBitFor(Address ea);
 
     /**
@@ -185,16 +192,19 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
      *
      * @param ea      the effective address for which the corresponding bit to be tested
      * @return true if the bit for <code>ea</code> was set before this call
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static native boolean testAndSetBitFor(Address ea);
 
+/*if[WRITE_BARRIER]*/
     public static void updateWriteBarrierForPointerArraycopy(Object dst, int dstPos, int length) {
         Address start = Address.fromObject(dst).add(dstPos * HDR.BYTES_PER_WORD);
         Address end = start.add(length * HDR.BYTES_PER_WORD);
         setBitsFor(start, end);
     }
+/*end[WRITE_BARRIER]*/
 
     /*---------------------------------------------------------------------------*\
      *                                Iterators                                  *
@@ -237,8 +247,8 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
          * @param end           the address one past the word at which to stop iterating
          * @param isObjectRange
          */
-        static void start(Address start, Address end, boolean isObjectRange) {
-            Assert.always(!Iterator_inUse);
+        static void start(Address start, Address end, boolean isObjectRange) throws AllowInlinedPragma {
+            Assert.that(!Iterator_inUse);
             Iterator_inUse = true;
             if (isObjectRange) {
                 // Bump up the start and end limits by one word to account for the fact that
@@ -266,7 +276,7 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
         /**
          * Terminates the current iteration.
          */
-        static void terminate() {
+        static void terminate() throws AllowInlinedPragma {
             Assert.that(Iterator_inUse);
             Iterator_inUse = false;
             Iterator_next = Address.zero();
@@ -278,9 +288,10 @@ public final class Lisp2Bitmap implements GlobalStaticFields {
      * {@link #Iterator_end} and {@link #Iterator_inUse} so that the iteration progresses or completes.
      *
      * @return   the next value in the iteration or {@link Address#zero()} if the iteration is complete
-     *
-     * @vm2c proxy( bitmapIterate )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="bitmapIterate")
+/*end[JAVA5SYNTAX]*/
     static native Address iterate();
 
 }

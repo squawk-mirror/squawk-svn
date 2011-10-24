@@ -1,25 +1,26 @@
 //if[!FLASH_MEMORY]
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -103,7 +104,10 @@ public class Test {
         x48();
         x49();
         x50();
+        x51();
+        x52();
         randomTimeTest();
+	sleepTest();
 
         // Give the finalizers (if any) a chance to run
         VMThread.yield();
@@ -471,9 +475,10 @@ public class Test {
         result("x45", x45count == 200);
     }
 
+    static int threadcounter = 0;
     static VMThread x45Thread(int stackSize) {
         try {
-            Thread r = new Thread() {
+            Thread r = new Thread("x45Thread-" + (threadcounter++)) {
                 public void run() {
                     f();
                 }
@@ -642,7 +647,7 @@ public class Test {
             try {
                 if (x != Integer.parseInt(Integer.toString(x))) {
                     throw new RuntimeException("It didn't happen");
-                };
+                }
             } catch (NumberFormatException ex) {
                 ex.printStackTrace();
             }
@@ -706,4 +711,59 @@ public class Test {
         
     }
 
+    public interface IDictionary {
+    }
+
+    static class HD implements IDictionary {
+    }
+
+    static class AD implements IDictionary {
+    }
+
+    static IDictionary getElements(boolean deepCopy) {
+        IDictionary dictThis = null;
+        if (deepCopy) {
+            dictThis = new HD();
+        } else {
+            dictThis = new AD();
+        }
+        if (dictThis == null) {
+            return null;
+        }
+        return dictThis;
+    }
+
+    static void x51() {
+        result("x51: getElements(true)", getElements(true) instanceof IDictionary);
+        result("x51: getElements(false)", getElements(false) instanceof IDictionary);
+    }
+
+    static void x52() {
+        Runnable r = new Concrete1();
+        r.run();
+    }
+
+    static void sleepTest() {
+
+        System.out.println("Current time is: " + new java.util.Date());
+        VM.waitForEvent(1000);
+        System.out.println("After sleep 1 second, time is: " + new java.util.Date());
+        VM.waitForEvent(3000);
+        System.out.println("After sleep 3 seconds, time is: " + new java.util.Date());
+
+    }
+
+    private Test() {
+    }
+}
+
+class Base1 implements Runnable {
+    public void run() { System.out.println("ERROR: In Base1.run()"); }
+}
+
+abstract class Mid1 extends Base1 implements Runnable {
+        public void run() { System.out.println("In Mid1.run()"); }
+}
+
+class Concrete1 extends Mid1 {
 }

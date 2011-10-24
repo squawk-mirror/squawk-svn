@@ -122,64 +122,44 @@ public class FieldOffsets {
     public final static long com_sun_squawk_Klass$dataMapWord = 12 | OOP;
 
     /**
-     * The offset of the 'dataMapLength' field in com.sun.squawk.Klass.
-     */
-    public final static long com_sun_squawk_Klass$dataMapLength = (/*VAL*/false/*SQUAWK_64*/ ? 26 : 13) | INT;
-
-    /**
      * The offset of the 'modifiers' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$modifiers = (/*VAL*/false/*SQUAWK_64*/ ? 27 : 14) | INT;
+    public final static long com_sun_squawk_Klass$modifiers = (/*VAL*/false/*SQUAWK_64*/ ? 27 : 13) | INT;
 
     /**
-     * The offset of the 'state' field in com.sun.squawk.Klass.
+     * The offset of the 'dataMapLength' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$state = 74 | BYTE;
+    public final static long com_sun_squawk_Klass$dataMapLength = (/*VAL*/false/*SQUAWK_64*/ ? 26 : 28) | SHORT;
 
     /**
      * The offset of the 'id' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$id = (/*VAL*/false/*SQUAWK_64*/ ? 56 : 30) | SHORT;
+    public final static long com_sun_squawk_Klass$id = (/*VAL*/false/*SQUAWK_64*/ ? 56 : 29) | SHORT;
 
     /**
      * The offset of the 'instanceSizeBytes' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$instanceSizeBytes = 31 | SHORT;
+    public final static long com_sun_squawk_Klass$instanceSizeBytes = 30 | SHORT;
 
     /**
      * The offset of the 'staticFieldsSize' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$staticFieldsSize = 32 | SHORT;
+    public final static long com_sun_squawk_Klass$staticFieldsSize = 31 | SHORT;
 
     /**
      * The offset of the 'refStaticFieldsSize' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$refStaticFieldsSize = 33 | SHORT;
+    public final static long com_sun_squawk_Klass$refStaticFieldsSize = 32 | SHORT;
 
     /**
-     * The offset of the 'indexForInit' field in com.sun.squawk.Klass.
+     * The offset of the 'state' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$indexForInit = 34 | SHORT;
-
-    /**
-     * The offset of the 'indexForClinit' field in com.sun.squawk.Klass.
-     */
-    public final static long com_sun_squawk_Klass$indexForClinit = 35 | SHORT;
-
-    /**
-     * The offset of the 'indexForMain' field in com.sun.squawk.Klass.
-     */
-    public final static long com_sun_squawk_Klass$indexForMain = 36 | SHORT;
+    public final static long com_sun_squawk_Klass$state = 66 | BYTE;
 
     /**
      * The offset of the 'initModifiers' field in com.sun.squawk.Klass.
      */
-    public final static long com_sun_squawk_Klass$initModifiers = 75 | BYTE;
-
-    /**
-     * The offset of the 'mustClinit' field in com.sun.squawk.Klass.
-     */
-    public final static long com_sun_squawk_Klass$mustClinit = 76 | BYTE;
+    public final static long com_sun_squawk_Klass$initModifiers = 67 | BYTE;
 
     /**
      * The offset of the 'entryTable' field in com.sun.squawk.util.SquawkHashtable.
@@ -216,10 +196,13 @@ public class FieldOffsets {
      */
     public final static long com_sun_squawk_VMThread$stackSize = (/*VAL*/false/*SQUAWK_64*/ ? 2 : 4) | INT;
 
-    /**
-     * The offset of the 'savedStackChunks' field in com.sun.squawk.Isolate.
-     */
-    public final static long com_sun_squawk_Isolate$savedStackChunks = (/*VAL*/false/*SQUAWK_64*/ ? 0 : 24) | OOP;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//    /**
+//     * The offset of the 'savedStackChunks' field in com.sun.squawk.Isolate.
+//     */
+//    public final static long com_sun_squawk_Isolate$savedStackChunks = (/*VAL*/false/*SQUAWK_64*/ ? 0 : 0) | OOP;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
     
     /**
      * The offset of the 'trace' field in java.lang.Throwable. Used by VM.printVMStackTrace()..
@@ -240,6 +223,11 @@ public class FieldOffsets {
      * The offset of the 'metadatas' field in com.sun.squawk.Suite. Used by com.sun.squawk.ObjectGraphLoader of the Romizer.
      */
     public final static long com_sun_squawk_Suite$metadatas = 2 | OOP;
+
+    /**
+     * The offset of the 'type' field in com.sun.squawk.Suite. Used by com.sun.squawk.ObjectGraphLoader of the Romizer.
+     */
+    public final static long com_sun_squawk_Suite$type = 3 | INT;
     
     /**
      * The offset of the 'definedClass' field in com.sun.squawk.KlassMetadata. Used by com.sun.squawk.ObjectGraphLoader of the Romizer.

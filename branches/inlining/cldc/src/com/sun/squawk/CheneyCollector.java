@@ -241,10 +241,10 @@ public final class CheneyCollector extends GarbageCollector {
      *
      * @param start   the start of the memory region to be protected
      * @param end     the end of the memory region to be protected
-     *
-     * @vm2c code(  cheneyEndMemoryProtect   = end;
-     *              cheneyStartMemoryProtect = start; )
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(code="cheneyEndMemoryProtect = end; cheneyStartMemoryProtect = start;")
+/*end[JAVA5SYNTAX]*/
     private static native void memoryProtect(Address start, Address end);
 
     /**
@@ -712,9 +712,9 @@ public final class CheneyCollector extends GarbageCollector {
         /*
          * Get the method pointer and setup to go through the parameters and locals.
          */
-        int localCount     = isInnerMostActivation ? 1 : MethodBody.decodeLocalCount(mp);
-        int parameterCount = MethodBody.decodeParameterCount(mp);
-        int mapOffset      = MethodBody.decodeOopmapOffset(mp);
+        int localCount     = isInnerMostActivation ? 1 : MethodHeader.decodeLocalCount(mp.toObject());
+        int parameterCount = MethodHeader.decodeParameterCount(mp.toObject());
+        int mapOffset      = MethodHeader.decodeOopmapOffset(mp.toObject());
         int bitOffset      = -1;
         int byteOffset     = 0;
 
@@ -790,13 +790,13 @@ public final class CheneyCollector extends GarbageCollector {
         /*
          * Get the method pointer and setup to go through the parameters and locals.
          */
-        int localCount      = isInnerMostActivation ? 0 : MethodBody.decodeLocalCount(mp);
-        int parameterCount  = MethodBody.decodeParameterCount(mp);
-        int typeTableSize   = MethodBody.decodeTypeTableSize(mp);
-        int typeTableOffset = MethodBody.decodeTypeTableOffset(mp);
+        int localCount      = isInnerMostActivation ? 0 : MethodHeader.decodeLocalCount(mp.toObject());
+        int parameterCount  = MethodHeader.decodeParameterCount(mp.toObject());
+        int typeTableSize   = MethodHeader.decodeTypeTableSize(mp.toObject());
+        int typeTableOffset = MethodHeader.decodeTypeTableOffset(mp.toObject());
 
         if (typeTableSize > 0) {
-            decoder.reset(mp, typeTableOffset);
+            decoder.reset(mp.toObject(), typeTableOffset);
             int typeTableEndOffset = typeTableOffset + typeTableSize;
             while (decoder.getOffset() < typeTableEndOffset) {
                 int cid  = decoder.readUnsignedInt();
@@ -836,7 +836,7 @@ public final class CheneyCollector extends GarbageCollector {
      *
      * @param chunk the stack chunk.
      */
-    private void updateStackChunk(Object chunk) {
+    private void updateStackChunk(Address chunk) {
         Address fp = NativeUnsafe.getAddress(chunk, SC.lastFP);
 
         /*
@@ -853,7 +853,7 @@ public final class CheneyCollector extends GarbageCollector {
          * Update the pointers in the header part of the stack chunk
          */
         Assert.always(NativeUnsafe.getAddress(chunk, SC.next).isZero());
-        updateReference(Address.fromObject(chunk), SC.owner);
+        updateReference(chunk, SC.owner);
 
         /*
          * Update the pointers in each activation frame
@@ -888,7 +888,7 @@ public final class CheneyCollector extends GarbageCollector {
             }
             Address newObject = copyObject(oldObject);
             if (newObject.ne(oldObject)) {
-                VM.setGlobalOop(newObject, i);
+                VM.setGlobalOop(newObject.toObject(), i);
             }
         }
         if (GC.GC_TRACING_SUPPORTED && tracing()) {
@@ -1156,9 +1156,9 @@ public final class CheneyCollector extends GarbageCollector {
         VM.deadbeef(fromSpaceStartPointer, fromSpaceEndPointer);
     }
 
-    /**
-     * @vm2c root( collectGarbage )
-     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="collectGarbage")
+/*end[JAVA5SYNTAX]*/
     boolean collectGarbageInJava(Address allocTop, boolean forceFullGC) {
 
         long start = now();
@@ -1167,7 +1167,8 @@ public final class CheneyCollector extends GarbageCollector {
         if ((HEAP_TRACE || GC.GC_TRACING_SUPPORTED) && GC.isTracing(GC.TRACE_HEAP_BEFORE_GC)) {
             traceHeap("Before collection", allocTop);
         }
-
+        this.numBytesLastScanned = allocTop.diff(toSpaceStartPointer).toPrimitive();
+        
         // Switch semi-spaces
         toggleSpaces();
 
@@ -1239,7 +1240,7 @@ public final class CheneyCollector extends GarbageCollector {
 
         Timings timings = collectionTimings;
         long total = timings.getTotal();
-        int count = GC.getCollectionCount();
+        int count = GC.getTotalCount();
         if (count != 0) {
             out.println("Collection: [average = " + (total/count) + timerUnitSuffix() +"]");
             dumpTiming(out, "    setup:        ", timings.setup, total);
@@ -1262,9 +1263,9 @@ public final class CheneyCollector extends GarbageCollector {
      *                          Object graph copying                             *
     \*---------------------------------------------------------------------------*/
 
-    /**
-     * @vm2c root( copyObjectGraph )
-     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="copyObjectGraph")
+/*end[JAVA5SYNTAX]*/
     Address copyObjectGraphInJava(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop) {
 
         // Get the special classes if this is the first time a copy is being performed

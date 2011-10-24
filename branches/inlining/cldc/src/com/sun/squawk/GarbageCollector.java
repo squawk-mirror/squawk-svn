@@ -24,11 +24,8 @@
 
 package com.sun.squawk;
 
-import java.lang.ref.*;
-
 import com.sun.squawk.vm.*;
 import com.sun.squawk.pragma.*;
-
 
 /**
  * Base class for all garbage collectors.
@@ -36,8 +33,11 @@ import com.sun.squawk.pragma.*;
  */
 public abstract class GarbageCollector implements GlobalStaticFields {
     
-    /* if build.properties defines NATIVE_GC_ONLY= true, then define constant NATIVE_GC_ONLY = true.*/
+    /** If build.properties defines NATIVE_GC_ONLY= true, then define constant NATIVE_GC_ONLY = true.*/
     public final static boolean NATIVE_GC_ONLY = /*VAL*/false/*NATIVE_GC_ONLY*/;
+    public final static boolean INTERP_GC_ONLY = !/*VAL*/false/*GC2C*/;
+    
+    /* package-private**/ GarbageCollector() {}
 
     /**
      * Creates and initializes the garbage collector. The exact type of the
@@ -66,11 +66,16 @@ public abstract class GarbageCollector implements GlobalStaticFields {
         long freeBeforeGC = GC.freeMemory();
         long bytesAllocated = GC.getBytesAllocatedSinceLastGC();
         long start = VM.getTimeMillis();
-        if (!NATIVE_GC_ONLY && interpGC) {
+        if (INTERP_GC_ONLY) {
+            didFull = collectGarbageInJava(allocTop, forceFullGC);
+        } else if (NATIVE_GC_ONLY) {
+            didFull = collectGarbageInC(allocTop, forceFullGC);
+        } else if (interpGC) {
             didFull = collectGarbageInJava(allocTop, forceFullGC);
         } else {
             didFull = collectGarbageInC(allocTop, forceFullGC);
         }
+        
         lastCollectionTime = VM.getTimeMillis() - start;
         if (didFull) {
             totalFullCollectionTime += lastCollectionTime;
@@ -116,6 +121,11 @@ public abstract class GarbageCollector implements GlobalStaticFields {
 	private long totalPartialCollectionTime;
     
     /**
+     * The number of bytes scanned in the last collection.
+     */
+    protected long numBytesLastScanned;
+    
+    /**
      * The number of bytes freed in the last collection {@link #collectGarbage}.
      */
     private long numBytesLastFreed;
@@ -132,66 +142,117 @@ public abstract class GarbageCollector implements GlobalStaticFields {
     private long totalBytesAllocatedCheckPoint;
 
     /**
-     * Gets the time taken by the last call to {@link #collectGarbage}. In ms.
+     * Gets the time taken by the last collection.
+     * @return ms
      */
-    final long getLastCollectionTime() {
+    public final long getLastGCTime() {
         return lastCollectionTime;
     }
     
     /**
-     * Gets the time of the longest full GC. In ms.
+     * Gets the time of the longest full GC.
+     * @return ms
      */
-    final long getMaxFullCollectionTime() {
+    public final long getMaxFullGCTime() {
         return maxFullCollectionTime;
     }
     
     /**
-     * Gets the time of the longest partial GC. In ms.
+     * Gets the time of the longest partial GC.
+     * @return ms
      */
-    final long getMaxPartialCollectionTime() {
+    public final long getMaxPartialGCTime() {
         return maxPartialCollectionTime;
+    }
+
+    /**
+     * Get the time taken by the slowest garbage collection.
+     * @return ms
+     */
+    public final long getMaxGCTime() {
+        return Math.max(getMaxFullGCTime(), getMaxPartialGCTime());
     }
     
     /**
-     * Answers the time taken by all GC {@link #collectGarbage}. In ms.
+     * Gets the time taken by all GC.
+     * @return ms
      */
-    final long getTotalGCTime() {
+    public final long getTotalGCTime() {
         return totalFullCollectionTime + totalPartialCollectionTime;
     }
     
     /**
-     * Answers the time taken by all GC {@link #collectGarbage}. In ms.
+     * Gets the time taken by all full garbage collections.
+     * @return ms
      */
-    final long getTotalFullGCTime() {
+    public final long getTotalFullGCTime() {
         return totalFullCollectionTime;
     }
     
     /**
-     * Answers the time taken by all GC {@link #collectGarbage}. In ms.
+     * Get the time taken by all partial garbage collections.
+     * @return ms
      */
-    final long getTotalPartialGCTime() {
+    public final long getTotalPartialGCTime() {
         return totalPartialCollectionTime;
     }
     
     /**
-     * @return the number of bytes freed in the last collection
+     * Get the number of bytes freed in the last collection
+     * @return bytes
      */
-    final long getBytesLastFreed() {
+    public final long getBytesLastFreed() {
         return numBytesLastFreed;
     }
     
     /**
-     * @return the number of bytes freed in all collections
+     * Get the number of bytes scanned in the last collection.
+
+     * This is a measure of how much "work" the collector did in the last GC. It measures the size of the heap that was last collected.
+     * With generational collectors this may be much less than the size of the used heap.
+     * 
+     * It can also be used to compute "bytes surviving collection" = getBytesLastScanned() - getBytesLastFreed().
+     * @return the number of bytes scanned in the last collection.
      */
-    final long getBytesFreedTotal() {
+    public final long getBytesLastScanned() {
+        return numBytesLastScanned;
+    }
+    
+    /**
+     * Get the number of bytes freed in all collections
+     * @return bytes
+     */
+    public final long getBytesFreedTotal() {
         return numBytesFreedTotal;
     }
     
     /**
-     * @return the number of bytes freed in all collections
+     * Get the total number of bytes allocated between JVM startup and the last collection.
+     * @return bytes
      */
     final long getTotalBytesAllocatedCheckPoint() {
         return totalBytesAllocatedCheckPoint;
+    }
+    
+    /**
+     * Get the number of bytes allocated since the last GC.
+     *
+     * May be inaccurate during a copyObjectGraph operation.
+     * 
+     * @return bytes
+     */
+    public int getBytesAllocatedSinceLastGC() {
+        return GC.getBytesAllocatedSinceLastGC();
+    }
+    
+    /**
+     * Get the number of bytes allocated since JVM startup.
+     *
+     * Watch out for overflow.
+     * @return bytes
+     */
+    public long getBytesAllocatedTotal() {
+        return getTotalBytesAllocatedCheckPoint() + getBytesAllocatedSinceLastGC();
     }
     
     /**
@@ -215,41 +276,44 @@ public abstract class GarbageCollector implements GlobalStaticFields {
      * and the collection guard has been reset.
      */
     abstract void postCollection();
-
-    /**
-     * Copies an object graph. Upon entry, <code>cb.oopMap</code> must be an oop map initialized
-     * to have a bit for every word in the used part of the heap. The current value of the other two fields of
-     * <code>cb</code> are ignored. If the return value is null, there was not enough room for
-     * the copy of the graph. Otherwise, it will be the address of a byte array containing the copied
-     * graph, <code>cb.root</code> will be the offset (in bytes) to the copy of <code>object</code> in the byte array
-     * and <code>cb.start</code> will be the address that all internal pointers within the copied graph are relative to.
-     *
-     * @param object   the root of the object graph to copy
-     * @param cb       the in and out parameters of this call
-     * @param allocTop the current top of the allocation space - all the space between this address and the
-     *                 top of the heap is free
-     * @return the address of the byte array containing the copied graph or null if insufficent memory
-     */
-    final Address copyObjectGraph(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop) {
-        Address result;
-        if (!NATIVE_GC_ONLY && interpGC) {
-            result = copyObjectGraphInJava(object, cb, allocTop);
-        } else {
-            result = copyObjectGraphInC(object, cb, allocTop);
-        }
-        return result;
-    }
-
-    /**
-     * Hook for using the translated-to-C version of the collector.
-     */
-    final native Address copyObjectGraphInC(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop);
-
-    /**
-     * Implements graph copying as a Java routine. It is this routine that will be translated to C and hooked
-     * in as the implementation of {@link #copyObjectGraphInC}.
-     */
-    abstract Address copyObjectGraphInJava(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop);
+    
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//    /**
+//     * Copies an object graph. Upon entry, <code>cb.oopMap</code> must be an oop map initialized
+//     * to have a bit for every word in the used part of the heap. The current value of the other two fields of
+//     * <code>cb</code> are ignored. If the return value is null, there was not enough room for
+//     * the copy of the graph. Otherwise, it will be the address of a byte array containing the copied
+//     * graph, <code>cb.root</code> will be the offset (in bytes) to the copy of <code>object</code> in the byte array
+//     * and <code>cb.start</code> will be the address that all internal pointers within the copied graph are relative to.
+//     *
+//     * @param object   the root of the object graph to copy
+//     * @param cb       the in and out parameters of this call
+//     * @param allocTop the current top of the allocation space - all the space between this address and the
+//     *                 top of the heap is free
+//     * @return the address of the byte array containing the copied graph or null if insufficent memory
+//     */
+//    final Address copyObjectGraph(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop) {
+//        Address result;
+//        if (!NATIVE_GC_ONLY && interpGC) {
+//            result = copyObjectGraphInJava(object, cb, allocTop);
+//        } else {
+//            result = copyObjectGraphInC(object, cb, allocTop);
+//        }
+//        return result;
+//    }
+//
+//    /**
+//     * Hook for using the translated-to-C version of the collector.
+//     */
+//    final native Address copyObjectGraphInC(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop);
+//
+//    /**
+//     * Implements graph copying as a Java routine. It is this routine that will be translated to C and hooked
+//     * in as the implementation of {@link #copyObjectGraphInC}.
+//     */
+//    abstract Address copyObjectGraphInJava(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop);
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
     /**
      * Dumps various timing information to the console.
@@ -317,23 +381,26 @@ public abstract class GarbageCollector implements GlobalStaticFields {
      * @return      true if <code>arg</code> was a collector option
      */
     boolean processCommandLineOption(String arg) {
-        if (arg.equals("-nativegc")) {
-            if (!hasNativeImplementation()) {
-                System.out.println("Warning: unsupported -nativegc switch ignored");
-            } else {
-                interpGC = false;
+        if (!INTERP_GC_ONLY && !NATIVE_GC_ONLY) {
+            if (arg.equals("-nativegc")) {
+                if (!hasNativeImplementation()) {
+                    System.out.println("Warning: unsupported -nativegc switch ignored");
+                } else {
+                    interpGC = false;
+                }
+                return true;
+            } else if (arg.equals("-interpgc")) {
+                interpGC = true;
+                return true;
             }
-            return true;
-        } else if (!NATIVE_GC_ONLY && arg.equals("-interpgc")) {
-            interpGC = true;
-            return true;
+        }
 /*if[FLASH_MEMORY]*/
 /*else[FLASH_MEMORY]*/
-//        } else if (arg.equals("-usecgctimer")) {
+//      if (arg.equals("-usecgctimer")) {
 //            useMicrosecondTimer = true;
 //            return true;
+//      }
 /*end[FLASH_MEMORY]*/
-        }
         return false;
     }
 
@@ -343,13 +410,16 @@ public abstract class GarbageCollector implements GlobalStaticFields {
      * @param out  the stream on which to print the message
      */
     void usage(java.io.PrintStream out) {
-        if (hasNativeImplementation() && !NATIVE_GC_ONLY) {
+        if (!NATIVE_GC_ONLY && !INTERP_GC_ONLY && hasNativeImplementation()) {
             out.println("    -nativegc             use native version of collector (default)");
             out.println("    -interpgc             use interpreted version of collector");
         }
 /*if[!FLASH_MEMORY]*/
         out.println("    -usecgctimer          use microsecond (not millisecond) timer for GC");
 /*end[FLASH_MEMORY]*/
+    }
+
+    void verbose() {
     }
 
     /*---------------------------------------------------------------------------*\
@@ -391,48 +461,49 @@ public abstract class GarbageCollector implements GlobalStaticFields {
         references = reference;
     }
 
-/*if[FINALIZATION]*/
-    /*---------------------------------------------------------------------------*\
-     *                                 Finalization                              *
-    \*---------------------------------------------------------------------------*/
-
-    /**
-     * Queue of pending finalizers.
-     */
-    protected Finalizer finalizers;
-
-    /**
-     * Adds a finalizer to the queue of finalizers.
-     *
-     * @param finalizer the finalizer to add
-     */
-    final void addFinalizer(Finalizer finalizer) {
-        finalizer.setNext(finalizers);
-        finalizers = finalizer;
-    }
-
-    /**
-     * Removes a finalizer from the queue of finalizers.
-     *
-     * @param obj the object of the finalizer
-     */
-    final void eliminateFinalizer(Object obj) {
-        Finalizer prev = null;
-        Finalizer finalizer = finalizers;
-        while (finalizer != null) {
-            if (finalizer.getObject() == obj) {
-                Finalizer next = finalizer.getNext();
-                if (prev == null) {
-                    finalizers = next;
-                } else {
-                    prev.setNext(next);
-                }
-                return;
-            }
-            prev = finalizer;
-            finalizer = finalizer.getNext();
-        }
-    }
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//    /*---------------------------------------------------------------------------*\
+//     *                                 Finalization                              *
+//    \*---------------------------------------------------------------------------*/
+//
+//    /**
+//     * Queue of pending finalizers.
+//     */
+//    protected Finalizer finalizers;
+//
+//    /**
+//     * Adds a finalizer to the queue of finalizers.
+//     *
+//     * @param finalizer the finalizer to add
+//     */
+//    final void addFinalizer(Finalizer finalizer) {
+//        finalizer.setNext(finalizers);
+//        finalizers = finalizer;
+//    }
+//
+//    /**
+//     * Removes a finalizer from the queue of finalizers.
+//     *
+//     * @param obj the object of the finalizer
+//     */
+//    final void eliminateFinalizer(Object obj) {
+//        Finalizer prev = null;
+//        Finalizer finalizer = finalizers;
+//        while (finalizer != null) {
+//            if (finalizer.getObject() == obj) {
+//                Finalizer next = finalizer.getNext();
+//                if (prev == null) {
+//                    finalizers = next;
+//                } else {
+//                    prev.setNext(next);
+//                }
+//                return;
+//            }
+//            prev = finalizer;
+//            finalizer = finalizer.getNext();
+//        }
+//    }
 /*end[FINALIZATION]*/
 
     /*---------------------------------------------------------------------------*\

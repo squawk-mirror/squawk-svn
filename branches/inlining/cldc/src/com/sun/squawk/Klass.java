@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -48,7 +49,11 @@ import com.sun.squawk.vm.*;
  * @version 1.0
  * @see     com.sun.squawk.KlassMetadata
  */
-public class Klass {
+/*if[JAVA5SYNTAX]*/
+public class Klass<T> {
+/*else[JAVA5SYNTAX]*/
+//public class Klass {
+/*end[JAVA5SYNTAX]*/
 
     /*---------------------------------------------------------------------------*\
      *      Fields of Klass, some of which may be accessed directly by the VM    *
@@ -136,7 +141,7 @@ public class Klass {
      * The mapping from each interface method to the virtual method that
      * implements it. The mapping for the methods of the interface at index
      * <i>idx</i> in the <code>interfaces</code> array is at index
-     * <i>idx</i> in the <code>interfaceSlotTables</code> array. The
+     * <i>idx</i> in the <code>interfaceVTableMaps</code> array. The
      * mapping is encoded as an array where a value
      * <i>m</i> at index <i>i</i> indicates that the method at
      * index <i>m</i> in the vtable of this class implements the interface
@@ -168,7 +173,7 @@ public class Klass {
     /**
      * The data map describes the multi-byte data contained within an instance
      * of this class.  The data map is used to facilitate conversion of data contained
-     * within a serialised object form (such as a suite or isolate) such that it is
+     * within a serialized object form (such as a suite or isolate) such that it is
      * compatible with the host system.  If this value is null then the types are described
      * by the {@link #dataMapWord}.
      */
@@ -183,7 +188,7 @@ public class Klass {
     /**
      *  The number of dataMap entries.
      */
-    private int dataMapLength;
+    private short dataMapLength;
 
     /**
      * A mask of the constants defined in {@link Modifier}.
@@ -225,38 +230,16 @@ public class Klass {
     private short refStaticFieldsSize;
 
     /**
-     * The vtable index for the default constructor of this class or
-     * -1 if no such method exists.
-     */
-    private short indexForInit = -1;
-
-    /**
-     * The vtable index for this class's <code>&lt;clinit&gt;</code> method or
-     * -1 if no such method exists.
-     */
-    private short indexForClinit = -1;
-
-    /**
-     * The vtable index for this class's <code>public static void main(String[])</code>
-     * method or -1 if no such method exists.
-     */
-    private short indexForMain = -1;
-
-    /**
      * The bottom 8 bits of the modifier for <init>() (if present).
      */
     private byte initModifiers;
-
-    /**
-     * True if this class, or a super class, has a <clinit>. The interpreter currently looks at this field,
-     * not the Modifiers.MUSTCLINIT bit.
-     */
-    private boolean mustClinit;
     
     /**
      * offset given to methods that are illegal to call, such as hosted methods.
      */
     public final static int ILLEGAL_METHOD_OFFSET = 0xFFFF;
+
+    public final static boolean ENABLE_DYNAMIC_CLASSLOADING = /*VAL*/false/*ENABLE_DYNAMIC_CLASSLOADING*/;
 
     /*---------------------------------------------------------------------------*\
      *                       Standard java.lang.Class API                        *
@@ -272,7 +255,7 @@ public class Klass {
      * @param klass the Klass object
      * @return the Class object
      */
-    public static Class asClass(Klass klass) {
+    public static synchronized Class asClass(Klass klass) {
         if (klassToClass == null) {
             klassToClass = new SquawkHashtable();
             klassClass = VM.getCurrentIsolate().getBootstrapSuite().lookup("java.lang.Class");
@@ -308,15 +291,8 @@ public class Klass {
      * @return Klass
      * @throws java.lang.ClassNotFoundException 
      */
-    public static Klass forName(String className) throws ClassNotFoundException {
-        return forName(className, false, true);
-    }
-
-    /**
-     * This is a package private interface that is only directly used by com.sun.squawk.SuiteCreator.
-     */
-    static synchronized Klass forName(String className, boolean allowSystemClasses, boolean runClassInitializer) throws ClassNotFoundException {
-        // Verbose trace.
+    public static synchronized Klass forName(String className) throws ClassNotFoundException {
+       // Verbose trace.
         if (VM.isVeryVerbose()) {
             VM.print("[Klass.forName(");
             VM.print(className);
@@ -325,44 +301,26 @@ public class Klass {
 
         Klass klass = Klass.lookupKlass(className);
         ClassNotFoundException cnfe = null;
-        Isolate isolate = VM.getCurrentIsolate();
         if (klass == null) {
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
+            Isolate isolate = VM.getCurrentIsolate();
             if (isolate.getLeafSuite().isClosed()) {
                 cnfe = new ClassNotFoundException(className + " [The current isolate has no class path]");
-            } else if (!allowSystemClasses && (className.startsWith("java.") ||
-                                               className.startsWith("javax.") ||
-                                               className.startsWith("com.sun.squawk.") ||
-                                               className.startsWith("com.sun.cldc."))) {
+            } else if ((className.startsWith("java.") ||
+                        className.startsWith("javax.") ||
+                        className.startsWith("com.sun.squawk.") ||
+                        className.startsWith("com.sun.cldc."))) {
                 String packageName = className.substring(0, className.lastIndexOf('.'));
                 cnfe = new ClassNotFoundException("Prohibited package name: " + packageName);
             } else {
                 TranslatorInterface translator = isolate.getTranslator();
                 if (translator != null) {
                     translator.open(isolate.getLeafSuite(), isolate.getClassPath());
-//                    long freeMem = 0;
-//                    if (GC.isTracing(GC.TRACE_BASIC)) {
-//                        VM.collectGarbage(true);
-//                        freeMem = GC.freeMemory();
-//                    }
-
                     if (translator.isValidClassName(className)) {
                         klass = Klass.getClass(className, false);
                         translator.load(klass);
                         // Must load complete closure
                         translator.close(Suite.DEBUG);
-
-//                        if (GC.isTracing(GC.TRACE_BASIC)) {
-//                            VM.collectGarbage(true);
-//                            VM.print("** Class.forName(\"");
-//                            VM.print(className);
-//                            VM.print("\"):  free memory before = ");
-//                            VM.print(freeMem);
-//                            VM.print(", free memory after = ");
-//                            VM.print(GC.freeMemory());
-//                            VM.print(", difference = ");
-//                            VM.print(freeMem - GC.freeMemory());
-//                            VM.println();
-//                        }
                     }
                 } else {
                     if (VM.isVerbose()) {
@@ -370,17 +328,18 @@ public class Klass {
                     }
                 }
             }
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         }
-
 
         if (klass != null && klass.getState() != Klass.STATE_DEFINED) {
-            if (runClassInitializer) {
-                klass.initialiseClass();
-            }
+            klass.initialiseClass();
             return klass;
         }
+
+        // handle error cases:
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
         if (VM.getCurrentIsolate().getLeafSuite().shouldThrowNoClassDefFoundErrorFor(className)) {
-            if (cnfe != null) {
+            if (cnfe != null && cnfe.getMessage() != null) {
                 throw new NoClassDefFoundError(cnfe.getMessage());
             }
             throw new NoClassDefFoundError(className);
@@ -388,10 +347,16 @@ public class Klass {
         if (cnfe != null) {
             throw cnfe;
         }
+/*else[ENABLE_DYNAMIC_CLASSLOADING]*/
+//        if (VM.getCurrentIsolate().getLeafSuite().shouldThrowNoClassDefFoundErrorFor(className)) {
+//            throw new NoClassDefFoundError(className);
+//        }
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+
         throw new ClassNotFoundException(className);
     }
 
-    void initForObjectGraphLoader(MethodBody[] virtualMethods, MethodBody[] staticMethods, Klass superType, Klass[] interfaces, Object[] objects, UWord[] oopMap, UWord oopMapWord, UWord[] dataMap, UWord dataMapWord, int dataMapLength, int modifiers, byte state, short instanceSizeBytes, short staticFieldsSize, short refStaticFieldsSize, short indexForInit, short indexForClinit, short indexForMain, byte initModifiers, boolean mustClinit) {
+    void initForObjectGraphLoader(MethodBody[] virtualMethods, MethodBody[] staticMethods, Klass superType, Klass[] interfaces, Object[] objects, UWord[] oopMap, UWord oopMapWord, UWord[] dataMap, UWord dataMapWord, short dataMapLength, int modifiers, byte state, short instanceSizeBytes, short staticFieldsSize, short refStaticFieldsSize, byte initModifiers) {
     	this.virtualMethods = virtualMethods;
     	this.staticMethods = staticMethods;
         this.superType = superType;
@@ -407,25 +372,29 @@ public class Klass {
         this.instanceSizeBytes = instanceSizeBytes;
         this.staticFieldsSize = staticFieldsSize;
         this.refStaticFieldsSize = refStaticFieldsSize;
-        this.indexForInit = indexForInit;
-        this.indexForClinit = indexForClinit;
-        this.indexForMain = indexForMain;
         this.initModifiers = initModifiers;
-        this.mustClinit = mustClinit;
     }
     
     /**
      * Creates a new instance of a class. This method can only be called for a non-array,
      * non-interface class that {@link #hasDefaultConstructor has a default constructor}.
      * @return new object
-     * @throws java.lang.InstantiationException
-     * @throws java.lang.IllegalAccessException 
      */
-    public final Object newInstance() throws InstantiationException, IllegalAccessException {
+    public final
+/*if[JAVA5SYNTAX]*/
+T
+/*else[JAVA5SYNTAX]*/
+//Object
+/*end[JAVA5SYNTAX]*/
+	newInstance() /* throws InstantiationException, IllegalAccessException */ {
         Assert.always(!(isSquawkArray() || isInterface() || isAbstract()) && hasDefaultConstructor());
-        Object res = GC.newInstance(this);
+/*if[JAVA5SYNTAX]*/
+        T res = (T) GC.newInstance(this);
+/*else[JAVA5SYNTAX]*/
+//        Object res = GC.newInstance(this);
+/*end[JAVA5SYNTAX]*/
         try {
-            VM.callStaticOneParm(this, indexForInit & 0xFF, res);
+            VM.callStaticOneParm(this, getDefaultConstructorIndex(), res);
         } catch (NoClassDefFoundError e) {
             if (e.getMessage() != null && e.getMessage().equals("static method missing")) {
                 throw new NoClassDefFoundError("Error calling default constructor in newInstance() for class " + getName() + "\n error: " + e.toString());
@@ -460,7 +429,7 @@ public class Klass {
      * @return  <code>true</code> if this object represents an interface;
      *          <code>false</code> otherwise.
      */
-    public final boolean isInterface() {
+    public final boolean isInterface() throws ForceInlinedPragma {
         return Modifier.isInterface(getModifiers());
     }
 
@@ -494,28 +463,62 @@ public class Klass {
 /*end[FINALIZATION]*/
 
     /**
+     * The index where the first "special" static method goes. "Special" methods are allocated in order:
+     * "<init>", "<clinit>", "main".
+     */
+    private final static int CANONICAL_SPECIAL_METHOD_INDEX = 0;
+
+    /**
      * Determines if this class has a <code>void main(String[])</code> method.
      *
      * @return true if it does
      */
     public final boolean hasMain() {
-        return indexForMain != -1;
+        return (modifiers & Modifier.KLASS_HAS_MAIN) != 0;
     }
 
    /**
      * Returns the index to the main method in the static method table.
      * Will return -1 if there is no main method.
      */
-    final short getMainIndex() {
-        return indexForMain;
+    final int getMainIndex() {
+        if (hasMain()) {
+            int index = CANONICAL_SPECIAL_METHOD_INDEX;
+            if (hasDefaultConstructor()) {
+                index++;
+            }
+            if (hasClinit()) {
+                index++;
+            }
+            return index;
+        } else {
+            return -1;
+        }
     }
-    
+
+    /**
+     * Determines if this class has a static initializer.
+     *
+     * @return true if it does
+     */
+    public final boolean hasClinit() {
+        return (modifiers & Modifier.KLASS_HAS_CLINIT) != 0;
+    }
+
     /**
      * Returns the index to the static initializer method in the static method table.
      * Will return -1 if there is no static initializer method.
      */
-    final short getClinitIndex() {
-        return indexForClinit;
+    final int getClinitIndex() {
+        if (hasClinit()) {
+            if (hasDefaultConstructor()) {
+                return CANONICAL_SPECIAL_METHOD_INDEX + 1;
+            } else {
+                return CANONICAL_SPECIAL_METHOD_INDEX;
+            }
+        } else {
+            return -1;
+        }
     }
     
     /**
@@ -524,15 +527,19 @@ public class Klass {
      * @return true if it does
      */
     public final boolean hasDefaultConstructor() {
-        return indexForInit != -1;
+        return (modifiers & Modifier.KLASS_HAS_DEFAULT_INIT) != 0;
     }
 
     /**
      * Returns the index to the default constructor in the static method table.
      * Will return -1 if there is no default constructor.
      */
-    final short getDefaultConstructorIndex() {
-        return indexForInit;
+    final int getDefaultConstructorIndex() {
+        if (hasDefaultConstructor()) {
+            return CANONICAL_SPECIAL_METHOD_INDEX;
+        } else {
+            return -1;
+        }
     }
 
     /**
@@ -564,7 +571,7 @@ public class Klass {
      * Determines if the specified <code>Object</code> is assignment-compatible
      * with the object represented by this <code>Klass</code>.
      * @param obj object to test
-     * @return true if obj is intance of this klass
+     * @return true if obj is instance of this klass
      */
     public final boolean isInstance(Object obj) {
         return obj != null && isAssignableFrom(GC.getKlass(obj));
@@ -576,7 +583,7 @@ public class Klass {
      * @return  <code>true</code> if this object represents an array class;
      *          <code>false</code> otherwise.
      */
-    public final boolean isArray() {
+    public final boolean isArray() throws ForceInlinedPragma {
         return Modifier.isArray(getModifiers());
     }
 
@@ -653,9 +660,9 @@ public class Klass {
         if (!base.isPrimitive()) {
             return name.substring(0, dimensions) + 'L' + name.substring(dimensions) + ';';
         }
-        char primitive = getSignatureFirstChar(base.getSystemID());
-        Assert.that(primitive != 'L');
-        return name.substring(0, dimensions) + primitive;
+        char primitiveCode = getSignatureFirstChar(base.getSystemID());
+        Assert.that(primitiveCode != 'L');
+        return name.substring(0, dimensions) + primitiveCode;
     }
 
     /**
@@ -670,10 +677,40 @@ public class Klass {
      * @return the superclass of the class represented by this object.
      */
     public final Klass getSuperclass() {
-        if (isInterface() || isPrimitive() || isInternalType() || this == VOID || this == OBJECT) {
+        if (isInterface() || isPrimitive() || isInternalType()) {
+            return null;
+        }
+        int cid = this.id;
+        if (cid == CID.OBJECT || cid == CID.VOID) {
             return null;
         }
         return superType;
+    }
+
+    /** Handle extra cases that only happen during translation.
+     * 
+     * @param klass
+     * @return
+     * @throws HostedPragma
+     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(macro="(false)")
+/*end[JAVA5SYNTAX]*/
+     public final boolean isAssignableFrom0(Klass klass) {
+        /*
+         * Quick check for assigning to -T-.
+         */
+        if (this == Klass.TOP) {
+            return true;
+        }
+
+        /*
+         * Any subclass of java.lang.Object or interface class is assignable from 'null'.
+         */
+        if (klass == Klass.NULL) {
+            return isInterface() || isSubtypeOf(OBJECT);
+        }
+        return false;
     }
 
     /**
@@ -704,9 +741,9 @@ public class Klass {
         Assert.that(getState() != STATE_ERROR && klass.getState() != STATE_ERROR);
 
         /*
-         * Quick check for equality (the most common case) or assigning to -T-.
+         * Quick check for equality (the most common case) .
          */
-        if (this == klass || this == TOP) {
+        if (this == klass) {
             return true;
         }
 
@@ -718,10 +755,10 @@ public class Klass {
         }
 
         /*
-         * Any subclass of java.lang.Object or interface class is assignable from 'null'.
+         * Check for uncommon cases that can only occur when translating
          */
-        if (klass == NULL) {
-            return isInterface() || isSubtypeOf(OBJECT);
+        if (isAssignableFrom0(klass)) {
+            return true;
         }
 
         /*
@@ -834,7 +871,6 @@ public class Klass {
      * @param superType  must be {@link #UNINITIALIZED_NEW}
      */
     protected Klass(String name, Klass superType) {
-        Assert.that(superType == Klass.UNINITIALIZED_NEW); // Only to be called by UninitializedObjectClass.
         this.name          = name;
         this.id            = Short.MIN_VALUE;
         this.modifiers     = Modifier.PUBLIC | Modifier.SYNTHETIC;
@@ -883,7 +919,7 @@ public class Klass {
      * are the same as the names returned by {@link #getName() getName} except
      * for classes representing arrays and classes representing primitive types.
      * For the former, the delimiting <code>L</code> and <code>;</code> are
-     * ommitted and the internal implementation classes are returned for the
+     * omitted and the internal implementation classes are returned for the
      * latter. Thus:
      *
      * <blockquote><pre>
@@ -966,7 +1002,7 @@ public class Klass {
 
     /**
      * Formats the names of a given array of classes into a single string
-     * with each class name seperated by a space. The {@link #getName()}
+     * with each class name separated by a space. The {@link #getName()}
      * method is used to convert each class to a name.
      *
      * @param   klasses  the classes to format
@@ -1010,11 +1046,30 @@ public class Klass {
         return klass.id >= 0 ? klass.id : -(klass.id + 1);
     }
 
+//    Used in experiment to compress out null entries in a suite's class table:
+//    /**
+//     * Reset a klass' iD after classes are removed from a suite.
+//     */
+//    static void setSuiteID(Klass klass, int newSuiteID) {
+//        Assert.always(newSuiteID >= 0);
+//        if (klass.id >= 0) {                    // can't reset system classes:
+//            Assert.always(newSuiteID == klass.id, "setSuiteID(" + klass + ", " + newSuiteID + ") old ID: " + klass.id);
+//        } else {
+//            int oldSuiteID = getSuiteID(klass);
+//            klass.id = (short) -(newSuiteID + 1);
+//            if (newSuiteID == oldSuiteID) {
+//                Assert.always(getSuiteID(klass) == oldSuiteID);
+//            } else {
+//                Assert.always(getSuiteID(klass) < oldSuiteID);
+//            }
+//        }
+//    }
+
     /**
      * Static version of {@link #getSystemID()} so that garbage collector can
      * invoke this method on a possibly forwarded Klass object.
      */
-    static int getSystemID(Klass klass) {
+    static int getSystemID(Klass klass) throws AllowInlinedPragma {
         return klass.id;
     }
 
@@ -1026,7 +1081,7 @@ public class Klass {
      * @return the class representing the component type of this
      *         class if this class is an array
      */
-    public final Klass getComponentType() {
+    public final Klass getComponentType() throws AllowInlinedPragma {
         return getComponentType(this);
     }
 
@@ -1034,7 +1089,7 @@ public class Klass {
      * Static version of {@link #getComponentType()} so that garbage collector can
      * invoke this method on a possibly forwarded Klass object.
      */
-    static Klass getComponentType(Klass klass) {
+    static Klass getComponentType(Klass klass) throws AllowInlinedPragma {
         return klass.componentType;
     }
 
@@ -1148,7 +1203,7 @@ public class Klass {
     }
 
     /**
-     * Determines if this class is ony used by the VM internally and does not
+     * Determines if this class is only used by the VM internally and does not
      * correspond to any Java source language type.
      *
      * @return true if this is a VM internal type
@@ -1214,7 +1269,7 @@ public class Klass {
      * @param    anInterface  the class to check
      * @return   true if <code>klass</code> is an interface class and this class implements it.
      */
-    private final boolean isImplementorOf(Klass anInterface) {
+    public final boolean isImplementorOf(Klass anInterface) {
         Assert.that(anInterface.isInterface());
         for (int i = 0 ; i < interfaces.length ; i++) {
             Klass iface = interfaces[i];
@@ -1222,7 +1277,9 @@ public class Klass {
                 return true;
             }
         }
-        if (getSuperclass() != null) {
+
+//      if (getSuperclass() != null) { // correct, but slower except in very odd cases
+        if (superType != null) {
             return superType.isImplementorOf(anInterface);
         }
         return false;
@@ -1269,7 +1326,7 @@ public class Klass {
      * @return  true if it is
      */
     public final boolean isReferenceType() {
-        return !isPrimitive() && this != Klass.LONG2 && this != Klass.DOUBLE2 && !isSquawkPrimitive();
+        return !isPrimitive() && !isSquawkPrimitive();
     }
 
     /**
@@ -1340,16 +1397,22 @@ public class Klass {
      *
      * @param iklass the interface class
      * @param islot  the virtual slot of the interface
-     * @return the virtual slot of this class
+     * @return the virtual slot of this class, or -1 if not found
      */
     final int findSlot(Klass iklass, int islot) {
-        int icount = interfaces.length;
-        for (int i = 0; i < icount; i++) {
-            if (interfaces[i] == iklass) {
-                return interfaceVTableMaps[i][islot];
+        if (!isAbstract()) {
+            int icount = interfaces.length;
+            for (int i = 0; i < icount; i++) {
+                if (interfaces[i] == iklass) {
+                    return interfaceVTableMaps[i][islot];
+                }
             }
         }
-        Assert.that(superType != null);
+        if (superType == null) {
+            // protect against malicious code that got past "interface type erasure" in the preverifier
+            // it's possible that *this* klass does not implement iklass
+           return -1;
+        }
         return superType.findSlot(iklass, islot);
     }
     
@@ -1421,7 +1484,7 @@ public class Klass {
      * @param   showType show the type of the field, or return type of the method
      * @return  a string representation of <code>member</code>
      */
-    public static String toString(Member member, boolean showType) {
+    public static String toString(Member member, boolean showType) throws HostedPragma {
         String s = member.getFullyQualifiedName();
         if (member instanceof Method) {
             Method method = (Method)member;
@@ -1670,7 +1733,7 @@ public class Klass {
     }
 
     /**
-     * Constant denoting the intial state of a Klass.
+     * Constant denoting the initial state of a Klass.
      */
     public final static byte STATE_DEFINED = 0;
 
@@ -1773,7 +1836,7 @@ public class Klass {
          * Create and install the metadata for this class.
          */
         Suite suite = VM.getCurrentIsolate().getLeafSuite();
-        KlassMetadata metadata = new KlassMetadata(this,
+        KlassMetadata metadata = new KlassMetadata.Full(this,
                                                    virtualMethods,
                                                    staticMethods,
                                                    instanceFields,
@@ -1798,7 +1861,7 @@ public class Klass {
      * given set of class file field definitions. The {@link #staticFieldsSize}
      * and {@link #refStaticFieldsSize} values are initialized and the offset
      * of each field is computed. The offsets for all the non-primitive fields
-     * are gauranteed to be lower than the offset of any primitive field.
+     * are guaranteed to be lower than the offset of any primitive field.
      *
      * @param fields  class file field definitions for the static fields
      * @return a copy of the given array sorted by offsets
@@ -1879,6 +1942,7 @@ public class Klass {
          * global vars used by java->c translated methods but not by a java method (becuase Java method was dead method eliminated).
          **/
         if (hasGlobalStatics()) {
+            Assert.always(VM.getCurrentIsolate().getLeafSuite().isBootstrap(), "Can't use GlobalStaticFields pragma outside of boostrap suite");
             initializeGlobalStatics(this, fields);
         }
         
@@ -1974,7 +2038,7 @@ public class Klass {
                 case CID.LONG:
                 case CID.OFFSET:
                 case CID.UWORD:
-                    Assert.shouldNotReachHere();
+                    throw Assert.shouldNotReachHere();
                     
                 case CID.BYTE:    // fall through ...
                 case CID.BOOLEAN: // fall through ...
@@ -2199,6 +2263,7 @@ public class Klass {
 
         int paddingEntries = GC.roundUpToWord(superType.instanceSizeBytes) - superType.instanceSizeBytes;
         int totalEntries = fields.length + superType.getDataMapLength() + paddingEntries;
+        Assert.always(totalEntries <= Short.MAX_VALUE, "Class has too many fields");
 
         // Copy dataMap from parent.
         if (totalEntries > DATAMAP_ENTRIES_PER_WORD) {
@@ -2223,7 +2288,7 @@ public class Klass {
         }
 
         // The entries for the padding are all 0
-        dataMapLength = superType.dataMapLength + paddingEntries;
+        dataMapLength = (short)(superType.dataMapLength + paddingEntries);
 
         // Set the bits in the map after the parent's entries (and any padding)
         for (int i = 0; i != fields.length; ++i) {
@@ -2342,32 +2407,28 @@ public class Klass {
                 }
 
                 /*
-                 * Look for overridden method in the super class
+                 * Look for overridden method in the super class (accessible from this class)
                  */
                 Method superMethod = superType.lookupMethod(method.getName(),
                                                             method.getParameterTypes(),
                                                             method.getReturnType(),
-                                                            null,
+                                                            this, // accessible from this class
                                                             false);
+                /*
+                 * If the method can override the one in the super class then use the same vtable offset.
+                 * Otherwise allocate a different one. This deals with the case where a sub-class that
+                 * is in a different package overrides a package-private member.
+                 */
                 if (superMethod != null && !superMethod.getDefiningClass().isInterface()) {
+                    Assert.that(superMethod.isAccessibleFrom(this)); // lookupMethod() ensures this is true
+                    
                     if (superMethod.isFinal()) {
-                        throw new NoClassDefFoundError("cannot override final method");
+                        throw new NoClassDefFoundError("cannot override final method: " + superMethod);
                     }
 
                     // This is a restriction imposed by the way Squawk treats native methods
                     if (superMethod.isNative()) {
                         throw new NoClassDefFoundError("cannot override native method ");
-                    }
-
-                    /*
-                     * If the method can override the one in the super class then use the same vtable offset.
-                     * Otherwise allocate a different one. This deals with the case where a sub-class that
-                     * is in a different package overrides a package-private member.
-                     */
-                    if (superMethod.isAccessibleFrom(this)) {
-                         method.setOffset(superMethod.getOffset());
-                    } else {
-                         method.setOffset(offset++);
                     }
 
 /*if[FINALIZATION]*/
@@ -2378,7 +2439,8 @@ public class Klass {
                         modifiers |= Modifier.HASFINALIZER;
                     }
 /*end[FINALIZATION]*/
-
+                    
+                    method.setOffset(superMethod.getOffset());
                 } else {
                     method.setOffset(offset++);
                 }
@@ -2396,25 +2458,55 @@ public class Klass {
      */
     private void initializeSTable(ClassFileMethod[] methods) {
         short offset = 0;
+        ClassFileMethod defaultConstructor = null;
+        ClassFileMethod clinit = null;
+        ClassFileMethod main = null;
+
+        // look for special methods
         for (short i = 0; i != methods.length; ++i) {
             ClassFileMethod method = methods[i];
             if (PragmaException.isHosted(method.getPragmas())) {
                 method.setOffset(ILLEGAL_METHOD_OFFSET);
             } else {
-                method.setOffset(offset);
                 if (method.isDefaultConstructor()) {
-                    indexForInit = offset;
+                    defaultConstructor = method;
                     initModifiers = (byte) method.getModifiers();
+                    updateModifiers(Modifier.KLASS_HAS_DEFAULT_INIT);
                 } else if (method.isClinit()) {
-                    indexForClinit = offset;
-                    Assert.always(!hasGlobalStatics()); // <clinit> found for class with global variables.
+                    clinit = method;
+                    updateModifiers(Modifier.KLASS_HAS_CLINIT);
+                    Assert.always(!hasGlobalStatics(), "No static initializer can be used on GlobalStaticFields"); // <clinit> found for class with global variables.
                 } else if (method.isMain()) {
-                    indexForMain = offset;
+                    updateModifiers(Modifier.KLASS_HAS_MAIN);
+                    main = method;
                 }
-                offset++;
             }
         }
-        mustClinit = setMustClinit();
+
+        // get special methods in canonical order
+        if (defaultConstructor != null) {
+            defaultConstructor.setOffset(offset++);
+        }
+        if (clinit != null) {
+            clinit.setOffset(offset++);
+        }
+        if (main != null) {
+            main.setOffset(offset++);
+        }
+
+        // do rest of methods...
+        for (short i = 0; i != methods.length; ++i) {
+            ClassFileMethod method = methods[i];
+            if (!PragmaException.isHosted(method.getPragmas())
+                    && !method.isDefaultConstructor()
+                    && !method.isClinit()
+                    && !method.isMain()) {
+                method.setOffset(offset++);
+            }
+        }
+        if (setMustClinit()) {
+            updateModifiers(Modifier.KLASS_MUSTCLINIT);
+        }
         staticMethods = createMethodTable(offset);
     }
 
@@ -2474,7 +2566,7 @@ public class Klass {
     /**
      * Adds the elements of <code>interfaces</code> to <code>closure</code>
      * that are not already in it. For each interface added, this method
-     * recurses on the interfaces implmented by the added interface.
+     * recurses on the interfaces implemented by the added interface.
      *
      * @param closure     a collection of interfaces
      * @param interfaces  the array of interfaces to add to <code>closure</code>
@@ -2515,7 +2607,7 @@ public class Klass {
         /*
          * Add all the interfaces implemented by the abstract class(es) in
          * the super class hierarchy up until the first non-abstract class
-         * in the hierarchy. This is required so that the 'interfaceSlots'
+         * in the hierarchy. This is required so that the 'interfaceVTableMaps'
          * table for this class also includes the methods implemented by
          * abstract super classes (which have no such table).
          */
@@ -2575,7 +2667,7 @@ public class Klass {
     /*---------------------------------------------------------------------------*\
      *                        Method and field lookup                            *
     \*---------------------------------------------------------------------------*/
-
+         
     /**
      * Finds the <code>Method</code> object representing a method in
      * this class's hierarchy. This method returns null if the method does
@@ -2607,13 +2699,7 @@ public class Klass {
         int mid = parser.lookupMember(category, name, parameterTypes, returnType);
         if (mid != -1) {
             Method method = new Method(metadata, mid);
-            if (
-                  currentClass == null ||
-                  currentClass == this ||
-                  method.isPublic()    ||
-                  method.isProtected() ||
-                (!method.isPrivate() && this.isInSamePackageAs(currentClass))
-               ) {
+            if (isAccessibleFrom(method, currentClass)) {
                 return method;
             }
         }
@@ -2672,7 +2758,7 @@ public class Klass {
         SymbolParser parser = metadata.getSymbolParser();
         int category = SymbolParser.VIRTUAL_METHODS;
         int mid = parser.lookupMethod(category, offset);
-        if (mid != -1) {
+        if (mid >= 0) {
             return new Method(metadata, mid);
         }
         return null;
@@ -2720,6 +2806,28 @@ public class Klass {
      * @return the metadata for this class
      */
     private KlassMetadata getMetadata() {
+/*if[ENABLE_RUNTIME_METADATA]*/
+        return getMetadata0();
+/*else[ENABLE_RUNTIME_METADATA]*/
+//        if (VM.isHosted()) {
+//            return getMetadata0();
+//        }
+//        return null;
+/*end[ENABLE_RUNTIME_METADATA]*/
+    }
+    
+    /**
+     * Gets the metadata for this class that contains the symbolic information
+     * for its fields and methods. This can only be called on a non-synthetic
+     * class that has been loaded.
+     *
+     * @return the metadata for this class
+     */
+    private KlassMetadata getMetadata0()
+/*if[!ENABLE_RUNTIME_METADATA]*/
+        throws HostedPragma
+/*end[ENABLE_RUNTIME_METADATA]*/
+    {
         if (isSynthetic() || isArray()) {
             return null;
         }
@@ -2884,14 +2992,14 @@ public class Klass {
             methodID = parser.lookupMethod(SymbolParser.VIRTUAL_METHODS, index);
         }
         
-        if (methodID == -1) {
+        if (methodID < 0) {
             index = getMethodIndex(body, true);
             if (index >= 0) {
                 methodID = parser.lookupMethod(SymbolParser.STATIC_METHODS, index);
             }
         }
 
-        if (methodID != -1) {
+        if (methodID >= 0) {
             return new Method(metadata, methodID);
         }
         return null;
@@ -2992,9 +3100,9 @@ public class Klass {
      * @param  args  the arguments to be passed to the invocation
      * @throws NotInlinedPragma as this method saves the current frame pointer
      */
-    final void main(String[] args) throws NotInlinedPragma {
-        int index = indexForMain & 0xFF;
-        if (index != 0xFF) {
+    public final void main(String[] args) throws NotInlinedPragma {
+        int index = getMainIndex();
+        if (index >= 0) {
             Assert.that(GC.getKlass(staticMethods[index]) == Klass.BYTECODE_ARRAY);
             VMThread thread = VMThread.currentThread();
             thread.setAppThreadTop(thread.framePointerAsOffset(VM.getFP()));
@@ -3038,7 +3146,7 @@ public class Klass {
      * Gets the initialization state. This will be one of the
      * <code>INITSTATE_*</code> values.
      *
-     * @return  the initialzation state of this class
+     * @return  the initialization state of this class
      */
     private int getInitializationState() {
         if (getClassState() != null) {
@@ -3249,7 +3357,7 @@ public class Klass {
              * Step 5
              */
             if (getInitializationState() == INITSTATE_FAILED) {
-                throw new NoClassDefFoundError();
+                throw new NoClassDefFoundError(name);
             }
             /*
              * Step 6
@@ -3280,6 +3388,7 @@ public class Klass {
          */
         try {
 
+/*if[ENABLE_RUNTIME_METADATA]*/
             if ((modifiers & Modifier.COMPLETE_RUNTIME_STATICS) != 0) {
                 int count = getFieldCount(true);
                 for (int i = 0; i != count; ++i) {
@@ -3307,7 +3416,8 @@ public class Klass {
                     }
                 }
             }
-
+/*end[ENABLE_RUNTIME_METADATA]*/
+            
             clinit();
             /*
              * Step 9
@@ -3349,14 +3459,16 @@ public class Klass {
      *           for this class; false otherwise
      */
     public final boolean mustClinit() {
-        return mustClinit || (modifiers & Modifier.COMPLETE_RUNTIME_STATICS) != 0;
+        return Modifier.mustClinit(modifiers);
     }
 
     /**
-     * Used to set up the mustClinit field.
+     * Used to set up the mustClinit modifier.
      */
     private boolean setMustClinit() {
-        if (indexForClinit >= 0) {
+        if (hasClinit()) {
+            return true;
+        } else if ((modifiers & Modifier.COMPLETE_RUNTIME_STATICS) != 0) {
             return true;
         } else if (superType == null) {
             return false;
@@ -3369,8 +3481,8 @@ public class Klass {
      * Call this class's <code>&lt;clinit&gt;</code> method if it is defined.
      */
     final void clinit() {
-        int index = indexForClinit;
-        if (index != -1) {
+        int index = getClinitIndex();
+        if (index >= 0) {
             // Verbose trace.
             if (VM.isVeryVerbose()) {
                   VM.print("[initializing ");
@@ -3393,256 +3505,231 @@ public class Klass {
      *
      * @see  Klass
      */
-    public static Klass TOP;
+    public static final Klass TOP;
 
     /**
      * The root of all single word types.
      */
-    public static Klass ONE_WORD;
+    public static final Klass ONE_WORD;
 
     /**
      * The root of all two word types.
      */
-    public static Klass TWO_WORD;
+    public static final Klass TWO_WORD;
 
     /**
      * The type for <code>boolean</code>.
      */
-    public static Klass BOOLEAN;
+    public static final Klass BOOLEAN;
 
     /**
      * The type for <code>byte</code>.
      */
-    public static Klass BYTE;
+    public static final Klass BYTE;
 
     /**
      * The type for <code>char</code>.
      */
-    public static Klass CHAR;
+    public static final Klass CHAR;
 
     /**
      * The type for <code>short</code>.
      */
-    public static Klass SHORT;
+    public static final Klass SHORT;
 
     /**
      * The type for <code>int</code>.
      */
-    public static Klass INT;
+    public static final Klass INT;
 
     /**
      * The type for <code>float</code>.
      */
-    public static Klass FLOAT;
+    public static final Klass FLOAT;
 
     /**
      * The type for <code>long</code>.
      */
-    public static Klass LONG;
+    public static final Klass LONG;
 
     /**
      * The type for the second word of a <code>long</code> value.
      */
-    public static Klass LONG2;
+    public static final Klass LONG2;
 
     /**
      * The type for <code>double</code>.
      */
-    public static Klass DOUBLE;
+    public static final Klass DOUBLE;
 
     /**
      * The type for the second word of a <code>double</code> value.
      */
-    public static Klass DOUBLE2;
+    public static final Klass DOUBLE2;
 
     /**
      * The type for <code>void</code>.
      */
-    public static Klass VOID;
+    public static final Klass VOID;
 
     /**
      * The root type for all reference types.
      */
-    public static Klass REFERENCE;
+    public static final Klass REFERENCE;
 
     /**
      * The root type for all uninitialized reference types.
      */
-    public static Klass UNINITIALIZED;
+    public static final Klass UNINITIALIZED;
 
     /**
      * The type for <code>this</code> in a constructor before the call to
      * the super constructor.
      */
-    public static Klass UNINITIALIZED_THIS;
+    public static final Klass UNINITIALIZED_THIS;
 
     /**
      * The root of the types representing the result of the <i>new</i>
      * bytecode before it has been passed to a constructor.
      */
-    public static Klass UNINITIALIZED_NEW;
+    public static final Klass UNINITIALIZED_NEW;
 
     /**
      * The type for <code>null</code>.
      */
-    public static Klass NULL;
+    public static final Klass NULL;
 
     /**
      * The type for <code>java.lang.Object</code>.
      */
-    public static Klass OBJECT;
+    public static final Klass OBJECT;
 
     /**
      * The type for <code>java.lang.String</code>.
      */
-    public static Klass STRING;
+    public static final Klass STRING;
 
     /**
      * The type for <code>java.lang.Class</code>.
      */
-    public static Klass THROWABLE;
+    public static final Klass THROWABLE;
 
     /**
      * The type for <code>com.sun.squawk.Klass</code>.
      */
-    public static Klass KLASS;
+    public static final Klass KLASS;
 
     /**
      * The type for <code>java.lang.Object[]</code>.
      */
-    public static Klass OBJECT_ARRAY;
+    public static final Klass OBJECT_ARRAY;
 
     /**
      * The type for <code>java.lang.String[]</code>.
      */
-    public static Klass STRING_ARRAY;
+    public static final Klass STRING_ARRAY;
 
     /**
      * The type for <code>boolean[]</code>.
      */
-    public static Klass BOOLEAN_ARRAY;
+    public static final Klass BOOLEAN_ARRAY;
 
     /**
      * The type for <code>byte[]</code>.
      */
-    public static Klass BYTE_ARRAY;
+    public static final Klass BYTE_ARRAY;
 
     /**
      * The type for <code>char[]</code>.
      */
-    public static Klass CHAR_ARRAY;
+    public static final Klass CHAR_ARRAY;
 
     /**
      * The type for <code>short[]</code>.
      */
-    public static Klass SHORT_ARRAY;
+    public static final Klass SHORT_ARRAY;
 
     /**
      * The type for <code>int[]</code>.
      */
-    public static Klass INT_ARRAY;
+    public static final Klass INT_ARRAY;
 
     /**
      * The type for <code>float[]</code>.
      */
-    public static Klass FLOAT_ARRAY;
+    public static final Klass FLOAT_ARRAY;
 
     /**
      * The type for <code>long[]</code>.
      */
-    public static Klass LONG_ARRAY;
+    public static final Klass LONG_ARRAY;
 
     /**
      * The type for <code>double[]</code>.
      */
-    public static Klass DOUBLE_ARRAY;
+    public static final Klass DOUBLE_ARRAY;
 
     /**
      * The type for <code>com.sun.squawk.StringOfBytes</code>.
      */
-    public static Klass STRING_OF_BYTES;
-
-    /**
-     * The type for a slot in a stack chunk.
-     */
-    public static Klass LOCAL;
+    public static final Klass STRING_OF_BYTES;
 
     /**
      * The type for a stack chunk.
      */
-    public static Klass LOCAL_ARRAY;
-
-    /**
-     * The type for a class state word.
-     */
-    public static Klass GLOBAL;
+    public static final Klass LOCAL_ARRAY;
 
     /**
      * The type for a class state structure.
      */
-    public static Klass GLOBAL_ARRAY;
-
-    /**
-     * The type for a table of class state structures.
-     */
-    public static Klass GLOBAL_ARRAYARRAY;
-
-    /**
-     * The type for an element of a method.
-     */
-    public static Klass BYTECODE;
+    public static final Klass GLOBAL_ARRAY;
 
     /**
      * The type for an array of bytes that is a method.
      */
-    public static Klass BYTECODE_ARRAY;
+    public static final Klass BYTECODE_ARRAY;
 
     /**
      * The type for representing machine addresses.
      */
-    public static Klass ADDRESS;
+    public static final Klass ADDRESS;
 
     /**
      * The type for representing an array of machine addresses.
      */
-    public static Klass ADDRESS_ARRAY;
+    public static final Klass ADDRESS_ARRAY;
 
     /**
      * The type for representing unsigned machine words.
      */
-    public static Klass UWORD;
+    public static final Klass UWORD;
 
     /**
      * The type for representing an array of unsigned word addresses.
      */
-    public static Klass UWORD_ARRAY;
+    public static final Klass UWORD_ARRAY;
 
     /**
      * The type for representing the directed distance between two machine addresses.
      */
-    public static Klass OFFSET;
-
-    /**
-     * Container of methods for peeking and poking memory.
-     */
-    public static Klass NATIVEUNSAFE;
+    public static final Klass OFFSET;
 
     /**
      * Finds one of the bootstrap classes, creating it if necessary.
      *
      * @param   superType  the super type of the bootstrap class
      * @param   name       the name of the class
-     * @param   systemID   the predefined system ID for the class or -1 if it doesn't have one
+     * @param   systemID   the predefined system ID for the class
      * @param   modifiers  the modifiers of the class
      * @return             the created class
      */
     private static Klass boot(Klass superType, String name, int systemID, int modifiers) {
         Isolate isolate = VM.getCurrentIsolate();
         Suite bootstrapSuite = isolate.getBootstrapSuite();
-        Klass klass = systemID == -1 ? bootstrapSuite.lookup(name) : bootstrapSuite.getKlass(systemID);
+        Klass klass = bootstrapSuite.getKlass(systemID);
         if (klass != null) {
             Assert.that(klass.getSuperType() == superType);
-            Assert.that(systemID == -1 || klass.getSystemID() == systemID);
+            Assert.that(klass.getSystemID() == systemID);
             Assert.that((klass.getModifiers() & modifiers) == modifiers);
             return klass;
         }
@@ -3658,39 +3745,35 @@ public class Klass {
      *
      * @param   superType  the super type of the bootstrap class
      * @param   name       the name of the class
-     * @param   systemID   the predefined system ID for the class or -1 if it doesn't have one
+     * @param   systemID   the predefined system ID for the class
      * @param   modifiers  the modifiers of the class
      * @param   bootstrapSuite  the bootstrap suite
      * @return             the created class
      */
     private static Klass bootHosted(Klass superType, String name, int systemID, int modifiers, Suite bootstrapSuite) throws HostedPragma {
         Klass klass = getClass(name, systemID);
-        Assert.that(systemID == -1 || bootstrapSuite.getKlass(systemID) == klass);
+        Assert.that(bootstrapSuite.getKlass(systemID) == klass);
         klass.setSuperType(superType);
         klass.updateModifiers(modifiers | klass.getModifiers());
         return klass;
     }
 
+    private final static int none = 0;
+    private final static int publik = Modifier.PUBLIC;
+    private final static int synthetic = publik | Modifier.SYNTHETIC;
+    private final static int synthetic2 = synthetic | Modifier.DOUBLEWORD;
+    private final static int primitive = synthetic | Modifier.PRIMITIVE;
+    private final static int primitive2 = primitive | Modifier.DOUBLEWORD;
+    private final static int squawkarray = publik | Modifier.SQUAWKARRAY;
+    private final static int squawkprimitive = Modifier.SQUAWKPRIMITIVE;
+
     /**
      * Initializes the constants for the bootstrap classes.
      */
     static {
-        initBootstrapClasses();
-    }
-    
-    static void initBootstrapClasses() {
-        final int none            = 0;
-        final int publik          = Modifier.PUBLIC;
-        final int synthetic       = publik    | Modifier.SYNTHETIC;
-        final int synthetic2      = synthetic | Modifier.DOUBLEWORD;
-        final int primitive       = synthetic | Modifier.PRIMITIVE;
-        final int primitive2      = primitive | Modifier.DOUBLEWORD;
-        final int squawkarray     = publik    | Modifier.SQUAWKARRAY;
-        final int squawkprimitive = Modifier.SQUAWKPRIMITIVE;
-
-        TOP                = boot(null,          "-T-",                     -1,                    synthetic);
-        ONE_WORD           = boot(TOP,           "-1-",                     -1,                    synthetic);
-        TWO_WORD           = boot(TOP,           "-2-",                     -1,                    synthetic2);
+        TOP                = boot(null,          "-T-",                     CID.TOP,               synthetic);
+        ONE_WORD           = boot(TOP,           "-1-",                     CID.ONE_WORD,          synthetic); // only used by translator
+        TWO_WORD           = boot(TOP,           "-2-",                     CID.TWO_WORD,          synthetic2);// only used by translator
 
         INT                = boot(ONE_WORD,      "int",                     CID.INT,               primitive);
         BOOLEAN            = boot(INT,           "boolean",                 CID.BOOLEAN,           primitive);
@@ -3704,10 +3787,10 @@ public class Klass {
         DOUBLE2            = boot(ONE_WORD,      "-double2-",               CID.DOUBLE2,           primitive2);
         VOID               = boot(TOP,           "void",                    CID.VOID,              synthetic);
 
-        REFERENCE          = boot(ONE_WORD,      "-ref-",                   -1,                    synthetic);
-        UNINITIALIZED      = boot(REFERENCE,     "-uninit-",                -1,                    synthetic);
-        UNINITIALIZED_THIS = boot(UNINITIALIZED, "-uninit_this-",           -1,                    synthetic);
-        UNINITIALIZED_NEW  = boot(UNINITIALIZED, "-uninit_new-",            -1,                    synthetic);
+        REFERENCE          = boot(ONE_WORD,      "-ref-",                   CID.REFERENCE,         synthetic); // only used by translator
+        UNINITIALIZED      = boot(REFERENCE,     "-uninit-",                CID.UNINITIALIZED,     synthetic); // only used by translator
+        UNINITIALIZED_THIS = boot(UNINITIALIZED, "-uninit_this-",           CID.UNINITIALIZED_THIS,synthetic); // only used by translator
+        UNINITIALIZED_NEW  = boot(UNINITIALIZED, "-uninit_new-",            CID.UNINITIALIZED_NEW, synthetic); // only used by translator
 
         OBJECT             = boot(REFERENCE,     "java.lang.Object",        CID.OBJECT,            none);
         STRING             = boot(OBJECT,        "java.lang.String",        CID.STRING,            squawkarray);
@@ -3715,60 +3798,79 @@ public class Klass {
         KLASS              = boot(OBJECT,        "com.sun.squawk.Klass",    CID.KLASS,             none);
         NULL               = boot(OBJECT,        "-null-",                  CID.NULL,              synthetic);
 
-        OBJECT_ARRAY       = boot(OBJECT,        "[java.lang.Object",       CID.OBJECT_ARRAY,      synthetic);
+        OBJECT_ARRAY       = boot(OBJECT,        "[java.lang.Object",       CID.OBJECT_ARRAY,      synthetic); // only used by translator/mapper
         STRING_ARRAY       = boot(OBJECT,        "[java.lang.String",       CID.STRING_ARRAY,      synthetic);
-        BOOLEAN_ARRAY      = boot(OBJECT,        "[boolean",                CID.BOOLEAN_ARRAY,     synthetic);
+        BOOLEAN_ARRAY      = boot(OBJECT,        "[boolean",                CID.BOOLEAN_ARRAY,     synthetic); // only used by translator
         BYTE_ARRAY         = boot(OBJECT,        "[byte",                   CID.BYTE_ARRAY,        synthetic);
-        CHAR_ARRAY         = boot(OBJECT,        "[char",                   CID.CHAR_ARRAY,        synthetic);
-        SHORT_ARRAY        = boot(OBJECT,        "[short",                  CID.SHORT_ARRAY,       synthetic);
-        INT_ARRAY          = boot(OBJECT,        "[int",                    CID.INT_ARRAY,         synthetic);
-        LONG_ARRAY         = boot(OBJECT,        "[long",                   CID.LONG_ARRAY,        synthetic);
-        FLOAT_ARRAY        = boot(OBJECT,        "[float",                  CID.FLOAT_ARRAY,       synthetic);
-        DOUBLE_ARRAY       = boot(OBJECT,        "[double",                 CID.DOUBLE_ARRAY,      synthetic);
+        CHAR_ARRAY         = boot(OBJECT,        "[char",                   CID.CHAR_ARRAY,        synthetic); // only used by translator
+        SHORT_ARRAY        = boot(OBJECT,        "[short",                  CID.SHORT_ARRAY,       synthetic); // only used by translator
+        INT_ARRAY          = boot(OBJECT,        "[int",                    CID.INT_ARRAY,         synthetic); // only used by translator
+        LONG_ARRAY         = boot(OBJECT,        "[long",                   CID.LONG_ARRAY,        synthetic); // only used by translator
+        FLOAT_ARRAY        = boot(OBJECT,        "[float",                  CID.FLOAT_ARRAY,       synthetic); // only used by translator
+        DOUBLE_ARRAY       = boot(OBJECT,        "[double",                 CID.DOUBLE_ARRAY,      synthetic); // only used by translator
 
+        // Ensure that all the reserved system classes are loaded if running in a hosted environment
+        if (VM.isHosted()) {
+            initBootstrapClassesHostedEarly();
+        }
         /*
          * Special implementation types.
          */
         STRING_OF_BYTES    = boot(STRING,        "com.sun.squawk.StringOfBytes", CID.STRING_OF_BYTES,   squawkarray);
-        LOCAL              = boot(ONE_WORD,      "-local-",                 CID.LOCAL,             synthetic);
         LOCAL_ARRAY        = boot(OBJECT,        "[-local-",                CID.LOCAL_ARRAY,       synthetic);
-        GLOBAL             = boot(ONE_WORD,      "-global-",                CID.GLOBAL,            synthetic);
         GLOBAL_ARRAY       = boot(OBJECT,        "[-global-",               CID.GLOBAL_ARRAY,      synthetic);
-        GLOBAL_ARRAYARRAY  = boot(OBJECT,        "[[-global-",              CID.GLOBAL_ARRAYARRAY, synthetic);
         ADDRESS            = boot(OBJECT,        "com.sun.squawk.Address",  CID.ADDRESS,           squawkprimitive);
         ADDRESS_ARRAY      = boot(OBJECT,        "[com.sun.squawk.Address", CID.ADDRESS_ARRAY,     none);
         UWORD              = boot(OBJECT,        "com.sun.squawk.UWord",    CID.UWORD,             squawkprimitive);
         UWORD_ARRAY        = boot(OBJECT,        "[com.sun.squawk.UWord",   CID.UWORD_ARRAY,       none);
         OFFSET             = boot(OBJECT,        "com.sun.squawk.Offset",   CID.OFFSET,            squawkprimitive);
-        NATIVEUNSAFE       = boot(OBJECT,        "com.sun.squawk.NativeUnsafe", CID.NATIVEUNSAFE,      none);
-
-        /*
-         * Methods.
-         */
-        BYTECODE           = boot(INT,           "-bytecode-",              CID.BYTECODE,          synthetic);
         BYTECODE_ARRAY     = boot(OBJECT,        "[-bytecode-",             CID.BYTECODE_ARRAY,    synthetic);
 
         // Ensure that all the reserved system classes are loaded if running in a hosted environment
         if (VM.isHosted()) {
-            loadReservedSystemClasses();
+            initBootstrapClassesHostedLate();
         }
+
+        Assert.that(Klass.LONG2.isPrimitive());
+        Assert.that(Klass.DOUBLE2.isPrimitive());
+    }
+
+     /**
+     * Ensure that all the reserved system classes are loaded if running in a hosted environment.
+     */
+    private static void initBootstrapClassesHostedEarly() throws HostedPragma {
+        // Base classes have to be created before array classes
+        boot(ONE_WORD,      "-local-",                     CID.LOCAL,             synthetic);
+        boot(ONE_WORD,      "-global-",                    CID.GLOBAL,            synthetic);
+        boot(INT,           "-bytecode-",                  CID.BYTECODE,          synthetic);
     }
 
     /**
      * Ensure that all the reserved system classes are loaded if running in a hosted environment.
      */
-    private static void loadReservedSystemClasses() throws HostedPragma {
-        Isolate isolate = VM.getCurrentIsolate();
-        Suite bootstrapSuite = isolate.getBootstrapSuite();
-        TranslatorInterface translator = isolate.getTranslator();
-        for (int systemID = 0 ; systemID <= CID.LAST_SYSTEM_ID ; systemID++) {
-            Klass klass = bootstrapSuite.getKlass(systemID);
-            if (!klass.isArray() && !klass.isSynthetic()) {
-                translator.load(klass);
+    private static void initBootstrapClassesHostedLate() throws HostedPragma {
+        // these classes have to be created for boostrap, but not looked up at runtime:
+        boot(OBJECT,        "[[-global-",                  CID.GLOBAL_ARRAYARRAY, synthetic);
+        boot(OBJECT,        "com.sun.squawk.NativeUnsafe", CID.NATIVEUNSAFE,      none);
+
+        // load all system classes:
+        try {
+            Isolate isolate = VM.getCurrentIsolate();
+            Suite bootstrapSuite = isolate.getBootstrapSuite();
+            TranslatorInterface translator = isolate.getTranslator();
+            for (int systemID = 0; systemID <= CID.LAST_SYSTEM_ID; systemID++) {
+                Klass klass = bootstrapSuite.getKlass(systemID);
+                if (!klass.isArray() && !klass.isSynthetic()) {
+                    translator.load(klass);
+                }
+                if (klass.isArray() && klass.virtualMethods == null) {
+                    klass.virtualMethods = klass.superType.virtualMethods;
+                }
             }
-            if (klass.isArray() && klass.virtualMethods == null) {
-                klass.virtualMethods = klass.superType.virtualMethods;
-            }
+        } catch (NoClassDefFoundError noClassDefFoundError) {
+            // these are fatal - don't try to defer in romizer:
+            noClassDefFoundError.printStackTrace();
+            throw new RuntimeException("Klass initialization failed: " + noClassDefFoundError);
         }
     }
 
@@ -3850,7 +3952,7 @@ public class Klass {
      * @param   name       the name of the class to lookup.
      * @return the Klass instance for <code>name</code>, or null if it doesn't exists
      */
-    private static Klass lookupKlass(String name) {
+    public static Klass lookupKlass(String name) {
         Isolate isolate = VM.getCurrentIsolate();
         Suite suite = isolate.getLeafSuite();
         if (suite == null) {

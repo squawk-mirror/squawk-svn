@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -26,7 +27,8 @@ package com.sun.squawk;
 
 import com.sun.squawk.util.*;
 import com.sun.squawk.vm.*;
-
+import com.sun.squawk.pragma.AllowInlinedPragma;
+import com.sun.squawk.pragma.NotInlinedPragma;
 
 /**
  * Collector based on the lisp 2 algorithm described in "Garbage Collection : Algorithms for Automatic Dynamic Memory Management"
@@ -134,7 +136,7 @@ public final class Lisp2Collector extends GarbageCollector {
          * @param word   the word to test
          * @return true if <code>word</code> is a direct pointer
          */
-        static boolean isPointer(UWord word) {
+        static boolean isPointer(UWord word) throws AllowInlinedPragma {
             return (word.and(UWord.fromPrimitive(MASK))).eq(UWord.fromPrimitive(POINTER));
         }
 
@@ -144,7 +146,7 @@ public final class Lisp2Collector extends GarbageCollector {
          * @param word   the word to test
          * @return true if <code>word</code> encodes a class pointer as a heap relative word offset
          */
-        static boolean isHeapOffset(UWord word) {
+        static boolean isHeapOffset(UWord word) throws AllowInlinedPragma {
             return (word.and(UWord.fromPrimitive(MASK))).eq(UWord.fromPrimitive(HEAP));
         }
 
@@ -154,7 +156,7 @@ public final class Lisp2Collector extends GarbageCollector {
          * @param word   the word to test
          * @return true if <code>word</code> encodes a class pointer as a NVM relative word offset
          */
-        static boolean isNVMOffset(UWord word) {
+        static boolean isNVMOffset(UWord word) throws AllowInlinedPragma {
             return (word.and(UWord.fromPrimitive(MASK))).eq(UWord.fromPrimitive(NVM));
         }
 
@@ -164,8 +166,11 @@ public final class Lisp2Collector extends GarbageCollector {
          * @param word   the word to test
          * @return true if <code>word</code> encodes a class pointer as a ROM relative word offset
          */
-        static boolean isROMOffset(UWord word) {
+        static boolean isROMOffset(UWord word) throws AllowInlinedPragma {
             return (word.and(UWord.fromPrimitive(MASK))).eq(UWord.fromPrimitive(ROM));
+        }
+
+        private ClassWordTag() {
         }
     }
 
@@ -226,6 +231,11 @@ public final class Lisp2Collector extends GarbageCollector {
     private Address memoryEnd;
 
     /**
+     * Assume there's only a single slice in the slice table. Slice index will always be zero.
+     */
+    private final static boolean ASSUME_SIMPLE_SLICE_TABLE = /*VAL*/false/*ASSUME_SIMPLE_SLICE_TABLE*/;
+
+    /**
      * The address at which the slice table starts.
      */
     private Address sliceTable;
@@ -277,10 +287,12 @@ public final class Lisp2Collector extends GarbageCollector {
      */
     private int markingRecursionLevel;
 
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
     /**
      * Count of the number of classes whose oop map moved during the last collection.
      */
     private int movedOopMaps;
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/    
 
     /**
      * Creates a Lisp2Collector.
@@ -308,7 +320,10 @@ public final class Lisp2Collector extends GarbageCollector {
         markingStack = new MarkingStack();
 
         collectionTimings = new Timings();
-        copyTimings = new Timings();
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//        copyTimings = new Timings();
+/*end[ENABLE_ISOLATE_MIGRATION]*/
     }
 
     /**
@@ -392,7 +407,7 @@ public final class Lisp2Collector extends GarbageCollector {
         GC.setAllocationParameters(heapStart, heapStart, heapEnd, heapEnd);
 
         // Output trace information.
-        if (GC.isTracing(GC.TRACE_BASIC)) {
+        if (GC.GC_TRACING_SUPPORTED && GC.isTracing(GC.TRACE_BASIC)) {
             markingStack.setup(heapEnd, Lisp2Bitmap.getStart());
             traceVariables();
         }
@@ -412,8 +427,8 @@ public final class Lisp2Collector extends GarbageCollector {
         // object heap, bitmap, slice table and minimum marking stack.
         heapStart = memoryStart.roundUp(alignment);
         final Address alignedMemoryEnd = memoryEnd.roundDown(alignment);
-        int memorySize = alignedMemoryEnd.diff(heapStart).toInt();
-        Assert.always(memorySize > 0, "insufficient memory for collector");
+        final int memorySize = alignedMemoryEnd.diff(heapStart).toInt();
+        Assert.always(memorySize > 0); // "insufficient memory for collector"
 
         // Determine the space reserved for the marking stack.
         final int minimumMarkingStackSize = MarkingStack.MINIMUM_MARKING_STACK_SIZE * HDR.BYTES_PER_WORD;
@@ -426,12 +441,12 @@ public final class Lisp2Collector extends GarbageCollector {
          * assuming that the slice table size will be 0.
          */
         heapSize = calculateMaxHeapSize(memorySize - minimumMarkingStackSize);
-        Assert.always(heapSize >= alignment, "insufficient memory for collector");
+        Assert.always(heapSize >= alignment); // "insufficient memory for collector"
 
         // Align the heap size
         heapSize = GC.roundUp(heapSize, alignment);
         heapEnd = heapStart.add(heapSize);
-        Assert.always(heapSize > 0, "insufficient memory for collector");
+        Assert.always(heapSize > 0); // , "insufficient memory for collector"
 
         // The bitmap covers the range [permanentMemoryStart .. heapEnd]
         int bitmappedMemorySize = heapEnd.diff(permanentMemoryStart).toInt() + HDR.BYTES_PER_WORD;
@@ -488,15 +503,19 @@ public final class Lisp2Collector extends GarbageCollector {
 
         Lisp2Bitmap.initialize(bitmap, bitmapSize, permanentMemoryStart);
 
-        Assert.always(sliceTable.add(sliceTableSize).loeq(alignedMemoryEnd), "slice table overflows memory boundary");
-        Assert.always(sliceOffsetBits < 32, "slice size overflows 32 bit address space");
-        Assert.always(bitmap.add(bitmapSize).loeq(sliceTable), "bitmap collides with slice table");
-        Assert.always(heapEnd.loeq(bitmap.sub(minimumMarkingStackSize)), "heap collides with marking stack");
-        Assert.always((heapSize % alignment) == 0, "heap size is non-aligned");
-        Assert.always((bitmapSize % HDR.BYTES_PER_WORD) == 0, "bitmap size is non-aligned");
-        Assert.always((sliceTableSize % HDR.BYTES_PER_WORD) == 0, "slice table size is non-aligned");
-        Assert.always(Lisp2Bitmap.getAddressOfBitmapWordFor(permanentMemoryStart).eq(Lisp2Bitmap.getStart()), "incorrect bitmap base");
-        Assert.always(Lisp2Bitmap.getAddressOfBitmapWordFor(heapEnd).lo(Lisp2Bitmap.getEnd()), "incorrect bitmap base");
+        if (ASSUME_SIMPLE_SLICE_TABLE) {
+            Assert.always(sliceCount == 1); // "ASSUME_SIMPLE_SLICE_TABLE failed"
+        }
+
+        Assert.always(sliceTable.add(sliceTableSize).loeq(alignedMemoryEnd)); // "slice table overflows memory boundary"
+        Assert.always(sliceOffsetBits < 32); // "slice size overflows 32 bit address space"
+        Assert.always(bitmap.add(bitmapSize).loeq(sliceTable)); // "bitmap collides with slice table"
+        Assert.always(heapEnd.loeq(bitmap.sub(minimumMarkingStackSize))); // "heap collides with marking stack"
+        Assert.always((heapSize % alignment) == 0); // "heap size is non-aligned"
+        Assert.always((bitmapSize % HDR.BYTES_PER_WORD) == 0); // "bitmap size is non-aligned"
+        Assert.always((sliceTableSize % HDR.BYTES_PER_WORD) == 0); // "slice table size is non-aligned"
+        Assert.always(Lisp2Bitmap.getAddressOfBitmapWordFor(permanentMemoryStart).eq(Lisp2Bitmap.getStart())); // "incorrect bitmap base"
+        Assert.always(Lisp2Bitmap.getAddressOfBitmapWordFor(heapEnd).lo(Lisp2Bitmap.getEnd())); // "incorrect bitmap base"
     }
 
     /**
@@ -528,40 +547,45 @@ public final class Lisp2Collector extends GarbageCollector {
     }
 
     private void dumpTiming(java.io.PrintStream out, String label, long value, long total) {
-        out.println(label + value + timerUnitSuffix() + " [" + asPercentOf(value, total) + "%]");
+        out.println(label + value + timerUnitSuffix() + "\t[" + asPercentOf(value, total) + "%]");
     }
 
     /**
      * {@inheritDoc}
      */
     void dumpTimings(java.io.PrintStream out) {
-
         Timings timings = collectionTimings;
         long total = timings.getTotal();
-        int count = GC.getCollectionCount();
+        int count = GC.getTotalCount();
         if (count != 0) {
-            out.println("Collection: [average time per collection = " + (total/count) + timerUnitSuffix() + "]");
-            out.println(    "    collection count: " + count);
-            dumpTiming(out, "    total time:       ", total, total);
-            dumpTiming(out, "    setup:            ", timings.setup, total);
-            dumpTiming(out, "    mark:             ", timings.mark, total);
-            dumpTiming(out, "    computeAddresses: ", timings.computeAddresses, total);
-            dumpTiming(out, "    updatePointers:   ", timings.updatePointers, total);
-            dumpTiming(out, "    fixupOopMaps:     ", timings.fixupOopMaps, total);
-            dumpTiming(out, "    finalize:         ", timings.finalize, total);
-            dumpTiming(out, "    post:             ", timings.post, total);
+            out.println("Collection: [average time per collection = " + (total / count) + timerUnitSuffix() + "]");
+            out.println("    collection count: " + count);
+            if (GC.GC_TRACING_SUPPORTED) {
+                dumpTiming(out, "    total time:       ", total, total);
+                dumpTiming(out, "    setup:            ", timings.setup, total);
+                dumpTiming(out, "    mark:             ", timings.mark, total);
+                dumpTiming(out, "    computeAddresses: ", timings.computeAddresses, total);
+                dumpTiming(out, "    updatePointers:   ", timings.updatePointers, total);
+                dumpTiming(out, "    fixupOopMaps:     ", timings.fixupOopMaps, total);
+                dumpTiming(out, "    finalize:         ", timings.finalize, total);
+                dumpTiming(out, "    post:             ", timings.post, total);
+            }
         }
 
-        timings = copyTimings;
-        total = timings.getTotal();
-        out.println("Copying:");
-        dumpTiming(out, "    setup:            ", timings.setup, total);
-        dumpTiming(out, "    mark:             ", timings.mark, total);
-        dumpTiming(out, "    computeAddresses: ", timings.computeAddresses, total);
-        dumpTiming(out, "    updatePointers:   ", timings.updatePointers, total);
-        dumpTiming(out, "    unforward:        ", timings.unforward, total);
-        dumpTiming(out, "    finalize:         ", timings.finalize, total);
-
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//        if (GC.GC_TRACING_SUPPORTED) {
+//        timings = copyTimings;
+//        total = timings.getTotal();
+//        out.println("Copying:");
+//        dumpTiming(out, "    setup:            ", timings.setup, total);
+//        dumpTiming(out, "    mark:             ", timings.mark, total);
+//        dumpTiming(out, "    computeAddresses: ", timings.computeAddresses, total);
+//        dumpTiming(out, "    updatePointers:   ", timings.updatePointers, total);
+//        dumpTiming(out, "    unforward:        ", timings.unforward, total);
+//        dumpTiming(out, "    finalize:         ", timings.finalize, total);
+//        }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
     }
 
     /*---------------------------------------------------------------------------*\
@@ -573,9 +597,9 @@ public final class Lisp2Collector extends GarbageCollector {
      */
     private final Timings collectionTimings;
 
-    /**
-     * @vm2c root( collectGarbage )
-     */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="collectGarbage")
+/*end[JAVA5SYNTAX]*/
     boolean collectGarbageInJava (Address allocTop, boolean forceFullGC) {
 
         long start = now();
@@ -583,6 +607,7 @@ public final class Lisp2Collector extends GarbageCollector {
         // Set up the limits of the space to be collected.
         collectionStart = heapStart;
         collectionEnd = allocTop;
+        numBytesLastScanned = collectionEnd.diff(collectionStart).toPrimitive();
 
         // Sets up the marking stack.
         markingStack.setup(collectionEnd, Lisp2Bitmap.getStart());
@@ -616,11 +641,12 @@ public final class Lisp2Collector extends GarbageCollector {
 
             // Phase 4: Compact
             allocTop = compactObjects(firstDeadBlock, firstMovingBlock);
-
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
             if (movedOopMaps != 0) {
                 fixupOopMaps(heapStart, allocTop, movedOopMaps);
                 movedOopMaps = 0;
             }
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         } else {
             // No objects to be moved
             allocTop = lastDeadBlock;
@@ -653,6 +679,7 @@ public final class Lisp2Collector extends GarbageCollector {
         return true;
     }
 
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
     /**
      * Resets the 'oopMapWord' field of all the classes in the heap whose oop map was moved. This
      * field was used to record the old location of the oop map which is required so that instances
@@ -693,63 +720,70 @@ public final class Lisp2Collector extends GarbageCollector {
             VM.println("Lisp2Collector::fixupOopMaps --------------- End");
         }
 
-        (copyingObjectGraph ? copyTimings : collectionTimings).fixupOopMaps += now() - begin;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+        collectionTimings.fixupOopMaps += now() - begin;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//      (copyingObjectGraph ? copyTimings : collectionTimings).fixupOopMaps += now() - begin;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
     }
-
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+    
     /**
      * {@inheritDoc}
      */
     void postCollection() {
         long start = now();
-/*if[FINALIZATION]*/
-        postProcessFinalizers();
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//      postProcessFinalizers();
 /*end[FINALIZATION]*/
         postProcessWeakReferences();
         collectionTimings.post += now() - start;
     }
 
-/*if[FINALIZATION]*/
-    /**
-     * Process the global queue of finalizers after a collection to remove the finalizers for
-     * objects that were determined to be unreferenced during the collection.
-     */
-    private void postProcessFinalizers() {
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.println("Lisp2Collector::postProcessFinalizers --------------- Start");
-        }
-
-        Finalizer entry = finalizers;
-        finalizers = null;
-
-        while (entry != null) {
-
-            Finalizer next = entry.getNext();
-            boolean referenced = entry.isReferenced();
-            entry.setReferenced(false);
-            if (referenced) {
-                addFinalizer(entry);
-            } else {
-                entry.queueToIsolate();
-            }
-
-            if (GC.GC_TRACING_SUPPORTED && tracing()) {
-                VM.print("Lisp2Collector::postProcessFinalizers -- finalizer = ");
-                VM.printAddress(entry);
-                VM.print(" object = ");
-                VM.printAddress(entry.getObject());
-                VM.print(" class = ");
-                VM.print(Klass.getInternalName(GC.getKlass(Address.fromObject(entry.getObject()))));
-                VM.print(" referenced = ");
-                VM.print(referenced);
-                VM.println();
-            }
-            entry = next;
-        }
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.println("Lisp2Collector::postProcessFinalizers --------------- End");
-            VM.println();
-        }
-    }
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//    /**
+//     * Process the global queue of finalizers after a collection to remove the finalizers for
+//     * objects that were determined to be unreferenced during the collection.
+//     */
+//    private void postProcessFinalizers() {
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.println("Lisp2Collector::postProcessFinalizers --------------- Start");
+//        }
+//
+//        Finalizer entry = finalizers;
+//        finalizers = null;
+//
+//        while (entry != null) {
+//
+//            Finalizer next = entry.getNext();
+//            boolean referenced = entry.isReferenced();
+//            entry.setReferenced(false);
+//            if (referenced) {
+//                addFinalizer(entry);
+//            } else {
+//                entry.queueToIsolate();
+//            }
+//
+//            if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//                VM.print("Lisp2Collector::postProcessFinalizers -- finalizer = ");
+//                VM.printAddress(entry);
+//                VM.print(" object = ");
+//                VM.printAddress(entry.getObject());
+//                VM.print(" class = ");
+//                VM.print(Klass.getInternalName(GC.getKlass(Address.fromObject(entry.getObject()))));
+//                VM.print(" referenced = ");
+//                VM.print(referenced);
+//                VM.println();
+//            }
+//            entry = next;
+//        }
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.println("Lisp2Collector::postProcessFinalizers --------------- End");
+//            VM.println();
+//        }
+//    }
 /*end[FINALIZATION]*/
 
     /**
@@ -804,13 +838,29 @@ public final class Lisp2Collector extends GarbageCollector {
     private final static int VERIFY_VISITOR = 2;
 
     /**
+     * Mark an object referred to by the pointer at base + offset.
+     * @param base
+     * @param offset
+     */
+    private void markOop(Address base, int offset) throws AllowInlinedPragma {
+        Address object = NativeUnsafe.getAddress(base, offset);
+        if (!object.isZero()) {
+            markObject(object);
+        }
+    }
+
+    /**
      * Visit an object pointer.
      *
      * @param base   the base address
      * @param offset the offset (in words) from <code>base</code> of the oop to visit
      * @return the value of the oop after visit is complete
      */
-    private Address visitOop(int visitor, Address base, int offset) {
+    private void visitOop(int visitor, Address base, int offset)
+/*if[!DEBUG_CODE_ENABLED]*/
+            throws AllowInlinedPragma
+/*end[DEBUG_CODE_ENABLED]*/
+    {
         Address object;
         switch (visitor) {
             case MARK_VISITOR: {
@@ -818,10 +868,11 @@ public final class Lisp2Collector extends GarbageCollector {
                 if (!object.isZero()) {
                     markObject(object);
                 }
-                return object;
+                break;
             }
             case UPDATE_VISITOR: {
-                return updateOop(base, offset);
+                updateOop(base, offset);
+                break;
             }
 /*if[DEBUG_CODE_ENABLED]*/
             case VERIFY_VISITOR: {
@@ -850,13 +901,72 @@ public final class Lisp2Collector extends GarbageCollector {
                 if (GC.GC_TRACING_SUPPORTED && tracing()) {
                     VM.println();
                 }
-
-                return object;
+                break;
             }
 /*end[DEBUG_CODE_ENABLED]*/
             default:
                 Assert.shouldNotReachHere("illegal oop traversal phase");
-                return Address.max();
+        }
+    }
+
+    /**
+     * Visit object pointers in an array
+     *
+     * @param base   the base address
+     * @param offset the offset (in words) from <code>base</code> of the oop to visit
+     * @return the value of the oop after visit is complete
+     */
+    private void visitOops(int visitor, Address base, int len) {
+        Address object;
+
+        switch (visitor) {
+            case MARK_VISITOR: {
+                for (int i = 0; i < len; i++) {
+                    markOop(base, i);
+                }
+                return;
+            }
+            case UPDATE_VISITOR: {
+                for (int i = 0; i < len; i++) {
+                    updateOop(base, i);
+                }
+                return;
+            }
+/*if[DEBUG_CODE_ENABLED]*/
+            case VERIFY_VISITOR: {
+                for (int i = 0; i < len; i++) {
+                    object = NativeUnsafe.getAddress(base, i);
+                    if (GC.GC_TRACING_SUPPORTED && tracing()) {
+                        VM.print("ObjectMemoryVerificationVisitor::visitOops - ");
+                        VM.printAddress(base);
+                        VM.print(" @ ");
+                        VM.print(i);
+                        VM.print(" = ");
+                        VM.printAddress(object);
+                    }
+
+                    if (!object.isZero()) {
+
+                        Klass klass = GC.getKlass(object);
+                        Assert.always(GC.getKlass(klass).getSystemID() == CID.KLASS, "class of referenced object is invalid");
+
+                        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+                            VM.print(" (");
+                            VM.print(klass.getInternalName());
+                            VM.print(")");
+                        }
+                    }
+
+                    if (GC.GC_TRACING_SUPPORTED && tracing()) {
+                        VM.println();
+                    }
+                }
+                return;
+            }
+
+            default:
+                Assert.shouldNotReachHere("illegal oop traversal phase");
+/*end[DEBUG_CODE_ENABLED]*/
         }
     }
 
@@ -871,7 +981,6 @@ public final class Lisp2Collector extends GarbageCollector {
 
         Address ipointer;
         Address destination;
-        Address pointerAddress;
 
         switch (visitor) {
             case MARK_VISITOR: {
@@ -905,12 +1014,14 @@ public final class Lisp2Collector extends GarbageCollector {
                         VM.println(" [no update]");
                     }
                 }
-
-                if (copyingObjectGraph) {
-                    // Update the oop map
-                    pointerAddress = base.add(offset * HDR.BYTES_PER_WORD);
-                    recordPointer(pointerAddress);
-                }
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//                if (copyingObjectGraph) {
+//                    // Update the oop map
+//                    Address pointerAddress = base.add(offset * HDR.BYTES_PER_WORD);
+//                    recordPointer(pointerAddress);
+//                }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
                 break;
             }
 /*if[DEBUG_CODE_ENABLED]*/
@@ -977,11 +1088,13 @@ public final class Lisp2Collector extends GarbageCollector {
 
         // The class/ObjectAssociation pointer is handled specially
         if (visitor == MARK_VISITOR) {
-            visitOop(visitor, object, HDR.klass);
+            markOop(object, HDR.klass);
         } else {
             Assert.that(visitor == UPDATE_VISITOR);
             if (isForwarded(object)) {
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
                 updateClassPointerIfClassIsForwarded(object);
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
             } else {
                 // Update the pointer to a forwarded ObjectAssociation
                 // so that it doesn't have to be done in compactObjects
@@ -1040,14 +1153,19 @@ public final class Lisp2Collector extends GarbageCollector {
                     }
                     // All the pointer static fields precede the non-pointer fields
                     int end = CS.firstVariable + Klass.getRefStaticFieldsSize(gaklass);
-                    for (int i = 0 ; i < end ; i++) {
-                        Assert.that(i < GC.getArrayLengthNoCheck(object), "class state index out of bounds");
-                        visitOop(visitor, object, i);
-                    }
+                    visitOops(visitor, object, end);
                 }
                 break;
             }
             case CID.LOCAL_ARRAY: {
+/*if[DEBUG_CODE_ENABLED]*/
+                if (NativeUnsafe.getObject(object, SC.owner) == null) {
+                    // should only be null for the service thread.
+                    VM.print("traverseOopsInStackChunk on service stack: ");
+                    VM.printAddress(object);
+                    VM.println();
+                }
+/*end[DEBUG_CODE_ENABLED]*/
                 traverseOopsInStackChunk(object, visitor, true);
 
                 if (visitor == UPDATE_VISITOR) {
@@ -1061,9 +1179,7 @@ public final class Lisp2Collector extends GarbageCollector {
             }
             default: { // Pointer array
                 int length = GC.getArrayLengthNoCheck(object);
-                for (int i = 0; i < length; i++) {
-                    visitOop(visitor, object, i);
-                }
+                visitOops(visitor, object, length);
                 break;
             }
         }
@@ -1080,19 +1196,24 @@ public final class Lisp2Collector extends GarbageCollector {
 
         Address oopMap;
         UWord oopMapWord;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//        if (copyingObjectGraph) {
+//            // If the object is a hashtable and we are doing a graph copy then
+//            // zero the first oop which is the transient field called entryTable.
+//            if(Klass.isSubtypeOf(VM.asKlass(klass), HashTableKlass)) {
+//                NativeUnsafe.setAddress(object, (int)FieldOffsets.com_sun_squawk_util_SquawkHashtable$entryTable, Address.zero());
+//            }
+//
+//        }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
-        if (copyingObjectGraph) {
-            // If the object is a hashtable and we are doing a graph copy then
-            // zero the first oop which is the transient field called entryTable.
-            if(Klass.isSubtypeOf(VM.asKlass(klass), HashTableKlass)) {
-                NativeUnsafe.setAddress(object, (int)FieldOffsets.com_sun_squawk_util_SquawkHashtable$entryTable, Address.zero());
-            }
-
-        }
 
 /*if[TRUSTED]*/
         Assert.shouldNotReachHere("need to extend test below to catch instances of TrustedKlass");
 /*end[TRUSTED]*/
+
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
         if (visitor == UPDATE_VISITOR && !copyingObjectGraph) {
             if (Klass.getSystemID(VM.asKlass(klass)) == CID.KLASS) {
                 oopMap = NativeUnsafe.getAddress(object, (int)FieldOffsets.com_sun_squawk_Klass$oopMap);
@@ -1119,6 +1240,7 @@ public final class Lisp2Collector extends GarbageCollector {
                 }
             }
         }
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
 
         int instanceSize = Klass.getInstanceSize(VM.asKlass(klass));
         oopMapWord = NativeUnsafe.getUWord(klass, (int)FieldOffsets.com_sun_squawk_Klass$oopMapWord);
@@ -1206,6 +1328,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param header   specifies if the header part of the stack chunk should be traversed
      */
     private void traverseOopsInStackChunk(Address chunk, int visitor, boolean header) {
+        GC.checkSC(chunk.toObject());
         Address fp = NativeUnsafe.getAddress(chunk, SC.lastFP);
 
         // Trace.
@@ -1279,8 +1402,11 @@ public final class Lisp2Collector extends GarbageCollector {
             }
             Assert.that(!returnFP.isZero(), "activation frame has null returnFP");
             Address returnMP = NativeUnsafe.getAddress(returnFP, FP.method);
-            visitInternalPointer(visitor,fp, FP.returnIP, returnMP);
-
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
+            visitInternalPointer(visitor, fp, FP.returnIP, returnMP);
+/*else[ENABLE_DYNAMIC_CLASSLOADING]*/
+//          Assert.that(!inHeap(returnMP)); // returnMP will never move, and will always be live.
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         } else {
             Assert.that(returnFP.isZero(), "returnFP should be null when returnIP is null");
         }
@@ -1288,9 +1414,9 @@ public final class Lisp2Collector extends GarbageCollector {
         /*
          * Get the method pointer and setup to go through the parameters and locals.
          */
-        int localCount     = isInnerMostActivation ? 1 : MethodBody.decodeLocalCount(mp.toObject());
-        int parameterCount = MethodBody.decodeParameterCount(mp.toObject());
-        int mapOffset      = MethodBody.decodeOopmapOffset(mp.toObject());
+        int localCount     = isInnerMostActivation ? 1 : MethodHeader.decodeLocalCount(mp.toObject());
+        int parameterCount = MethodHeader.decodeParameterCount(mp.toObject());
+        int mapOffset      = MethodHeader.decodeOopmapOffset(mp.toObject());
         int bitOffset      = -1;
         int byteOffset     = 0;
 
@@ -1365,19 +1491,20 @@ public final class Lisp2Collector extends GarbageCollector {
         // Recursively mark from the already marked objects in the collection space
         markCollectionSpace();
 
-/*if[FINALIZATION]*/
-        // Process the finalizer queue
-        if (finalizers != null) {
-
-            // Set the flag in each finalizer specifying what to do with it after the collection
-            processFinalizers();
-
-            // Mark the finalizer queue
-            markObject(Address.fromObject(finalizers));
-
-            // Remark collection space
-            markCollectionSpace();
-        }
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//        // Process the finalizer queue
+//        if (finalizers != null) {
+//
+//            // Set the flag in each finalizer specifying what to do with it after the collection
+//            processFinalizers();
+//
+//            // Mark the finalizer queue
+//            markObject(Address.fromObject(finalizers));
+//
+//            // Remark collection space
+//            markCollectionSpace();
+//        }
 /*end[FINALIZATION]*/
 
         // Process the weak reference queue
@@ -1398,19 +1525,18 @@ public final class Lisp2Collector extends GarbageCollector {
             VM.println();
         }
 
-        long duration = now() - start;
-        if (copyingObjectGraph) {
-            copyTimings.mark += duration;
-        } else {
-            collectionTimings.mark += duration;
-        }
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+        collectionTimings.mark += now() - start;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//      (copyingObjectGraph ? copyTimings : collectionTimings).mark += now() - start;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
     }
 
     /**
      * Marks all the objects reachable from the already marked objects in the collection space.
      * This process repeats itself if the marking stack overflows.
      */
-    private void markCollectionSpace() {
+    private void markCollectionSpace() throws NotInlinedPragma {
         while (markingStack.hasOverflowed()) {
             if (GC.GC_TRACING_SUPPORTED && tracing()) {
                 VM.println("Lisp2Collector::mark - remarking from marked objects after marking stack overflow");
@@ -1453,57 +1579,58 @@ public final class Lisp2Collector extends GarbageCollector {
         }
     }
 
-/*if[FINALIZATION]*/
-    /**
-     * Process the finalizer queue, setting the flag in each finalizer indicating if the associated
-     * object is referenced by something else besides the finalizer object. This flag will be used
-     * after the collector has finished to modify the global queue of pending finalizers and the
-     * per-isolate queue of finalizers.
-     */
-    private void processFinalizers() {
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.println("Lisp2Collector::markFinalizers --------------- Start");
-        }
-
-        Finalizer entry = finalizers;
-        while (entry != null) {
-            if (GC.GC_TRACING_SUPPORTED && tracing()) {
-                VM.println("Lisp2Collector::markFinalizers -- processing finalizer ");
-            }
-
-            Address entryAddress = Address.fromObject(entry);
-            Assert.that(!inCollectionSpace(entryAddress) || !Lisp2Bitmap.testBitFor(entryAddress), "finalizer for object marked prematurely");
-
-            Finalizer next = entry.getNext();
-            Address object = Address.fromObject(entry.getObject());
-            boolean referenced = !inCollectionSpace(object) || Lisp2Bitmap.testBitFor(object);
-            entry.setReferenced(referenced);
-
-            if (GC.GC_TRACING_SUPPORTED && tracing()) {
-                VM.print("Lisp2Collector::markFinalizers -- finalizer = ");
-                VM.printAddress(entry);
-                VM.print(" object = ");
-                VM.printAddress(object);
-                VM.print(" class = ");
-                VM.print(Klass.getInternalName(GC.getKlass(Address.fromObject(entry.getObject()))));
-                VM.print(" referenced = ");
-                VM.print(referenced);
-                VM.println();
-            }
-            entry = next;
-        }
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.println("Lisp2Collector::markFinalizers --------------- End");
-            VM.println();
-        }
-    }
+/*if[!FINALIZATION]*/
+/*else[FINALIZATION]*/
+//    /**
+//     * Process the finalizer queue, setting the flag in each finalizer indicating if the associated
+//     * object is referenced by something else besides the finalizer object. This flag will be used
+//     * after the collector has finished to modify the global queue of pending finalizers and the
+//     * per-isolate queue of finalizers.
+//     */
+//    private void processFinalizers() {
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.println("Lisp2Collector::markFinalizers --------------- Start");
+//        }
+//
+//        Finalizer entry = finalizers;
+//        while (entry != null) {
+//            if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//                VM.println("Lisp2Collector::markFinalizers -- processing finalizer ");
+//            }
+//
+//            Address entryAddress = Address.fromObject(entry);
+//            Assert.that(!inCollectionSpace(entryAddress) || !Lisp2Bitmap.testBitFor(entryAddress), "finalizer for object marked prematurely");
+//
+//            Finalizer next = entry.getNext();
+//            Address object = Address.fromObject(entry.getObject());
+//            boolean referenced = !inCollectionSpace(object) || Lisp2Bitmap.testBitFor(object);
+//            entry.setReferenced(referenced);
+//
+//            if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//                VM.print("Lisp2Collector::markFinalizers -- finalizer = ");
+//                VM.printAddress(entry);
+//                VM.print(" object = ");
+//                VM.printAddress(object);
+//                VM.print(" class = ");
+//                VM.print(Klass.getInternalName(GC.getKlass(Address.fromObject(entry.getObject()))));
+//                VM.print(" referenced = ");
+//                VM.print(referenced);
+//                VM.println();
+//            }
+//            entry = next;
+//        }
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.println("Lisp2Collector::markFinalizers --------------- End");
+//            VM.println();
+//        }
+//    }
 /*end[FINALIZATION]*/
 
     /**
      * Process the weak reference queue. If an object to which the weak reference is pointing is now
      * no longer live, clear the reference.  The global list will be updated post collection.
      */
-    private void processWeakReferences() {
+    private void processWeakReferences() throws NotInlinedPragma {
         if (GC.GC_TRACING_SUPPORTED && tracing()) {
             VM.println("Lisp2Collector::processWeakReferences --------------- Start");
         }
@@ -1601,10 +1728,13 @@ public final class Lisp2Collector extends GarbageCollector {
                     Klass klass = GC.getKlass(object);
 
 /*if[DEBUG_CODE_ENABLED]*/
-                    // Run some assertions that will hopefully ensure isolation
-                    if (copyingObjectGraph) {
-                        assertIsolation(object, klass);
-                    }
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//                    // Run some assertions that will hopefully ensure isolation
+//                    if (copyingObjectGraph) {
+//                        assertIsolation(object, klass);
+//                    }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 /*end[DEBUG_CODE_ENABLED]*/
 
                     if (GC.GC_TRACING_SUPPORTED && tracing()) {
@@ -1662,7 +1792,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @return <code>null</code> if there was not enough free room to copy all the objects
      *         in the graph otherwise it is the address of the byte one past the last copied object
      */
-    private Address computeAddresses() {
+    private Address computeAddresses() throws NotInlinedPragma {
 
         long start = now();
 
@@ -1675,7 +1805,11 @@ public final class Lisp2Collector extends GarbageCollector {
             VM.println();
         }
 
-        Address free = !copyingObjectGraph ? collectionStart : copiedObjects;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+        Address free = collectionStart;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//        Address free = !copyingObjectGraph ? collectionStart : copiedObjects;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
         Address object;
         Address returnValue = Address.zero();
 
@@ -1702,35 +1836,37 @@ public final class Lisp2Collector extends GarbageCollector {
 
             // Only install forwarding header if the object will actually move
             if (!delta.isZero()) {
-
-                if (copyingObjectGraph) {
-                    // Copy the object now so that a compactObjects phase is not required
-                    Address block = object.sub(headerSize);
-                    Address destinationBlock = objectDestination.sub(headerSize);
-
-                    if (Klass.getSystemID(klass) != CID.LOCAL_ARRAY) {
-                        int blockSize = headerSize + size;
-                        Address destinationBlockEnd = destinationBlock.add(blockSize);
-                        if (destinationBlockEnd.hi(heapEnd)) {
-                            Lisp2Bitmap.Iterator.terminate();
-                            return Address.zero();
-                        } else {
-                            returnValue = destinationBlockEnd;
-                        }
-                        VM.copyBytes(block, 0, destinationBlock, 0, blockSize, false);
-/*if[TYPEMAP]*/
-                        if (VM.usingTypeMap()) {
-                            NativeUnsafe.copyTypes(block, destinationBlock, blockSize);
-                        }
-/*end[TYPEMAP]*/
-                    } else {
-                        size = copyStackChunk(object, size, objectDestination);
-                        if (size == -1) {
-                            Lisp2Bitmap.Iterator.terminate();
-                            return Address.zero();
-                        }
-                    }
-                }
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//                if (copyingObjectGraph) {
+//                    // Copy the object now so that a compactObjects phase is not required
+//                    Address block = object.sub(headerSize);
+//                    Address destinationBlock = objectDestination.sub(headerSize);
+//
+//                    if (Klass.getSystemID(klass) != CID.LOCAL_ARRAY) {
+//                        int blockSize = headerSize + size;
+//                        Address destinationBlockEnd = destinationBlock.add(blockSize);
+//                        if (destinationBlockEnd.hi(heapEnd)) {
+//                            Lisp2Bitmap.Iterator.terminate();
+//                            return Address.zero();
+//                        } else {
+//                            returnValue = destinationBlockEnd;
+//                        }
+//                        VM.copyBytes(block, 0, destinationBlock, 0, blockSize, false);
+///*if[TYPEMAP]*/
+//                        if (VM.usingTypeMap()) {
+//                            NativeUnsafe.copyTypes(block, destinationBlock, blockSize);
+//                        }
+///*end[TYPEMAP]*/
+//                    } else {
+//                        size = copyStackChunk(object, size, objectDestination);
+//                        if (size == -1) {
+//                            Lisp2Bitmap.Iterator.terminate();
+//                            return Address.zero();
+//                        }
+//                    }
+//                }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
                 if (GC.GC_TRACING_SUPPORTED && tracing()) {
                     VM.print("Lisp2Collector::computeAddresses - object = ");
@@ -1753,26 +1889,6 @@ public final class Lisp2Collector extends GarbageCollector {
                     VM.print(headerSize);
                     VM.println();
                 }
-
-/*if[!FLASH_MEMORY]*/                
-                if (VM.isVerbose() && Klass.getSystemID(klass) == CID.BYTECODE_ARRAY) {
-                    int old = VM.setStream(VM.STREAM_SYMBOLS);
-                    if (!copyingObjectGraph) {
-                        VM.print("METHOD.");
-                        VM.printAddress(objectDestination);
-                        VM.print(".MOVED_FROM=");
-                        VM.printAddress(object);
-                        VM.println();
-                    } else {
-                        VM.print("SAVED_METHOD.");
-                        VM.printOffset(objectDestination.diff(collectionEnd.add(HDR.arrayHeaderSize)));
-                        VM.print(".COPIED_FROM=");
-                        VM.printAddress(object);
-                        VM.println();
-                    }
-                    VM.setStream(old);
-                }
-/*end[FLASH_MEMORY]*/                
 
                 if (!copyingObjectGraph) {
                     if (firstDeadBlock.isZero()) {
@@ -1810,14 +1926,18 @@ public final class Lisp2Collector extends GarbageCollector {
             VM.println();
         }
 
-        (copyingObjectGraph ? copyTimings : collectionTimings).computeAddresses += now() - start;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+        collectionTimings.computeAddresses += now() - start;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//      (copyingObjectGraph ? copyTimings : collectionTimings).computeAddresses += now() - start;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
         return returnValue;
     }
 
     /**
      * Update the object address contained within each Weak Reference.
      */
-    private void updateWeakReferenceList() {
+    private void updateWeakReferenceList() throws NotInlinedPragma {
         if (GC.GC_TRACING_SUPPORTED && tracing()) {
              VM.println("Lisp2Collector::updateWeakReferenceList --------------- Start");
          }
@@ -1859,149 +1979,152 @@ public final class Lisp2Collector extends GarbageCollector {
         }
     }
 
-    /**
-     * Calculates the address of the last slot in a given stack chunk that has been reserved by
-     * an activation frame in the stack.
-     *
-     * @param chunk   the stack chunk to examine
-     * @return the address of the last slot in <code>chunk</code> that has been reserved by an activation frame
-     */
-    private Address calculateLastReservedSlot(Address chunk) {
-
-        Address fp = NativeUnsafe.getAddress(chunk, SC.lastFP);
-        Address lastReservedSlot = fp;
-        boolean isInnerMostActivation = true;
-        while (!fp.isZero()) {
-
-            Address mp = NativeUnsafe.getAddress(fp, FP.method);
-            int localCount = isInnerMostActivation ? 1 : MethodBody.decodeLocalCount(mp.toObject());
-            int stackCount = MethodBody.decodeStackCount(mp.toObject());
-            int reserved = (localCount + stackCount + FP.FIXED_FRAME_SIZE)  * HDR.BYTES_PER_WORD;
-            if (fp.sub(reserved).lo(lastReservedSlot)) {
-                lastReservedSlot = fp.sub(reserved);
-            }
-
-            Address returnFP = NativeUnsafe.getAddress(fp, FP.returnFP);
-            fp = returnFP;
-
-            isInnerMostActivation = false;
-        }
-
-        return lastReservedSlot;
-    }
-
-    /**
-     * Copies a stack chunk, shrinking the copy such that any unused part of the stack chunk is
-     * not copied, reducing the size of serialized isolates.
-     *
-     * @param src   the chunk to copy
-     * @param size  the size (in bytes) of the body of the <code>chunk</code>
-     * @param dst   the address to which <code>chunk</code> should be copied
-     * @return the size (in bytes) of the body of the copied chunk
-     */
-    private int copyStackChunk(Address src, int size, Address dst) {
-
-        Assert.that(copyingObjectGraph);
-        Assert.that(NativeUnsafe.getUWord(src, SC.guard).isZero());
-
-        // Copy the class pointer
-        NativeUnsafe.setAddress(dst, HDR.klass, NativeUnsafe.getAddress(src, HDR.klass));
-
-        // Calculate the used part of stack chunk (i.e. the live activation frames) and
-        // the (reduced) size of the copied chunk
-        Address srcEnd = src.add(size);
-        Address srcLRS = calculateLastReservedSlot(src);
-
-        final int fixedSize = SC.limit * HDR.BYTES_PER_WORD;
-        final int usedSize;
-
-        Address dstLRS;
-        Address dstEnd;
-
-        Address srcFP = NativeUnsafe.getAddress(src, SC.lastFP);
-        Address dstFP;
-
-        if (srcLRS.isZero()) {
-            usedSize = 0;
-            dstLRS = Address.zero();
-            dstEnd = dst.add(size);
-            dstFP = Address.zero();
-        } else {
-            usedSize = srcEnd.diff(srcLRS).toInt();
-            dstLRS = dst.add(fixedSize);
-            dstEnd = dstLRS.add(usedSize);
-            srcFP = NativeUnsafe.getAddress(src, SC.lastFP);
-            dstFP = dstLRS.addOffset(srcFP.diff(srcLRS));
-        }
-
-        size = dstEnd.diff(dst).toInt();
-
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.print("Lisp2Collector::copyStackChunk - src = ");
-            VM.printAddress(src);
-            VM.print(" srcEnd = ");
-            VM.printAddress(srcEnd);
-            VM.print(" dst = ");
-            VM.printAddress(dst);
-            VM.print(" dstEnd = ");
-            VM.printAddress(dstEnd);
-            VM.print(" srcLRS = ");
-            VM.printAddress(srcLRS);
-            VM.print(" dstLRS = ");
-            VM.printAddress(dstLRS);
-            VM.print(" srcFP = ");
-            VM.printAddress(srcFP);
-            VM.print(" dstFP = ");
-            VM.printAddress(dstFP);
-            VM.println();
-        }
-
-        if (dstEnd.hi(heapEnd)) {
-            return -1;
-        }
-
-        // Copy the fixed part of the chunk (i.e. the part before the activation records)
-        VM.copyBytes(src, 0, dst, 0, fixedSize, false);
-/*if[TYPEMAP]*/
-        if (VM.usingTypeMap()) {
-            NativeUnsafe.copyTypes(src, dst, fixedSize);
-        }
-/*end[TYPEMAP]*/
-
-        // Copy the used part of stack chunk
-        if (!srcLRS.isZero()) {
-            VM.copyBytes(srcLRS, 0, dstLRS, 0, usedSize, false);
-/*if[TYPEMAP]*/
-            if (VM.usingTypeMap()) {
-                NativeUnsafe.copyTypes(srcLRS, dstLRS, usedSize);
-            }
-/*end[TYPEMAP]*/
-        }
-
-        // Update the length header of the copied chunk
-        GC.setHeaderLength(dst, size / HDR.BYTES_PER_WORD);
-
-        // Update the 'lastFP' field in the copied chunk
-        NativeUnsafe.setAddress(dst, SC.lastFP, dstFP);
-        recordPointer(dst.add(SC.lastFP * HDR.BYTES_PER_WORD));
-
-        // Relocate the internal stack chunk pointers
-        while (!srcFP.isZero()) {
-
-            // Calculate the change in fp when returning to the previous frame
-            Address returnFP = NativeUnsafe.getAddress(srcFP, FP.returnFP);
-            Offset delta = returnFP.diff(srcFP);
-            srcFP = returnFP;
-
-            // Apply the change to the fp in the copied stack chunk
-            Address pointerAddress = dstFP.add(FP.returnFP * HDR.BYTES_PER_WORD);
-            dstFP = srcFP.isZero() ? Address.zero() : dstFP.addOffset(delta);
-            NativeUnsafe.setAddress(pointerAddress, 0, dstFP);
-            recordPointer(pointerAddress);
-        }
-
-        return size;
-    }
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//    /**
+//     * Calculates the address of the last slot in a given stack chunk that has been reserved by
+//     * an activation frame in the stack.
+//     *
+//     * @param chunk   the stack chunk to examine
+//     * @return the address of the last slot in <code>chunk</code> that has been reserved by an activation frame
+//     */
+//    private Address calculateLastReservedSlot(Address chunk) {
+//
+//        Address fp = NativeUnsafe.getAddress(chunk, SC.lastFP);
+//        Address lastReservedSlot = fp;
+//        boolean isInnerMostActivation = true;
+//        while (!fp.isZero()) {
+//
+//            Address mp = NativeUnsafe.getAddress(fp, FP.method);
+//            int localCount = isInnerMostActivation ? 1 : MethodHeader.decodeLocalCount(mp.toObject());
+//            int stackCount = MethodHeader.decodeStackCount(mp.toObject());
+//            int reserved = (localCount + stackCount + FP.FIXED_FRAME_SIZE)  * HDR.BYTES_PER_WORD;
+//            if (fp.sub(reserved).lo(lastReservedSlot)) {
+//                lastReservedSlot = fp.sub(reserved);
+//            }
+//
+//            Address returnFP = NativeUnsafe.getAddress(fp, FP.returnFP);
+//            fp = returnFP;
+//
+//            isInnerMostActivation = false;
+//        }
+//
+//        return lastReservedSlot;
+//    }
+//
+//    /**
+//     * Copies a stack chunk, shrinking the copy such that any unused part of the stack chunk is
+//     * not copied, reducing the size of serialized isolates.
+//     *
+//     * @param src   the chunk to copy
+//     * @param size  the size (in bytes) of the body of the <code>chunk</code>
+//     * @param dst   the address to which <code>chunk</code> should be copied
+//     * @return the size (in bytes) of the body of the copied chunk
+//     */
+//    private int copyStackChunk(Address src, int size, Address dst) {
+//
+//        Assert.that(copyingObjectGraph);
+//        Assert.that(NativeUnsafe.getUWord(src, SC.guard).isZero());
+//
+//        // Copy the class pointer
+//        NativeUnsafe.setAddress(dst, HDR.klass, NativeUnsafe.getAddress(src, HDR.klass));
+//
+//        // Calculate the used part of stack chunk (i.e. the live activation frames) and
+//        // the (reduced) size of the copied chunk
+//        Address srcEnd = src.add(size);
+//        Address srcLRS = calculateLastReservedSlot(src);
+//
+//        final int fixedSize = SC.limit * HDR.BYTES_PER_WORD;
+//        final int usedSize;
+//
+//        Address dstLRS;
+//        Address dstEnd;
+//
+//        Address srcFP = NativeUnsafe.getAddress(src, SC.lastFP);
+//        Address dstFP;
+//
+//        if (srcLRS.isZero()) {
+//            usedSize = 0;
+//            dstLRS = Address.zero();
+//            dstEnd = dst.add(size);
+//            dstFP = Address.zero();
+//        } else {
+//            usedSize = srcEnd.diff(srcLRS).toInt();
+//            dstLRS = dst.add(fixedSize);
+//            dstEnd = dstLRS.add(usedSize);
+//            srcFP = NativeUnsafe.getAddress(src, SC.lastFP);
+//            dstFP = dstLRS.addOffset(srcFP.diff(srcLRS));
+//        }
+//
+//        size = dstEnd.diff(dst).toInt();
+//
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.print("Lisp2Collector::copyStackChunk - src = ");
+//            VM.printAddress(src);
+//            VM.print(" srcEnd = ");
+//            VM.printAddress(srcEnd);
+//            VM.print(" dst = ");
+//            VM.printAddress(dst);
+//            VM.print(" dstEnd = ");
+//            VM.printAddress(dstEnd);
+//            VM.print(" srcLRS = ");
+//            VM.printAddress(srcLRS);
+//            VM.print(" dstLRS = ");
+//            VM.printAddress(dstLRS);
+//            VM.print(" srcFP = ");
+//            VM.printAddress(srcFP);
+//            VM.print(" dstFP = ");
+//            VM.printAddress(dstFP);
+//            VM.println();
+//        }
+//
+//        if (dstEnd.hi(heapEnd)) {
+//            return -1;
+//        }
+//
+//        // Copy the fixed part of the chunk (i.e. the part before the activation records)
+//        VM.copyBytes(src, 0, dst, 0, fixedSize, false);
+///*if[TYPEMAP]*/
+//        if (VM.usingTypeMap()) {
+//            NativeUnsafe.copyTypes(src, dst, fixedSize);
+//        }
+///*end[TYPEMAP]*/
+//
+//        // Copy the used part of stack chunk
+//        if (!srcLRS.isZero()) {
+//            VM.copyBytes(srcLRS, 0, dstLRS, 0, usedSize, false);
+///*if[TYPEMAP]*/
+//            if (VM.usingTypeMap()) {
+//                NativeUnsafe.copyTypes(srcLRS, dstLRS, usedSize);
+//            }
+///*end[TYPEMAP]*/
+//        }
+//
+//        // Update the length header of the copied chunk
+//        GC.setHeaderLength(dst, size / HDR.BYTES_PER_WORD);
+//
+//        // Update the 'lastFP' field in the copied chunk
+//        NativeUnsafe.setAddress(dst, SC.lastFP, dstFP);
+//        recordPointer(dst.add(SC.lastFP * HDR.BYTES_PER_WORD));
+//
+//        // Relocate the internal stack chunk pointers
+//        while (!srcFP.isZero()) {
+//
+//            // Calculate the change in fp when returning to the previous frame
+//            Address returnFP = NativeUnsafe.getAddress(srcFP, FP.returnFP);
+//            Offset delta = returnFP.diff(srcFP);
+//            srcFP = returnFP;
+//
+//            // Apply the change to the fp in the copied stack chunk
+//            Address pointerAddress = dstFP.add(FP.returnFP * HDR.BYTES_PER_WORD);
+//            dstFP = srcFP.isZero() ? Address.zero() : dstFP.addOffset(delta);
+//            NativeUnsafe.setAddress(pointerAddress, 0, dstFP);
+//            recordPointer(pointerAddress);
+//        }
+//
+//        return size;
+//    }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
     /**
      * Determines if a given object is within the heap.
@@ -2009,7 +2132,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param object   the object to test
      * @return true if <code>object</code> is within heap
      */
-    private boolean inHeap(Address object) {
+    private boolean inHeap(Address object) throws AllowInlinedPragma {
         return object.hi(heapStart) && object.loeq(heapEnd);
     }
 
@@ -2019,7 +2142,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param object  the object to test
      * @return the offset (in bytes) of <code>object</code> in the heap from the start of the heap
      */
-    private Offset getOffsetInHeap(Address object) {
+    private Offset getOffsetInHeap(Address object) throws AllowInlinedPragma {
         Assert.that(inHeap(object));
         return object.diff(heapStart);
     }
@@ -2030,7 +2153,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param offset   the offset (in bytes) of the object to retrieve
      * @return the object at <code>offset</code> bytes from the start of the heap
      */
-    private Address getObjectInHeap(Offset offset) {
+    private Address getObjectInHeap(Offset offset) throws AllowInlinedPragma {
         return heapStart.addOffset(offset);
     }
 
@@ -2056,7 +2179,7 @@ public final class Lisp2Collector extends GarbageCollector {
      *         containing <code>object</code> will be moved, left shifted by {@link #sliceOffsetShift}
      */
     private UWord encodeForwardingPointer(Address object, Address destination) {
-        int sliceIndex = getSliceIndexForObject(object);
+        final int sliceIndex = getSliceIndexForObject(object);
         Address sliceDestination = NativeUnsafe.getAddress(sliceTable, sliceIndex);
         Offset offsetInSlice;
         if (sliceDestination.isZero()) {
@@ -2081,7 +2204,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @return the decoded version of <code>encodedDestination</code>
      */
     private Address decodeForwardingPointer(Address object, UWord encodedDestination) {
-        int sliceIndex = getSliceIndexForObject(object);
+        final int sliceIndex = getSliceIndexForObject(object);
         Offset offsetInSlice = Offset.fromPrimitive(encodedDestination.toPrimitive() >>> sliceOffsetShift).wordsToBytes();
         Address sliceDestination = NativeUnsafe.getAddress(sliceTable, sliceIndex);
         return sliceDestination.addOffset(offsetInSlice);
@@ -2146,7 +2269,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param object   the object to test
      * @return true if <code>object</code>'s header indicates that it has been forwarded
      */
-    private static boolean isForwarded(Address object) {
+    private static boolean isForwarded(Address object) throws AllowInlinedPragma {
         return !ClassWordTag.isPointer(NativeUnsafe.getAddress(object, HDR.klass).toUWord());
     }
 
@@ -2156,7 +2279,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param  object  an object that has been forwarded
      * @return the forwarding address of <code>object</code>
      */
-    private Address getForwardedObject(Address object) {
+    private Address getForwardedObject(Address object) throws AllowInlinedPragma {
         Assert.that(isForwarded(object));
         UWord encodedDestination = NativeUnsafe.getAddress(object, HDR.klass).toUWord();
         return decodeForwardingPointer(object, encodedDestination);
@@ -2181,7 +2304,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param object    address of a object whose header has been modified to encode both the
      *                  location of its class or ObjectAssociation as well as where it will be
      *                  moved to
-     * @return the value of <code>object</code>'s vlass or ObjectAssociation
+     * @return the value of <code>object</code>'s klass or ObjectAssociation
      */
     private Address getClassOrAssociationFromForwardedObject(Address object) {
         Assert.that(isForwarded(object));
@@ -2199,7 +2322,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param classOrAssociation  the value of the class pointer word in <code>object</code>'s header
      * @return true if <code>classOrAssociation</code> is a pointer outside of the heap or to a heap address lower than <code>object</code>
      */
-    private static boolean isClassPointer(Address object, Address classOrAssociation) {
+    private static boolean isClassPointer(Address object, Address classOrAssociation) throws AllowInlinedPragma {
         Assert.that(classOrAssociation.ne(object));
         return !GC.inRam(classOrAssociation) || classOrAssociation.lo(object);
     }
@@ -2218,15 +2341,17 @@ public final class Lisp2Collector extends GarbageCollector {
             classOrAssociation = NativeUnsafe.getAddress(object, HDR.klass);
         }
 
-        Address klass;
-        if (!isClassPointer(object, classOrAssociation)) {
-            klass = NativeUnsafe.getAddress(classOrAssociation, (int)FieldOffsets.com_sun_squawk_Klass$self);
-            // Must be an ObjectAssociation
-            Assert.that(klass.ne(classOrAssociation));
-        } else {
-            klass = classOrAssociation;
-        }
+        Address klass = NativeUnsafe.getAddress(classOrAssociation, (int)FieldOffsets.com_sun_squawk_Klass$self);
+//        if (!isClassPointer(object, classOrAssociation)) {
+//            klass = NativeUnsafe.getAddress(classOrAssociation, (int)FieldOffsets.com_sun_squawk_Klass$self);
+//            // Must be an ObjectAssociation
+//            Assert.that(klass.ne(classOrAssociation));
+//        } else {
+//            klass = classOrAssociation;
+//        }
 
+        Assert.that(!klass.isZero());
+        Assert.that(!klass.eq(Address.fromPrimitive(0xDEADBEEF)));
         return klass;
     }
 
@@ -2254,15 +2379,24 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param object      the object to test
      * @return the slice into which <code>object</code> falls
      */
-    private int getSliceIndexForObject(Address object) {
-        // Subtract a word as the object may have a zero-length body
-        // and be at a slice boundary and/or the end of the heap
-        Offset heapOffset = getOffsetInHeap(object).sub(HDR.BYTES_PER_WORD);
-
-        int index = (int)(heapOffset.toPrimitive() / sliceSize);
-        Assert.that(index >= 0 && index < sliceCount);
-        return index;
+    private int getSliceIndexForObject(Address object)
+/*if[ASSUME_SIMPLE_SLICE_TABLE]*/
+        throws AllowInlinedPragma
+    {
+        return 0;
     }
+/*else[ASSUME_SIMPLE_SLICE_TABLE]*/
+//    {
+//        // Subtract a word as the object may have a zero-length body
+//        // and be at a slice boundary and/or the end of the heap
+//        Offset heapOffset = getOffsetInHeap(object).sub(HDR.BYTES_PER_WORD);
+//
+//        int index = (int)(heapOffset.toPrimitive() / sliceSize);
+//        Assert.that(index >= 0 && index < sliceCount);
+//        return index;
+//    }
+/*end[ASSUME_SIMPLE_SLICE_TABLE]*/
+
 
     /*---------------------------------------------------------------------------*\
      *                            Update routines                                *
@@ -2292,13 +2426,17 @@ public final class Lisp2Collector extends GarbageCollector {
             VM.println("********** End Lisp2Collector::updatePointers **********");
         }
 
-        (copyingObjectGraph ? copyTimings : collectionTimings).updatePointers += now() - start;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+        collectionTimings.updatePointers += now() - start;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//      (copyingObjectGraph ? copyTimings : collectionTimings).updatePointers += now() - start;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
     }
 
     /**
      * Updates the pointers in the collection space.
      */
-    private void updateCollectionSpacePointers() {
+    private void updateCollectionSpacePointers() throws NotInlinedPragma {
         if (GC.GC_TRACING_SUPPORTED && tracing()) {
             VM.println("Lisp2Collector::updateCollectionSpacePointers --------------- Start");
         }
@@ -2317,7 +2455,7 @@ public final class Lisp2Collector extends GarbageCollector {
     /**
      * Updates all the root pointers to objects that have been forwarded.
      */
-    private void updateRoots() {
+    private void updateRoots() throws NotInlinedPragma {
         if (GC.GC_TRACING_SUPPORTED && tracing()) {
             VM.println("Lisp2Collector::updateRoots --------------- Start");
         }
@@ -2355,7 +2493,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param offset   the offset (in words) from <code>base</code> of the object pointer
      * @return the value of the pointer after the changes (if any) have been applied
      */
-    private Address updateOop(Address base, int offset) {
+    private void updateOop(Address base, int offset) {
         Address object = NativeUnsafe.getAddress(base, offset);
 
         Address destination = getPossiblyForwardedObject(object);
@@ -2374,14 +2512,14 @@ public final class Lisp2Collector extends GarbageCollector {
 
             NativeUnsafe.setAddress(base, offset, destination);
         }
-
-        if (copyingObjectGraph) {
-            // Update the oop map
-            Address pointerAddress = base.add(offset * HDR.BYTES_PER_WORD);
-            recordPointer(pointerAddress);
-        }
-
-        return object;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//        if (copyingObjectGraph) {
+//            // Update the oop map
+//            Address pointerAddress = base.add(offset * HDR.BYTES_PER_WORD);
+//            recordPointer(pointerAddress);
+//        }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
     }
 
     /**
@@ -2391,7 +2529,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param chunk       the stack chunk at it's current location
      * @param destination the stack chunk at it's destination location
      */
-    private void updateInternalStackChunkPointers(Address chunk, Address destination) {
+    private void updateInternalStackChunkPointers(Address chunk, Address destination) throws NotInlinedPragma {
         Assert.that(!copyingObjectGraph);
         Offset offset = Offset.fromPrimitive(SC.lastFP).wordsToBytes();
         Address oldFP = NativeUnsafe.getAddress(chunk.addOffset(offset), 0);
@@ -2454,7 +2592,7 @@ public final class Lisp2Collector extends GarbageCollector {
             // Verify the pointer to the class or ObjectAssociation
             visitOop(VERIFY_VISITOR, object, HDR.klass);
 
-            if (klass.isSquawkArray(klass)) {
+            if (Klass.isSquawkArray(klass)) {
                 traverseOopsInArrayObject(object, klassAddress, VERIFY_VISITOR);
             } else {
 
@@ -2484,343 +2622,357 @@ public final class Lisp2Collector extends GarbageCollector {
     /**
      * Specifies if the collector is being used to copy an object graph as opposed to collect garbage.
      */
-    private boolean copyingObjectGraph;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+    private static final boolean copyingObjectGraph = false;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//    private boolean copyingObjectGraph;
+//
+//    /**
+//     * This is the starting address of the copied objects.
+//     */
+//    private Address copiedObjects;
+//
+//    /**
+//     * The BitSet instance that must be updated during a graph copy operation.
+//     */
+//    private BitSet oopMap;
+//
+//    /**
+//     * The class of com.sun.squawk.util.SquawkHashtable.
+//     */
+//    private Klass HashTableKlass;
+//
+//    /**
+//     * The class of byte[].
+//     */
+//    private Klass ByteArrayKlass;
+//
+//    /**
+//     * The class of com.sun.squawk.Isolate
+//     */
+//    private Klass IsolateKlass;
+//
+///*if[DEBUG_CODE_ENABLED]*/
+//    /**
+//     * The class of com.sun.squawk.VMThread
+//     */
+//    private Klass ThreadKlass;
+//
+//    /**
+//     * The class of com.sun.squawk.ObjectMemory
+//     */
+//    private Klass ObjectMemoryKlass;
+///*end[DEBUG_CODE_ENABLED]*/
+//
+//    /**
+//     * The isolate object (if any) currently being copied by copyObjectGraph().
+//     */
+//    private Isolate theIsolate;
+//
+//    /**
+//     * The timing statistics related to object graph copying.
+//     */
+//    private final Timings copyTimings;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
+
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//    /**
+//     * Marks all the objects reachable from a given root.
+//     *
+//     * @param object  the root of the graph of objects to mark
+//     */
+//    private void markObjectGraph(Address object) {
+//
+//        long start = now();
+//
+//        markObject(object);
+//        while (markingStack.hasOverflowed()) {
+//            if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//                VM.println("Lisp2Collector::markObjectGraph - remarking from marked objects after marking stack overflow");
+//            }
+//            markingStack.resetOverflow();
+//            Lisp2Bitmap.Iterator.start(collectionStart, collectionEnd, true);
+//            while (!(object = Lisp2Bitmap.Iterator.getNext()).isZero()) {
+//                traverseOopsInObject(object, Address.fromObject(GC.getKlass(object)), MARK_VISITOR);
+//                while (!(object = markingStack.pop()).isZero()) {
+//                    traverseOopsInObject(object, Address.fromObject(GC.getKlass(object)), MARK_VISITOR);
+//                }
+//            }
+//        }
+//
+//        copyTimings.mark += (now() - start);
+//    }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
+
+/*if[ENABLE_ISOLATE_MIGRATION]*/   // weird way to deal with no nesting in else clause
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(root="copyObjectGraph")
+/*end[JAVA5SYNTAX]*/
+/*end[ENABLE_ISOLATE_MIGRATION]*/
+
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//    Address copyObjectGraphInJava(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop) {
+//
+//        // Get the special classes if this is the first time a copy is being performed
+//        if (HashTableKlass == null) {
+//
+//            Isolate isolate = VM.getCurrentIsolate();
+//            Suite bootstrapSuite = isolate.getBootstrapSuite();
+//            HashTableKlass = bootstrapSuite.lookup("com.sun.squawk.util.SquawkHashtable");
+//            ByteArrayKlass = bootstrapSuite.getKlass(CID.BYTE_ARRAY);
+//            IsolateKlass = GC.getKlass(isolate);
+//
+///*if[DEBUG_CODE_ENABLED]*/
+//            ThreadKlass = bootstrapSuite.lookup("com.sun.squawk.VMThread");
+//            ObjectMemoryKlass = bootstrapSuite.lookup("com.sun.squawk.ObjectMemory");
+///*end[DEBUG_CODE_ENABLED]*/
+//        }
+//
+//        long start = now();
+//
+//        copyingObjectGraph = true;
+//        oopMap = cb.oopMap;
+//
+//        if (GC.getKlass(object) == IsolateKlass) {
+//            theIsolate = (Isolate)object.toObject();
+//        }
+//
+//        // Set up the limits of the space to be collected.
+//        collectionStart = heapStart;
+//        collectionEnd = allocTop;
+//
+//        // Sets up the marking stack.
+//        markingStack.setup(heapEnd, Lisp2Bitmap.getStart());
+//
+//        // Reset the marking recursion level.
+//        markingRecursionLevel = MAX_MARKING_RECURSION;
+//
+//        // Output trace information.
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.print("Lisp2Collector::copyObjectGraph - object = ");
+//            VM.printAddress(object);
+//            VM.println();
+//            traceVariables();
+//        }
+//
+//        // Clears the bitmap corresponding to the collection area. Must clear one past the
+//        // end of the collection area as there can be an object there that has a zero length body.
+//        Lisp2Bitmap.clearBitsFor(collectionStart, collectionEnd.add(HDR.BYTES_PER_WORD));
+//
+//        copyTimings.setup += (now() - start);
+//
+//        // Mark objects in graph
+//        markObjectGraph(object);
+//
+//        copiedObjects = allocTop.add(HDR.arrayHeaderSize);
+//        Address copiedObjectsEnd;
+//
+//        // Compute the address to which the objects will be copied and do the copy
+//        copiedObjectsEnd = computeAddresses();
+//
+//        if (!copiedObjectsEnd.isZero()) {
+//
+//            // Update the pointers in the copied objects
+//            updatePointersInObjectMemory(copiedObjects, copiedObjectsEnd);
+//
+//            // Find out where the root of the object memory is
+//            object = getForwardedObject(object);
+//
+//            // Unforward the class header word of all objects that have been copied
+//            unforwardCopiedObjects(collectionStart, allocTop);
+//
+//            start = now();
+//
+//            // Make the object memory a byte array
+//            int graphSize = copiedObjectsEnd.diff(copiedObjects).toInt();
+//            GC.setHeaderClass(copiedObjects, ByteArrayKlass);
+//            GC.setHeaderLength(copiedObjects, graphSize);
+//
+//            // Finalize the other return values
+//            cb.root = object.diff(copiedObjects).toInt();
+//            cb.start = copiedObjects;
+//
+//            // Adjust the allocation parameters
+//            allocTop = copiedObjectsEnd;
+//            GC.setAllocationParameters(heapStart, allocTop, heapEnd, heapEnd);
+//
+//            if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//                VM.println();
+//                VM.print("Lisp2Collector::copyObjectGraph - objectMemory = ");
+//                VM.printAddress(copiedObjects);
+//                VM.print(" objectMemoryEnd = ");
+//                VM.printAddress(copiedObjectsEnd);
+//                VM.print(" size ");
+//                VM.print(graphSize);
+//                VM.println();
+//            }
+//        } else {
+//            // Unforward the class header word of all objects that have been copied
+//            unforwardCopiedObjects(collectionStart, allocTop);
+//
+//            start = now();
+//            copiedObjects = Address.zero();
+//        }
+//
+//        // Output trace information.
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            traceVariables();
+//        }
+//
+//        // Reset the re-entry guard.
+//        copyingObjectGraph = false;
+//        theIsolate = null;
+//        oopMap = null;
+//
+///*if[DEBUG_CODE_ENABLED]*/
+//        // Verify that the memory looks well formed
+//        verifyObjectMemory(permanentMemoryStart, memoryStart);
+//        verifyObjectMemory(heapStart, allocTop);
+///*end[DEBUG_CODE_ENABLED]*/
+//
+//        copyTimings.finalize += (now() - start);
+//
+//        return copiedObjects;
+//    }
+//
+///*if[DEBUG_CODE_ENABLED]*/
+//    /**
+//     * Determines if a given object address does not break isolation. This is not
+//     * a comprehensive test but should catch most errors.
+//     *
+//     * @param object   the object address to test
+//     * @param klass    the class of the object
+//     */
+//    private void assertIsolation(Address object, Klass klass) {
+//
+//        Address global;
+//
+//        // Ensure that the object does not coincide with the value of a global reference
+//        for (int i = 0 ; i < VM.getGlobalOopCount() ; i++) {
+//            global = Address.fromObject(VM.getGlobalOop(i));
+//            if (global.eq(object)) {
+//                VM.print("cannot copy value shared with global '");
+//                VM.printGlobalOopName(i);
+//                VM.println("' -- most likely caused by a local variable in a method in com.sun.squawk.VMThread pointing to a global");
+//                Assert.shouldNotReachHere();
+//            }
+//        }
+//
+//        Assert.that(klass != ObjectMemoryKlass, "cannot copy an ObjectMemory instance");
+//
+//        if (theIsolate != null) {
+//            if (Klass.isSubtypeOf(klass, ThreadKlass)) {
+//                Assert.that(NativeUnsafe.getObject(object, (int)FieldOffsets.com_sun_squawk_VMThread$isolate) == theIsolate,
+//                            "cannot copy thread from another isolate");
+//            } else if (Klass.isSubtypeOf(klass, IsolateKlass)) {
+//                Assert.that(object.eq(Address.fromObject(theIsolate)), "cannot copy another isolate");
+//            } else if (Klass.getSystemID(klass) == CID.LOCAL_ARRAY) {
+//                Object thread = NativeUnsafe.getObject(object, SC.owner);
+//                Assert.that(thread == null || NativeUnsafe.getObject(thread, (int)FieldOffsets.com_sun_squawk_VMThread$isolate) == theIsolate,
+//                            "cannot copy stack chunk from another isolate");
+//            }
+//        }
+//    }
+///*end[DEBUG_CODE_ENABLED]*/
+//
+//    /**
+//     * Reverts the class header word of all the objects in a given range that have been
+//     * copied to another location and therefore had their class header word modified to
+//     * encode the destination of the copy.
+//     *
+//     * @param start  the start of the first block in the range
+//     * @param end    the end of the range
+//     */
+//    private void unforwardCopiedObjects(Address start, Address end) {
+//
+//        long begin = now();
+//
+//        Address object;
+//        Address classOrAssociation;
+//
+//        // Iterate over all the marked objects in the collection space
+//        Lisp2Bitmap.Iterator.start(start, end, true);
+//        while (!(object = Lisp2Bitmap.Iterator.getNext()).isZero()) {
+//
+//            if (!isForwarded(object)) {
+//                // This means that we ran out of space while copying the graph
+//                Lisp2Bitmap.Iterator.terminate();
+//                break;
+//            }
+//
+//            classOrAssociation = getClassOrAssociationFromForwardedObject(object);
+//            NativeUnsafe.setAddress(object, HDR.klass, classOrAssociation);
+//        }
+//
+//        copyTimings.updatePointers += (now() - begin);
+//    }
+//
+//    /**
+//     * Updates all the pointers within a given object memory that may contain references to
+//     * forwarded objects.
+//     *
+//     * @param start   the address of the first block in the object memory
+//     * @param end     the address of byte one past the last object in the memory
+//     */
+//    private void updatePointersInObjectMemory(Address start, Address end) {
+//
+//        long begin = now();
+//
+//        Address object;
+//        Address klassAddress;
+//
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.println("Lisp2Collector::updatePointersInObjectMemory --------------- Start");
+//        }
+//
+//        for (Address block = start; block.lo(end); ) {
+//            object = GC.blockToOop(block);
+//            Klass klass = GC.getKlass(object);
+//            klassAddress = Address.fromObject(klass);
+//
+//            // Update the pointer to the class or ObjectAssociation
+//            visitOop(UPDATE_VISITOR, object, HDR.klass);
+//
+//            if (klass.isSquawkArray(klass)) {
+//                traverseOopsInArrayObject(object, klassAddress, UPDATE_VISITOR);
+//            } else {
+//                traverseOopsInNonArrayObject(object, klassAddress, UPDATE_VISITOR);
+//            }
+//
+//            block = object.add(GC.getBodySize(klass, object));
+//        }
+//        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//            VM.println("Lisp2Collector::updatePointersInObjectMemory --------------- End");
+//            VM.println();
+//        }
+//
+//        copyTimings.updatePointers += (now() - begin);
+//    }
+//
+//    /**
+//     * Records the address of a pointer in the graph being copied.
+//     *
+//     * @param pointerAddress the address of a pointer
+//     */
+//    private void recordPointer(Address pointerAddress) {
+//        // Update the oop map
+//        if (inHeap(pointerAddress)) {
+//            int word = (pointerAddress.diff(copiedObjects).toInt() / HDR.BYTES_PER_WORD);
+//            oopMap.set(word);
+//            if (GC.GC_TRACING_SUPPORTED && tracing()) {
+//                VM.print("Lisp2Collector::recordPointer - set bit in oop map for pointer at ");
+//                VM.printAddress(pointerAddress);
+//                VM.print(" [");
+//                VM.printAddress(NativeUnsafe.getAddress(pointerAddress, 0));
+//                VM.print("]");
+//                VM.println();
+//            }
+//        }
+//    }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
-    /**
-     * This is the starting address of the copied objects.
-     */
-    private Address copiedObjects;
-
-    /**
-     * The BitSet instance that must be updated during a graph copy operation.
-     */
-    private BitSet oopMap;
-
-    /**
-     * The class of com.sun.squawk.util.SquawkHashtable.
-     */
-    private Klass HashTableKlass;
-
-    /**
-     * The class of byte[].
-     */
-    private Klass ByteArrayKlass;
-
-    /**
-     * The class of com.sun.squawk.Isolate
-     */
-    private Klass IsolateKlass;
-
-/*if[DEBUG_CODE_ENABLED]*/
-    /**
-     * The class of com.sun.squawk.VMThread
-     */
-    private Klass ThreadKlass;
-
-    /**
-     * The class of com.sun.squawk.ObjectMemory
-     */
-    private Klass ObjectMemoryKlass;
-/*end[DEBUG_CODE_ENABLED]*/
-
-    /**
-     * The isolate object (if any) currently being copied by copyObjectGraph().
-     */
-    private Isolate theIsolate;
-
-    /**
-     * The timing statistics related to object graph copying.
-     */
-    private final Timings copyTimings;
-
-    /**
-     * Marks all the objects reachable from a given root.
-     *
-     * @param object  the root of the graph of objects to mark
-     */
-    private void markObjectGraph(Address object) {
-
-        long start = now();
-
-        markObject(object);
-        while (markingStack.hasOverflowed()) {
-            if (GC.GC_TRACING_SUPPORTED && tracing()) {
-                VM.println("Lisp2Collector::markObjectGraph - remarking from marked objects after marking stack overflow");
-            }
-            markingStack.resetOverflow();
-            Lisp2Bitmap.Iterator.start(collectionStart, collectionEnd, true);
-            while (!(object = Lisp2Bitmap.Iterator.getNext()).isZero()) {
-                traverseOopsInObject(object, Address.fromObject(GC.getKlass(object)), MARK_VISITOR);
-                while (!(object = markingStack.pop()).isZero()) {
-                    traverseOopsInObject(object, Address.fromObject(GC.getKlass(object)), MARK_VISITOR);
-                }
-            }
-        }
-
-        copyTimings.mark += (now() - start);
-    }
-
-    /**
-     * @vm2c root( copyObjectGraph )
-     */
-    Address copyObjectGraphInJava(Address object, ObjectMemorySerializer.ControlBlock cb, Address allocTop) {
-
-        // Get the special classes if this is the first time a copy is being performed
-        if (HashTableKlass == null) {
-
-            Isolate isolate = VM.getCurrentIsolate();
-            Suite bootstrapSuite = isolate.getBootstrapSuite();
-            HashTableKlass = bootstrapSuite.lookup("com.sun.squawk.util.SquawkHashtable");
-            ByteArrayKlass = bootstrapSuite.getKlass(CID.BYTE_ARRAY);
-            IsolateKlass = GC.getKlass(isolate);
-
-/*if[DEBUG_CODE_ENABLED]*/
-            ThreadKlass = bootstrapSuite.lookup("com.sun.squawk.VMThread");
-            ObjectMemoryKlass = bootstrapSuite.lookup("com.sun.squawk.ObjectMemory");
-/*end[DEBUG_CODE_ENABLED]*/
-        }
-
-        long start = now();
-
-        copyingObjectGraph = true;
-        oopMap = cb.oopMap;
-
-        if (GC.getKlass(object) == IsolateKlass) {
-            theIsolate = (Isolate)object.toObject();
-        }
-
-        // Set up the limits of the space to be collected.
-        collectionStart = heapStart;
-        collectionEnd = allocTop;
-
-        // Sets up the marking stack.
-        markingStack.setup(heapEnd, Lisp2Bitmap.getStart());
-
-        // Reset the marking recursion level.
-        markingRecursionLevel = MAX_MARKING_RECURSION;
-
-        // Output trace information.
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.print("Lisp2Collector::copyObjectGraph - object = ");
-            VM.printAddress(object);
-            VM.println();
-            traceVariables();
-        }
-
-        // Clears the bitmap corresponding to the collection area. Must clear one past the
-        // end of the collection area as there can be an object there that has a zero length body.
-        Lisp2Bitmap.clearBitsFor(collectionStart, collectionEnd.add(HDR.BYTES_PER_WORD));
-
-        copyTimings.setup += (now() - start);
-
-        // Mark objects in graph
-        markObjectGraph(object);
-
-        copiedObjects = allocTop.add(HDR.arrayHeaderSize);
-        Address copiedObjectsEnd;
-
-        // Compute the address to which the objects will be copied and do the copy
-        copiedObjectsEnd = computeAddresses();
-
-        if (!copiedObjectsEnd.isZero()) {
-
-            // Update the pointers in the copied objects
-            updatePointersInObjectMemory(copiedObjects, copiedObjectsEnd);
-
-            // Find out where the root of the object memory is
-            object = getForwardedObject(object);
-
-            // Unforward the class header word of all objects that have been copied
-            unforwardCopiedObjects(collectionStart, allocTop);
-
-            start = now();
-
-            // Make the object memory a byte array
-            int graphSize = copiedObjectsEnd.diff(copiedObjects).toInt();
-            GC.setHeaderClass(copiedObjects, ByteArrayKlass);
-            GC.setHeaderLength(copiedObjects, graphSize);
-
-            // Finalize the other return values
-            cb.root = object.diff(copiedObjects).toInt();
-            cb.start = copiedObjects;
-
-            // Adjust the allocation parameters
-            allocTop = copiedObjectsEnd;
-            GC.setAllocationParameters(heapStart, allocTop, heapEnd, heapEnd);
-
-            if (GC.GC_TRACING_SUPPORTED && tracing()) {
-                VM.println();
-                VM.print("Lisp2Collector::copyObjectGraph - objectMemory = ");
-                VM.printAddress(copiedObjects);
-                VM.print(" objectMemoryEnd = ");
-                VM.printAddress(copiedObjectsEnd);
-                VM.print(" size ");
-                VM.print(graphSize);
-                VM.println();
-            }
-        } else {
-            // Unforward the class header word of all objects that have been copied
-            unforwardCopiedObjects(collectionStart, allocTop);
-
-            start = now();
-            copiedObjects = Address.zero();
-        }
-
-        // Output trace information.
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            traceVariables();
-        }
-
-        // Reset the re-entry guard.
-        copyingObjectGraph = false;
-        theIsolate = null;
-        oopMap = null;
-
-/*if[DEBUG_CODE_ENABLED]*/
-        // Verify that the memory looks well formed
-        verifyObjectMemory(permanentMemoryStart, memoryStart);
-        verifyObjectMemory(heapStart, allocTop);
-/*end[DEBUG_CODE_ENABLED]*/
-
-        copyTimings.finalize += (now() - start);
-
-        return copiedObjects;
-    }
-
-/*if[DEBUG_CODE_ENABLED]*/
-    /**
-     * Determines if a given object address does not break isolation. This is not
-     * a comprehensive test but should catch most errors.
-     *
-     * @param object   the object address to test
-     * @param klass    the class of the object
-     */
-    private void assertIsolation(Address object, Klass klass) {
-
-        Address global;
-
-        // Ensure that the object does not coincide with the value of a global reference
-        for (int i = 0 ; i < VM.getGlobalOopCount() ; i++) {
-            global = Address.fromObject(VM.getGlobalOop(i));
-            if (global.eq(object)) {
-                VM.print("cannot copy value shared with global '");
-                VM.printGlobalOopName(i);
-                VM.println("' -- most likely caused by a local variable in a method in com.sun.squawk.VMThread pointing to a global");
-                Assert.shouldNotReachHere();
-            }
-        }
-
-        Assert.that(klass != ObjectMemoryKlass, "cannot copy an ObjectMemory instance");
-
-        if (theIsolate != null) {
-            if (Klass.isSubtypeOf(klass, ThreadKlass)) {
-                Assert.that(NativeUnsafe.getObject(object, (int)FieldOffsets.com_sun_squawk_VMThread$isolate) == theIsolate,
-                            "cannot copy thread from another isolate");
-            } else if (Klass.isSubtypeOf(klass, IsolateKlass)) {
-                Assert.that(object.eq(Address.fromObject(theIsolate)), "cannot copy another isolate");
-            } else if (Klass.getSystemID(klass) == CID.LOCAL_ARRAY) {
-                Object thread = NativeUnsafe.getObject(object, SC.owner);
-                Assert.that(thread == null || NativeUnsafe.getObject(thread, (int)FieldOffsets.com_sun_squawk_VMThread$isolate) == theIsolate,
-                            "cannot copy stack chunk from another isolate");
-            }
-        }
-    }
-/*end[DEBUG_CODE_ENABLED]*/
-
-    /**
-     * Reverts the class header word of all the objects in a given range that have been
-     * copied to another location and therefore had their class header word modified to
-     * encode the destination of the copy.
-     *
-     * @param start  the start of the first block in the range
-     * @param end    the end of the range
-     */
-    private void unforwardCopiedObjects(Address start, Address end) {
-
-        long begin = now();
-
-        Address object;
-        Address classOrAssociation;
-
-        // Iterate over all the marked objects in the collection space
-        Lisp2Bitmap.Iterator.start(start, end, true);
-        while (!(object = Lisp2Bitmap.Iterator.getNext()).isZero()) {
-
-            if (!isForwarded(object)) {
-                // This means that we ran out of space while copying the graph
-                Lisp2Bitmap.Iterator.terminate();
-                break;
-            }
-
-            classOrAssociation = getClassOrAssociationFromForwardedObject(object);
-            NativeUnsafe.setAddress(object, HDR.klass, classOrAssociation);
-        }
-
-        copyTimings.updatePointers += (now() - begin);
-    }
-
-    /**
-     * Updates all the pointers within a given object memory that may contain references to
-     * forwarded objects.
-     *
-     * @param start   the address of the first block in the object memory
-     * @param end     the address of byte one past the last object in the memory
-     */
-    private void updatePointersInObjectMemory(Address start, Address end) {
-
-        long begin = now();
-
-        Address object;
-        Address klassAddress;
-
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.println("Lisp2Collector::updatePointersInObjectMemory --------------- Start");
-        }
-
-        for (Address block = start; block.lo(end); ) {
-            object = GC.blockToOop(block);
-            Klass klass = GC.getKlass(object);
-            klassAddress = Address.fromObject(klass);
-
-            // Update the pointer to the class or ObjectAssociation
-            visitOop(UPDATE_VISITOR, object, HDR.klass);
-
-            if (klass.isSquawkArray(klass)) {
-                traverseOopsInArrayObject(object, klassAddress, UPDATE_VISITOR);
-            } else {
-                traverseOopsInNonArrayObject(object, klassAddress, UPDATE_VISITOR);
-            }
-
-            block = object.add(GC.getBodySize(klass, object));
-        }
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.println("Lisp2Collector::updatePointersInObjectMemory --------------- End");
-            VM.println();
-        }
-
-        copyTimings.updatePointers += (now() - begin);
-    }
-
-    /**
-     * Records the address of a pointer in the graph being copied.
-     *
-     * @param pointerAddress the address of a pointer
-     */
-    private void recordPointer(Address pointerAddress) {
-        // Update the oop map
-        if (inHeap(pointerAddress)) {
-            int word = (pointerAddress.diff(copiedObjects).toInt() / HDR.BYTES_PER_WORD);
-            oopMap.set(word);
-            if (GC.GC_TRACING_SUPPORTED && tracing()) {
-                VM.print("Lisp2Collector::recordPointer - set bit in oop map for pointer at ");
-                VM.printAddress(pointerAddress);
-                VM.print(" [");
-                VM.printAddress(NativeUnsafe.getAddress(pointerAddress, 0));
-                VM.print("]");
-                VM.println();
-            }
-        }
-    }
 
     /*---------------------------------------------------------------------------*\
      *                            Compaction routines                            *
@@ -2832,13 +2984,9 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param firstDeadBlock  the address of the first dead block. This is where the objects will started to be copied.
      * @return the first free address after compaction
      */
-    private Address compactObjects(Address firstDeadBlock, Address firstMovingBlock) {
+    private Address compactObjects(Address firstDeadBlock, Address firstMovingBlock) throws NotInlinedPragma {
 
         long start = now();
-
-        if (GC.GC_TRACING_SUPPORTED && tracing()) {
-            VM.println("********** Start Lisp2Collector::compactObjects **********");
-        }
 
         Assert.that(!firstDeadBlock.isZero());
         Address free = firstDeadBlock;
@@ -2846,16 +2994,13 @@ public final class Lisp2Collector extends GarbageCollector {
         Assert.that(!firstMovingBlock.isZero());
 
         // Trace all the non-moving objects in the collection space
-        if (GC.GC_TRACING_SUPPORTED) {
+        if (GC.GC_TRACING_SUPPORTED && tracing()) {
+            VM.println("********** Start Lisp2Collector::compactObjects **********");
             Lisp2Bitmap.Iterator.start(collectionStart, firstMovingBlock, true);
             while (!(object = Lisp2Bitmap.Iterator.getNext()).isZero()) {
-
-                if (GC.GC_TRACING_SUPPORTED && tracing()) {
-                    VM.print("Lisp2Collector::compactObjects - object = ");
-                    VM.printAddress(object);
-                    VM.println(" [doesn't move]");
-                }
-
+                VM.print("Lisp2Collector::compactObjects - object = ");
+                VM.printAddress(object);
+                VM.println(" [doesn't move]");
             }
         }
 
@@ -2913,8 +3058,6 @@ public final class Lisp2Collector extends GarbageCollector {
                 VM.println();
             }
 
-
-
             free = destinationBlock.add(blockSize);
             Assert.that(!isForwarded(objectDestination));
         }
@@ -2923,7 +3066,11 @@ public final class Lisp2Collector extends GarbageCollector {
             VM.println("********** End Lisp2Collector::compactObjects **********");
         }
 
-        (copyingObjectGraph ? copyTimings : collectionTimings).compactObjects += now() - start;
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+        collectionTimings.compactObjects += now() - start;
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//        (copyingObjectGraph ? copyTimings : collectionTimings).compactObjects += now() - start;
+/*end[ENABLE_ISOLATE_MIGRATION]*/
 
         return free;
     }
@@ -2938,7 +3085,7 @@ public final class Lisp2Collector extends GarbageCollector {
      * @param object  the object to test
      * @return true if <code>object</code> lies within the range of memory being collected
      */
-    private boolean inCollectionSpace(Address object) {
+    private boolean inCollectionSpace(Address object) throws AllowInlinedPragma {
         // The test is exclusive of the range's start and inclusive of the range's end
         // which accounts for objects always having non-zero-length headers but
         // possibly having zero length bodies
@@ -3019,7 +3166,7 @@ public final class Lisp2Collector extends GarbageCollector {
          *
          * @return  the value popped of the top of the stack or null if the stack was empty
          */
-        Address pop() {
+        Address pop() throws AllowInlinedPragma {
             if (index == 0) {
                 return Address.zero();
             } else {
@@ -3034,14 +3181,14 @@ public final class Lisp2Collector extends GarbageCollector {
          *
          * @return true if the stack has overflowed
          */
-        boolean hasOverflowed() {
+        boolean hasOverflowed() throws AllowInlinedPragma {
             return overflowed;
         }
 
         /**
          * Resets the overflow flag to false.
          */
-        void resetOverflow() {
+        void resetOverflow() throws AllowInlinedPragma {
             overflowed = false;
         }
 

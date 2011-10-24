@@ -43,7 +43,6 @@ import com.sun.squawk.*;
  * a mergesort, but it does have to be <i>stable</i>.)
  *
  * @version 1.45, 02/12/02
- * @see     Comparable
  * @see     Comparer
  * @since   1.2
  */
@@ -1151,7 +1150,7 @@ public class Arrays {
 //    }
 //
 //        // Recursively sort halves of dest into src
-//        int mid = (low + high) >> 1;
+//        int mid = (low + high) >>> 1;
 //        mergeSort(dest, src, low, mid);
 //        mergeSort(dest, src, mid, high);
 //
@@ -1265,7 +1264,7 @@ public class Arrays {
     }
 
         // Recursively sort halves of dest into src
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         mergeSort(dest, src, low, mid, c);
         mergeSort(dest, src, mid, high, c);
 
@@ -1299,6 +1298,35 @@ public class Arrays {
             throw new ArrayIndexOutOfBoundsException(toIndex);
     }
 
+    /**
+     * Do a standard check that elements(offset..offset+length] are valid
+     * @param arrayLen the length of an array. Assumed to be >= 0
+     * @param offset
+     * @param length
+     * @throws IndexOutOfBoundsException
+     */
+    public static void boundsCheck(int arrayLen, int offset, int length) throws IndexOutOfBoundsException {
+        Assert.that(arrayLen >= 0);
+/*if[VERBOSE_EXCEPTIONS]*/
+        if (offset < 0) {
+            throw new IndexOutOfBoundsException(Integer.toString(offset));
+        }
+
+        if (length < 0) {
+            throw new IndexOutOfBoundsException(Integer.toString(length));
+        }
+
+        /* Note: offset or length might be near -1>>>1 */
+        if (offset > arrayLen - length) {
+            throw new IndexOutOfBoundsException(Integer.toString(offset + length));
+        }
+/*else[VERBOSE_EXCEPTIONS]*/
+//        if (offset < 0 || length < 0 || offset > arrayLen - length) {
+//            throw new IndexOutOfBoundsException();
+//        }
+/*end[VERBOSE_EXCEPTIONS]*/
+    }
+
     // Searching
 
     /**
@@ -1326,7 +1354,7 @@ public class Arrays {
     int high = a.length-1;
 
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         long midVal = a[mid];
 
         if (midVal < key)
@@ -1365,7 +1393,7 @@ public class Arrays {
     int high = a.length-1;
 
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         int midVal = a[mid];
 
         if (midVal < key)
@@ -1403,7 +1431,7 @@ public class Arrays {
     int high = a.length-1;
 
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         short midVal = a[mid];
 
         if (midVal < key)
@@ -1441,7 +1469,7 @@ public class Arrays {
     int high = a.length-1;
 
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         char midVal = a[mid];
 
         if (midVal < key)
@@ -1479,7 +1507,7 @@ public class Arrays {
     int high = a.length-1;
 
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         byte midVal = a[mid];
 
         if (midVal < key)
@@ -1521,7 +1549,7 @@ public class Arrays {
 
     private static int binarySearch(double[] a, double key, int low,int high) {
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         double midVal = a[mid];
 
             int cmp;
@@ -1574,7 +1602,7 @@ public class Arrays {
 
     private static int binarySearch(float[] a, float key, int low,int high) {
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         float midVal = a[mid];
 
             int cmp;
@@ -1636,7 +1664,7 @@ public class Arrays {
 //    int high = a.length-1;
 //
 //    while (low <= high) {
-//        int mid = (low + high) >> 1;
+//        int mid = (low + high) >>> 1;
 //        Object midVal = a[mid];
 //        int cmp = ((Comparable)midVal).compareTo(key);
 //
@@ -1677,7 +1705,7 @@ public class Arrays {
      *         <i>mutually comparable</i> using the specified Comparer,
      *         or the search key in not mutually comparable with the
      *         elements of the array using this Comparer.
-     * @see Comparable
+     * @see Comparer
      * @see #sort(Object[], Comparer)
      */
     public static int binarySearch(Object[] a, Object key, Comparer c) {
@@ -1688,7 +1716,7 @@ public class Arrays {
     int high = a.length-1;
 
     while (low <= high) {
-        int mid = (low + high) >> 1;
+        int mid = (low + high) >>> 1;
         Object midVal = a[mid];
         int cmp = c.compare(midVal, key);
 
@@ -1885,6 +1913,20 @@ public class Arrays {
     public static Object[] copy(Object[] src, int srcPos, Object[] dest, int destPos, int length) {
         System.arraycopy(src, srcPos, dest, destPos, length);
         return dest;
+    }
+
+    /**
+     * Make a new Object array and initialize its contents from the contents
+     * of a specified Object array.
+     * @param      array      the source array.
+     * @exception  NullPointerException if either <code>src</code> or
+     *               <code>dest</code> is <code>null</code>.
+     * @return     the initialized copy of <code>src</code>.
+     */
+    public static Object[] copy(Object[] array) {
+        Object[] newArray = new Object[array.length];
+        System.arraycopy(array, 0, newArray, 0, array.length);
+        return newArray;
     }
 
     /**

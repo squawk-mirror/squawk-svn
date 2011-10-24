@@ -39,7 +39,6 @@ public class MethodMetadata {
 
     private static boolean preserveLineNumberTables;
     private static boolean preserveLocalVariableTables;
-    private static boolean preserveMethodNames;
 
     /**
      * @see #strip(MethodMetadata[])
@@ -56,23 +55,16 @@ public class MethodMetadata {
     }
 
     /**
-     * @see #strip(MethodMetadata[])
-     */
-    static void preserveMethodNames() {
-        preserveMethodNames = true;
-    }
-
-    /**
      * The line number table.
      *
      * @see  #getLineNumberTable()
      */
-    private final int [] lnt;
+    final int [] lnt;
     
     /**
      * The offset of the method in the static/virtual method table.
      */
-    private int offset;
+    final int offset;
 
     /**
      * Creates a new <code>MethodMetadata</code> instance.
@@ -215,7 +207,7 @@ public class MethodMetadata {
         int high = a.length-1;
         
         while (low <= high) {
-            int mid = (low + high) >> 1;
+            int mid = (low + high) >>> 1;
             MethodMetadata midVal = a[mid];
             int cmp = midVal.offset - keyOffset;
             

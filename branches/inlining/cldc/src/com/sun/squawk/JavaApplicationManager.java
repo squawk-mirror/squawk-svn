@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -44,11 +45,15 @@ public class JavaApplicationManager {
      * Purely static class should not be instantiated.
      */
     private JavaApplicationManager() {}
-    
+
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
     /**
      * The class path to use when loading through the translator instance (if any).
      */
     private static String classPath;
+/*else[ENABLE_DYNAMIC_CLASSLOADING]*/
+//  private static final String classPath = null;
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
 
     /**
      * The suite to which the leaf suite will be bound (if any).
@@ -66,8 +71,11 @@ public class JavaApplicationManager {
      * stops by hibernating itself.
      */
     private static boolean testoms;
-/*else[DEBUG_CODE_ENABLED]*/
-//    private static final boolean testoms = false;
+
+    /**
+     * Specify the Midlet class name directly.
+     */
+     private static String testMIDletClass;
 /*end[DEBUG_CODE_ENABLED]*/
     
     /**
@@ -75,10 +83,6 @@ public class JavaApplicationManager {
      */
     private static int midletPropertyNum;
 
-    /**
-     * Specify the Midlet class name directly.
-     */
-     private static String testMIDletClass;
      
     /**
      * Main routine.
@@ -90,6 +94,11 @@ public class JavaApplicationManager {
         // If no name is specified for MIDlet, assume MIDlet-1
         midletPropertyNum = 1;
         
+        String mainClassName = null;
+        String[] javaArgs = null;
+
+/*if[!EMULATOR_LAUNCHER]*/
+        
         /*
          * Process any switches.
          */
@@ -97,12 +106,13 @@ public class JavaApplicationManager {
             args = processVMOptions(args);
         }
 
-        String mainClassName = null;
-        String[] javaArgs = null;
+/*if[DEBUG_CODE_ENABLED]*/
         if (testMIDletClass != null) {
-            mainClassName = "com.sun.squawk.imp.MIDletMainWrapper";
+            mainClassName = Isolate.MIDLET_WRAPPER_CLASS;
             javaArgs = new String[] {"-name", testMIDletClass};
-        } else if (args.length > 0) {
+        } else
+/*end[DEBUG_CODE_ENABLED]*/
+            if (args.length > 0) {
             /*
              * Split out the class name from the other arguments.
              */
@@ -112,7 +122,15 @@ public class JavaApplicationManager {
                 javaArgs[i] = args[i+1];
             }
         } // else use midletPropertyNum
-
+        
+/*else[EMULATOR_LAUNCHER]*/
+//        mainClassName = "com.sun.squawk.uei.j2me.Launcher";
+//        javaArgs = new String[args.length];
+//        for (int i = 0 ; i < javaArgs.length ; i++) {
+//            javaArgs[i] = args[i];
+//        }
+/*end[EMULATOR_LAUNCHER]*/
+        
         /*
          * Get the start time.
          */
@@ -138,31 +156,34 @@ public class JavaApplicationManager {
             isolate.start();
             isolate.join();
 
-            /*
-             * If the isolate was hibernated then save it and restart it.
-             */
-            while (isolate.isHibernated() && testoms) {
-                try {
-                    String url = "file://" + isolate.getMainClassName() + ".isolate";
-                    DataOutputStream dos = Connector.openDataOutputStream(url);
-                    isolate.save(dos, url, VM.isBigEndian());
-                    System.out.println("Saved isolate to " + url);
-                    dos.close();
-
-                    DataInputStream dis = Connector.openDataInputStream(url);
-                    /*isolate = */                    Isolate.load(dis, url);
-                    dis.close();
-
-                    isolate.unhibernate();
-                    isolate.join();
-
-                } catch (java.io.IOException ioe) {
-                    System.err.println("I/O error while trying to save or re-load isolate: ");
-                    ioe.printStackTrace();
-                    break;
-                }
-            }
-
+/*if[!ENABLE_ISOLATE_MIGRATION]*/
+/*else[ENABLE_ISOLATE_MIGRATION]*/
+//            /*
+//             * If the isolate was hibernated then save it and restart it.
+//             */
+//            while (isolate.isHibernated() && testoms) {
+//                try {
+//                    String url = "file://" + isolate.getMainClassName() + ".isolate";
+//                    DataOutputStream dos = Connector.openDataOutputStream(url);
+//                    isolate.save(dos, url, VM.isBigEndian());
+//                    System.out.println("Saved isolate to " + url);
+//                    dos.close();
+//
+//                    DataInputStream dis = Connector.openDataInputStream(url);
+//                    /*isolate = */                    Isolate.load(dis, url);
+//                    dis.close();
+//
+//                    isolate.unhibernate();
+//                    isolate.join();
+//
+//                } catch (java.io.IOException ioe) {
+//                    System.err.println("I/O error while trying to save or re-load isolate: ");
+//                    ioe.printStackTrace();
+//                    break;
+//                }
+//            }
+/*end[ENABLE_ISOLATE_MIGRATION]*/
+            
             /*
              * Get the exit status.
              */
@@ -170,6 +191,9 @@ public class JavaApplicationManager {
 
         } catch (Error e) {
             System.err.println(e);
+            if (VM.isVerbose()) {
+                e.printStackTrace();
+            }
         }
 
         /*
@@ -180,14 +204,8 @@ public class JavaApplicationManager {
             System.out.println();
             System.out.println("=============================");
             System.out.println("Squawk VM exiting with code "+exitCode);
-            if (GC.getPartialCollectionCount() > 0) {
-                System.out.println(""+GC.getPartialCollectionCount()+" partial collections");
-            }
-            if (GC.getFullCollectionCount() > 0) {
-                System.out.println(""+GC.getFullCollectionCount()+" full collections");
-            }
             GC.getCollector().dumpTimings(System.out);
-            System.out.println("Execution time was "+(endTime-startTime)+" ms");
+            System.out.println("Execution time " + (endTime-startTime) + " ms");
             System.out.println("=============================");
             System.out.println();
         }
@@ -214,12 +232,10 @@ public class JavaApplicationManager {
             } else {
                 break;
             }
-             offset++;
+            offset++;
         }
         String[] javaArgs = new String[args.length - offset];
-        for (int i = 0 ; i < javaArgs.length ; i++) {
-            javaArgs[i] = args[offset++];
-        }
+        System.arraycopy(args, offset, javaArgs, 0, javaArgs.length);
         return javaArgs;
     }
 
@@ -233,17 +249,15 @@ public class JavaApplicationManager {
         out.println("    debug code " + (Klass.DEBUG_CODE_ENABLED ? "enabled" : "disabled"));
         out.println("    assertions " + (Klass.ASSERTIONS_ENABLED ? "enabled" : "disabled"));
         out.println("    tracing " + (Klass.TRACING_ENABLED ? "enabled" : "disabled"));
-        boolean floatSupported = "${build.properties:FLOATS}".equals("true");
-        if (floatSupported) {
-            out.println("    floating point supported");
-        } else {
-            out.println("    no floating point support");
-        }
+/*if[FLOATS]*/
+        out.println("    floating point supported");
+/*else[FLOATS]*/
+//      out.println("    no floating point support");
+/*end[FLOATS]*/
+
         out.println("    bootstrap suite: ");
-        StringTokenizer st = new StringTokenizer(VM.getCurrentIsolate().getBootstrapSuite().getConfiguration(), ",");
-        while (st.hasMoreTokens()) {
-            out.println("        " + st.nextToken().trim());
-        }
+        out.print("    ");
+        out.println(VM.getCurrentIsolate().getBootstrapSuite().getConfiguration());
         VM.printConfiguration();
     }
 
@@ -291,16 +305,14 @@ public class JavaApplicationManager {
      * @param arg the argument
      */
     private static void processVMOption(String arg) {
-        if (arg.startsWith("-suite:")) {
-            parentSuiteURI = "file://" + arg.substring(7) + Suite.FILE_EXTENSION;
-/*if[FLASH_MEMORY]*/
-        } else if (arg.startsWith("-spotsuite:")) {
-            parentSuiteURI = arg.substring(1);
-/*else[FLASH_MEMORY]*/
-//        } else if (arg.startsWith("-cp:")) {
-//            // Fix up the class path with respect to the system dependant separator characters
-//            classPath = ArgsUtilities.toPlatformPath(arg.substring("-cp:".length()), true);
-/*end[FLASH_MEMORY]*/
+        if (arg.equals("-h")) {
+            usage(null);
+            VM.stopVM(0);
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
+        } else if (arg.startsWith("-cp:")) {
+            // Fix up the class path with respect to the system dependant separator characters
+            classPath = ArgsUtilities.toPlatformPath(arg.substring("-cp:".length()), true);
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         } else if (arg.equals("-egc")) {
             GC.setExcessiveGC(true);
         } else if (arg.equals("-nogc")) {
@@ -323,8 +335,6 @@ public class JavaApplicationManager {
                 usage("Bad value for -MIDlet- "+arg);
                 VM.stopVM(0);
             }
-        } else if (arg.startsWith("-testMIDlet:")) {
-            testMIDletClass = arg.substring(12);
         } else if (arg.equals("-version")) {
             showVersion(System.err);
             VM.stopVM(0);
@@ -337,6 +347,8 @@ public class JavaApplicationManager {
                 VM.setVerboseLevel(2);
             }
 /*if[DEBUG_CODE_ENABLED]*/
+        } else if (arg.startsWith("-testMIDlet:")) {
+            testMIDletClass = arg.substring(12);
         } else if (arg.equals("-testoms")) {
             testoms = true;
 /*end[DEBUG_CODE_ENABLED]*/
@@ -381,12 +393,17 @@ public class JavaApplicationManager {
             String val = propAndValue.substring(seperator+1);
             VM.getCommandLineProperties().put(prop, val);
             // System properties are not "global global"
+/*if[ENABLE_SUITE_LOADING]*/
+        } else if(arg.startsWith("-suite:")) {
+            parentSuiteURI = "file://" + arg.substring(7) + Suite.FILE_EXTENSION;
+/*if[FLASH_MEMORY]*/
+        } else if (arg.startsWith("-spotsuite:")) {
+            parentSuiteURI = arg.substring(1);
+/*end[FLASH_MEMORY]*/
         } else if (arg.startsWith("-suitepath:")) {
             String path = arg.substring("-suitepath:".length());
             ObjectMemoryLoader.setFilePath(path);
-        } else if (arg.equals("-h")) {
-            usage("");
-            VM.stopVM(0);
+/*end[ENABLE_SUITE_LOADING]*/
         } else if (!GC.getCollector().processCommandLineOption(arg)) {
             usage("Unrecognised option: "+arg);
             VM.stopVM(0);
@@ -401,7 +418,7 @@ public class JavaApplicationManager {
     private static void usage(String msg) {
         PrintStream out = System.out;
         out.println();
-        if (msg.length() > 0) {
+        if (msg != null) {
             out.println("** " + msg + " **\n");
         }
         out.print(
@@ -409,29 +426,30 @@ public class JavaApplicationManager {
                 "\n" +
                 "if there is no class specified, then try MIDlet-1 property to find a MIDlet\n" +
                 "where options include:\n" +
-/*if[!FLASH_MEMORY]*/
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
                 "    -cp:<directories and jar/zip files separated by ':' (Unix) or ';' (Windows)>\n" +
-                "                          paths where classes, suites and sources can be found\n" +
-/*end[FLASH_MEMORY]*/
+                "                          paths where classes and resources can be found\n" +
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+/*if[ENABLE_SUITE_LOADING]*/
                 "    -suite:<name>         suite name (without \"" + Suite.FILE_EXTENSION + "\") to load\n" +
-                "    -suitepath:<path>   host path to look for suite's in\n" +
+                "    -suitepath:<path>     host path to look for suites in\n" +
 /*if[FLASH_MEMORY]*/
                 "    -spotsuite:<name>     suite name (without \"" + Suite.FILE_EXTENSION + "\") to load\n" +
 /*end[FLASH_MEMORY]*/
+/*end[ENABLE_SUITE_LOADING]*/
 /*if[EXCLUDE]*/
                 "    -imageclasses         show the classes in the boot image and exit\n" +
                 "    -imagepackages        show the packages in the boot image and exit\n" +
 /*end[EXCLUDE]*/
                 "    -isolateinit:<class>  class whose main will be invoked on Isolate start, single arg \"true\" if first Isolate being initialized\n" +
                 "    -MIDlet-x             which MIDlet-x property to use from " + Suite.PROPERTIES_MANIFEST_RESOURCE_NAME + "\n" +
-                "    -testMIDlet:<class>   specify MIDlet class name directly\n" +
                 "    -sampleStatData:url   poll VM.Stats every 500ms and send samples to url\n" +
                 "    -version              print product version and exit\n" +
                 "    -verbose              report when a class is loaded\n" +
-                "    -veryverbose          report when a class is initialized or looked up and\n" +
-                "                          various other output\n"
+                "    -veryverbose          report when a class is initialized and various other output\n"
 /*if[DEBUG_CODE_ENABLED]*/
-              + "    -testoms              continually serialize, deserialize and restart the application if it hibernates itself\n"
+              + "    -testMIDlet:<class>   specify MIDlet class name directly\n" +
+                "    -testoms              continually serialize, deserialize and restart the application if it hibernates itself\n"
 /*end[DEBUG_CODE_ENABLED]*/
             );
 
@@ -441,13 +459,7 @@ public class JavaApplicationManager {
                 "    -traceswapper         trace endianess swapping\n"
                 );
         }
-        TranslatorInterface t = VM.getCurrentIsolate().getTranslator();
-        if (t == null) {
-            t = Isolate.getDefaultTranslator();
-        }
-        if (t != null) {
-            t.printTraceFlags(out);
-        }
+        
         GC.getCollector().usage(out);
         out.print(
                 "    -egc                  enable excessive garbage collection\n" +

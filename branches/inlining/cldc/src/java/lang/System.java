@@ -298,7 +298,7 @@ public final class System {
         if (key == null) {
             throw new NullPointerException(/*"key can't be null"*/);
         }
-        if (key.equals("")) {
+        if (key.length() == 0) {
             throw new IllegalArgumentException(/*"key can't be empty"*/);
         }
 
@@ -318,6 +318,9 @@ public final class System {
         if (key.equals("file.separator"))	                            { return "" + VM.getFileSeparatorChar(); }
         if (key.equals("path.separator"))                               { return "" + VM.getPathSeparatorChar(); }
 
+        if (VM.getCurrentIsolate() == null) {
+            return null;
+        }
         String value = VM.getCurrentIsolate().getProperty(key);
         return value;
     }

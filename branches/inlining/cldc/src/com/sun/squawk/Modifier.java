@@ -24,6 +24,8 @@
 
 package com.sun.squawk;
 
+import com.sun.squawk.pragma.AllowInlinedPragma;
+
 /**
  * The Modifier class provides
  * constants to decode class and member access modifiers.  The sets of
@@ -405,7 +407,43 @@ public final class Modifier {
      * <tt>MUSTCLINIT</tt> modifier; <tt>false</tt> otherwise.
      */
     public static boolean mustClinit(int mod) {
-        return (mod & MUSTCLINIT) != 0;
+        return (mod & KLASS_MUSTCLINIT) != 0;
+    }
+  
+   /**
+     * Return <tt>true</tt> if the integer argument includes the
+     * <tt>KLASS_HAS_DEFAULT_INIT</tt> modifer, <tt>false</tt> otherwise.
+     *
+     * @param   mod a set of modifers
+     * @return <tt>true</tt> if <code>mod</code> includes the
+     * <tt>KLASS_HAS_DEFAULT_INIT</tt> modifier; <tt>false</tt> otherwise.
+     */
+    public static boolean hasDefaultConstructor(int mod) {
+        return (mod & KLASS_HAS_DEFAULT_INIT) != 0;
+    }
+
+   /**
+     * Return <tt>true</tt> if the integer argument includes the
+     * <tt>KLASS_HAS_CLINIT</tt> modifer, <tt>false</tt> otherwise.
+     *
+     * @param   mod a set of modifers
+     * @return <tt>true</tt> if <code>mod</code> includes the
+     * <tt>KLASS_HAS_CLINIT</tt> modifier; <tt>false</tt> otherwise.
+     */
+    public static boolean hasClinit(int mod) {
+        return (mod & KLASS_HAS_CLINIT) != 0;
+    }
+
+   /**
+     * Return <tt>true</tt> if the integer argument includes the
+     * <tt>KLASS_HAS_MAIN</tt> modifer, <tt>false</tt> otherwise.
+     *
+     * @param   mod a set of modifers
+     * @return <tt>true</tt> if <code>mod</code> includes the
+     * <tt>KLASS_HAS_MAIN</tt> modifier; <tt>false</tt> otherwise.
+     */
+    public static boolean hasMain(int mod) {
+        return (mod & KLASS_HAS_MAIN) != 0;
     }
 
 /*if[FINALIZATION]*/
@@ -483,7 +521,7 @@ public final class Modifier {
      * @return <tt>true</tt> if <code>mod</code> includes the
      * <tt>ARRAY</tt> modifier; <tt>false</tt> otherwise.
      */
-    public static boolean isArray(int mod) {
+    public static boolean isArray(int mod) throws AllowInlinedPragma {
         return (mod & ARRAY) != 0;
     }
 
@@ -496,7 +534,7 @@ public final class Modifier {
      * @return <tt>true</tt> if <code>mod</code> includes the
      * <tt>SQUAWKARRAY</tt> modifier; <tt>false</tt> otherwise.
      */
-    public static boolean isSquawkArray(int mod) {
+    public static boolean isSquawkArray(int mod) throws AllowInlinedPragma {
         return (mod & SQUAWKARRAY) != 0;
     }
 
@@ -509,7 +547,7 @@ public final class Modifier {
      * @return <tt>true</tt> if <code>mod</code> includes the
      * <tt>SQUAWKPRIMITIVE</tt> modifier; <tt>false</tt> otherwise.
      */
-    public static boolean isSquawkPrimitive(int mod) {
+    public static boolean isSquawkPrimitive(int mod) throws AllowInlinedPragma {
         return (mod & SQUAWKPRIMITIVE) != 0;
     }
 
@@ -523,7 +561,7 @@ public final class Modifier {
      * <tt>CONSTRUCTOR</tt> modifier; <tt>false</tt> otherwise.
      */
     public static boolean isConstructor(int mod) {
-        return (mod & CONSTRUCTOR) != 0;
+        return (mod & METHOD_CONSTRUCTOR) != 0;
     }
 
     /**
@@ -536,7 +574,7 @@ public final class Modifier {
      * <tt>CONSTANT</tt> modifier; <tt>false</tt> otherwise.
      */
     public static boolean hasConstant(int mod) {
-        return (mod & CONSTANT) != 0;
+        return (mod & FIELD_CONSTANT) != 0;
     }
 
     /**
@@ -548,7 +586,7 @@ public final class Modifier {
      * <tt>HAS_PRAGMAS</tt> modifier; <tt>false</tt> otherwise.
      */
     public static boolean hasPragmas(int mod) {
-        return (mod & HAS_PRAGMAS) != 0;
+        return (mod & METHOD_HAS_PRAGMAS) != 0;
     }
 
     public static boolean hasGlobalStatics(int mod) {
@@ -580,27 +618,42 @@ public final class Modifier {
     /**
      * The <code>int</code> value denoting that a method is a constructor.
      */
-    public static final int CONSTRUCTOR         = 0x00001000;
+    public static final int METHOD_CONSTRUCTOR         = 0x00001000;
 
     /**
      * The <code>int</code> value denoting that a method has one or more {@link com.sun.squawk.pragma.PragmaException pragmas} applied to it.
      */
-    public static final int HAS_PRAGMAS         = 0x00002000;
+    public static final int METHOD_HAS_PRAGMAS         = 0x00002000;
     
     /*----------------------------- field squawk modifiers-------------------------------*/
     
     /**
      * The <code>int</code> value denoting that a field has a ConstantValue.
      */
-    public static final int CONSTANT            = 0x00004000;
+    public static final int FIELD_CONSTANT            = 0x00004000;
 
     /*----------------------------- class squawk modifiers-------------------------------*/
+
+    /**
+     * The <code>int</code> value denoting that a class has a default constructor.
+     */
+    public static final int KLASS_HAS_DEFAULT_INIT    = METHOD_CONSTRUCTOR;
+
+    /**
+     * The <code>int</code> value denoting that a class has a static initializer.
+     */
+    public static final int KLASS_HAS_CLINIT          = METHOD_HAS_PRAGMAS;
+
+    /**
+     * The <code>int</code> value denoting that a class has a callable "main" method.
+     */
+    public static final int KLASS_HAS_MAIN          = FIELD_CONSTANT;
 
     /**
      * The <code>int</code> value denoting that a class must have its
      * class initializer executed before it is used.
      */
-    public static final int MUSTCLINIT          = 0x00010000;
+    public static final int KLASS_MUSTCLINIT          = 0x00010000;
 
 /*if[FINALIZATION]*/
     /**
