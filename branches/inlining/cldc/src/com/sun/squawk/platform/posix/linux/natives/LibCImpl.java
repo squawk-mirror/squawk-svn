@@ -33,7 +33,7 @@ package com.sun.squawk.platform.posix.linux.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
+public final class LibCImpl extends com.sun.squawk.platform.posix.natives.LibCImpl {
 
     /*----------------------------- defines -----------------------------*/
 

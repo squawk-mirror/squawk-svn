@@ -34,7 +34,7 @@ import com.sun.midp.midlet.MIDletPeer;
  * com.sun.midp.midlet.MIDletState instance to call protected and package
  * private methods of javax.microedition.midlet.MIDlet.
  */
-class MIDletTunnelImpl implements MIDletTunnel {
+final class MIDletTunnelImpl implements MIDletTunnel {
     /**
      * Returns the MIDletPeer object corresponding to the given
      * midlet instance.

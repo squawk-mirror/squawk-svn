@@ -47,7 +47,7 @@ import com.sun.squawk.io.ConnectionBase;
  * This class implements the necessary functionality
  * for an HTTP connection.
  */
-public class Protocol extends ConnectionBase implements HttpConnection {
+public final class Protocol extends ConnectionBase implements HttpConnection {
     
 /*if[!FLASH_MEMORY]*/
     /** Call using a full URL (remember to include the FILE part!"
@@ -301,7 +301,7 @@ public class Protocol extends ConnectionBase implements HttpConnection {
     /**
      * PrivateInputStream to handle chunking for HTTP/1.1.
      */
-    class PrivateInputStream extends InputStream {
+    final class PrivateInputStream extends InputStream {
 
         int bytesleft;   // Number of bytes left in current chunk
         int bytesread;   // Number of bytes read since the stream was opened
@@ -490,7 +490,7 @@ public class Protocol extends ConnectionBase implements HttpConnection {
      * Private OutputStream to allow the buffering of output
      * so the "Content-Length" header can be supplied.
      */
-    class PrivateOutputStream extends OutputStream {
+    final class PrivateOutputStream extends OutputStream {
         private ByteArrayOutputStream output;
         private boolean opened;
 

@@ -381,7 +381,7 @@ public interface LibC extends Library {
      * //        __int64_t	st_qspare[2];	/* RESERVED: DO NOT USE!                      16
      * //     };
      */
-    public static class stat extends LibCImpl.statImpl {
+    public final static class stat extends LibCImpl.statImpl {
         /** mode_t */
         public int st_mode;
         /** time_t Last data modification time */

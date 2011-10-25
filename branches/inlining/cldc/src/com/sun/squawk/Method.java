@@ -128,6 +128,15 @@ public final class Method extends Member {
     public boolean isNative() {
         return Modifier.isNative(parser().getModifiers());
     }
+    
+    /**
+     * Determines if this method is a native method and does not call Java or throw exception.
+     *
+     * @return  true if this method is a primitive native method
+     */
+    public boolean isPrimitiveNative() {
+        return isNative() && PragmaException.isPrimitiveNative(getPragmas());
+    }
 
     /**
      * Determines if this method is an abstract method.

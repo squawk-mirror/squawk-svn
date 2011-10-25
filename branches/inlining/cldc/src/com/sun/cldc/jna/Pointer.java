@@ -167,7 +167,7 @@ public class Pointer
         return new Pointer(this, (int)offset, (int)size);
     }
     
-    boolean isPowerOf2(int value) {
+    final boolean isPowerOf2(int value) {
         return ((value) & (value - 1)) == 0;
     }
     

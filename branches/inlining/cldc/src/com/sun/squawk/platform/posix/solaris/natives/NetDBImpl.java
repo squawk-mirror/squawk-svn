@@ -31,7 +31,7 @@ package com.sun.squawk.platform.posix.solaris.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class NetDBImpl extends com.sun.squawk.platform.posix.natives.NetDBImpl {
+public final class NetDBImpl extends com.sun.squawk.platform.posix.natives.NetDBImpl {
 
     /*----------------------------- defines -----------------------------*/
 

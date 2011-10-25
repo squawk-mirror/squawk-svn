@@ -42,7 +42,7 @@ import com.sun.squawk.util.*;
  * methodID, or fieldID.
  *
  */
-public class ObjectManager {
+public final class ObjectManager {
 
     /**
      * The table mapping objects that may move or be collected to identifiers and vice-versa.

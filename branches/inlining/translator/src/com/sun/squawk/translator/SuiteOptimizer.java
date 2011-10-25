@@ -112,11 +112,9 @@ public class SuiteOptimizer {
             Translator.numEffectivelyFinal++;
             return true;
         }
-        
-if (!m.isAbstract() && translator.methodDB.isNeverOverriden(mw)) {
-    Tracer.traceln("Can't inline " + m + " because it's not final, even though it's not overridden.");
-}
-        
+        //if (!m.isAbstract() && translator.methodDB.isNeverOverriden(mw)) {
+        //    Tracer.traceln("Can't inline " + m + " because it's not final, even though it's not overridden.");
+        //}
         return false;
     }
     

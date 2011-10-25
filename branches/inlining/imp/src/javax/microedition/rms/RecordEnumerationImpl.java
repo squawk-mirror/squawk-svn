@@ -27,7 +27,7 @@ package javax.microedition.rms;
 /**
  * This class implements the RecordEnumeration interface.
  */
-class RecordEnumerationImpl implements RecordEnumeration, RecordListener
+final class RecordEnumerationImpl implements RecordEnumeration, RecordListener
 { 
     /** The associated record store for this enumeration */
     private RecordStore recordStore;

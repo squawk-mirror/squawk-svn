@@ -35,7 +35,7 @@ import com.sun.squawk.platform.*;
  * @author  Nik Shaylor
  * @version 1.0 10/08/99
  */
-public class Protocol extends ConnectionBase 
+public final class Protocol extends ConnectionBase 
                       implements StreamConnectionNotifier, ServerSocketConnection {
 
     /** Server Socket object */

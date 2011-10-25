@@ -48,6 +48,7 @@ import com.sun.squawk.pragma.InterpreterInvokedPragma;
 import com.sun.squawk.pragma.NotInlinedPragma;
 import com.sun.squawk.pragma.AllowInlinedPragma;
 import com.sun.squawk.pragma.HostedPragma;
+import com.sun.squawk.pragma.PrimitiveNativePragma;
 import com.sun.squawk.util.Assert;
 import com.sun.squawk.util.IntHashtable;
 import com.sun.squawk.util.SquawkHashtable;
@@ -1316,7 +1317,7 @@ hbp.dumpState();
      * @param value the input
      * @return the result
      */
-    public native static int floatToIntBits(float value);
+    public native static int floatToIntBits(float value) throws PrimitiveNativePragma;
 
     /**
      * Converts a double into bits.
@@ -1324,7 +1325,7 @@ hbp.dumpState();
      * @param value the input
      * @return the result
      */
-    public native static long doubleToLongBits(double value);
+    public native static long doubleToLongBits(double value) throws PrimitiveNativePragma;
 
     /**
      * Converts bits into a float.
@@ -1332,7 +1333,7 @@ hbp.dumpState();
      * @param value the input
      * @return the result
      */
-    public native static float intBitsToFloat(int value);
+    public native static float intBitsToFloat(int value) throws PrimitiveNativePragma;
 
     /**
      * Converts bits into a double.
@@ -1340,7 +1341,7 @@ hbp.dumpState();
      * @param value the input
      * @return the result
      */
-    public native static double longBitsToDouble(long value);
+    public native static double longBitsToDouble(long value) throws PrimitiveNativePragma;
 /*end[FLOATS]*/
     
 
@@ -1363,7 +1364,7 @@ hbp.dumpState();
      *
      * @return true if the system is big endian
      */
-    public static native boolean isBigEndian();
+    public static native boolean isBigEndian() throws PrimitiveNativePragma;
     
     /**
      * On a hosted system , this calls System.setProperty(), otherwise calls Isolate.currentIsolate().setProperty()
@@ -1389,7 +1390,7 @@ hbp.dumpState();
      *
      * @return the frame pointer
      */
-    native static Address getFP();
+    native static Address getFP() throws PrimitiveNativePragma;
 
     /**
      * Gets the method pointer from a frame pointer.
@@ -1397,7 +1398,7 @@ hbp.dumpState();
      * @param fp the frame pointer
      * @return the method pointer
      */
-    native static Object getMP(Address fp);
+    native static Object getMP(Address fp) throws PrimitiveNativePragma;
 
     /**
      * Gets the pointer to the frame of the caller of a given current frame.
@@ -1408,7 +1409,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return getObject(_fp, FP_returnFP);")
 /*end[JAVA5SYNTAX]*/
-    native static Address getPreviousFP(Address fp) throws AllowInlinedPragma;
+    native static Address getPreviousFP(Address fp) throws AllowInlinedPragma, PrimitiveNativePragma;
 
     /**
      * Gets the previous instruction pointer from a frame pointer.
@@ -1419,7 +1420,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return getObject(_fp, FP_returnIP);")
 /*end[JAVA5SYNTAX]*/
-    native static Address getPreviousIP(Address fp) throws AllowInlinedPragma;
+    native static Address getPreviousIP(Address fp) throws AllowInlinedPragma, PrimitiveNativePragma;
 
     /**
      * Set the previous frame pointer.
@@ -1471,7 +1472,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(macro="((Address)object)")
 /*end[JAVA5SYNTAX]*/
-    native static Klass asKlass(Object object);
+    native static Klass asKlass(Object object) throws PrimitiveNativePragma;
 
     /**
      * Get the hash code for an object in ROM
@@ -1479,7 +1480,7 @@ hbp.dumpState();
      * @param   anObject the object
      * @return  the hash code
      */
-    native static int hashcode(Object anObject);
+    native static int hashcode(Object anObject) throws PrimitiveNativePragma;
 
     /**
      * Add to the VM's class state cache
@@ -1584,7 +1585,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(macro="Ints[index]")
 /*end[JAVA5SYNTAX]*/
-    native static int getGlobalInt(int index);
+    native static int getGlobalInt(int index) throws PrimitiveNativePragma;
 
     /**
      * Sets the value of an global integer variable.
@@ -1595,7 +1596,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="Ints[index] = value;")
 /*end[JAVA5SYNTAX]*/
-    native static void setGlobalInt(int value, int index);
+    native static void setGlobalInt(int value, int index) throws PrimitiveNativePragma;
 
 //    /**
 //     * Gets the number of global pointer variables.
@@ -1616,7 +1617,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(macro="Addrs[index]")
 /*end[JAVA5SYNTAX]*/
-    native static Address getGlobalAddr(int index);
+    native static Address getGlobalAddr(int index) throws PrimitiveNativePragma;
 
     /**
      * Sets the value of an global pointer variable.
@@ -1627,7 +1628,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="Addrs[index] = value;")
 /*end[JAVA5SYNTAX]*/
-    native static void setGlobalAddr(Address value, int index);
+    native static void setGlobalAddr(Address value, int index) throws PrimitiveNativePragma;
 
     /**
      * Gets the number of global object pointer variables.
@@ -1637,7 +1638,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(macro="GLOBAL_OOP_COUNT")
 /*end[JAVA5SYNTAX]*/
-    native static int getGlobalOopCount();
+    native static int getGlobalOopCount() throws PrimitiveNativePragma;
 
     /**
      * Gets the value of an global object pointer variable.
@@ -1648,7 +1649,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(macro="Oops[index]")
 /*end[JAVA5SYNTAX]*/
-    native static Object getGlobalOop(int index);
+    native static Object getGlobalOop(int index) throws PrimitiveNativePragma;
 
     /**
      * Sets the value of an global object pointer variable.
@@ -1659,7 +1660,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="Oops[index] = value;")
 /*end[JAVA5SYNTAX]*/
-    native static void setGlobalOop(Object value, int index);
+    native static void setGlobalOop(Object value, int index) throws PrimitiveNativePragma;
 
     /**
      * Gets the address of the global object pointer table.
@@ -1669,7 +1670,7 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return Oops;")
 /*end[JAVA5SYNTAX]*/
-    native static Address getGlobalOopTable();
+    native static Address getGlobalOopTable() throws PrimitiveNativePragma;
 
 
     /*-----------------------------------------------------------------------*\
@@ -3430,12 +3431,12 @@ hbp.dumpState();
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="int res = com_sun_squawk_ServiceOperation_result; com_sun_squawk_ServiceOperation_result = 0xDEADBEEF; return res;")
 /*end[JAVA5SYNTAX]*/
-    private native static int serviceResult();
+    private native static int serviceResult() throws PrimitiveNativePragma;
 
     /**
      * Gets the result of the last message I/O operation.
      */
-    private native static Address addressResult();
+    private native static Address addressResult() throws PrimitiveNativePragma;
 
     /*-----------------------------------------------------------------------*\
      *                      Non-blocking I/O                                 *

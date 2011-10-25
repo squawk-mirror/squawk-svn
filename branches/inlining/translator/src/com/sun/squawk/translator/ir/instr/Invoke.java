@@ -108,6 +108,9 @@ public abstract class Invoke extends StackProducer {
      * {@inheritDoc}
      */
     public boolean constrainsStack() {
+        if (method.isPrimitiveNative()) {
+            return false;
+        }
         return true;
     }
 

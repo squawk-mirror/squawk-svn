@@ -147,17 +147,6 @@ public class BufferedWriter extends Writer {
     }
 
     /**
-     * Our own little min method, to avoid loading java.lang.Math if we've run
-     * out of file descriptors and we're trying to print a stack trace.
-     */
-    private int min(int a, int b) {
-        if (a < b) {
-            return a;
-        }
-        return b;
-    }
-
-    /**
      * Write a portion of an array of characters.
      *
      * <p> Ordinarily this method stores characters from the given array into
@@ -192,7 +181,7 @@ public class BufferedWriter extends Writer {
 
             int b = off, t = off + len;
             while (b < t) {
-                int d = min(nChars - nextChar, t - b);
+                int d = Math.min(nChars - nextChar, t - b);
                 System.arraycopy(cbuf, b, cb, nextChar, d);
                 b += d;
                 nextChar += d;
@@ -224,7 +213,7 @@ public class BufferedWriter extends Writer {
 
             int b = off, t = off + len;
             while (b < t) {
-                int d = min(nChars - nextChar, t - b);
+                int d = Math.min(nChars - nextChar, t - b);
                 s.getChars(b, b + d, cb, nextChar);
                 b += d;
                 nextChar += d;

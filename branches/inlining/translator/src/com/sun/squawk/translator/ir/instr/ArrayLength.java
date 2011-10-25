@@ -64,6 +64,9 @@ public final class ArrayLength extends StackProducer {
      * {@inheritDoc}
      */
     public boolean mayCauseGC(boolean isStatic) {
+        if (array instanceof Constant) {
+            return false;
+        }
         return true;
     }
 
@@ -92,8 +95,10 @@ public final class ArrayLength extends StackProducer {
      * {@inheritDoc}
      */
     public boolean isIdempotent(IR ir, Method caller) {
-        return false; // might throw null pointer exception
-        //return array.isIdempotent();
+        if (array instanceof Constant) {
+            return false;
+        }
+        return true;
     }
 
 }

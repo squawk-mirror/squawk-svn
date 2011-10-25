@@ -94,7 +94,7 @@ import java.util.Vector;
  *
  * @see java.util.TimeZone
  */
-public class TimeZoneImpl extends GMTImpl {
+public final class TimeZoneImpl extends GMTImpl {
 
     static String HOME_ID = null;
     private static final String DEFAULT_ID = "PST";

@@ -419,7 +419,7 @@ T
      * 
      * @return true if objects of this klass can be insta
      */
-    public boolean isInstantiable() {
+    public final boolean isInstantiable() {
         return !(isInterface() || isPrimitive() || isAbstract());
     }
     /**
@@ -2965,7 +2965,7 @@ T
      * @param body   the method body for which the symbolic info is requested
      * @return the symbolic info for <code>body</code> or null if it is not available
      */
-    Method findMethod(Object body) {
+    final Method findMethod(Object body) {
 /*if[ENABLE_DYNAMIC_CLASSLOADING]*/
         if (body instanceof MethodBody) {
             MethodBody mbody = (MethodBody)body;

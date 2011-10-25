@@ -1,24 +1,25 @@
 /*
- * Copyright 2005-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -81,6 +82,13 @@ public class PragmaException extends RuntimeException {
      */
     public static final int FORCE_INLINED_A = 0x0040;
     public static final int FORCE_INLINED = 0x0050;// == (ALLOW_INLINED | FORCE_INLINED_A)
+    
+    /**
+     * Bit flag for methods (for now, only native methods) that cannot cause GC, thread schedule, or exception throw
+     * For now that means that the method is native, and completely implemented in interpreter (will not call back out to Java or throw exception).
+     */
+    public static final int PRIMITIVE = 0x0080;
+    public static final int PRIMITIVE_NATIVE = PRIMITIVE | NATIVE;
 
     /**
      * Given a bit mask, tells whether the method is run only in a hosted environment.
@@ -111,6 +119,14 @@ public class PragmaException extends RuntimeException {
      */
     public static boolean isNative(int pragmaFlags) {
         return (pragmaFlags & NATIVE) != 0;
+    }
+    
+    /**
+     * Given a bit mask, tells whether the method will be turned into a native
+     * method by the translator.
+     */
+    public static boolean isPrimitiveNative(int pragmaFlags) {
+        return (pragmaFlags & PRIMITIVE_NATIVE) != 0;
     }
 
     /**
@@ -150,6 +166,8 @@ public class PragmaException extends RuntimeException {
             return INTERPRETER_INVOKED;
         } else if (className.equals("com.sun.squawk.pragma.NativePragma")) {
             return NATIVE;
+        } else if (className.equals("com.sun.squawk.pragma.PrimitiveNativePragma")) {
+            return PRIMITIVE_NATIVE;
         } else if (className.equals("com.sun.squawk.pragma.ForceInlinedPragma")) {
             return FORCE_INLINED;
         } else if (className.equals("com.sun.squawk.pragma.NotInlinedPragma")) {

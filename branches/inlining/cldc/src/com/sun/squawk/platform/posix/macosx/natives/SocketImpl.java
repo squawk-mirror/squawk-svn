@@ -30,7 +30,7 @@ package com.sun.squawk.platform.posix.macosx.natives;
 
 import com.sun.cldc.jna.*;
 
-public class SocketImpl extends com.sun.squawk.platform.posix.natives.SocketImpl {
+public final class SocketImpl extends com.sun.squawk.platform.posix.natives.SocketImpl {
 
     /*----------------------------- defines -----------------------------*/
 

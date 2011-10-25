@@ -33,7 +33,7 @@ package com.sun.squawk.platform.windows.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class TimeImpl implements Time {
+public final class TimeImpl implements Time {
 
     /*----------------------------- defines -----------------------------*/
 

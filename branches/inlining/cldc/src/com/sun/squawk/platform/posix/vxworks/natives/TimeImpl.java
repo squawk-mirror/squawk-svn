@@ -34,7 +34,7 @@ import com.sun.squawk.platform.posix.natives.*;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class TimeImpl extends com.sun.squawk.platform.posix.natives.TimeImpl {
+public final class TimeImpl extends com.sun.squawk.platform.posix.natives.TimeImpl {
 
     public int initConstInt(int index) {
         final int[] dummy = {};

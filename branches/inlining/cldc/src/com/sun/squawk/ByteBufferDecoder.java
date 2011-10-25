@@ -60,7 +60,7 @@ public class ByteBufferDecoder extends GeneralDecoder {
      *
      * @return the next byte
      */
-    int nextByte() {
+    final int nextByte() {
         return buf[pos++];
     }
 
@@ -69,7 +69,7 @@ public class ByteBufferDecoder extends GeneralDecoder {
      *
      * @return  the decoded string
      */
-    String readUtf8() {
+    final String readUtf8() {
         int length = readUnsignedShort();
         char[] chars = new char[length];
         for (int i = 0; i != chars.length; ++i) {

@@ -32,7 +32,7 @@ import com.sun.squawk.platform.posix.natives.*;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class NetDBImpl extends com.sun.squawk.platform.posix.natives.NetDBImpl {
+public final class NetDBImpl extends com.sun.squawk.platform.posix.natives.NetDBImpl {
 
     /*----------------------------- defines -----------------------------*/
     private final static int[] intConstants = {

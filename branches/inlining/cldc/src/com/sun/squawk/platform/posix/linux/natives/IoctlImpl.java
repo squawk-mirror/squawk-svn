@@ -30,7 +30,7 @@ package com.sun.squawk.platform.posix.linux.natives;
 
 import com.sun.cldc.jna.*;
 
-public class IoctlImpl extends com.sun.squawk.platform.posix.natives.IoctlImpl {
+public final class IoctlImpl extends com.sun.squawk.platform.posix.natives.IoctlImpl {
 
     /*----------------------------- defines -----------------------------*/
 

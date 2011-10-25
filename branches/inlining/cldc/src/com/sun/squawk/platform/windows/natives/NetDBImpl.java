@@ -31,7 +31,7 @@ package com.sun.squawk.platform.windows.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class NetDBImpl implements NetDB {
+public final class NetDBImpl implements NetDB {
 
     /*----------------------------- defines -----------------------------*/
 

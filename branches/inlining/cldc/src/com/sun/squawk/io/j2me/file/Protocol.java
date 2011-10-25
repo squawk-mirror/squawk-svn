@@ -49,7 +49,7 @@ import javax.microedition.io.*;
  * The result is that a URI that starts with 3 or 4 slashes is treated as an absolute path,
  * while a URI that starts with two slashes is treated as relative.
  */
-public class Protocol extends ConnectionBaseAdapter implements FileConnection {
+public final class Protocol extends ConnectionBaseAdapter implements FileConnection {
 
 //    /** Security token for using FileConnection API from PIM */
 //    private SecurityToken classSecurityToken;

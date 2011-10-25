@@ -41,7 +41,7 @@ import com.sun.squawk.util.Arrays;
  * @version 1.0 2/4/2000
  */
 
-public class Protocol extends ConnectionBase
+public final class Protocol extends ConnectionBase
     implements OutputConnection {
 
     protected boolean opened = false;
@@ -81,7 +81,7 @@ public class Protocol extends ConnectionBase
 /**
  * Output stream for the connection
  */
-class PrivateOutputStream extends OutputStream {
+final class PrivateOutputStream extends OutputStream {
 
     /**
      * Pointer to the connection

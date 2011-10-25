@@ -29,7 +29,7 @@ package java.lang;
 
 import com.sun.cldchi.jvm.JVM;
 
-class FloatingDecimal{
+final class FloatingDecimal{
     boolean	isExceptional;
     boolean	isNegative;
     int		decExponent;

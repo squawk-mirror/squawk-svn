@@ -88,7 +88,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
 	@Vm2c(code="return (Address)value;")
 /*end[JAVA5SYNTAX]*/
-    public static Address fromPrimitive(int/*S64*/ value) throws NativePragma {
+    public static Address fromPrimitive(int/*S64*/ value) throws PrimitiveNativePragma {
         return get(value);
     }
 
@@ -101,7 +101,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
 	@Vm2c(code="return (Address)object;")
 /*end[JAVA5SYNTAX]*/
-    public static Address fromObject(Object object) throws NativePragma {
+    public static Address fromObject(Object object) throws PrimitiveNativePragma {
         Assert.that(object instanceof Address);
         return (Address)object;
     }
@@ -114,7 +114,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
 	@Vm2c(code="return (Address)0;")
 /*end[JAVA5SYNTAX]*/
-    public static Address zero() throws NativePragma {
+    public static Address zero() throws PrimitiveNativePragma {
         return get(0);
     }
 
@@ -126,7 +126,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
 	@Vm2c(code="return (Address)-1;")
 /*end[JAVA5SYNTAX]*/
-    public static Address max() throws NativePragma {
+    public static Address max() throws PrimitiveNativePragma {
         return get(-1);
     }
 
@@ -136,7 +136,7 @@ public final class Address {
      * @return this address as an object reference
      */
 	
-    public Object toObject() throws NativePragma {
+    public Object toObject() throws PrimitiveNativePragma {
         return this;
     }
 
@@ -148,7 +148,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return (UWord)this;")
 /*end[JAVA5SYNTAX]*/
-    public UWord toUWord() throws NativePragma {
+    public UWord toUWord() throws PrimitiveNativePragma {
         return UWord.fromPrimitive(value);
     }
 
@@ -161,7 +161,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return Address_add(this, offset);")
 /*end[JAVA5SYNTAX]*/
-    public Address add(int offset) throws NativePragma {
+    public Address add(int offset) throws PrimitiveNativePragma {
         return get(value + offset);
     }
 
@@ -174,7 +174,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return Address_sub(this, offset);")
 /*end[JAVA5SYNTAX]*/
-    public Address sub(int offset) throws NativePragma {
+    public Address sub(int offset) throws PrimitiveNativePragma {
         return get(value - offset);
     }
 
@@ -187,7 +187,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return Address_add(this, offset);")
 /*end[JAVA5SYNTAX]*/
-    public Address addOffset(Offset offset) throws NativePragma {
+    public Address addOffset(Offset offset) throws PrimitiveNativePragma {
         return get(value + offset.toPrimitive());
     }
 
@@ -200,7 +200,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return Address_sub(this, offset);")
 /*end[JAVA5SYNTAX]*/
-    public Address subOffset(Offset offset) throws NativePragma {
+    public Address subOffset(Offset offset) throws PrimitiveNativePragma {
         return get(value - offset.toPrimitive());
     }
 
@@ -213,7 +213,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return (Address)((UWord)this | word);")
 /*end[JAVA5SYNTAX]*/
-    public Address or(UWord word) throws NativePragma {
+    public Address or(UWord word) throws PrimitiveNativePragma {
         return get(value | word.toPrimitive());
     }
 
@@ -226,7 +226,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return (Address)((UWord)this & word);")
 /*end[JAVA5SYNTAX]*/
-    public Address and(UWord word) throws NativePragma {
+    public Address and(UWord word) throws PrimitiveNativePragma {
         return get(value & word.toPrimitive());
     }
 
@@ -239,7 +239,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return Address_diff(this, address2);")
 /*end[JAVA5SYNTAX]*/
-    public Offset diff(Address address2) throws NativePragma {
+    public Offset diff(Address address2) throws PrimitiveNativePragma {
         Assert.that(value >= address2.value);
         return Offset.fromPrimitive(value - address2.value);
     }
@@ -252,7 +252,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this == 0;")
 /*end[JAVA5SYNTAX]*/
-    public boolean isZero() throws NativePragma {
+    public boolean isZero() throws PrimitiveNativePragma {
         return this == zero();
     }
 
@@ -264,7 +264,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this == (Address)-1;")
 /*end[JAVA5SYNTAX]*/
-    public boolean isMax() throws NativePragma {
+    public boolean isMax() throws PrimitiveNativePragma {
         return this == max();
     }
 
@@ -277,7 +277,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this == address2;")
 /*end[JAVA5SYNTAX]*/
-    public boolean eq(Address address2) throws NativePragma {
+    public boolean eq(Address address2) throws PrimitiveNativePragma {
         return this == address2;
     }
 
@@ -290,7 +290,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this != address2;")
 /*end[JAVA5SYNTAX]*/
-    public boolean ne(Address address2) throws NativePragma {
+    public boolean ne(Address address2) throws PrimitiveNativePragma {
         return this != address2;
     }
 
@@ -303,7 +303,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this < address2;")
 /*end[JAVA5SYNTAX]*/
-    public boolean lo(Address address2) throws NativePragma {
+    public boolean lo(Address address2) throws PrimitiveNativePragma {
         if (value >= 0 && address2.value >= 0) return value < address2.value;
         if (value < 0 && address2.value < 0) return value < address2.value;
         if (value < 0) return false;
@@ -319,7 +319,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this <= address2;")
 /*end[JAVA5SYNTAX]*/
-    public boolean loeq(Address address2) throws NativePragma {
+    public boolean loeq(Address address2) throws PrimitiveNativePragma {
         return (this == address2) || lo(address2);
     }
 
@@ -332,7 +332,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this > address2;")
 /*end[JAVA5SYNTAX]*/
-    public boolean hi(Address address2) throws NativePragma {
+    public boolean hi(Address address2) throws PrimitiveNativePragma {
         return address2.lo(this);
     }
 
@@ -345,7 +345,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return this >= address2;")
 /*end[JAVA5SYNTAX]*/
-    public boolean hieq(Address address2) throws NativePragma {
+    public boolean hieq(Address address2) throws PrimitiveNativePragma {
         return address2.loeq(this);
     }
 
@@ -358,7 +358,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return (Address)roundUp((UWord)this, alignment);")
 /*end[JAVA5SYNTAX]*/
-    public Address roundUp(int alignment) throws NativePragma {
+    public Address roundUp(int alignment) throws PrimitiveNativePragma {
         return get((value + (alignment-1)) & ~(alignment-1));
     }
 
@@ -370,7 +370,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return (Address)roundUpToWord((UWord)this);")
 /*end[JAVA5SYNTAX]*/
-    public Address roundUpToWord() throws NativePragma {
+    public Address roundUpToWord() throws PrimitiveNativePragma {
         return get((value + (HDR.BYTES_PER_WORD-1)) & ~(HDR.BYTES_PER_WORD-1));
     }
 
@@ -383,7 +383,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return (Address)roundDown((UWord)this, alignment);")
 /*end[JAVA5SYNTAX]*/
-    public Address roundDown(int alignment) throws NativePragma {
+    public Address roundDown(int alignment) throws PrimitiveNativePragma {
         return get(value & ~(alignment-1));
     }
 
@@ -395,7 +395,7 @@ public final class Address {
 /*if[JAVA5SYNTAX]*/
     @Vm2c(code="return (Address)roundDownToWord((UWord)this);")
 /*end[JAVA5SYNTAX]*/
-    public Address roundDownToWord() throws NativePragma {
+    public Address roundDownToWord() throws PrimitiveNativePragma {
         return get(value & ~(HDR.BYTES_PER_WORD-1));
     }
 

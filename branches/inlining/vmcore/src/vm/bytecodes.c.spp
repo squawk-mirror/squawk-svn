@@ -3166,6 +3166,10 @@ boolean sda_handleSingleStep(ByteAddress actual_ip, UWordAddress actual_fp, UWor
             if (likely(slot >= 0)) {
                 pushInt(slot);
             } else {
+                /* TODO: think about pushing bad index here, and detecting later. 
+                 *  Either push MethodOffsets.virtual$java_lang_Object$abstractMethodError, or push -1 and check in do_invokeslot().
+                 * Then findslot bytecode would not have to constrain the stack...
+                 */
                 call(com_sun_squawk_VM_abstractMethodError);
             }
         }

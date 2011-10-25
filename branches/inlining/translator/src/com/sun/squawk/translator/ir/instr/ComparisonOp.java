@@ -111,7 +111,7 @@ public final class ComparisonOp extends StackProducer {
     /**
      * {@inheritDoc}
      * <p>
-     * Only the LCMP veriosn may constrain the stack, and only if it isn't later replaced by an "if".
+     * Only the LCMP version may constrain the stack, and only if it isn't later replaced by an "if".
      * This could be optimized a little by implementing
      * some kind of opcode lookahead.
      */

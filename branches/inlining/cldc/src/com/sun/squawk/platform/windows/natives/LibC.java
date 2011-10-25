@@ -378,7 +378,7 @@ public interface LibC extends Library {
      * //        __int64_t	st_qspare[2];	/* RESERVED: DO NOT USE!                      16
      * //     };
      */
-    public static class stat extends LibCImpl.statImpl {
+    public final static class stat extends LibCImpl.statImpl {
         public final static int 
                 EPERM = LibCImpl.EPERM;
         

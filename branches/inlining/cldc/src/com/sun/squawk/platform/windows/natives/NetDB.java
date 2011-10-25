@@ -80,7 +80,7 @@ public interface NetDB extends Library {
              };
              #define h_addr  h_addr_list[0]  address, for backward compatibility 
     */
-    public static class hostent extends NetDBImpl.hostentImpl {
+    public final static class hostent extends NetDBImpl.hostentImpl {
         public String h_name;          /* official name of host */
 
         public int h_addrtype;         /* host address type */

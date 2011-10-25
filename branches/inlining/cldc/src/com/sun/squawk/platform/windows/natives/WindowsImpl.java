@@ -33,7 +33,7 @@ package com.sun.squawk.platform.windows.natives;
 import com.sun.cldc.jna.*;
 import com.sun.cldc.jna.ptr.*;
 
-public class WindowsImpl implements Windows {
+public final class WindowsImpl implements Windows {
 
     /*----------------------------- defines -----------------------------*/
 

@@ -32,7 +32,7 @@ import com.sun.squawk.debugger.DataType.*;
  * A PacketInputStream is used to read data from the data part of a {@link Packet}.
  *
  */
-public class PacketInputStream {
+public final class PacketInputStream {
     private final static boolean ENABLE_VERBOSE = false;
 
     private final DataInputStream dis;

@@ -30,7 +30,7 @@ package com.sun.squawk.platform.posix.macosx.natives;
 
 import com.sun.cldc.jna.Native;
 
-public class SelectImpl extends com.sun.squawk.platform.posix.natives.SelectImpl {
+public final class SelectImpl extends com.sun.squawk.platform.posix.natives.SelectImpl {
 
     /*----------------------------- defines -----------------------------*/
 

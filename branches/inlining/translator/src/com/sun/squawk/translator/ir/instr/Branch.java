@@ -88,8 +88,7 @@ public class Branch extends Instruction implements TargetingInstruction {
      * {@inheritDoc}
      */
     public final boolean constrainsStack() {
-        //return !isForward;
-        return true; // For Cristina's compiler
+        return !isForward;
     }
 
     /**

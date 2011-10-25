@@ -38,7 +38,7 @@ import com.sun.squawk.platform.Platform;
  * @version 1.0 1/16/2000
  */
 
-public class Protocol extends ConnectionBase implements SocketConnection {
+public final class Protocol extends ConnectionBase implements SocketConnection {
 
     /** Socket object used by native code */
     int handle;
@@ -280,7 +280,7 @@ public class Protocol extends ConnectionBase implements SocketConnection {
 /**
  * Input stream for the connection
  */
-class PrivateInputStream extends InputStream {
+final class PrivateInputStream extends InputStream {
 
     /**
      * Pointer to the connection
@@ -427,7 +427,7 @@ class PrivateInputStream extends InputStream {
 /**
  * Output stream for the connection
  */
-class PrivateOutputStream extends OutputStream {
+final class PrivateOutputStream extends OutputStream {
 
     /**
      * Pointer to the connection

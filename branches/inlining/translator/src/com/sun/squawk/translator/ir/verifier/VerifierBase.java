@@ -991,7 +991,8 @@ public abstract class VerifierBase {
         frame.mayCauseGC();
         if (iparm == Native.com_sun_squawk_VM$getGlobalOop) {
             Integer ii = frame.popConstInt();
-            check(frame.isStackEmpty(), "stack not empty after popping parameters to com.sun.squawk.VM.getGlobalOop");
+            // don't need an empty stack, since getGlobalOop doesn't constrain the stack (no GC possible).
+            //check(frame.isStackEmpty(), "stack not empty after popping parameters to com.sun.squawk.VM.getGlobalOop");
             if (ii != null) {
                 int i = ii.intValue();
                 String name = InstructionEmitter.getGlobalOopVariable(i);

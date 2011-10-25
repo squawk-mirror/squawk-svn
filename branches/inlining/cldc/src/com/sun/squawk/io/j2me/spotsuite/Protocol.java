@@ -36,7 +36,7 @@ import com.sun.squawk.vm.ChannelConstants;
 /**
  *
  */
-public class Protocol extends ConnectionBase implements InputConnection {
+public final class Protocol extends ConnectionBase implements InputConnection {
 	
 	private int memoryBase;
 
@@ -67,7 +67,7 @@ public class Protocol extends ConnectionBase implements InputConnection {
 		return this;
 	}
 
-	static class FlashDataInputStream extends DataInputStream implements Pointer {
+	final static class FlashDataInputStream extends DataInputStream implements Pointer {
 		public FlashDataInputStream(FlashInputStream mis) {
 			super(mis);
 		}
@@ -77,7 +77,7 @@ public class Protocol extends ConnectionBase implements InputConnection {
 		}
 	}
 
-	static class FlashInputStream extends InputStream implements Pointer {
+	final static class FlashInputStream extends InputStream implements Pointer {
 		private Protocol parent;
 
 		private int currentMemoryPointer;
