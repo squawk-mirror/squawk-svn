@@ -143,15 +143,14 @@ public final class Arg {
     public final static int PRINT_STATS = 4;
     public final static int VERBOSE = 5;
     public final static int DEAD_STRING_ELIMINATION = 6;
-    
-    public final static int INLINE_METHOD_LIMIT = 7;
-    public final static int INLINE_OBJECT_CONSTRUCTOR = 8;
-    public final static int OPTIMIZE_BYTECODE = 9;
-    public final static int OPTIMIZE_BYTECODE_CONTROL = 10;
-    public final static int OPTIMIZE_DEADCODE = 11;
-    public final static int DEAD_CLASS_ELIMINATION = 12;
+    public final static int DEAD_CLASS_ELIMINATION = 7;
+    public final static int INLINE_METHOD_LIMIT = 8;
+    public final static int INLINE_OBJECT_CONSTRUCTOR = 9;
+    public final static int OPTIMIZE_BYTECODE = 10;
+    public final static int OPTIMIZE_BYTECODE_CONTROL = 11;
+    public final static int OPTIMIZE_DEADCODE = 12;
     public final static int INLINE_NEVER_OVERRIDDEN = 13;
-    
+
     public final static int LAST_ARG = INLINE_NEVER_OVERRIDDEN;
     
     final static Arg[] translatorArgs = new Arg[LAST_ARG + 1];
@@ -163,7 +162,6 @@ public final class Arg {
     private static void initArg(int index, String name, char type, String defaultValue, String usageMsg) {
         translatorArgs[index] = new Arg(name, type, defaultValue, usageMsg);
     }
-    
     
     static void defineOptions() {
         initArg(HELP, "help", Arg.BOOLEAN, "false",
@@ -180,7 +178,6 @@ public final class Arg {
                 "<bool> Print translator actions.");
         initArg(DEAD_STRING_ELIMINATION, "deadStringElimination", Arg.BOOLEAN, "true",
                 "<bool> Remove unused string constants.");
-        
         initArg(OPTIMIZE_BYTECODE, "optimizeBytecode", Arg.BOOLEAN, "true",     // GOOD
                 "<bool> optimize byte codes.");
         initArg(OPTIMIZE_BYTECODE_CONTROL, "optimizeBytecode.control", Arg.BOOLEAN, "true",     // GOOD
@@ -192,7 +189,7 @@ public final class Arg {
                 "                           <m> = <n> + <num parameters>. Don't inline if <n> = 0.");
         initArg(INLINE_OBJECT_CONSTRUCTOR, "inlineObjectConstructor", Arg.BOOLEAN, "true", //?
                 "<bool> If inlining, always inline the constructor or Object.");
-        initArg(DEAD_CLASS_ELIMINATION, "deadClassElimination", Arg.BOOLEAN, "true",  //?
+        initArg(DEAD_CLASS_ELIMINATION, "deadClassElimination", Arg.BOOLEAN, "true",
                 "<bool> Remove unused classes.");
         // this option make the debugging proxy's job have to do whole-suite analysis the exact same way as the original suite creation, 
         // which is slow and error prone. So turn off for now. 

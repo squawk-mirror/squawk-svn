@@ -1079,6 +1079,14 @@ public final class CodeParser implements Context {
         }
     }
 
+    /**
+     * After
+     * @return
+     */
+    public ExceptionHandler[] getExceptionHandlers() {
+        return exceptionHandlers;
+    }
+
     /*---------------------------------------------------------------------------*\
      *                            Max stack & locals                             *
     \*---------------------------------------------------------------------------*/
@@ -1144,7 +1152,7 @@ public final class CodeParser implements Context {
                 msg = "@" + lastOpcodeAddress + ":\n " + msg;
             }
         } else {
-            msg = ":\n " + msg;
+            msg = " -> " + msg;
         }
         return "while translating " + method + msg;
     }

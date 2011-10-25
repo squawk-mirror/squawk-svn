@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -29,14 +30,13 @@ import javax.microedition.io.Connector;
 import java.util.Hashtable;
 import java.util.Stack;
 import com.sun.squawk.util.Assert;
-//import com.sun.squawk.SuiteCreator.*;
 import com.sun.squawk.io.connections.*;
 import com.sun.squawk.translator.ci.*;
 import com.sun.squawk.translator.ir.*;
-import com.sun.squawk.translator.ir.instr.*;
 import com.sun.squawk.util.ComputationTimer;
 import com.sun.squawk.util.Tracer;
 import com.sun.squawk.*;
+import com.sun.squawk.translator.ir.InstructionEmitter;
 
 /**
  * The Translator class presents functionality for loading and linking
@@ -51,89 +51,6 @@ public final class Translator implements TranslatorInterface {
     /*---------------------------------------------------------------------------*\
      *                      Translator options/optimization flags                *
     \*---------------------------------------------------------------------------*/
-
-//    /**
-//     * Property that turns on help about other translator properties.
-//     */
-//    private final static String HELP_PROPERTY = "translator.help";
-//
-//    /**
-//     * Set to true if the translator should use as much memory as necessary to do a best effort translation.
-//     *  (This used to be based on VM.isHosted().
-//     */
-//    private final static String OPTIMIZECONSTANTOBJECTS_PROPERTY = "translator.optimizeConstantObjects";
-//    private final static boolean OPTIMIZECONSTANTOBJECTS = true;
-//    private static boolean optimizeConstantObjects = OPTIMIZECONSTANTOBJECTS;
-//
-//    /**
-//     * Returns true if the translator should use as much memory as necessary to do a best effort translation.
-//     *  (This used to be based on VM.isHosted().
-//     */
-//    public static boolean shouldOptimizeConstantObjects() {
-//        return optimizeConstantObjects;
-//    }
-//    
-//    /**
-//     * Set to true if the translator should delete uncalled methods
-//     */
-//    private final static String DEADMETHODELIMINATION_PROPERTY = "translator.deadMethodElimination";
-//    private final static boolean DEADMETHODELIMINATION = true;
-//    private static boolean deadMethodElimination = DEADMETHODELIMINATION;
-//
-//    /**
-//     * Returns true if the translator should eliminate dead methods
-//     */
-//    public static boolean shouldDoDeadMethodElimination() {
-//        return deadMethodElimination;
-//    }
-//
-//    /**
-//     * Set to true if the translator should delete uncalled private constructors
-//     */
-//    private final static String DELETEUNUSEDPRIVATECONSTRUCTORS_PROPERTY = "translator.deleteUnusedPrivateConstructors";
-//    private final static boolean DELETEUNUSEDPRIVATECONSTRUCTORS = true;
-//    private static boolean deleteUnusedPrivateConstructors = DELETEUNUSEDPRIVATECONSTRUCTORS;
-//
-//    /**
-//     * Returns true if the translator should eliminate uncalled private constructors
-//     */
-//    public static boolean shouldDeleteUnusedPrivateConstructors() {
-//        return deleteUnusedPrivateConstructors;
-//    }
-//    
-//    /** If true, start deleting USED methods, to test error handling (Should throw abstract method error, or exit with fatalVMError.
-//     */
-//    public final static boolean FORCE_DME_ERRORS = false;
-//    
-//     /**
-//     * Set to true if the translator should print verbose progress
-//     */
-//    private final static String VERBOSE_PROPERTY = "translator.verbose";
-//    private final static boolean VERBOSE = false;
-//    private static boolean verbose = VERBOSE;
-//    
-//    
-//    /**
-//     * Returns true if the translator should print verbose progress
-//     */
-//    public static boolean verbose() {
-//        return verbose;
-//    }
-//    
-//    private int progressCounter = 0;
-//    
-//    /**
-//     * Returns true if the translator should print verbose progress
-//     */
-//    public void traceProgress() {
-//        if (verbose) {
-//            progressCounter++;
-//            Tracer.trace(".");
-//            if (progressCounter % 40 == 0) {
-//                Tracer.trace("\n");
-//            }
-//        }
-//    }
     
     protected final Stack lastClassNameStack = new Stack();
 
@@ -171,7 +88,7 @@ public final class Translator implements TranslatorInterface {
      */
     private void setOptions() {
         Arg.setOptions();
-        
+
         if (Arg.get(Arg.DEAD_CLASS_ELIMINATION).getBool() || Arg.get(Arg.DEAD_METHOD_ELIMINATION).getBool() || (Arg.get(Arg.INLINE_METHOD_LIMIT).getInt() > 0)) {
             translationStrategy = BY_SUITE;
         } else if (Arg.get(Arg.OPTIMIZE_CONSTANT_OBJECTS).getBool()) {
@@ -336,80 +253,12 @@ public final class Translator implements TranslatorInterface {
     /**
      * A DeadMethodEliminator is created in close() if we do dead method elimination.
      */
-     DeadMethodEliminator dme;
-     
-//    /**
-//     * Parses the system property named <code>name</code> as a boolean. Use <code>defaultValue</code> if
-//     * there is no system property by that name, or if the value is not a boolean.
-//     *
-//     * @param name  the name pf the property.
-//     * @param defaultValue the default value to use.
-//     * @return the specified property value or the default value.
-//     */
-//    private boolean getBooleanProperty(String name, boolean defaultValue) {
-//        String result = System.getProperty(name);
-//
-//        if (result != null) {
-//            result = result.toLowerCase();
-//            if (result.equals("true")) {
-//                return true;
-//            } else if (result.equals("false")) {
-//                return false;
-//            } else {
-//                System.err.println("Illformed boolean value " + result + "for translator property " + name + ". Using default value " + defaultValue);
-//                // fall through to pick up default
-//            }
-//        }
-//        return defaultValue;
-//    }
-//
-//    /**
-//     * Parses the system property named <code>name</code> as an int. Use <code>defaultValue</code> if
-//     * there is no system property by that name, or if the value is not an int.
-//     *
-//     * @param name  the name pf the property.
-//     * @param defaultValue the default value to use.
-//     * @return the specified property value or the default value.
-//     */
-//    private int getIntProperty(String name, int defaultValue) {
-//        String result = System.getProperty(name);
-//
-//        if (result != null) {
-//            return Integer.parseInt(result);
-//        }
-//
-//        return defaultValue;
-//    }
-//
-//    /**
-//     * Read translator properties and set corresponding options.
-//     */
-//    private void setOptions() {
-//        boolean showHelp         = getBooleanProperty(HELP_PROPERTY,  false);
-//        optimizeConstantObjects  = getBooleanProperty(OPTIMIZECONSTANTOBJECTS_PROPERTY,  OPTIMIZECONSTANTOBJECTS);
-//	    deadMethodElimination    = getBooleanProperty(DEADMETHODELIMINATION_PROPERTY, DEADMETHODELIMINATION);
-//        verbose                       = getBooleanProperty(VERBOSE_PROPERTY, VERBOSE);
-//        verbose |= VM.isVerbose() | VM.isVeryVerbose() | Tracer.isTracing("converting");
-//        
-//        if (showHelp || verbose || VM.isVeryVerbose()) {
-//            VM.println("Translator properties and current values:");
-//            VM.println("    " + HELP_PROPERTY                                + "=" + showHelp);
-//            VM.println("    " + VERBOSE_PROPERTY                           + "=" + verbose);
-//            if (!getBooleanProperty(VERBOSE_PROPERTY, VERBOSE)) {
-//                VM.println("        " + VERBOSE_PROPERTY  + " implicitly set by squawk -verbose, -veryverbose, or -traceconverting");
-//            }
-//            VM.println("    " + OPTIMIZECONSTANTOBJECTS_PROPERTY  + "=" + optimizeConstantObjects);
-//            VM.println("    " + DEADMETHODELIMINATION_PROPERTY    + "=" + deadMethodElimination);
-//        }
-//        
-//        if (deadMethodElimination) {
-//            translationStrategy = BY_SUITE;
-//        } else if (optimizeConstantObjects) {
-//            translationStrategy = BY_CLASS;
-//        } else {
-//            translationStrategy = BY_METHOD;
-//        }
-//    }
+    DeadMethodEliminator dme;
+    
+    /**
+     * A DeadClassEliminator is created in close() if we do dead class elimination.
+     */
+    DeadClassEliminator dce;
 
     /**
      * {@inheritDoc}
@@ -562,7 +411,7 @@ public final class Translator implements TranslatorInterface {
                 }
                 
                 if (Arg.get(Arg.DEAD_CLASS_ELIMINATION).getBool()) {
-                    DeadClassEliminator dce = new DeadClassEliminator(this);
+                    dce = new DeadClassEliminator(this);
                     dce.computeClassesUsed();
                 }
 
@@ -572,16 +421,17 @@ public final class Translator implements TranslatorInterface {
                     Tracer.trace("[Translator: phase2...");
                     time = System.currentTimeMillis();
                 }
-                
+
                 for (int cno = 0; cno < suite.getClassCount(); cno++) {
                     Klass klass = suite.getKlass(cno);
+                    Assert.always(Arg.get(Arg.DEAD_CLASS_ELIMINATION).getBool() || (klass != null));
                     if (klass != null) {
                         convertPhase2(klass);
                     }
                 }
             } else {
-                                if (verbose()) {
-                   Tracer.trace("[Translator: calling(2) " + preClassStripCallback); 
+                if (verbose()) {
+                    Tracer.trace("[Translator: calling(2) " + preClassStripCallback); 
                 }
                 if (preClassStripCallback != null) {
                     preClassStripCallback.run();
@@ -593,12 +443,17 @@ public final class Translator implements TranslatorInterface {
             if (verbose()) {
                 time = System.currentTimeMillis() - time;
                 Tracer.traceln(time + "ms.]");
+                
+                if (VM.isVeryVerbose()) {
+                    InstructionEmitter.printUncalledNativeMethods();
+                }
             }
             Assert.always(lastClassNameStack.empty());
 
             if (Arg.get(Arg.PRINT_STATS).getBool()){
                 printStats(suiteType);
             }
+
         } catch (RuntimeException e) {
             System.err.println("Error during translation: " + e);
             e.printStackTrace();
@@ -627,7 +482,6 @@ public final class Translator implements TranslatorInterface {
             out.println("    -tracemethods         trace emitted Squawk bytecode methods");
             out.println("    -tracemaps            trace stackmaps read from class files");
             out.println("    -traceDME             trace Dead Method Elimination");
-            out.println("    -traceDSE             trace Dead String Elimination");
             out.println("    -traceDCE             trace Dead Class Elimination");
             out.println("    -tracecallgraph       print table of methods and callees (only when doing DME)");
             out.println("    -tracefilter:<string> filter trace with simple string filter");
@@ -675,57 +529,6 @@ public final class Translator implements TranslatorInterface {
         return false;
     }
     
-//    private void printOne(PrintStream out, String baseName, String rest, boolean asParameters) {
-//        out.print("    -");
-//        if (!asParameters) {
-//            out.print("Dtranslator.");
-//        }
-//        out.print(baseName);
-//         if (asParameters) {
-//            out.print(":");
-//        } else {
-//            out.print("=");
-//        }
-//        out.println(rest);
-//    }
-    
-//    /**
-//     * {@inheritDoc}
-//     */
-//    public void printOptionProperties(PrintStream out, boolean asParameters) {
-//        printOne(out, "optimizeConstantObjects", "<bool> Reorder class objects to allow small indexes for common objects.\n" +
-//                "                          <bool> must be true or false (default is true)", asParameters);
-//        printOne(out, "deadMethodElimination", "<bool> Remove uncalled (and uncallable) methods.\n." +
-//                "                         <bool> must be true or false (default is true)", asParameters);
-//    }
-//    
-//    /**
-//     * If "arg" match the  option with the basic name "baseName" then set the option to 
-//     * the appropriate value, and return true.
-//     *
-//     * @param arg the argument on the command line "-foo:value"
-//     * @param baseName the basic name of the option: "foo"
-//     * @return true if "arg" is the option that matches baseName.
-//     */
-//    private boolean processOptionAs(String arg, String baseName) {
-//        String optionStr = "-" + baseName + ":";
-//        if (arg.startsWith(optionStr)) {
-//            String val = arg.substring(optionStr.length()).toUpperCase();
-//            VM.setProperty("translator." + baseName, val);
-//            return true;
-//        }
-//        return false;
-//    }
-//    
-//    /**
-//     * {@inheritDoc}
-//     */
-//    public boolean processOptionProperties(String arg) {
-//        return arg.startsWith("-") &&
-//                (processOptionAs(arg, "optimizeConstantObjects")
-//                || processOptionAs(arg, "deadMethodElimination"));
-//    }
-
     /*---------------------------------------------------------------------------*\
      *                                   Misc                                    *
     \*---------------------------------------------------------------------------*/
@@ -782,15 +585,8 @@ public final class Translator implements TranslatorInterface {
         return classFile;
     }
 
-	public String getLastClassName() {
-		if (lastClassNameStack.empty()) {
-			return null;
-		}
-		return (String) lastClassNameStack.peek();
-	}
-
     /**
-     * Like 
+     * Like
      * <code>klass</code> must not yet be converted and it must not be a
      * {@link Klass#isSynthetic() synthetic} class.
      *
@@ -802,6 +598,13 @@ public final class Translator implements TranslatorInterface {
         ClassFile classFile = (ClassFile)classFiles.get(klass.getInternalName());
         return classFile;
     }
+
+	public String getLastClassName() {
+		if (lastClassNameStack.empty()) {
+			return null;
+		}
+		return (String) lastClassNameStack.peek();
+	}
 
     /**
      * Gets the connection that is used to find the class files.

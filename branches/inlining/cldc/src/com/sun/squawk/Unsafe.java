@@ -260,59 +260,56 @@ public final class Unsafe {
         return NativeUnsafe.getAddress(base, offset);
     }
 
+    /**
+     * Gets a UWord value from memory ignoring any recorded type of the value at the designated location.
+     * This operation is equivalent to {@link #getUWord(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
+     * is disabled.
+     *
+     * @param base   the base address
+     * @param offset the offset (in words) from <code>base</code> from which to load
+     * @return the value
+     */
+    public static UWord getAsUWord(Address base, int offset) {
+        return NativeUnsafe.getAsUWord(base, offset);
+    }
     
-// The main uses of the Unsafe memory are to non-Java heap areas, which are NOT covered by the TypeMap anyway, so
-// users shouldn't need these versions.
-//    /**
-//     * Gets a UWord value from memory ignoring any recorded type of the value at the designated location.
-//     * This operation is equivalent to {@link #getUWord(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
-//     * is disabled.
-//     *
-//     * @param base   the base address
-//     * @param offset the offset (in words) from <code>base</code> from which to load
-//     * @return the value
-//     */
-//    public static UWord getAsUWord(Address base, int offset) {
-//        return NativeUnsafe.getAsUWord(base, offset);
-//    }
-//    
-//    /**
-//     * Gets a signed 8 bit value from memory ignoring any recorded type of the value at the designated location.
-//     * This operation is equivalent to {@link #getByte(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
-//     * is disabled.
-//     *
-//     * @param base   the base address
-//     * @param offset the offset (in 8 bit words) from <code>base</code> from which to load
-//     * @return the value
-//     */
-//    public static int getAsByte(Address base, int offset) {
-//        return NativeUnsafe.getAsByte(base, offset);
-//    }
-//    
-//    /**
-//     * Gets a signed 16 bit value from memory ignoring any recorded type of the value at the designated location.
-//     * This operation is equivalent to {@link #getShort(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
-//     * is disabled.
-//     *
-//     * @param base   the base address
-//     * @param offset the offset (in 16 bit words) from <code>base</code> from which to load
-//     * @return the value
-//     */
-//    public static int getAsShort(Address base, int offset) {
-//        return NativeUnsafe.getAsByte(base, offset);
-//    }
-//    /**
-//     * Gets a signed 32 bit value from memory ignoring any recorded type of the value at the designated location.
-//     * This operation is equivalent to {@link #getInt(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
-//     * is disabled.
-//     *
-//     * @param base   the base address
-//     * @param offset the offset (in 32 bit words) from <code>base</code> from which to load
-//     * @return the value
-//     */
-//    public static int getAsInt(Address base, int offset) {
-//        return NativeUnsafe.getAsByte(base, offset);
-//    }
+    /**
+     * Gets a signed 8 bit value from memory ignoring any recorded type of the value at the designated location.
+     * This operation is equivalent to {@link #getByte(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
+     * is disabled.
+     *
+     * @param base   the base address
+     * @param offset the offset (in 8 bit words) from <code>base</code> from which to load
+     * @return the value
+     */
+    public static int getAsByte(Address base, int offset) {
+        return NativeUnsafe.getAsByte(base, offset);
+    }
+    
+    /**
+     * Gets a signed 16 bit value from memory ignoring any recorded type of the value at the designated location.
+     * This operation is equivalent to {@link #getShort(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
+     * is disabled.
+     *
+     * @param base   the base address
+     * @param offset the offset (in 16 bit words) from <code>base</code> from which to load
+     * @return the value
+     */
+    public static int getAsShort(Address base, int offset) {
+        return NativeUnsafe.getAsByte(base, offset);
+    }
+    /**
+     * Gets a signed 32 bit value from memory ignoring any recorded type of the value at the designated location.
+     * This operation is equivalent to {@link #getInt(Address, int)} when {@link VM#usingTypeMap() runtime type checking}
+     * is disabled.
+     *
+     * @param base   the base address
+     * @param offset the offset (in 32 bit words) from <code>base</code> from which to load
+     * @return the value
+     */
+    public static int getAsInt(Address base, int offset) {
+        return NativeUnsafe.getAsByte(base, offset);
+    }
     
     /**
      * Copy from memory to byte array.
@@ -535,6 +532,23 @@ public final class Unsafe {
         NativeUnsafe.setUnalignedLong(base, boffset, value);
     }
 
+    /**
+     * Allocate a block of memory outside of the Java heap.<p>
+     * 
+     * Memory may be be very restricted on some platforms. Callers shouldn't rely on 
+     * this memory unless they have a good understanding of the memory reserved for malloc
+     * on a particular platform.
+     * 
+     * @param size
+     * @return address of memory block, or zero
+     * @throws com.sun.squawk.pragma.NativePragma
+     */
+    public static Address malloc(UWord size) {
+        return NativeUnsafe.malloc(size);
+    }
     
+    public static void free(Address ptr) {
+         NativeUnsafe.free(ptr);
+    }
     
 }

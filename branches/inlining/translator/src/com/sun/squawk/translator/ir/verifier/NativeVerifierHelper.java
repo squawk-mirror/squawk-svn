@@ -459,6 +459,100 @@ class NativeVerifierHelper {
             return;
         }
 
+        case Native.com_sun_squawk_NativeUnsafe$call0: {
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$call1: {
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$call10: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$call2: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$call3: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$call4: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$call5: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$call6: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$cancelTaskExecutor: {
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
         case Native.com_sun_squawk_NativeUnsafe$charAt: {
             frame.pop(INT); // int
             frame.pop(OOP); // java.lang.String
@@ -472,6 +566,29 @@ class NativeVerifierHelper {
             frame.pop(REF); // com.sun.squawk.Address
             frame.pop(REF); // com.sun.squawk.Address
             Assert.that(frame.isStackEmpty());
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$createTaskExecutor: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(REF); // com.sun.squawk.Address
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$deleteNativeTask: {
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$deleteTaskExecutor: {
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
+            frame.push(INT); // int
             return;
         }
 
@@ -618,6 +735,24 @@ class NativeVerifierHelper {
 
         case Native.com_sun_squawk_NativeUnsafe$malloc: {
             frame.pop(UWORD); // com.sun.squawk.UWord
+            Assert.that(frame.isStackEmpty());
+            frame.push(REF); // com.sun.squawk.Address
+            return;
+        }
+
+        case Native.com_sun_squawk_NativeUnsafe$runBlockingFunctionOn: {
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(INT); // int
+            frame.pop(REF); // com.sun.squawk.Address
+            frame.pop(REF); // com.sun.squawk.Address
             Assert.that(frame.isStackEmpty());
             frame.push(REF); // com.sun.squawk.Address
             return;
@@ -783,13 +918,6 @@ class NativeVerifierHelper {
             return;
         }
 
-        case Native.com_sun_squawk_VM$allocateVirtualStack: {
-            frame.pop(INT); // int
-            Assert.that(frame.isStackEmpty());
-            frame.push(REF); // com.sun.squawk.Address
-            return;
-        }
-
         case Native.com_sun_squawk_VM$asKlass: {
             frame.pop(OOP); // java.lang.Object
             Assert.that(frame.isStackEmpty());
@@ -903,20 +1031,8 @@ class NativeVerifierHelper {
             return;
         }
 
-        case Native.com_sun_squawk_VM$getGlobalAddrCount: {
-            Assert.that(frame.isStackEmpty());
-            frame.push(INT); // int
-            return;
-        }
-
         case Native.com_sun_squawk_VM$getGlobalInt: {
             frame.pop(INT); // int
-            Assert.that(frame.isStackEmpty());
-            frame.push(INT); // int
-            return;
-        }
-
-        case Native.com_sun_squawk_VM$getGlobalIntCount: {
             Assert.that(frame.isStackEmpty());
             frame.push(INT); // int
             return;
@@ -938,14 +1054,6 @@ class NativeVerifierHelper {
         case Native.com_sun_squawk_VM$getGlobalOopTable: {
             Assert.that(frame.isStackEmpty());
             frame.push(REF); // com.sun.squawk.Address
-            return;
-        }
-
-        case Native.com_sun_squawk_VM$getInterruptStatus: {
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            Assert.that(frame.isStackEmpty());
-            frame.push(LONG); // long
             return;
         }
 
@@ -1003,12 +1111,6 @@ class NativeVerifierHelper {
             return;
         }
 
-        case Native.com_sun_squawk_VM$isInKernel: {
-            Assert.that(frame.isStackEmpty());
-            frame.push(BOOLEAN); // boolean
-            return;
-        }
-
         case Native.com_sun_squawk_VM$longBitsToDouble: {
             frame.pop(LONG); // long
             Assert.that(frame.isStackEmpty());
@@ -1025,26 +1127,23 @@ class NativeVerifierHelper {
             return;
         }
 
-        case Native.com_sun_squawk_VM$pause: {
-            Assert.that(frame.isStackEmpty());
-            return;
-        }
-
         case Native.com_sun_squawk_VM$removeVirtualMonitorObject: {
             Assert.that(frame.isStackEmpty());
             frame.push(OOP); // java.lang.Object
             return;
         }
 
-        case Native.com_sun_squawk_VM$sendInterrupt: {
-            frame.pop(INT); // int
-            Assert.that(frame.isStackEmpty());
-            return;
-        }
-
         case Native.com_sun_squawk_VM$serviceResult: {
             Assert.that(frame.isStackEmpty());
             frame.push(INT); // int
+            return;
+        }
+
+        case Native.com_sun_squawk_VM$setBytes: {
+            frame.pop(INT); // int
+            frame.pop(BYTE); // byte
+            frame.pop(REF); // com.sun.squawk.Address
+            Assert.that(frame.isStackEmpty());
             return;
         }
 
@@ -1083,20 +1182,6 @@ class NativeVerifierHelper {
             return;
         }
 
-        case Native.com_sun_squawk_VM$setupAlarmInterval: {
-            frame.pop(INT); // int
-            frame.pop(INT); // int
-            Assert.that(frame.isStackEmpty());
-            return;
-        }
-
-        case Native.com_sun_squawk_VM$setupInterrupt: {
-            frame.pop(OOP); // java.lang.String
-            frame.pop(INT); // int
-            Assert.that(frame.isStackEmpty());
-            return;
-        }
-
         case Native.com_sun_squawk_VM$threadSwitch: {
             Assert.that(frame.isStackEmpty());
             return;
@@ -1127,16 +1212,6 @@ class NativeVerifierHelper {
             frame.pop(OOP); // com.sun.squawk.GarbageCollector (receiver)
             Assert.that(frame.isStackEmpty());
             frame.push(BOOLEAN); // boolean
-            return;
-        }
-
-        case Native.com_sun_squawk_GarbageCollector$copyObjectGraphInC: {
-            frame.pop(REF); // com.sun.squawk.Address
-            frame.pop(OOP); // com.sun.squawk.ObjectMemorySerializer$ControlBlock
-            frame.pop(REF); // com.sun.squawk.Address
-            frame.pop(OOP); // com.sun.squawk.GarbageCollector (receiver)
-            Assert.that(frame.isStackEmpty());
-            frame.push(REF); // com.sun.squawk.Address
             return;
         }
 

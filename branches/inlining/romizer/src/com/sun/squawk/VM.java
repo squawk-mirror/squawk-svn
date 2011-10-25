@@ -172,15 +172,52 @@ public class VM {
      *                              Symbols stripping                        *
     \*=======================================================================*/
 
+    /**
+     * Given a fully-qualified name, return the package part.
+     * @param fqn such as "java.lang.String"
+     * @return package part, such as "java.lang"
+     */
+    public static String getFQNPackage(String fqn) {
+        int cindex = fqn.lastIndexOf('.');
+        return fqn.substring(0, cindex);
+    }
+
+    /**
+     * Given a fully-qualified name, return the class part.
+     * @param fqn such as "java.lang.String#length"
+     * @return package part, such as "String"
+     */
+    public static String getFQNClass(String fqn) {
+        int pindex = fqn.lastIndexOf('.');
+        int mindex = fqn.lastIndexOf('#');
+        if (mindex >= 0) {
+            return fqn.substring(pindex + 1, mindex);
+        } else {
+            return fqn.substring(pindex + 1, fqn.length());
+        }
+    }
+    
+    /**
+     * Given a fully-qualified name, return the member part.
+     * @param fqn such as "java.lang.String#length"
+     * @return package part, such as "length"
+     */
+    public static String getFQNMember(String fqn) {
+        int mindex = fqn.lastIndexOf('#');
+        return fqn.substring(mindex + 1, fqn.length());
+    }
+
     static abstract class Matcher {
 
         public static final int PRECEDENCE_PACKAGE = 0;
-        public static final int PRECEDENCE_CLASS = 1;
-        public static final int PRECEDENCE_MEMBER = 2;
+        public static final int PRECEDENCE_CLASS_WILDPACKAGE = 1;
+        public static final int PRECEDENCE_CLASS = 2;
+        public static final int PRECEDENCE_MEMBER = 3;
         
-        public static final int KEEP = 0;
-        public static final int STRIP = 1;
-        public static final int INTERNAL = 2;
+        public static final int EXPORT = 0;
+        public static final int INTERNAL = 1;
+        public static final int CROSS_SUITE_PRIVATE = 2;
+        public static final int DYNAMIC = 3;
 
         final int action;
         final int precedence;
@@ -202,10 +239,11 @@ public class VM {
     }
 
     static class PackageMatcher extends Matcher {
-        private final String pkg;
-        private final boolean recursive;
-        PackageMatcher(String pattern, int action) {
-            super(action, PRECEDENCE_PACKAGE);
+        protected final String pkg;
+        protected final boolean recursive;
+
+        PackageMatcher(String pattern, int action, int precedence) {
+            super(action, precedence);
             if (pattern.endsWith(".**")) {
                 pkg = pattern.substring(0, pattern.length() - 3);
                 recursive = true;
@@ -218,8 +256,12 @@ public class VM {
             }
         }
 
+        PackageMatcher(String pattern, int action) {
+            this(pattern, action, PRECEDENCE_PACKAGE);
+        }
+
         boolean moreSpecificThan(Matcher m) {
-            if (m instanceof PackageMatcher) {
+            if (precedence == m.precedence) {
                 if (!recursive) {
                     return true;
                 }
@@ -256,8 +298,49 @@ public class VM {
         }
     }
 
+    /**
+     * Handles class with wildcard in the package name. For example:
+     *     com.sun.squawk.io.j2me.*.Protocol
+     * or
+     *     com.sun.squawk.io.j2me.**.Protocol
+     */
+    static class ClassWithWildPackageMatcher extends PackageMatcher {
+        final String classPattern;
+
+        ClassWithWildPackageMatcher(String packagePatter, String classPattern, int action) {
+            super(packagePatter, action, PRECEDENCE_CLASS_WILDPACKAGE);
+            this.classPattern = classPattern;
+        }
+
+        public boolean matches(String s) {
+            if (!s.startsWith(pkg)) {
+                return false;
+            }
+            if (!s.endsWith(classPattern)) {
+                return false;
+            }
+            if (s.length() < pkg.length() + classPattern.length() + 3) {
+                return false;
+            }
+            String wildPackage = s.substring(pkg.length(), s.length() - classPattern.length());
+            if (wildPackage.length() < 3 || wildPackage.charAt(0) != '.' || wildPackage.charAt(wildPackage.length() - 1) != '.') {
+                return false;
+            }
+            if (recursive) {
+                return true; // should be ".FOO." or ".FOO.BAR.BAZ."
+            } else {
+               return wildPackage.indexOf('.', 1) == wildPackage.length() - 1; // should be ".FOO." so no interior '.' allowed
+            }
+        }
+
+        public String toString() {
+            return "ClassWithWildPackageMatcher [" + pkg + "." + classPattern + ": " + action + ']';
+        }
+    }
+
+
     static class ClassMatcher extends Matcher {
-        private final String pattern;
+        protected final String pattern;
         ClassMatcher(String pattern, int action) {
             super(action, PRECEDENCE_CLASS);
             if (pattern.indexOf('#') != -1 || pattern.indexOf('*') != -1) {
@@ -286,6 +369,21 @@ public class VM {
         
         public String toString() {
             return "ClassMatcher [" + pattern + ']';
+        }
+    }
+
+    /** Only the exact class will match, not members. */
+    static class ClassOnlyMatcher extends ClassMatcher {
+        ClassOnlyMatcher(String pattern, int action) {
+            super(pattern, action);
+        }
+
+        public boolean matches(String s) {
+            return pattern.equals(s);
+        }
+        
+        public String toString() {
+            return "ClassOnlyMatcher [" + pattern + ": " + action + ']';
         }
     }
 
@@ -326,32 +424,41 @@ public class VM {
      * Resets the settings used to determine what symbols are to be retained/stripped
      * when stripping a suite in library mode (i.e. -strip:l) or extendable library
      * mode (i.e. -strip:e). An element that is <code>private</code> will always be stripped
-     * in these modes and an element that is package <code>private</code> will always be
+     * in these modes and an element that is package-<code>private</code> will always be
      * stripped in library mode.
      * <p>
      * The key of each property in the file specifies a pattern that will be used to match
-     * a class, field or method that may be stripped. The value for a given keep must be
-     * "keep", "strip", or "internal". 
-     *
-     *  keep: Keep the symbols that match the pattern. 
-     *
-     *  strip: Remove the symbols that match the pattern. 
-     *         If the underlying method is not called within the suite, it me be removed.
-     *
-     *  internal: Remove the symbols that match the pattern, but keep the matching methods
-     *            even if not called within the suite. This is used when multiple suites are compiled togther.
-     *            The child suites can call methods even though symbols were stripped.
+     * a class, field or method that may be stripped.
      * 
-     * There are 3 different types of patterns that can be specified:
+     * The value of each property in the file specifies how to handle symbols that match the pattern:
+     *
+     *  export: Keep the symbols that match the pattern. If pattern is a class pattern, then export members (methods and fields) also.
+     *           Exports are ignored when a suite is built as an application.
+     *
+     *  export_class: export the specified class, but not necessarily the enclosing methods and fields.
+     *           Exports are ignored when a suite is built as an application.
+     *
+     *  dynamic: Will keep the symbol, even if the suite is built as an application. Use for classes loaded by Class.findClass().
+     *
+     *  internal: Remove the symbols that match the pattern.
+     *            If the matching method or class is not used within the suite, it may be removed by optimization.
+     *
+     *  cross_suite_private: This mode is only enabled when ENABLE_DYNAMIC_CLASSLOADING is true, otherwise this is treated as internal.
+     *            Remove the symbols that match the pattern, but keep the matching methods
+     *            even if not called within the suite. This is used when multiple suites are compiled together.
+     *            The child suites can call methods even though symbols were stripped.
+     *
+     * 
+     * There are 4 different types of patterns that can be specified:
      *
      * 1. A package pattern ends with ".*" or ".**". The former is used to match an
      *    element in a package and the latter extends the match to include any sub-package.
      *    For example:
      *
-     *    java.**=keep
-     *    javax.**=keep
-     *    com.sun.**=strip
-     *    com.sun.squawk.*=keep
+     *    java.**=export
+     *    javax.**=export
+     *    com.sun.**=internal
+     *    com.sun.squawk.*=export
      *
      *    This will keep all the symbols in any package starting with "java." or "javax.".
      *    All symbols in a package starting with "com.sun." will also be stripped <i>except</i>
@@ -361,19 +468,27 @@ public class VM {
      *    precedence over a more general pattern. If two patterns matching some given input
      *    are identical, then the one occurring lower in the properties file has higher precedence.
      *
-     *  2. A class pattern is a fully qualified class name. For example:
+     *  2. A class pattern with a wildcard package specification contains a ".*" or ".**". between a package prefix and a class name.
+     *     For example:
      *
-     *    com.sun.squawk.Isolate=keep
+     *        com.sun.squawk.io.j2me.*.Protocol
+     *    or
+     *        com.sun.squawk.io.j2me.**.Protocol
      *
-     *  3. A field or method pattern is a fully qualified class name joined to a field or method
+     *  3. A class pattern is a fully qualified class name. For example:
+     *
+     *    com.sun.squawk.Isolate=export
+     *
+     *  4. A field or method pattern is a fully qualified class name joined to a field or method
      *     name by a '#' and (optionally) suffixed by parameter types for a method. For example:
      *
-     *    com.sun.squawk.Isolate#isTckTest=strip
-     *    com.sun.squawk.Isolate#clearErr(java.lang.String)=keep
-     *    com.sun.squawk.Isolate#removeThread(com.sun.squawk.VMThread,boolean)=strip
+     *    com.sun.squawk.Isolate#isTckTest=internal
+     *    com.sun.squawk.Isolate#clearErr(java.lang.String)=export
+     *    com.sun.squawk.Isolate#removeThread(com.sun.squawk.VMThread,boolean)=internal
      *
-     * A member pattern takes precedence over a class pattern which in turn takes precedence
-     * over a package pattern.
+     * The different pattern types have precedence levels 1-4, with 4 being the highest precedence.
+     * If a particular symbol is matched by more than one specified pattern, then the pattern with the
+     * highest precedence is used.
      *
      * @param path  the properties file with the settings
      */
@@ -389,29 +504,59 @@ public class VM {
             for (Map.Entry<Object, Object> entry : properties.entrySet()) {
                 String k = (String) entry.getKey();
                 String v = (String) entry.getValue();
+                v = v.toLowerCase();
 
                 int action;
-                if ("keep".equalsIgnoreCase(v)) {
-                    action = Matcher.KEEP;
-                } else if ("strip".equalsIgnoreCase(v)) {
-                    action = Matcher.STRIP;
-                } else if ("internal".equalsIgnoreCase(v)) {
+                boolean scopeAll = true;
+                if ("export".equals(v)) {
+                    action = Matcher.EXPORT;
+                } else if ("export_class".equals(v)) {
+                    action = Matcher.EXPORT;
+                    scopeAll = false;
+                } else if ("dynamic".equals(v)) {
+                    action = Matcher.DYNAMIC;
+                } else if ("internal".equals(v)) {
+                    action = Matcher.INTERNAL;
+                } else if ("cross_suite_private".equals(v)) {
                     if (enableDynamicClassloading) {
-                        action = Matcher.INTERNAL;
+                        action = Matcher.CROSS_SUITE_PRIVATE;
                     } else {
-                        action = Matcher.STRIP;
+                        action = Matcher.INTERNAL;
                     }
                 } else {
-                    throw new IllegalArgumentException("value for property " + k + " in " + path + " must be 'keep', 'strip', or 'internal'");
+                    throw new IllegalArgumentException("value for property " + k + " in " + path + " must be 'export', 'export_class', 'internal', 'dynamic', or 'cross_suite_private'");
                 }
 
+                Matcher matcher = null;
                 if (k.endsWith("*")) {
-                    stripMatchers.add(new PackageMatcher(k, action));
+                    matcher = new PackageMatcher(k, action);
+                } else if (k.indexOf('*') != -1) {
+                    // k = A.B.*.Foo or A.B.**.Foo
+                    int wildCard;
+                    if ((wildCard = k.indexOf(".*.")) >= 0) {
+                        String packagePattern = k.substring(0, wildCard + 2);
+                        String classPattern = k.substring(wildCard + 3, k.length());
+                        matcher = new ClassWithWildPackageMatcher(packagePattern, classPattern, action);
+                    } else if ((wildCard = k.indexOf(".**.")) >= 0) {
+                        String packagePattern = k.substring(0, wildCard + 3);
+                        String classPattern = k.substring(wildCard + 4, k.length());
+                        matcher = new ClassWithWildPackageMatcher(packagePattern, classPattern, action);
+                    } else {
+                        throw new IllegalArgumentException("wildcards must end a pattern, or be part of a package wildcard: " + k);
+                    }
                 } else if (k.indexOf('#') != -1) {
-                    stripMatchers.add(new MemberMatcher(k, action));
+                    matcher = new MemberMatcher(k, action);
                 } else {
-                    stripMatchers.add(new ClassMatcher(k, action));
+                    if (scopeAll) {
+                        matcher = new ClassMatcher(k, action);
+                    } else {
+                        matcher = new ClassOnlyMatcher(k, action);
+                    }
                 }
+//                if (isVerbose()) {
+//System.out.println("Match rule: " + matcher.toString());
+//                }
+                stripMatchers.add(matcher);
             }
         } catch (IOException e) {
             System.err.println("Error loading properties from " + path + ": " + e);
@@ -434,16 +579,6 @@ public class VM {
         }
         return current;
     }
-    
-    /**
-     * Determines if the symbols for a class, field or method should be stripped.
-     *
-     * @param s   a class, field or method identifier
-     */
-    private static boolean strip(String s) {
-        Matcher current = getMatcher(s);
-        return current != null && (current.action != Matcher.KEEP);
-    }
 
     /**
      * Determines if all the symbolic information for a class should be stripped. This
@@ -451,20 +586,21 @@ public class VM {
      * based on their names.
      *
      * @param klass         the class to consider
-     * @return true if the class symbols should be stripped
+     * @return true if the class symbols should NOT be stripped
      */
-    public static boolean stripSymbols(Klass klass) {
-        boolean result = strip(klass.getName());
-        if (result & !isInternal(klass)) {
+    public static boolean isExported(Klass klass) {
+	    Matcher current = getMatcher(klass.getName());
+        boolean exported = current == null || (current.action == Matcher.EXPORT);
+        if (!exported && (current.action != Matcher.CROSS_SUITE_PRIVATE)) {
             klass.updateModifiers(Modifier.SUITE_PRIVATE);
         }
-        return result;
+        return exported;
     }
 
     /**
      * Create a string for this Member that will be used or matching.
      *
-     * @param member the memeber to name
+     * @param member the member to name
      * @return a string suitable or matchings
      */
     private static String getSymbolString(Member member) {
@@ -496,22 +632,23 @@ public class VM {
      * based on their names.
      *
      * @param member        the method or field to consider
-     * @return true if the class symbols should be stripped
+     * @return true if the class symbols should NOT be stripped
      */
-    public static boolean stripSymbols(Member member) {
-        return strip(getSymbolString(member));
+    public static boolean isExported(Member member) {
+	    Matcher current = getMatcher(getSymbolString(member));
+        return current == null || (current.action == Matcher.EXPORT);
     }
     
     /**
      * Determines if the field or method is internal, so should be retained (even if symbol gets stripped)
      *
      * @param member        the method or field to consider
-     * @return true if the class symbols should be stripped
+     * @return true if the class symbols should be (ped
      */
-    public static boolean isInternal(Member member) {
+    public static boolean isCrossSuitePrivate(Member member) {
         String s = getSymbolString(member);
         Matcher current = getMatcher(s);
-        return current != null && (current.action == Matcher.INTERNAL);
+        return current != null && (current.action == Matcher.CROSS_SUITE_PRIVATE);
     }
     
     /**
@@ -520,8 +657,41 @@ public class VM {
      * @param klass        the klass to consider
      * @return true if the class symbols should be stripped
      */
+    public static boolean isCrossSuitePrivate(Klass klass) {
+        Matcher current = getMatcher(klass.getName());
+        return current != null && (current.action == Matcher.CROSS_SUITE_PRIVATE);
+    }
+
+   /**
+     * Determines if the klass is loaded dynamically by find class, so should never be stripped.
+     *
+     * @param klass         the class to consider
+     * @return true if the class symbols should be stripped
+     */
+    public static boolean isDynamic(Klass klass) {
+        Matcher current = getMatcher(klass.getName());
+        return current != null && (current.action == Matcher.DYNAMIC);
+    }
+
+    /**
+     * Determines if the klass is internal (not exported, CROSS_SUITE_PRIVATE, or dynamic)
+     *
+     * @param klass         the class to consider
+     * @return true if the class symbols should be stripped
+     */
     public static boolean isInternal(Klass klass) {
         Matcher current = getMatcher(klass.getName());
+        return current != null && (current.action == Matcher.INTERNAL);
+    }
+    
+    /**
+     * Determines if the member is internal (not exported or CROSS_SUITE_PRIVATE)
+     *
+     * @param member        the method or field to consider
+     * @return true if the class symbols should be stripped
+     */
+    public static boolean isInternal(Member member) {
+	    Matcher current = getMatcher(getSymbolString(member));
         return current != null && (current.action == Matcher.INTERNAL);
     }
     
@@ -570,6 +740,21 @@ public class VM {
      */
     public static boolean usingTypeMap() {
         return /*VAL*/true/*TYPEMAP*/;
+    }
+
+        /**
+     * Return the length of <code>methodBody</code> (the byte code array) in bytes.
+     *
+     * @param methodBody Object
+     * @return number of bytecodes
+     */
+    public static int getMethodBodyLength(Object methodBody) {
+        Assert.that(isValidMethodBody(methodBody));
+        return ( (MethodBody) methodBody).getCode().length;
+    }
+
+    static boolean isValidMethodBody(final Object methodBody) {
+        return (methodBody != null) && ((VM.isHosted() && methodBody instanceof MethodBody) || (GC.getKlass(methodBody) == Klass.BYTECODE_ARRAY));
     }
 
 
@@ -695,9 +880,10 @@ public class VM {
      * @param      dstPos       start position in the destination data.
      * @param      length       the number of bytes to be copied.
      * @param      nvmDst       the destination buffer is in NVM
-     *
-     * @vm2c proxy
      */
+/*if[JAVA5SYNTAX]*/
+    @Vm2c(proxy="")
+/*end[JAVA5SYNTAX]*/
     static void copyBytes(Object src, int srcPos, Object dst, int dstPos, int length, boolean nvmDst) {
     }
 

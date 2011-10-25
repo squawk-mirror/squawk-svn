@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -54,14 +55,11 @@ public class Romizer {
         if (buildProperties == null) {
             initBuildProperties();
         }
-        return buildProperties.getProperty(key);
-    }
-    
-    static String getBuildProperty(String key, String ifNotThereValue) {
-        if (buildProperties == null) {
-            initBuildProperties();
+        String result = buildProperties.getProperty(key);
+        if (result == null) {
+            throw new RuntimeException("Property " + key + " is undefined");
         }
-        return buildProperties.getProperty(key, ifNotThereValue);
+        return result;
     }
             
     /**
@@ -111,7 +109,7 @@ public class Romizer {
     }
     
     /**
-     * The name of the suite being romized.
+     * The name of the suite being romized (the full name)
      */
     private String suiteName;
 
@@ -124,6 +122,11 @@ public class Romizer {
      * The search path for classes in the suite.
      */
     private String classPath;
+    
+    /**
+     * The search path for classes in the suite, but with Java 5 meta data still present.
+     */
+    private String java5ClassPath;
 
     /**
      * The Romizer instance used to create the parent of the suite being romized.
@@ -154,7 +157,7 @@ public class Romizer {
     /**
      * Specifies if the .suite.metadata file will be created.
      */
-    private boolean createMetadata;
+    private boolean createMetadata = true;
     
     /**
      * Specifies if the timing information should be displayed.
@@ -169,7 +172,7 @@ public class Romizer {
 /*end[J2ME.STATS]*/
 
     /**
-     * This is a prototype translator used to process and print translator options. It is not the translator used for translattion.
+     * This is a prototype translator used to process and print translator options. It is not the translator used for translation.
      */
     private TranslatorInterface protoTranslator;
     
@@ -191,6 +194,11 @@ public class Romizer {
      * This is the ObjectGraphLoader used when the -parent: option is used to specify the suite to load
      */
     protected ObjectGraphLoader objectGraphLoader;
+    
+    /**
+     * If true, do not create the C header "rom.h"
+     */
+    private boolean noHeader;
     
     /**
      * Creates the romizer instance used to romize a suite.
@@ -226,10 +234,14 @@ public class Romizer {
         out.println();
         out.println("    -cp:<directories and jar/zip files separated by '"+File.pathSeparatorChar+"'>");
         out.println("                        paths where classes and sources can be found (required)");
+        out.println("    -suitepath:<directories separated by '"+File.pathSeparatorChar+"'>");
+        out.println("                        path where suite files can be found");        
         out.println("    -o:<name>           name of suite to generate (required)");
         out.println("    -boot:<name>        name of suite to to use for references to " + ObjectMemory.BOOTSTRAP_URI + " suite URL (default=file://squawk.suite)");
         out.println("    -parent:<name>      name of suite to use as the parent of the suite being built");
-        out.println("    -metadata           create matching metadata suite");
+        out.println("    -metadata           create matching metadata suite (default)");
+        out.println("    -nometadata         do not create matching metadata suite");
+        out.println("    -header             do not create C header file rom.h");
         out.println("    -jars               create <suite_name>_classes.jar which contains the class files");
         out.println("                        from which the suite was built");
         out.println("    -exclude:<file>     excludes classes that match the class names or packages");
@@ -239,6 +251,7 @@ public class Romizer {
         out.println("    -arch:<name>        base name for dynamic compiler. Full name will be");
         out.println("                        \"com.sun.squawk.compiler.<name>Compiler\"");
         out.println("    -override:<file>     file to use to override the build.properties file found locally, defaults to build.override");
+        out.println("    -nobuildproperties   do not load build.propeties");
         protoTranslator.printOptionProperties(out, true);
         out.println("    -strip:<t>          strip symbolic information according to <t>:");
         out.println("                           'd' - debug: retain all symbolic info");
@@ -254,17 +267,20 @@ public class Romizer {
         out.println("    -timer              print various phase timing statistics");
         out.println("    -verbose, -v        provide more output while running");
         out.println("    -stats              print various translation statistics");
-        out.println("    -traceimage         trace building of ROM image");
+        out.println("    -key:<name>         set key to add to suite's JAD properties");
+        out.println("                        must be followed by -value: option");
+        out.println("    -value:<name>       set value to add to suite's JAD properties");
+        out.println("                        must be preceded by -key: option");
         
         protoTranslator.printTraceFlags(out);
         
         if (Translator.TRACING_ENABLED) {
-            out.println("    -tracestripping       trace stripping of symbolic information from suite");
+            out.println("    -tracestripping     trace stripping of symbolic information from suite");
             out.println("    -traceoms           trace object memory serialization");
             out.println("    -traceswapper       trace endianess swapping");
         }
         
-        out.println("    -help               show this help message and exit");
+        out.println("    -h                  show this help message and exit");
         out.println();
         out.println();
         out.println("More than one suite can be created by separating the arguments for each");
@@ -282,9 +298,10 @@ public class Romizer {
      * @param file     the file of exclude specifications
      * @return the read in specifications
      */
-    private Vector<String> readExcludesFile(String file) {
+    private static Vector<String> readExcludesFile(String file) {
         Vector<String> lines = new Vector<String>();
-        ArgsUtilities.readLines(file, lines);
+        System.out.println("Loaded class excludes list from " + file);
+        LineReader.readLines(file, lines);
 
         Vector<String> excludes = new Vector<String>(lines.size());
         for (String line : lines) {
@@ -299,11 +316,21 @@ public class Romizer {
                 line = line.substring(index+1);
                 String value = "false"; // The default value where there is not '='.
                 index = predicate.indexOf('=');
+                boolean doNotOfPredicate = false;
+                
                 if (index != -1) {
                     value = predicate.substring(index+1);
+                    if (predicate.indexOf("!=") == (index - 1)) {
+                        index--;
+                        doNotOfPredicate = true;
+                    }
                     predicate = predicate.substring(0, index);
                 }
-                if (!getBuildProperty(predicate, "false").equals(value)) {
+                boolean predicateTrue = getBuildProperty(predicate).equals(value);
+                if (doNotOfPredicate) {
+                    predicateTrue = !predicateTrue;
+                }
+                if (!predicateTrue) {
                     continue;
                 }
                 while (line.charAt(0) == ' ') { // remove any extra spaces
@@ -316,9 +343,10 @@ public class Romizer {
     }
 
     /**
-     * Commmand line interface.
+     * Command line interface.
      *
      * @param args
+     * @throws IOException 
      */
     public static void main(String args[]) throws IOException {
         Romizer romizer = null;
@@ -339,16 +367,18 @@ public class Romizer {
 		        }
 		        return;
 	        } catch (NoClassDefFoundError e) {
-	        	if (romizer != null && romizer.getLastClassName() != null) {
+                if (romizer != null && romizer.getLastClassName() != null) {
 	            	classNames.add(romizer.getLastClassName());
-	            	System.out.println("   " + e.getClass().getSimpleName() + ": " + romizer.getLastClassName());
-	            	if (VM.isVerbose()) {
-	            		System.out.println("    " + e .getMessage());
-	            	}
+                    System.err.println("WARNING: Deferring Errors:");
+                    System.out.println("   " + e.getClass().getSimpleName() + ": " + romizer.getLastClassName());
+                    System.out.println("   message: " + e.getLocalizedMessage());
+                    System.out.println("   possibly in class: " + romizer.getLastClassName());
+                    buildProperties = null; // reset properties for next run...
+                    // TODO Deal with fact that for TCK this must continue
 	                continue;
-	        	}
-	        	throw e;
-	        }
+                }
+                throw e;
+            }
         }
     }
     
@@ -360,7 +390,6 @@ public class Romizer {
      *         if there are none
      */
     private String[] run(String[] args) {
-
         if (args.length == 0) {
             usage(null);
             return null;
@@ -384,9 +413,6 @@ public class Romizer {
             // Install resources found
             for (int i=0, maxI=resources.size(); i < maxI; i++) {
                 ResourceFile resourceFile = (ResourceFile) resources.elementAt(i);
-                if (VM.isVerbose()) {
-                    System.out.println("[Including resource: " + resourceFile.name + "]");
-                }
                 suite.installResource(resourceFile);
             }
             // Install the jad properties passed on the command line
@@ -403,7 +429,7 @@ public class Romizer {
                 }
             });
 
-            if (suite.getParent() == null) {
+            if (suite.getParent() == null && !noHeader) {
                 // Create the header file for the C implementation of the Squawk interpreter
                 ComputationTimer.time("rom header creation", new ComputationTimer.ComputationException() {
                     public Object run() throws Exception {
@@ -425,6 +451,7 @@ public class Romizer {
             }
 
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
 
@@ -437,10 +464,15 @@ public class Romizer {
         }
 /*end[J2ME.STATS]*/
 
-        System.out.println("Romizer processed " + suite.getClassCount() + " classes and generated these files:");
-        for (String name : generatedFiles) {
-            System.out.println("  " + name);
-		}
+        System.out.print("Romizer processed " + suite.getClassCount() + " classes and generated " + generatedFiles.size() + " files");
+        if (VM.isVerbose()) {
+            System.out.println(":");
+            for (String name : generatedFiles) {
+                System.out.println("  " + name);
+            }
+        } else {
+            System.out.println(".");
+        }
 
         return args;
     }
@@ -466,8 +498,19 @@ public class Romizer {
 
             if (arg == null || arg.charAt(0) != '-') {
                 break;
+            } else if (arg.startsWith("-D")) {
+                try {
+                    String name = arg.substring("-D".length(), arg.indexOf('='));
+                    String value = arg.substring(arg.indexOf('=') + 1);
+                    putBuildProperty(name, value);
+                } catch (IndexOutOfBoundsException e) {
+                    usage("malformed -D option: " + arg);
+                    throw new RuntimeException();
+                }
             } else if (arg.startsWith("-cp:")) {
                 classPath = ArgsUtilities.toPlatformPath(arg.substring("-cp:".length()), true);
+            } else if (arg.startsWith("-java5cp:")) {
+                java5ClassPath = ArgsUtilities.toPlatformPath(arg.substring("-java5cp:".length()), true);
             } else if (arg.startsWith("-exclude:")) {
                 excludeFile = arg.substring("-exclude:".length());
             } else if (arg.startsWith("-noclassdeffounderrorclass:")) {
@@ -478,6 +521,8 @@ public class Romizer {
                 createJars = true;
             } else if (arg.equals("-metadata")) {
                 createMetadata = true;
+            } else if (arg.equals("-nometadata")) {
+                createMetadata = false;
             } else if (arg.startsWith("-endian:")) {
                 String value = arg.substring("-endian:".length());
                 if (value.equals("big")) {
@@ -536,15 +581,17 @@ public class Romizer {
                         Tracer.enableFeature("loading"); // -traceconverting subsumes -traceloading
                     }
                 }
+            } else if (arg.equals("-noheader")) {
+                noHeader = true;
             } else if (arg.equals("-verbose") || arg.equals("-v")) {
-                    System.setProperty("translator.verbose", "true");
-                    VM.setVerbose(true);
+                System.setProperty("translator.verbose", "true");
+                VM.setVerbose(true);
             } else if (arg.startsWith("-h")) {
                 usage(null);
                 return null;
             } else if (arg.startsWith("-boot:")) {
-                String suiteName = arg.substring("-boot:".length());
-                String suiteUrl = "file://" + suiteName + Suite.FILE_EXTENSION;
+                String bootSuiteName = arg.substring("-boot:".length());
+                String suiteUrl = "file://" + bootSuiteName + Suite.FILE_EXTENSION;
                 System.setProperty(ObjectMemory.BOOTSTRAP_URI_PROPERTY, suiteUrl);
                 try {
                     parentSuite = objectGraphLoader.loadSuite(suiteUrl);
@@ -553,8 +600,8 @@ public class Romizer {
                 }
                 System.setProperty("bootstrap.suite.url", suiteUrl);
             } else if (arg.startsWith("-parent:")) {
-                String suiteName = arg.substring("-parent:".length());
-                String suiteUrl = "file://" + suiteName + Suite.FILE_EXTENSION;
+                String parentSuiteName = arg.substring("-parent:".length());
+                String suiteUrl = "file://" + parentSuiteName + Suite.FILE_EXTENSION;
                 try {
                     parentSuite = objectGraphLoader.loadSuite(suiteUrl);
                 } catch (IOException e) {
@@ -562,7 +609,7 @@ public class Romizer {
                 }
             } else if (arg.startsWith("-suitepath:")) {
                 String path = arg.substring("-suitepath:".length());
-                ObjectMemoryLoader.setFilePath(path);
+                ObjectMemoryLoader.addFilePath(path);
                 
             } else if (arg.startsWith("-nobuildproperties")) {
                 buildProperties = new Properties();
@@ -586,10 +633,10 @@ public class Romizer {
             argc++;
         }
         
-		// double check  - this was in new-inlining
-        if (retainMethodNames) {
-            MethodMetadata.preserveMethodNames();
-        }
+//		// double check  - this was in new-inlining
+//        if (retainMethodNames) {
+//            MethodMetadata.preserveMethodNames();
+//        }
 
         if (suiteName == null) {
             usage("missing -o option");
@@ -601,11 +648,14 @@ public class Romizer {
             throw new RuntimeException();
         }
 
-        if (suiteType == Suite.LIBRARY || suiteType == Suite.EXTENDABLE_LIBRARY) {
-            File file = new File(suiteName + "." + (suiteType == Suite.LIBRARY ? "library" : "extendable.library") + ".properties");
-            if (file.exists()) {
-                VM.resetSymbolsStripping(file);
+        File file = new File(suiteName + "." + (suiteType == Suite.EXTENDABLE_LIBRARY ? "extendable.library" : "library") + ".properties");
+        if (file.exists()) {
+            VM.resetSymbolsStripping(file);
+        } else {
+            if (VM.isVerbose()) {
+                System.out.println("Suite export properties file \"" + file.getPath() + "\" not found. Dead-class elimination option disabled.");
             }
+            VM.setProperty("translator.deadClassElimination", "false");
         }
 
         // Parse class name args (if any)
@@ -624,7 +674,7 @@ public class Romizer {
             if (excludeFile != null) {
                 excludeClasses(classNames, excludeFile);
             }
-            suite = new Suite(suiteName, parentSuite);
+            suite = new Suite(new File(suiteName).getName(), parentSuite, suiteType);
             for (String className: noClassDefFoundErrorClasses) {
             	if (suite.shouldThrowNoClassDefFoundErrorFor(className)) {
             		noClassDefFoundErrorClasses.remove(className);
@@ -649,7 +699,7 @@ public class Romizer {
     /**
      * Strips classes from a list of class names based on an excludes file.
      *
-     * @param classNames   the list of class names to modifiy
+     * @param classNames   the list of class names to modify
      * @param excludeFile  the name of the excludes file to use
      */
     private void excludeClasses(Vector<String> classNames, String excludeFile) {
@@ -663,7 +713,7 @@ public class Romizer {
         for (String className : classNames) {
             boolean include = true;
             for (String spec : excludes) {
-                if (firstLoop) {
+                if (firstLoop && VM.isVerbose()) {
                     System.out.println("excluding: " + spec);
                 }
                 boolean isPrefix = spec.endsWith("*");
@@ -714,9 +764,6 @@ public class Romizer {
 	        classNames.copyInto(sortedClassNames);
 	        Arrays.sort(sortedClassNames, new Comparator<String>() {
 	            public int compare(String object1, String object2) {
-	                if (object1 == object2) {
-	                    return 0;
-	                }
 	                return object1.compareTo(object2);
 	            }
 	        });
@@ -739,10 +786,6 @@ public class Romizer {
     		lastClassName = translator.getLastClassName();
         	throw t;
         }
-
-        // Ensure no classes that were meant to be excluded have been included
-        verifyExclusions(suite);
-
     }
 
     /**
@@ -788,8 +831,11 @@ public class Romizer {
         // Strip the symbols in the suite and close it.
         Suite strippedSuite = suite.strip(suiteType, suite.getName(), suite.getParent());
         strippedSuite.close();
+        // Ensure no classes that were meant to be excluded have been included
+        verifyExclusions(strippedSuite);
 
-        String url = "file://" + strippedSuite.getName() + Suite.FILE_EXTENSION;
+        String suiteFileName = suiteName + Suite.FILE_EXTENSION;
+        String url = "file://" + suiteFileName;
         DataOutputStream dos = Connector.openDataOutputStream(url);
 
         // Save the (canonical) address at which the suite will be saved
@@ -798,13 +844,14 @@ public class Romizer {
         // The boostrap suite has a special URI
         String uri = strippedSuite.getParent() == null ? ObjectMemory.BOOTSTRAP_URI : url;
         strippedSuite.save(dos, uri, VM.isBigEndian());
-        generatedFiles.addElement(new File(strippedSuite.getName() + Suite.FILE_EXTENSION).getAbsolutePath());
+        generatedFiles.addElement(new File(suiteFileName).getAbsolutePath());
 
         // Create the <suiteName>.metadata file of all the class files from which the suite was created
         if (createMetadata) {
-            String metadataUrl = "file://" + strippedSuite.getName() + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_METADATA;
+            String metadataUrl = "file://" + suiteFileName + Suite.FILE_EXTENSION_METADATA;
             DataOutputStream metadataDos = Connector.openDataOutputStream(metadataUrl);
-            Suite metadataSuite = suite.strip(Suite.METADATA, suiteName + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_METADATA, strippedSuite);
+            Suite metadataSuite = suite.strip(Suite.METADATA, suiteFileName + Suite.FILE_EXTENSION_METADATA, strippedSuite);
+            metadataSuite.close();
             int memorySizePrior = NativeUnsafe.getMemorySize();
             ObjectMemory objectMemory;
             ObjectGraphSerializer.pushObjectMap();
@@ -816,21 +863,34 @@ public class Romizer {
             GC.unRegisterReadOnlyObjectMemory(objectMemory);
             NativeUnsafe.setMemorySize(memorySizePrior);
             GC.setAllocTop(Address.zero().add(memorySizePrior));
-            generatedFiles.addElement(new File(strippedSuite.getName() + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_METADATA).getAbsolutePath());
+            generatedFiles.addElement(new File(suiteFileName + Suite.FILE_EXTENSION_METADATA).getAbsolutePath());
         }
 
         // Create the <suiteName>_classes.jar file of all the class files from which the suite was created
+        // base on the unstripped suite, which allows classes that are only used on host to end up in jar,
+        // even though eliminated from suite.
         if (createJars) {
             String jarFilePath = suiteName + "_classes.jar";
             File jarFile = new File(jarFilePath);
-            jarClasses(jarFile, strippedSuite);
+            jarClasses(jarFile, suite, false);
             generatedFiles.addElement(jarFile.getAbsolutePath());
+            if (java5ClassPath != null) {
+                jarFilePath = suiteName + "_java5.jar";
+                jarFile = new File(jarFilePath);
+                jarClasses(jarFile, suite, true);
+                generatedFiles.addElement(jarFile.getAbsolutePath());
+            }
         }
 
+        // TODO: Do we really need to do this???
         // Ensures that saving worked
         NativeUnsafe.setMemorySize(memoryStart);
         ObjectMemory memory = ObjectMemoryLoader.load(Connector.openDataInputStream(url), url, false).objectMemory;
 
+        printSymFile(memory, symbols);
+    }
+
+    private void printSymFile(ObjectMemory memory, PrintStream symbols) throws IOException {
         // Add a few symbols.
         VM.printNatives(symbols);
         symbols.println("PMR.ROM_SIZE=" + memory.getSize());
@@ -886,11 +946,11 @@ public class Romizer {
      * @param file   the jar file to create
      * @param suite  the suite to jar
      */
-    private void jarClasses(File file, Suite suite) {
+    private void jarClasses(File file, Suite suite, boolean doJava5) {
         try {
             FileOutputStream fos = new FileOutputStream(file);
             ZipOutputStream zos = new JarOutputStream(fos);
-            ClasspathConnection classPath = (ClasspathConnection)Connector.open("classpath://" + this.classPath);
+            ClasspathConnection cp = (ClasspathConnection)Connector.open("classpath://" + (doJava5? this.java5ClassPath:this.classPath));
             for (int i = 0; i < suite.getClassCount(); i++) {
                 Klass klass = suite.getKlass(i);
                 if (klass == null || klass.isSynthetic()) {
@@ -898,7 +958,7 @@ public class Romizer {
                 }
 
                 String classFilePath = klass.getName().replace('.', '/') + ".class";
-                addFileToJar(zos, classPath, classFilePath);
+                addFileToJar(zos, cp, classFilePath);
             }
             zos.close();
         } catch (IOException e) {
@@ -971,12 +1031,99 @@ public class Romizer {
      * suite that can be dynamically bound to.
      */
     private void createSuiteAPI() throws IOException {
-        Suite suite = this.suite.strip(suiteType, this.suite.getName(), this.suite.getParent());
+        Suite apiSuite = this.suite.strip(suiteType, this.suite.getName(), this.suite.getParent());
         File api = new File(suiteName + Suite.FILE_EXTENSION + Suite.FILE_EXTENSION_API);
         PrintStream out = new PrintStream(new FileOutputStream(api));
-        suite.printAPI(out);
+        printAPI(out, apiSuite);
         generatedFiles.addElement(api.getAbsolutePath());
         out.close();
+    }
+
+    /*---------------------------------------------------------------------------*\
+     *                            API Printing                                   *
+    \*---------------------------------------------------------------------------*/
+
+    /**
+     * Prints a textual description of the components in this suite that can be linked
+     * against. That is, the components whose symbolic information has not been stripped.
+     *
+     * @param out where to print the description
+     */
+    public static void printAPI(PrintStream out, Suite suite) {
+
+        out.println(".suite " + suite.getName());
+        for (int i = 0; i != suite.getClassCount(); ++i) {
+            Klass klass = suite.getKlass(i);
+            KlassMetadata metadata;
+            if (klass == null ||
+                klass.isSynthetic() ||
+                klass.isSourceSynthetic() ||
+                klass == Klass.STRING_OF_BYTES ||
+                isAnonymousOrPrivate(klass.getName()) ||
+                (metadata = suite.getMetadata(klass)) == null)
+            {
+                continue;
+            }
+
+            out.println(".class " + klass.getName());
+            printFieldsAPI(out, metadata, SymbolParser.STATIC_FIELDS);
+            printFieldsAPI(out, metadata, SymbolParser.INSTANCE_FIELDS);
+            printMethodsAPI(out, metadata, SymbolParser.STATIC_METHODS);
+            printMethodsAPI(out, metadata, SymbolParser.VIRTUAL_METHODS);
+        }
+    }
+
+    private static boolean isAnonymousOrPrivate(String className) {
+        int index = className.lastIndexOf('$');
+        if (index == -1) {
+            return false;
+        }
+        if (className.length() > index + 1) {
+            char c = className.charAt(index + 1);
+            return c >= '0' && c <= '9';
+        }
+        return false;
+    }
+
+    private static void printFieldsAPI(PrintStream out, KlassMetadata klass, int category) {
+        SymbolParser symbols = klass.getSymbolParser();
+        int count = symbols.getMemberCount(category);
+        for (int i = 0; i != count; ++i) {
+            int id = symbols.getMemberID(category, i);
+            Field field = new Field(klass, id);
+            if (!field.isSourceSynthetic()) {
+                out.println("    .field " + field.getName() + ' ' + field.getType().getSignature());
+            }
+        }
+    }
+
+    private static void printMethodsAPI(PrintStream out, KlassMetadata klass, int category) {
+        SymbolParser symbols = klass.getSymbolParser();
+        int count = symbols.getMemberCount(category);
+        for (int i = 0; i != count; ++i) {
+            int id = symbols.getMemberID(category, i);
+            Method method = new Method(klass, id);
+
+            if (method.isNative() && !VM.isLinkableNativeMethod(method.getFullyQualifiedName())) {
+                continue;
+            }
+
+            if (method.isInterpreterInvoked()) {
+                continue;
+            }
+
+            if (method.isSourceSynthetic() || method.isClassInitializer()) {
+                continue;
+            }
+
+            out.print("    .method " + method.getName() + " (");
+            Klass[] types = method.getParameterTypes();
+            for (int j = 0; j != types.length; ++j) {
+                Klass type = types[j];
+                out.print(type.getSignature());
+            }
+            out.println(")" + (method.isConstructor() ? "V" : method.getReturnType().getSignature()));
+        }
     }
 
 }

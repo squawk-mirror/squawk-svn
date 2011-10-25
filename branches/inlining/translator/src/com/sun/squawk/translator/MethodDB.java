@@ -216,7 +216,7 @@ public final class MethodDB {
      * Update the allMethods table and record that this method might override some other method.
      *
      * @param m the method to record.
-     * @parm estSize the estimated size of the method in # IR instructions. May pass zero if not tracing.
+     * @param estSize the estimated size of the method in # IR instructions. May pass zero if not tracing.
      * @parm index the index of this method in it's def class.
      */
     public void recordMethod(Method m, int estSize, int index) {
@@ -228,16 +228,17 @@ public final class MethodDB {
                 return;
             }
             
-            calcSuperMethods(mw, m);
+            calcSuperMethods(mw);
         }
     }
-    
-    /**
-     * Update the calls table for caller.
-     *
-     * @param m the method to record.
-     */
-    public void recordMethodCall(MethodDB.Entry caller, Method callee) {
+     
+     /**
+      * Update the calls table for caller.
+      *
+      * @param caller 
+      * @param callee the method to record.
+      */
+     public void recordMethodCall(MethodDB.Entry caller, Method callee) {
         if (!callee.isHosted() && !callee.isNative()) {
             MethodDB.Entry cw = lookupMethodEntry(callee);
             caller.addCall(cw);
@@ -251,15 +252,14 @@ public final class MethodDB {
      * via the interface class.
      * 
      * @param mw MMethodDB.Entry of an inherited method.
-     * @param m Method of the inhereited method (matching mw).
      * @param interfaces array of interfaces that the subclass implements
      */
-    private void calcImplementsMerge(MethodDB.Entry mw, Method m, Klass[] interfaces) {
+    private void calcImplementsMerge(MethodDB.Entry mw, Klass[] interfaces) {
         for (int i = 0; i < interfaces.length; i++) {
-            Method superMethod = interfaces[i].lookupMethod(m.getName(),
-                                               m.getParameterTypes(),
-                                               m.getReturnType(),
-                                               null,
+            Method superMethod = interfaces[i].lookupMethod(mw.m.getName(),
+                                               mw.m.getParameterTypes(),
+                                               mw.m.getReturnType(),
+                                               null, // all interface methods are public, so no accessible check
                                                false);
             if (superMethod != null) {
                 mw.addSuperMethod(lookupMethodEntry(superMethod));
@@ -272,40 +272,32 @@ public final class MethodDB {
      * a super class' method, plus implementing one or more interface's method declarations.
      *
      * @param mw the Entry of the method to check
-     * @param m the method to check
      */
-    private void calcSuperMethods(MethodDB.Entry mw, Method m) {
-        Assert.that(!m.isStatic());
-        Klass defClass = m.getDefiningClass();
+    private void calcSuperMethods(MethodDB.Entry mw) {
+        Assert.that(!mw.m.isStatic());
+        Klass defClass = mw.m.getDefiningClass();
         Klass superType = defClass.getSuperclass();
         if (superType == null) {
             return;
         }
         
-        Method superMethod = superType.lookupMethod(m.getName(),
-                                               m.getParameterTypes(),
-                                               m.getReturnType(),
-                                               null,
+        Method superMethod = superType.lookupMethod(mw.m.getName(),
+                                               mw.m.getParameterTypes(),
+                                               mw.m.getReturnType(),
+                                               defClass,
                                                false);
         if (superMethod != null) {
-            if (superMethod.getDefiningClass().isInterface() || superMethod.isAccessibleFrom(defClass)) {
-                /*
-                 * If the method can override the one in the super class then use the same vtable offset.
-                 * Otherwise allocate a different one. This deals with the case where a sub-class that
-                 * is in a different package "overrides" a package-private member.
-                 */
-                mw.addSuperMethod(lookupMethodEntry(superMethod));
-            }
+            mw.addSuperMethod(lookupMethodEntry(superMethod));
         }
         
-        calcImplementsMerge(mw, m, defClass.getInterfaces());
+        calcImplementsMerge(mw, defClass.getInterfaces());
     }
     
     /**
      * Given a klass, check to so if it inherits any methods from a superclass that are valid implementations of one of it's interface's methods,
      * If so, record the overrides/supermethod information.
      *
-     * @param klass the klass to jcheck.
+     * @param klass the klass to check.
      */
     public void computeInheritedImplementorsInfo(Klass klass) {
         if (klass == Klass.OBJECT || klass.isArray() || klass.isInterface() || klass.isSynthetic()) {
@@ -319,7 +311,7 @@ public final class MethodDB {
                 Method m = superKlass.getMethod(i, false);
                 MethodDB.Entry mw = lookupMethodEntry(m);
                 // inherited method. check to see if callable via an interface implemented by this klass:
-                calcImplementsMerge(mw, m, klass.getInterfaces());
+                calcImplementsMerge(mw, klass.getInterfaces());
             }
             superKlass = superKlass.getSuperclass();
         }
@@ -359,12 +351,12 @@ public final class MethodDB {
     \*---------------------------------------------------------------------------*/
     
     /**
-     * Given the method's access, the defining class' acess, and the suite type,
+     * Given the method's access, the defining class' access, and the suite type,
      * determine the final accessibility of the method outside of this suite.
      * 
      * Note that we are talking about the accessibility of a particular method, 
      * not all of the methods that override a super method. There are cases where
-     * a super method is not accessibole, but an override is. A latter check for overriding
+     * a super method is not accessible, but an override is. A latter check for overriding
      * will mark the super method as used.
      * 
      * @param mw the MMethodDB.Entry
@@ -378,8 +370,8 @@ public final class MethodDB {
 
         if (Modifier.isPrivate(modifiers)) {
             return false;
-        } else if (/*translator.getSuite().isBootstrap() &&*/ VM.stripSymbols(m) && !VM.isInternal(m)) {
-            // if the symbol is stripped, and it wasn't marked as "internal" in the library.properties file,
+        } else if (translator.getSuite().isBootstrap() && VM.isInternal(m)) {
+            // if the symbol is stripped, and it wasn't marked as "CrossSuitePrivate" in the library.proprties file,
             // then there is no way that this is externally visible.
             
             // Check visibility upwards through parent suites:

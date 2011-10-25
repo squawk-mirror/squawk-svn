@@ -49,6 +49,7 @@ public class ObjectGraphLoader {
 	protected final Stack<Map<Object, Address>> objectToAddressMapStack = new Stack<Map<Object, Address>>();
 	protected ObjectGraphLoaderTranslator translator = new ObjectGraphLoaderTranslator();
 	protected boolean skipKlassInternals;
+    protected Suite suite;
 
 	public ObjectGraphLoader() {
 	}
@@ -104,32 +105,33 @@ public class ObjectGraphLoader {
         UWord oopMapWord = NativeUnsafe.getUWord(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$oopMapWord));
         UWord[] dataMap = getUWordsAt(NativeUnsafe.getAddress(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$dataMap)));
         UWord dataMapWord = NativeUnsafe.getUWord(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$dataMapWord));
-        int dataMapLength = NativeUnsafe.getInt(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$dataMapLength));
+        short dataMapLength = (short)NativeUnsafe.getShort(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$dataMapLength));
         int modifiers = NativeUnsafe.getInt(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$modifiers));
         byte state = (byte) NativeUnsafe.getByte(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$state));
         short instanceSizeBytes = (short) NativeUnsafe.getShort(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$instanceSizeBytes));
         short staticFieldsSize = (short) NativeUnsafe.getShort(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$staticFieldsSize));
         short refStaticFieldsSize = (short) NativeUnsafe.getShort(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$refStaticFieldsSize));
-        short indexForInit = (short) NativeUnsafe.getShort(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$indexForInit));
-        short indexForClinit = (short) NativeUnsafe.getShort(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$indexForClinit));
-        short indexForMain = (short) NativeUnsafe.getShort(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$indexForMain));
         byte initModifiers = (byte) NativeUnsafe.getByte(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$initModifiers));
-        boolean mustClinit = NativeUnsafe.getByte(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Klass$mustClinit)) != 0;
-        klass.initForObjectGraphLoader(virtualMethodBodies, staticMethodBodies, superType, interfaces, null, oopMap, oopMapWord, dataMap, dataMapWord, dataMapLength, modifiers, state, instanceSizeBytes, staticFieldsSize, refStaticFieldsSize, indexForInit, indexForClinit, indexForMain, initModifiers, mustClinit);
+        klass.initForObjectGraphLoader(virtualMethodBodies, staticMethodBodies, superType, interfaces, null, oopMap, oopMapWord, dataMap, dataMapWord, dataMapLength, modifiers, state, instanceSizeBytes, staticFieldsSize, refStaticFieldsSize, initModifiers);
     }
     
     protected Klass[] getKlassesAt(Address address) {
 		if (address.isZero()) {
 			return null;
 		}
+        Klass[] klasses;
     	Object object = addressToObjectMap.get(address);
 		if (object != null) {
-			return (Klass[]) object;
+            klasses = (Klass[]) object;
+			return klasses;
 		}
         int length = GC.getArrayLengthNoCheck(address);
-        Klass[] klasses = new Klass[length];
+        klasses = new Klass[length];
         for (int i=0; i < klasses.length; i++) {
         	klasses[i] = getKlassAt(NativeUnsafe.getAddress(address, i));
+            if (klasses[i] == null) {
+                suite.installFillerClass();
+            }
         }
         addressToObjectMap.put(address, klasses);
         objectToAddressMap.put(klasses, address);
@@ -320,6 +322,7 @@ public class ObjectGraphLoader {
             GC.setAllocTop(allocTop);
         }
         ObjectGraphSerializer.addObjectsToAddress(getObjectToAddressMap());
+        parentSuite.checkSuite();
         return parentSuite;
 	}
 
@@ -332,7 +335,7 @@ public class ObjectGraphLoader {
 			return (Suite) object;
 		}
 		String name = getStringAt(NativeUnsafe.getAddress(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Suite$name)));
-		Suite suite = new Suite(name, parent);
+		suite = new Suite(name, parent, NativeUnsafe.getInt(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Suite$type)));
 
 		VM.setCurrentIsolate(null);
         Isolate isolate = new Isolate(null, null, suite);
@@ -340,25 +343,36 @@ public class ObjectGraphLoader {
         VM.setCurrentIsolate(isolate);
         
         // Force Klass init, as when in hosted mode it will load the bootstrap classes on its own
-        translator.setInKlassInit(true);
         Klass.getClass("-null-", false);
-        translator.setInKlassInit(false);
 
         skipKlassInternals = true;
         Klass[] klasses = getKlassesAt(NativeUnsafe.getAddress(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Suite$classes)));
         skipKlassInternals = false;
         for (int i=0; i < klasses.length; i++) {
         	Klass klass = klasses[i];
-        	initKlassInternals(klass);
-        	Assert.that(suite.getKlass(i) == klass);
-		}
-        KlassMetadata[] metadatas = getKlassMetadatasAt(NativeUnsafe.getAddress(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Suite$metadatas)));
-        for (KlassMetadata metadata : metadatas) {
-        	if (metadata != null) {
-        		suite.installMetadata(metadata);
-        	}
+            if (klass != null) {
+                initKlassInternals(klass);
+                if (suite.getKlass(i) != klass) {
+                    System.err.println("Odd: classes are not equal at " + i);
+                    System.err.println("    suite.getKlass(i): " + suite.getKlass(i));
+                    System.err.println("    klass: " + klass);
+                }
+                Assert.that(suite.getKlass(i) == klass);
+            }
 		}
 
+        KlassMetadata[] metadatas = getKlassMetadatasAt(NativeUnsafe.getAddress(address, FieldOffsets.decodeOffset(FieldOffsets.com_sun_squawk_Suite$metadatas)));
+        if (metadatas != null) {
+            for (KlassMetadata metadata : metadatas) {
+                Assert.that(metadata != null);
+                suite.installMetadata(metadata);
+            }
+        }
+
+        suite.close();
+        if (suite.getType() == Suite.METADATA && suite.getClassCount() != 0) {
+            throw new RuntimeException("Metadata suites should not have any classes. " + suite + " has " + suite.getClassCount());
+        }
         addressToObjectMap.put(address, suite);
         objectToAddressMap.put(suite, address);
 		return suite;

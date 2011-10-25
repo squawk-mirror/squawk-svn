@@ -668,10 +668,9 @@ public class CodeCopier implements InstructionVisitor {
      */
     public void doLookupSwitch(LookupSwitch insn) {
         Target targets[] = insn.getTargets();
-        int caseValues[] = insn.getCaseValues();
         LookupSwitch newInsn = new LookupSwitch(getCopy(insn.getKey()), targets.length, getCopy(insn.getDefaultTarget()));
         for (int i = 0; i < targets.length; i++) {
-            newInsn.addTarget(i, caseValues[i], getCopy(targets[i]));
+            newInsn.addTarget(i, insn.getCaseValue(i), getCopy(targets[i]));
         }
         insert(newInsn, insn);
     }

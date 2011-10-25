@@ -1,24 +1,25 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
@@ -92,7 +93,7 @@ public class DeadMethodEliminator {
     }
     
     /**
-     * Is this a method that might be called by the system becuase the class exists?
+     * Is this a method that might be called by the system because the class exists?
      * This includes default constructors and static initializers.
      *
      * Report seperately to help identify code that could be eliminated by eliminating the class.
@@ -114,7 +115,7 @@ public class DeadMethodEliminator {
                 if (Arg.get(Arg.DELETE_UNUSED_PRIVATE_CONSTRUCTORS).getBool() && (m.isPrivate())) {
                     return false;
                 }
-               /* if (VM.stripSymbols(m.getDefiningClass())) {
+               /* if (VM.isInternal(m.getDefiningClass())) {
                     // no way to look up this class dynamically, so can eliminate constructor if not called explicitly:
                     System.out.println("May eliminate " + m);
                     return false;
@@ -180,6 +181,21 @@ public class DeadMethodEliminator {
         }
     }
     
+    /**
+     * Return true if the class has any constructor that has not been eliminated
+     * @param klass
+     * @return true if still any constructors...
+     */
+    private boolean hasUsedConstructor(Klass klass) {
+        for (int j = klass.getMethodCount(true) - 1; j >= 0; j--) {
+            Method m = klass.getMethod(j, true);
+            if (m.isConstructor() && isMarkedUsed(m)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void computeMethodsUsed() {
         boolean trace = (Translator.TRACING_ENABLED && Tracer.isTracing("DME")) || VM.isVeryVerbose();
         usedMethods = new Hashtable();
@@ -201,7 +217,7 @@ public class DeadMethodEliminator {
             printMethodTable();
         }
 
-        // Preserve methods that might be called autmatically by system, beyond the powers of analysis:
+        // Preserve methods that might be called automatically by system, beyond the powers of analysis:
         e = methodDB.getAllMethods();
         foundMethods.removeAllElements();
         while (e.hasMoreElements()) {
@@ -251,7 +267,30 @@ public class DeadMethodEliminator {
             Tracer.traceln("[translator DME: ==== Class Mandated roots:  " + foundMethods.size() + " =====");
             printVectorSorted(foundMethods, "Class root: ");
         }
-        
+
+        // NOT READY FOR PRIME-TIME
+//        // look for classes that are no longer instantiable, becuase constructors were eliminated:
+//        Suite ste = translator.getSuite();
+//        foundMethods.removeAllElements();
+//        for (int i = ste.getClassCount() - 1; i >= 0; i--) {
+//            Klass klass = ste.getKlass(i);
+//            if (klass.isInstantiable()) {
+//                if (!hasUsedConstructor(klass)) {
+//                    for (int j = klass.getMethodCount(false) - 1; j >= 0; j--) {
+//                        Method m = klass.getMethod(j, false);
+//                        MethodDB.Entry mw = methodDB.lookupMethodEntry(m);
+//                        if (isMarkedUsed(mw) && !isBasicRoot(mw)) {
+//                            foundMethods.addElement(mw.toString() + " size: " + mw.getSize());
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        if (foundMethods.size() != 0) {
+//            Tracer.traceln("[translator DME: ==== MAYBE UNCALLABLE METHODS?:  " + foundMethods.size() + " (called methods: " + usedMethods.size() + ") =====");
+//            printVectorSorted(foundMethods, "    ");
+//        }
+
         
         // report unused methods:
         if (trace || VM.isVeryVerbose()) {
@@ -259,7 +298,7 @@ public class DeadMethodEliminator {
             foundMethods.removeAllElements();
             while (e.hasMoreElements()) {
                 MethodDB.Entry mw = (MethodDB.Entry)e.nextElement();
-                if (!isMarkedUsed(mw)) {
+                if (!isMarkedUsed(mw) && !mw.m.isAbstract()) {
                     foundMethods.addElement(mw.toString() + " size: " + mw.getSize());
                 }
             }

@@ -309,7 +309,7 @@ public abstract class BytecodeTracer {
                 int index = getByte();
                 String var = getVarDetails(index, false);
                 if (var == null) {
-                    var = "";
+                    var = String.valueOf(index);
                 }
                 print(opcode, var);
                 break;
@@ -354,7 +354,7 @@ public abstract class BytecodeTracer {
                 int index = getByte();
                 String var = getVarDetails(index, true);
                 if (var == null) {
-                    var = "";
+                    var = String.valueOf(index);
                 }
                 print(opcode, var);
                 break;
@@ -393,17 +393,17 @@ public abstract class BytecodeTracer {
                 String obj = getObjectDetails(index);
                 if (obj == null) {
                     obj = "";
-
-                } print(opcode, obj);
+                }
+                print(opcode, obj);
                 break;
             }
             case OPC.OBJECT: {
-                int index = getByte();
+                int index = getByte() & 0xFF;
                 String obj = getObjectDetails(index);
                 if (obj == null) {
-                    obj = "";
-
-                } print(opcode, obj);
+                    obj = "#" + index;
+                }
+                print(opcode, obj);
                 break;
             }
             default: return false;

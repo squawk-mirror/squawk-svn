@@ -121,6 +121,7 @@ public final class IRBuilder {
 
     /**
      * Return the built IR.
+     * @return the IR for this code
      */
     public IR getIR() {
         return ir;
@@ -664,8 +665,8 @@ public final class IRBuilder {
      * @param field       the referenced field
      * @param isPutfield  specifies if this is being called for <i>putfield</i>
      *                    which requires extra verification if used in a
-     *                    contructor to allow assignment to fields of the
-     *                    uninitialised object if the fields are declared in
+     *                    constructor to allow assignment to fields of the
+     *                    uninitialized object if the fields are declared in
      *                    the constructor's enclosing class
      * @return            the object reference
      */
@@ -827,7 +828,7 @@ public final class IRBuilder {
      /**
       * Insert an instruction producing a slot number to the head of a parameter list.
       *
-      * @param parameters the extisting parameter prodicing instructions
+      * @param parameters the existing parameter producing instructions
       * @param slot       the instruction producing the slot
       * @return           the new parameter list
       */
@@ -835,20 +836,16 @@ public final class IRBuilder {
          StackProducer[] newParms = new StackProducer[parameters.length + 1];
          if (Translator.REVERSE_PARAMETERS) {
              newParms[0] = slot;
-             for (int i = 0 ; i < parameters.length ; i++) {
-                 newParms[i+1] = parameters[i];
-             }
+             System.arraycopy(parameters, 0, newParms, 1, parameters.length);
          } else {
-             for (int i = 0 ; i < parameters.length ; i++) {
-                 newParms[i] = parameters[i];
-             }
+             System.arraycopy(parameters, 0, newParms, 0, parameters.length);
              newParms[parameters.length] = slot;
          }
          return newParms;
      }
 
     /**
-     * Make sure actualType is NOT a Squawk Priomitive (Address, UWord, etc) being passed as a parameter of tyep Object.
+     * Make sure actualType is NOT a Squawk Primitive (Address, UWord, etc) being passed as a parameter of type Object.
      * 
      * @param callee
      * @param actualType
@@ -904,6 +901,10 @@ public final class IRBuilder {
           * If the method is protected and in a different package then
           * 'this' must be assignable to the class of the method
           * being verified.
+          *
+          * IGNORE FOR NOW: The final clause handles the case where the call is coming from a subclass, even though it isna't a call to the subclass's "this".
+          * This case is illegal at the source code level, but appears a leagl reading of the JVM Spec, and the TCK tests this?
+          *          if (callee.isProtected() && !method.getDefiningClass().isInSamePackageAs(callee.getDefiningClass()) && !callee.getDefiningClass().isAssignableFrom(method.getDefiningClass())) {
           */
          if (callee.isProtected() && !method.getDefiningClass().isInSamePackageAs(callee.getDefiningClass())) {
              expectedThisType = method.getDefiningClass();
@@ -1513,6 +1514,7 @@ public final class IRBuilder {
             instruction.addTarget(i, caseValue, target);
             lastCaseValue = caseValue;
         }
+        instruction.finishBuilding();
         append(instruction);
         processBasicBlockDelimiter(instruction, defaultTarget, instruction.getTargets());
         frame.resetMaxStack();
@@ -1565,7 +1567,7 @@ public final class IRBuilder {
             Klass localType = frame.getLocalTypeFor(declaredType);
             boolean valid;
             if (localType == Klass.REFERENCE) {
-                valid = declaredType.isAssignableFrom(value.getType());
+                valid = declaredType.isInterface() || declaredType.isAssignableFrom(value.getType());
             } else {
                 valid = localType.isAssignableFrom(value.getType());
             }
@@ -2035,6 +2037,8 @@ public final class IRBuilder {
         if (!callee.isHosted()) {
             if (callee.isConstructor()) {
                 opc_invokeinit(callee);
+            } else if (callee.isFinal() || callee.isPrivate()) {
+                opc_invokevirtual(callee);
             } else {
                 /*
                  * The callee must be somewhere in superclass hierarchy

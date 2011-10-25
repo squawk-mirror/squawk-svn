@@ -34,6 +34,7 @@ import java.util.Vector;
 import com.sun.squawk.Klass;
 import com.sun.squawk.Method;
 import com.sun.squawk.MethodBody;
+import com.sun.squawk.translator.ir.instr.FieldAccessor;
 
 
 /**
@@ -191,6 +192,8 @@ public final class Code {
      */
     private IRBuilder irBuilder;
 
+    private ObjectTable objectTable;
+
     /**
      * Mark when inlining has begun on this code, so callers can make sure that callees are inlined first.
      */
@@ -270,8 +273,52 @@ public final class Code {
         return codeParser;
     }
 
+    public ObjectTable getObjectTable() {
+        return objectTable;
+    }
+    
+   /**
+     * Another phase of the conversion. About 1.5.
+     *
+     * @param  translator   the translation context
+     * @param  method       the method owning this code
+     * @return  the body of the converted method
+     */
+    public void postOptAccounting(Translator translator, Method method) {
+        Klass definingClass = method.getDefiningClass();
+        IR ir = irBuilder.getIR();
+
+        Translator.numMethods++;
+        objectTable = new ObjectTable(definingClass);
+        
+        if (Arg.get(Arg.DEAD_METHOD_ELIMINATION).getBool()) {
+            if (objectTable.safeToDoClassMethodElim(translator, method)) {
+               return;
+            }
+        }
+
+        /*
+         * Add the object references into the table of constants.
+         */
+
+        for (Instruction instruction = ir.getHead(); instruction != null; instruction = instruction.getNext()) {
+            Object object = instruction.getConstantObject();
+            if (object != null) {
+                if (instruction instanceof FieldAccessor) {         // ignore special cases:
+                    Klass fieldDefiningClass = ((FieldAccessor) instruction).getField().getDefiningClass();
+                    if (fieldDefiningClass.hasGlobalStatics() || fieldDefiningClass == definingClass) {
+                        // getstatic/putstatic on global globals doesn't really use the class object table
+                        // getstatic/putstatic on "this class" doesn't really use the class object table
+                        continue;
+                    }
+                }
+                objectTable.addConstantObject(object);
+            }
+        }
+    }
+
     /**
-     * Second phase of the convertion.
+     * Second phase of the conversion.
      *
      * @param  translator   the translation context
      * @param  method       the method owning this code
@@ -283,15 +330,6 @@ public final class Code {
             ClassFile cf = translator.getClassFile(definingClass);
             IR ir = irBuilder.getIR();
             Frame frame = irBuilder.getFrame();
-
-            /*
-             * Add the String references into the table of constants.
-             * Check before DME, becuase DME will delete methods that are actually translated to C code, and the C
-             * code needs to reference these Strings too.
-             */
-            if (translator.getSuite().isBootstrap()) {
-                cf.collectConstantStrings(ir);
-            }
             
             Translator.numMethods++;
             
@@ -305,17 +343,6 @@ public final class Code {
                                     Translator.numMethodsUncalledInlined++;
                 }
                 return null;
-            }
-            
-            /*
-             * Add the (rest of the) object references into the table of constants.
-             * If we already did strings, then don't double count them (svae low indexes for 
-             * constantts actually used by Java code).
-             */
-            if (translator.getSuite().isBootstrap()) {
-                cf.collectConstantNonStrings(ir);
-            } else {
-                cf.collectConstantObjects(ir);
             }
 
             /*
@@ -447,8 +474,13 @@ public final class Code {
     void convert(final Translator translator, final Method method, final int phase, final Vector bodies) {
         ComputationTimer.time("converting phase "+phase, new ComputationTimer.Computation() {
             public Object run() {
-                convert0(translator, method, phase, bodies);
-                return null;
+                try {
+                    convert0(translator, method, phase, bodies);
+                    return null;
+                } catch (RuntimeException e) {
+                    System.err.println("\n\nError converting method " + method + "\n");
+                    throw e;
+                }
             }
         });
     }

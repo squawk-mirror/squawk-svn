@@ -81,5 +81,5 @@ public class ObjectGraphLoaderTranslator implements TranslatorInterface {
 	public void setInKlassInit(boolean inKlassInit) {
 		this.inKlassInit = inKlassInit;
 	}
-
+	
 }

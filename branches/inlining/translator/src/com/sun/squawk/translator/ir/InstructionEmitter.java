@@ -34,6 +34,7 @@ import com.sun.squawk.vm.*;
 import java.util.Hashtable;
 import com.sun.squawk.pragma.HostedPragma;
 import com.sun.squawk.*;
+import com.sun.squawk.translator.ObjectTable;
 
 /**
  * This in an instruction visitor implementation that will emit Squawk bytecodes.
@@ -842,10 +843,23 @@ public class InstructionEmitter implements InstructionVisitor {
             emitOpcode(OPC.CONST_NULL);
         } else {
             try {
-                int index = classFile.getConstantObjectIndex(object, state == EMIT);
+                int index = classFile.getObjectTable().getConstantObjectIndex(object, state == EMIT);
+                Object o2 = classFile.getDefinedClass().getObject(index);
+//                if (!object.equals(o2)) {
+//                    byte[] a = (byte[])object;
+//                    byte[] b = (byte[])o2;
+//                    for (int i = 0; i < a.length; i++) {
+//                        System.out.println("a: " + a[i] + " b: " + b[i]);
+//                    }
+//                }
+
+                Assert.always((object.equals(o2) || ObjectTable.compareIgnoringCount(object, o2) == 0),
+                        classFile.getDefinedClass() + " object = '" + object + "' index = " + index  + " object2 = " + o2);
                 emitCompact(OPC.OBJECT, OPC.OBJECT_0, 16, index);
             } catch (java.util.NoSuchElementException ex) {
-                throw new Error("no copy of object in class's object table: " + object);
+                classFile.getObjectTable().printTable();
+               
+                throw new Error("no copy of object in class's object table: " + object + " while translating " + method);
             }
         }
 /*if[TYPEMAP]*/
@@ -1175,10 +1189,10 @@ public class InstructionEmitter implements InstructionVisitor {
      * {@inheritDoc}
      */
     public void doFindSlot (FindSlot instruction) {
-        Method method = instruction.getMethod();
-        Assert.that(!method.isNative(), "Invalid native findslot to "+method);
-        emitConstantObject(method.getDefiningClass());
-        emitUnsigned(OPC.FINDSLOT, method.getOffset());
+        Method callee = instruction.getMethod();
+        Assert.that(!callee.isNative(), "Invalid native findslot to "+callee);
+        emitConstantObject(callee.getDefiningClass());
+        emitUnsigned(OPC.FINDSLOT, callee.getOffset());
     }
 
     /**
@@ -1210,9 +1224,9 @@ public class InstructionEmitter implements InstructionVisitor {
      */
     public void doInvokeSlot(InvokeSlot instruction) {
         int opcode;
-        Method method = instruction.getMethod();
-        checkMethodCallable(method);
-        switch (method.getReturnType().getSystemID()) {
+        Method callee = instruction.getMethod();
+        checkMethodCallable(callee);
+        switch (callee.getReturnType().getSystemID()) {
             case CID.VOID:    opcode = OPC.INVOKESLOT_V; break;
             case CID.BOOLEAN: // fall through ...
             case CID.BYTE:    // fall through ...
@@ -1234,7 +1248,7 @@ public class InstructionEmitter implements InstructionVisitor {
                                        OPC.INVOKESLOT_I; break;
             default:          opcode = OPC.INVOKESLOT_O; break;
         }
-        Assert.that(!method.isNative(), "Invalid native invokeslot to "+method);
+        Assert.that(!callee.isNative(), "Invalid native invokeslot to "+callee);
         emitOpcode(opcode);
     }
 
@@ -1258,6 +1272,8 @@ public class InstructionEmitter implements InstructionVisitor {
         invokeNative(identifier, type);
     }
 
+    static int[] nativeMethodsUseCount = new int[Native.ENTRY_COUNT];
+
     /**
      * Emit an invoke to a native method.
      *
@@ -1265,9 +1281,12 @@ public class InstructionEmitter implements InstructionVisitor {
      * @param type the return type
      */
     private void invokeNative(int identifier, Klass type) {
+/*if[KERNEL_SQUAWK]*/
         if (identifier == Native.com_sun_squawk_VM$pause) {
             emitOpcode(OPC.PAUSE); // Special case for VM.pause()
-        } else {
+        } else
+/*end[KERNEL_SQUAWK]*/
+        {
             int opcode;
             switch (type.getSystemID()) {
                 case CID.VOID:    opcode = OPC.INVOKENATIVE_V; break;
@@ -1291,7 +1310,16 @@ public class InstructionEmitter implements InstructionVisitor {
                                            OPC.INVOKENATIVE_I; break;
                 default:          opcode = OPC.INVOKENATIVE_O; break;
             }
+            nativeMethodsUseCount[identifier]++;
             emitUnsigned(opcode, identifier);
+        }
+    }
+
+    public static void printUncalledNativeMethods() {
+        for (int i = 0; i < nativeMethodsUseCount.length; i++) {
+            if (nativeMethodsUseCount[i] == 0) {
+                System.out.println("Native method index " + i + " is not called in this suite");
+            }
         }
     }
 
@@ -1347,14 +1375,14 @@ public class InstructionEmitter implements InstructionVisitor {
      */
     public void doInvokeSuper(InvokeSuper instruction) {
         int opcode;
-        Method method = instruction.getMethod();
-        Klass returnType = method.getReturnType();
-        if (method.isNative()) {
-            Assert.that(method.isFinal() || method.getDefiningClass().isFinal() , "cannot invoke non-final native method "+method);
-            String name = method.getFullyQualifiedName();
+        Method callee = instruction.getMethod();
+        Klass returnType = callee.getReturnType();
+        if (callee.isNative()) {
+            Assert.that(callee.isFinal() || callee.getDefiningClass().isFinal() , "cannot invoke non-final native method "+callee);
+            String name = callee.getFullyQualifiedName();
             invokeNative(name, returnType);
         } else {
-            checkMethodCallable(method);
+            checkMethodCallable(callee);
             switch (returnType.getSystemID()) {
                 case CID.VOID:    opcode = OPC.INVOKESUPER_V; break;
                 case CID.BOOLEAN: // fall through ...
@@ -1367,7 +1395,7 @@ public class InstructionEmitter implements InstructionVisitor {
                 case CID.DOUBLE:  opcode = OPC.INVOKESUPER_D; break;
 /*else[FLOATS]*/
 //              case CID.FLOAT:
-//              case CID.DOUBLE:  Assert.shouldNotReachHere();
+//              case CID.DOUBLE:  Assert.shouldNotReachHere("NO FLOATS");
 /*end[FLOATS]*/
                 case CID.LONG:    opcode = OPC.INVOKESUPER_L; break;
                 case CID.OFFSET:  // fall through
@@ -1377,9 +1405,9 @@ public class InstructionEmitter implements InstructionVisitor {
                                            OPC.INVOKESUPER_I; break;
                 default:          opcode = OPC.INVOKESUPER_O; break;
             }
-            Assert.that(method.isPrivate() || !method.isNative(), this.method.toString() + ": invalid native invokesuper to "+method);
-            emitConstantObject(method.getDefiningClass());
-            emitUnsigned(opcode, method.getOffset());
+            Assert.that(callee.isPrivate() || !callee.isNative(), this.method.toString() + ": invalid native invokesuper to "+callee);
+            emitConstantObject(callee.getDefiningClass());
+            emitUnsigned(opcode, callee.getOffset());
         }
     }
 
@@ -1387,15 +1415,15 @@ public class InstructionEmitter implements InstructionVisitor {
      * {@inheritDoc}
      */
     public void doInvokeVirtual(InvokeVirtual instruction) {
-        Method method = instruction.getMethod();
-        Klass returnType = method.getReturnType();
-        if (method.isNative()) {
-            Assert.that(method.isFinal() || method.getDefiningClass().isFinal() , "cannot invoke non-final native method "+method);
-            String name = method.getFullyQualifiedName();
+        Method callee = instruction.getMethod();
+        Klass returnType = callee.getReturnType();
+        if (callee.isNative()) {
+            Assert.that(callee.isFinal() || callee.getDefiningClass().isFinal() , "cannot invoke non-final native method "+callee);
+            String name = callee.getFullyQualifiedName();
             invokeNative(name, returnType);
         } else {
             int opcode;
-            checkMethodCallable(method);
+            checkMethodCallable(callee);
             switch (returnType.getSystemID()) {
                 case CID.VOID:    opcode = OPC.INVOKEVIRTUAL_V; break;
                 case CID.BOOLEAN: // fall through ...
@@ -1408,7 +1436,7 @@ public class InstructionEmitter implements InstructionVisitor {
                 case CID.DOUBLE:  opcode = OPC.INVOKEVIRTUAL_D; break;
 /*else[FLOATS]*/
 //              case CID.FLOAT:
-//              case CID.DOUBLE:  Assert.shouldNotReachHere();
+//              case CID.DOUBLE:  Assert.shouldNotReachHere("NO FLOATS");
 /*end[FLOATS]*/
                 case CID.LONG:    opcode = OPC.INVOKEVIRTUAL_L; break;
                 case CID.OFFSET:  // fall through
@@ -1418,7 +1446,7 @@ public class InstructionEmitter implements InstructionVisitor {
                                            OPC.INVOKEVIRTUAL_I; break;
                 default:          opcode = OPC.INVOKEVIRTUAL_O; break;
             }
-            emitUnsigned(opcode, method.getOffset());
+            emitUnsigned(opcode, callee.getOffset());
         }
     }
 
@@ -1477,7 +1505,7 @@ public class InstructionEmitter implements InstructionVisitor {
             case CID.DOUBLE:  opcode = OPC.GETFIELD_D; break;
 /*else[FLOATS]*/
 //          case CID.FLOAT:
-//          case CID.DOUBLE:  Assert.shouldNotReachHere();
+//          case CID.DOUBLE:  Assert.shouldNotReachHere("NO FLOATS");
 /*end[FLOATS]*/
             case CID.LONG:    opcode = OPC.GETFIELD_L; break;
             case CID.OFFSET:  // fall through
@@ -1541,7 +1569,7 @@ public class InstructionEmitter implements InstructionVisitor {
                 case CID.DOUBLE:  opcode = OPC.GETSTATIC_D; break;
 /*else[FLOATS]*/
 //              case CID.FLOAT:
-//              case CID.DOUBLE:  Assert.shouldNotReachHere();
+//              case CID.DOUBLE:  Assert.shouldNotReachHere("NO FLOATS");
 /*end[FLOATS]*/
                 case CID.LONG:    opcode = OPC.GETSTATIC_L; break;
                 case CID.OFFSET:  // fall through
@@ -1594,7 +1622,7 @@ public class InstructionEmitter implements InstructionVisitor {
             case CID.LONG: {
                 Assert.shouldNotReachHere("Only single word global varibles are supported");
             }
-            case CID.OFFSET:
+            case CID.OFFSET:  // fall through ...
             case CID.UWORD: {
                 Assert.shouldNotReachHere(field.getType().getName() + " typed global varibles are not (yet) supported");
             }
@@ -1821,7 +1849,7 @@ public class InstructionEmitter implements InstructionVisitor {
                 case CID.DOUBLE:  opcode = OPC.RETURN_D; break;
 /*else[FLOATS]*/
 //              case CID.FLOAT:
-//              case CID.DOUBLE: Assert.shouldNotReachHere();
+//              case CID.DOUBLE: Assert.shouldNotReachHere("NO FLOATS");
 /*end[FLOATS]*/
                 case CID.LONG:    opcode = OPC.RETURN_L; break;
                 case CID.OFFSET:  // fall through
@@ -1852,7 +1880,7 @@ public class InstructionEmitter implements InstructionVisitor {
             case CID.DOUBLE:  opcode = OPC.PUTFIELD_D; break;
 /*else[FLOATS]*/
 //          case CID.FLOAT:
-//          case CID.DOUBLE: Assert.shouldNotReachHere();
+//          case CID.DOUBLE: Assert.shouldNotReachHere("NO FLOATS");
 /*end[FLOATS]*/
             case CID.LONG:    opcode = OPC.PUTFIELD_L; break;
             case CID.OFFSET:  // fall through
@@ -1915,7 +1943,7 @@ public class InstructionEmitter implements InstructionVisitor {
                 case CID.DOUBLE:  opcode = OPC.PUTSTATIC_D; break;
 /*else[FLOATS]*/
 //              case CID.FLOAT:
-//              case CID.DOUBLE: Assert.shouldNotReachHere();
+//              case CID.DOUBLE: Assert.shouldNotReachHere("NO FLOATS");
 /*end[FLOATS]*/
                 case CID.LONG:    opcode = OPC.PUTSTATIC_L; break;
                 case CID.OFFSET:  // fall through

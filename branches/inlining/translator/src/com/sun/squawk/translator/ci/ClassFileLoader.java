@@ -217,6 +217,8 @@ public final class ClassFileLoader implements Context {
         Klass[] interfaces = loadInterfaces();
         Assert.that(interfaces != null);
 
+        setGlobalStaticModifier(superClass, interfaces);
+
         if (Translator.TRACING_ENABLED && traceClassInfo) {
             Tracer.traceln("class: "+klass.getInternalName());
             //if (klass.getSuperclass() != null) {
@@ -424,6 +426,42 @@ public final class ClassFileLoader implements Context {
         }
     }
 
+    private static boolean isPragmaGlobalStaticFields(Klass klass) {
+        return klass.getInternalName().equals("com.sun.squawk.pragma.GlobalStaticFields");
+    }
+
+    private static boolean isPragmaGlobalStaticFieldsInherited(Klass klass) {
+        return false;
+        //return klass.getInternalName().equals("com.sun.squawk.pragma.GlobalStaticFieldsInherited");
+    }
+
+    private static boolean implementsGlobalStaticFieldPragma(Klass[] interfaces, boolean inheritedOnly) {
+        for (int i = 0; i < interfaces.length; i++) {
+            Klass iface = interfaces[i];
+            if ((!inheritedOnly && isPragmaGlobalStaticFields(iface)) ||
+                isPragmaGlobalStaticFieldsInherited(iface)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Looks for pragmas that indicates that the class should have global statics
+     */
+    private void setGlobalStaticModifier(Klass superclass, Klass[] interfaces) {
+        if (implementsGlobalStaticFieldPragma(interfaces, false)) {
+            klass.updateModifiers(Modifier.GLOBAL_STATICS);
+            return;
+        }
+        while (superclass != null) {
+            interfaces = superclass.getInterfaces();
+            if (implementsGlobalStaticFieldPragma(interfaces, true)) {
+                klass.updateModifiers(Modifier.GLOBAL_STATICS);
+                return;
+            }
+            superclass = superclass.getSuperclass();
+        }
+    }
 
     /*---------------------------------------------------------------------------*\
      *                          Interface loading                                *
@@ -447,10 +485,6 @@ public final class ClassFileLoader implements Context {
             }
             interfaces[i] = iface;
 
-            if (iface.getInternalName().equals("com.sun.squawk.pragma.GlobalStaticFields")) {
-                klass.updateModifiers(Modifier.GLOBAL_STATICS);
-            }
-            
             if (Modifier.isSuitePrivate(iface.getModifiers()) && !Isolate.currentIsolate().getLeafSuite().contains(iface)) {
                 Translator.throwLinkageError(prefix("implements " + iface + " which is a suite-private interface from another suite."));
             }
@@ -667,7 +701,7 @@ public final class ClassFileLoader implements Context {
          */
         ClassFileField field;
         if (constantValue != null) {
-            modifiers |= Modifier.CONSTANT;
+            modifiers |= Modifier.FIELD_CONSTANT;
             if (constantValue instanceof String) {
                 field = new ClassFileConstantField(fieldName, modifiers, fieldType, (String)constantValue);
             } else {
@@ -804,7 +838,7 @@ public final class ClassFileLoader implements Context {
          */
         if (!hasConstructor && !klass.isAbstract() && !klass.isInterface()) {
             ClassFileMethod method = new ClassFileMethod("<init>",
-                                                         Modifier.PUBLIC | Modifier.STATIC | Modifier.CONSTRUCTOR,
+                                                         Modifier.PUBLIC | Modifier.STATIC | Modifier.METHOD_CONSTRUCTOR,
                                                          klass,
                                                          Klass.NO_CLASSES,
                                                          0);
@@ -864,7 +898,7 @@ public final class ClassFileLoader implements Context {
 
                 if (Arrays.equals(matchTypes, method.getParameterTypes())) {
                     ctor = new ClassFileMethod("<init>",
-                        ctor.getModifiers() | Modifier.HAS_PRAGMAS,
+                        ctor.getModifiers() | Modifier.METHOD_HAS_PRAGMAS,
                         ctor.getReturnType(),
                         ctor.getParameterTypes(),
                         ctor.getPragmas() | PragmaException.REPLACEMENT_CONSTRUCTOR);
@@ -979,7 +1013,7 @@ public final class ClassFileLoader implements Context {
         if (methodName.equals("<init>")) {
             Assert.that(methodSignature.returnType == Klass.VOID);
             methodSignature = methodSignature.modifyReturnType(klass);
-            modifiers |= (Modifier.CONSTRUCTOR | Modifier.STATIC);
+            modifiers |= (Modifier.METHOD_CONSTRUCTOR | Modifier.STATIC);
         }
 
         /*
@@ -1042,7 +1076,7 @@ public final class ClassFileLoader implements Context {
                 throw cfr.formatError("method with pragma is not non-virtual: " + methodName);
             }
 
-            modifiers |= Modifier.HAS_PRAGMAS;
+            modifiers |= Modifier.METHOD_HAS_PRAGMAS;
             if (PragmaException.isNative(pragmas)) {
                 modifiers |= Modifier.NATIVE;
             }

@@ -503,7 +503,7 @@ public class Test {
                 }
             };
             VMThread t = VMThread.asVMThread(r);
-            //NativeUnsafe.setInt(t, (int)FieldOffsets.com_sun_squawk_VMThread$stackSize, Math.max(stackSize, VMThread.MIN_STACK_SIZE));
+            //Unsafe.setInt(t, (int)FieldOffsets.com_sun_squawk_VMThread$stackSize, Math.max(stackSize, VMThread.MIN_STACK_SIZE));
             r.start();
             return t;
         }
@@ -520,7 +520,7 @@ public class Test {
             }
         };
         VMThread t = VMThread.asVMThread(r);
-        //NativeUnsafe.setInt(t, (int)FieldOffsets.com_sun_squawk_VMThread$stackSize, Math.max(stackSize, VMThread.MIN_STACK_SIZE));
+        //Unsafe.setInt(t, (int)FieldOffsets.com_sun_squawk_VMThread$stackSize, Math.max(stackSize, VMThread.MIN_STACK_SIZE));
         t.start();
         try {
             t.join();
@@ -808,20 +808,20 @@ public class Test {
 
         static void testByteGetter(String msg, Address ptr, byte[] buffer) {
             for (int i = 0; i < buffer.length; i++) {
-                expect(msg + "getByte()", buffer[i], NativeUnsafe.getByte(ptr, i));
+                expect(msg + "getByte()", buffer[i], Unsafe.getByte(ptr, i));
             }
         }
 
         static void clearBuffer(Address ptr, int length) {
             for (int i = 0; i < length; i++) {
-                NativeUnsafe.setByte(ptr, i, 0);
-                expect("clearBuffer()", 0, NativeUnsafe.getByte(ptr, i));
+                Unsafe.setByte(ptr, i, 0);
+                expect("clearBuffer()", 0, Unsafe.getByte(ptr, i));
             }
         }
         
         static void printBuffer(Address ptr, int length) {
             for (int i = 0; i < length; i++) {
-                System.err.print(Integer.toHexString(NativeUnsafe.getByte(ptr, i)) + "    ");
+                System.err.print(Integer.toHexString(Unsafe.getByte(ptr, i)) + "    ");
             }
             System.err.println();
         }
@@ -833,11 +833,11 @@ public class Test {
             clearBuffer(ptr, buffer.length);
             int start = (buffer.length / size) * size;
             if (unaligned) {
-                NativeUnsafe.setByte(ptr, 0, buffer[0]); // for unaligned, don't forget to set beginning/end
+                Unsafe.setByte(ptr, 0, buffer[0]); // for unaligned, don't forget to set beginning/end
                 start++;
             }
             for (int i = start; i < buffer.length; i++) {
-                NativeUnsafe.setByte(ptr, i, buffer[i]);
+                Unsafe.setByte(ptr, i, buffer[i]);
             }
         }
 
@@ -846,29 +846,29 @@ public class Test {
             testByteGetter(msg, ptr, buffer); // test getByte()
 
             for (int i = 0; i < buffer.length; i++) {
-                expect(msg + "getUByte()", (buffer[i] & 0xFF), NativeUnsafe.getUByte(ptr, i));
+                expect(msg + "getUByte()", (buffer[i] & 0xFF), Unsafe.getUByte(ptr, i));
             }
 
             for (int i = 0; i < buffer.length; i++) {
-                expect(msg + "getAsByte()", buffer[i], NativeUnsafe.getAsByte(ptr, i));
+                expect(msg + "getAsByte()", buffer[i], Unsafe.getAsByte(ptr, i));
             }
 
             // shorts:
             for (int i = 0; i < (buffer.length / 2); i++) {
                 int expected = makeShort(buffer[i * 2], buffer[i * 2 + 1]);
-                int actual = bigShort((short) NativeUnsafe.getShort(ptr, i));
+                int actual = bigShort((short) Unsafe.getShort(ptr, i));
                 expect(msg + "getShort()", expected, actual);
             }
 
             for (int i = 0; i < (buffer.length / 2); i++) {
                 int expected = makeShort(buffer[i * 2], buffer[i * 2 + 1]);
-                int actual = bigShort((short) NativeUnsafe.getAsShort(ptr, i));
+                int actual = bigShort((short) Unsafe.getAsShort(ptr, i));
                 expect(msg + "getAsShort()", expected, actual);
             }
 
             for (int i = 0; i < (buffer.length / 2); i++) {
                 int expected = makeShort(buffer[i * 2 + 1], buffer[i * 2 + 2]);
-                int actual = bigShort((short) NativeUnsafe.getUnalignedShort(ptr, i * 2 + 1));
+                int actual = bigShort((short) Unsafe.getUnalignedShort(ptr, i * 2 + 1));
                 expect(msg + "getUnalignedShort()", expected, actual);
             }
 
@@ -876,21 +876,21 @@ public class Test {
             for (int i = 0; i < (buffer.length / 4); i++) {
                 int bindex = i * 4;
                 int expected = makeInt(buffer[bindex], buffer[bindex + 1], buffer[bindex + 2], buffer[bindex + 3]);
-                int actual = bigInt(NativeUnsafe.getInt(ptr, i));
+                int actual = bigInt(Unsafe.getInt(ptr, i));
                 expect(msg + "getInt()", expected, actual);
             }
 
             for (int i = 0; i < (buffer.length / 4); i++) {
                 int bindex = i * 4;
                 int expected = makeInt(buffer[bindex], buffer[bindex + 1], buffer[bindex + 2], buffer[bindex + 3]);
-                int actual = bigInt(NativeUnsafe.getAsInt(ptr, i));
+                int actual = bigInt(Unsafe.getAsInt(ptr, i));
                 expect(msg + "getAsInt()", expected, actual);
             }
 
             for (int i = 0; i < (buffer.length / 4); i++) {
                 int bindex = i * 4 + 1;
                 int expected = makeInt(buffer[bindex], buffer[bindex + 1], buffer[bindex + 2], buffer[bindex + 3]);
-                int actual = bigInt(NativeUnsafe.getUnalignedInt(ptr, bindex));
+                int actual = bigInt(Unsafe.getUnalignedInt(ptr, bindex));
                 expect(msg + "getUnalignedInt()", expected, actual);
             }
 
@@ -899,7 +899,7 @@ public class Test {
                 int bindex = i * 8;
                 long expected = makeLong(buffer[bindex], buffer[bindex + 1], buffer[bindex + 2], buffer[bindex + 3],
                         buffer[bindex + 4], buffer[bindex + 5], buffer[bindex + 6], buffer[bindex + 7]);
-                long actual = bigLong(NativeUnsafe.getLong(ptr, i));
+                long actual = bigLong(Unsafe.getLong(ptr, i));
                 expect(msg + "getLong()", expected, actual);
             }
 
@@ -907,7 +907,7 @@ public class Test {
                 int bindex = i * 8 + 1;
                 long expected = makeLong(buffer[bindex], buffer[bindex + 1], buffer[bindex + 2], buffer[bindex + 3],
                         buffer[bindex + 4], buffer[bindex + 5], buffer[bindex + 6], buffer[bindex + 7]);
-                long actual = bigLong(NativeUnsafe.getUnalignedLong(ptr, bindex));
+                long actual = bigLong(Unsafe.getUnalignedLong(ptr, bindex));
                 expect(msg + "getUnalignedLong()", expected, actual);
             }
         }
@@ -940,9 +940,9 @@ public class Test {
             expect("x53: swap8(-)", -21, swap8(0xEBFFFFFFFFFFFFFFL));
 
             // set up test data:
-            Address ptr = NativeUnsafe.malloc(UWord.fromPrimitive(BUFFER.length));
+            Address ptr = Unsafe.malloc(UWord.fromPrimitive(BUFFER.length));
             for (int i = 0; i < BUFFER.length; i++) {
-                NativeUnsafe.setByte(ptr, i, BUFFER[i]);
+                Unsafe.setByte(ptr, i, BUFFER[i]);
             }
 
             testAllGetters("x53: ", ptr, BUFFER);
@@ -954,7 +954,7 @@ public class Test {
             for (int i = 0; i < (BUFFER.length / 2); i++) {
                 int bindex = i * 2;
                 int expected = makeShort(BUFFER[bindex], BUFFER[bindex + 1]);
-                NativeUnsafe.setShort(ptr, i, bigShort((short) expected));
+                Unsafe.setShort(ptr, i, bigShort((short) expected));
             }
             testByteGetter("x53: after setShort(): ", ptr, BUFFER);
 
@@ -962,7 +962,7 @@ public class Test {
             for (int i = 0; i < (BUFFER.length / 2); i++) {
                 int bindex = i * 2 + 1;
                 int expected = makeShort(BUFFER[bindex], BUFFER[bindex + 1]);
-                NativeUnsafe.setUnalignedShort(ptr, bindex, bigShort((short) expected));
+                Unsafe.setUnalignedShort(ptr, bindex, bigShort((short) expected));
             }
             testByteGetter("x53: after setUnalignedShort(): ", ptr, BUFFER);
 
@@ -971,7 +971,7 @@ public class Test {
             for (int i = 0; i < (BUFFER.length / 4); i++) {
                 int bindex = i * 4;
                 int expected = makeInt(BUFFER[bindex], BUFFER[bindex + 1], BUFFER[bindex + 2], BUFFER[bindex + 3]);
-                NativeUnsafe.setInt(ptr, i, bigInt(expected));
+                Unsafe.setInt(ptr, i, bigInt(expected));
             }
             testByteGetter("x53: after setInt(): ", ptr, BUFFER);
 
@@ -979,7 +979,7 @@ public class Test {
             for (int i = 0; i < (BUFFER.length / 4); i++) {
                 int bindex = i * 4 + 1;
                 int expected = makeInt(BUFFER[bindex], BUFFER[bindex + 1], BUFFER[bindex + 2], BUFFER[bindex + 3]);
-                NativeUnsafe.setUnalignedInt(ptr, bindex, bigInt(expected));
+                Unsafe.setUnalignedInt(ptr, bindex, bigInt(expected));
             }
             testByteGetter("x53: after setUnalignedInt(): ", ptr, BUFFER);
 
@@ -989,7 +989,7 @@ public class Test {
                 int bindex = i * 8;
                 long expected = makeLong(BUFFER[bindex],     BUFFER[bindex + 1], BUFFER[bindex + 2], BUFFER[bindex + 3],
                                          BUFFER[bindex + 4], BUFFER[bindex + 5], BUFFER[bindex + 6], BUFFER[bindex + 7]);
-                NativeUnsafe.setLong(ptr, i, bigLong(expected));
+                Unsafe.setLong(ptr, i, bigLong(expected));
             }
             testByteGetter("x53: after setLong(): ", ptr, BUFFER);
 
@@ -998,7 +998,7 @@ public class Test {
                 int bindex = i * 8 + 1;
                 long expected = makeLong(BUFFER[bindex],     BUFFER[bindex + 1], BUFFER[bindex + 2], BUFFER[bindex + 3],
                                          BUFFER[bindex + 4], BUFFER[bindex + 5], BUFFER[bindex + 6], BUFFER[bindex + 7]);
-                NativeUnsafe.setUnalignedLong(ptr, bindex, bigLong(expected));
+                Unsafe.setUnalignedLong(ptr, bindex, bigLong(expected));
             }
             testByteGetter("x53: after setUnalignedLong(): ", ptr, BUFFER);
         }
