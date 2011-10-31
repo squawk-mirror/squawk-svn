@@ -59,7 +59,23 @@ public final class StackMerge extends StackProducer {
         super(type);
         producers = NO_PRODUCERS;
     }
-
+    
+    /**
+     * returns the index of the producer in the array , or -1.
+     *
+     * @param   producers  the array to search
+     * @param   producer   the element to search for
+     * @return  index of the producer
+     */
+    private static int indexOf(StackProducer[] producers, StackProducer producer) {
+        for (int i = 0; i != producers.length; ++i) {
+            if (producers[i] == producer) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
     /**
      * Determines whether or not a given stack producer is in a given
      * array of stack producers.
@@ -70,10 +86,27 @@ public final class StackMerge extends StackProducer {
      *                     <code>producers</code>
      */
     private static boolean contains(StackProducer[] producers, StackProducer producer) {
-        for (int i = 0; i != producers.length; ++i) {
-            if (producers[i] == producer) {
-                return true;
-            }
+        int index = indexOf(producers, producer);
+        if (index >= 0) {
+            return true;
+        }
+        return false;
+    }
+    
+        
+    /**
+     * Determines whether or not a given stack producer is in a given
+     * array of stack producers.
+     *
+     * @param   producers  the array to search
+     * @param   producer   the element to search for
+     * @return  true if <code>producer</code> is an element of
+     *                     <code>producers</code>
+     */
+    public boolean contains(StackProducer producer) {
+        int index = indexOf(producers, producer);
+        if (index >= 0) {
+            return true;
         }
         return false;
     }
@@ -145,6 +178,24 @@ public final class StackMerge extends StackProducer {
             }
         }
 
+    }
+    
+    /**
+     * Remove a producer from the merge. Used for dead code elimination...
+     */
+    public void removeProducer(StackProducer oldProducer) {
+        int index = indexOf(producers, oldProducer);
+        Assert.that(index >= 0);
+        StackProducer[] newProducers = new StackProducer[producers.length - 1];
+        
+        if (index > 0) {
+            System.arraycopy(producers, 0, newProducers, 0, index);
+        }
+        if (index < producers.length - 1) {
+            System.arraycopy(producers, index + 1, newProducers, index, producers.length - 1 - index);
+        }
+        producers = newProducers;
+        Assert.that(!contains(producers, oldProducer));
     }
     
     /**

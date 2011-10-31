@@ -24,14 +24,12 @@
 
 package com.sun.squawk.translator.ir;
 
-import com.sun.squawk.translator.Translator;
 import com.sun.squawk.translator.ir.instr.*;
 import com.sun.squawk.util.Tracer;
-import com.sun.squawk.Klass;
 
 
 /**
- * This class manages adding and removing instructions. It is careful not to remove instuctions that may be the targets of
+ * This class manages adding and removing instructions. It is careful not to remove instructions that may be the targets of
  * other instructions. This is relaxed when deleting dead code - it's OK to remove instruction that are only targeted by 
  * other dead code (which is what the DeadCodeRemover checks for).
  */

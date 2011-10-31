@@ -709,6 +709,18 @@ final class Frame {
         }
         else {
             StackElement newTypes[] = (StackElement[])stackMap.get(ip);
+            if (newTypes.length != sp) {
+                System.out.println("New Stack: ");
+                for (int i = 0; i < newTypes.length; i++) {
+                    System.out.println("    " + newTypes[i]);
+                }
+                
+                 System.out.println("Old Stack: ");
+                for (int i = 0; i < stack.length; i++) {
+                    System.out.println("    " + stack[i]);
+                }
+                
+            }
             checkMerge(newTypes.length == sp, "attempted to merge stacks of different sizes");
             for (int i = 0; i < sp; i++) {
                 Klass k = stack[i].getKlass();

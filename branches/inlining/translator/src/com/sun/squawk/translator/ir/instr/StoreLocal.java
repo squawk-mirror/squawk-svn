@@ -113,14 +113,12 @@ public final class StoreLocal extends Instruction implements LocalVariable, Muta
         value = visitor.doOperand(this, value);
     }
     
-    
     /**
      * Is this a store to parameter 0 ("this" for virtual methods).
      *
      * @return true if this is a store parameter 0.
      */
     public boolean isParam0() {
-        Local local = getLocal();
         return local.isParameter() && local.getSquawkParameterIndex() == 0;
     }
 }

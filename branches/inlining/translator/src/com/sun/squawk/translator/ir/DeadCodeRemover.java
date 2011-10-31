@@ -52,7 +52,7 @@ public class DeadCodeRemover {
     
     /**
      * A SquawkVector of all of the original instructions in the method.
-     * This is kept as a sperate collection from, the IR's insrtuction list, becuase we are removing instructions 
+     * This is kept as a separate collection from, the IR's instruction list, because we are removing instructions 
      * from the IR as we go.
      */
     private final SquawkVector allCode;
@@ -82,6 +82,8 @@ public class DeadCodeRemover {
      */
     private final boolean trace;
     
+    private final SquawkVector deadProducers;
+    
     /**
      * Removes unreachable instructions from a method.
      *
@@ -93,6 +95,7 @@ public class DeadCodeRemover {
         reachable = new SquawkHashtable();
         allCode = new SquawkVector();
         finder = new FindReachableInstructions();
+        deadProducers = new SquawkVector();
         this.ir = ir;
         this.method = method;
         this.remover = remover;
@@ -106,6 +109,9 @@ public class DeadCodeRemover {
      */
     private void remove(Instruction insn) {
         boolean removed = remover.remove(insn, true); // allow removal of targetable instructions
+        if (insn instanceof StackProducer) {
+            deadProducers.addElement(insn);
+        }
         Assert.that(removed);
         if (trace) {
             Tracer.traceln("Unreachable so deleted: " + insn);
@@ -161,6 +167,16 @@ public class DeadCodeRemover {
         }
         
         if (remover.hasChanged()) {
+            // cleanup frame info - some stack producers are now gone...
+            if (!deadProducers.isEmpty()) {
+                CleanUpStackMerges cleaner = new CleanUpStackMerges();
+                Instruction insn = ir.getHead();
+                while (insn != null) {
+                    insn.visit(cleaner);
+                    insn = insn.getNext();
+                }
+            }
+            
             if (trace) {
                 Translator.trace(method, ir, "After dead code optimizations");
             }
@@ -168,6 +184,22 @@ public class DeadCodeRemover {
         }
         
         return remover.hasChanged();
+    }
+    
+    class CleanUpStackMerges implements OperandVisitor {
+
+        public StackProducer doOperand(Instruction instruction, StackProducer operand) {
+            if (operand instanceof StackMerge) {
+                StackMerge sm = (StackMerge) operand;
+                for (int i = 0; i < deadProducers.size(); i++) {
+                    StackProducer deadProducer = (StackProducer)deadProducers.elementAt(i);
+                    if (sm.contains(deadProducer)) {
+                        sm.removeProducer(deadProducer);
+                    }
+                }
+            }
+            return operand;
+        }
     }
     
     /** 

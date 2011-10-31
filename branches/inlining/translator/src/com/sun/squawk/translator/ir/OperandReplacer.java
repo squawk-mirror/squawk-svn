@@ -27,10 +27,9 @@ package com.sun.squawk.translator.ir;
 import com.sun.squawk.translator.ir.instr.StackProducer;
 import com.sun.squawk.translator.ir.instr.StackMerge;
 import com.sun.squawk.util.Assert;
-import com.sun.squawk.*;
 
 /**
- * Class used to replace all occurences of one stack producer with another in a list if instruction in the IR.
+ * Class used to replace all occurrences of one stack producer with another in a list if instruction in the IR.
  */
 public class OperandReplacer implements OperandVisitor {
     

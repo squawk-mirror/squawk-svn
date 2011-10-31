@@ -184,7 +184,7 @@ public final class Arg {
                 "<bool> optimize control byte codes.");
         initArg(OPTIMIZE_DEADCODE, "optimizeDeadCode", Arg.BOOLEAN, "true", //GOOD
                 "<bool> delete unreachable bytecodes.");
-        initArg(INLINE_METHOD_LIMIT, "inlineMethodLimit", Arg.INT, "3",
+        initArg(INLINE_METHOD_LIMIT, "inlineMethodLimit", Arg.INT, "0",
                 "<n> Inline known methods with <m> bytecodes or less.\n" +
                 "                           <m> = <n> + <num parameters>. Don't inline if <n> = 0.");
         initArg(INLINE_OBJECT_CONSTRUCTOR, "inlineObjectConstructor", Arg.BOOLEAN, "true", //?
