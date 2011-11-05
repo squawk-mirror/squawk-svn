@@ -3146,13 +3146,14 @@ final class TimerQueue {
             if (now >= first.time) {
                 return 0;
             }
-            long res = first.time - now;
-            return res;
+            if (first.time == Long.MAX_VALUE) {
+                return first.time; // wait "forever"
+            }
+            return first.time - now;
         } else {
             return Long.MAX_VALUE;
         }
     }
-
 
     /**
      * Remove all the threads in this queue that are owned by <code>isolate</code>
