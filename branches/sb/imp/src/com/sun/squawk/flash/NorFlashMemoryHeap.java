@@ -42,6 +42,9 @@ import com.sun.squawk.util.Arrays;
 import com.sun.squawk.util.Comparer;
 import com.sun.squawk.util.UnexpectedException;
 
+/**
+ * The collection of INorFlashSectorStates for a particular record store.
+ */
 public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
 
     public static final byte ERASED_VALUE = (byte) 0xFF;
@@ -184,7 +187,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
             int blockSize = input.readInt();
             int blockSizeWithPadding = blockSize + (blockSize & 1) + 2;
             if (blockSize < 0 || blockSizeWithPadding > (sectorState.getSize() - offset)) {
-                throw new RecordStoreException("read block size bigger than sectorState"); // Data seems corrupted?
+                throw new RecordStoreException("read block size " + blockSize + " bigger than sectorState size " + sectorState.getSize() + " with offset " + offset); // Data seems corrupted?
             }
             block.setNextOffset(offset + BLOCK_HEADER_SIZE + blockSizeWithPadding);
             // The allocated flag is written as a word, so we only need to look at the second byte

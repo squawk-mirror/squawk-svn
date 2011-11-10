@@ -104,10 +104,10 @@ public class RecordStore
     /** Name of the record store, we keep this around in order to be able to do
      * a lookup if we are ever Isolate migrated to another location
      */
-    private String recordStoreName;
+    private final String recordStoreName;
 
     /** recordListeners of this record store */
-    private java.util.Vector recordListener;
+    private final java.util.Vector recordListener;
 
     /*
      * This implementation assumes (and enforces) that there is only
@@ -120,17 +120,6 @@ public class RecordStore
     /*
      * RecordStore Constructors
      */
-
-    /**
-     * MIDlets must use <code>openRecordStore()</code> to get
-     * a <code>RecordStore</code> object. If this constructor
-     * is not declared (as private scope), Javadoc (and Java)
-     * will assume a public constructor.
-     */
-    private RecordStore()
-    {
-    }
-
 
     /**
      * Apps must use <code>openRecordStore()</code> to get
@@ -148,9 +137,7 @@ public class RecordStore
      * @exception RecordStoreNotFoundException if can't find the record store
      *            and create is set to false.
      */
-
     private RecordStore(String recordStoreName, boolean create) throws RecordStoreException, RecordStoreNotFoundException {
-        this();
         this.recordStoreName = recordStoreName;
         recordListener = new java.util.Vector(3);
         recordStoreEntry = ImpGlobal.getRecordStoreManager().getRecordStore(recordStoreName, create);
