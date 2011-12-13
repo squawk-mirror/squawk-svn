@@ -44,8 +44,35 @@ import com.sun.squawk.util.UnexpectedException;
 
 /**
  * The collection of INorFlashSectorStates for a particular record store.
+ * 
+ * BLOCKS:
+ *    A block is a subsection of a sector with header and a footer. 
+ *    The header contains the length and a "stale" field. The Footer indicates if the block was completely written. A block can be in three states:
+ *     - Partially written: 
+ *        nnnn nnnnn
+ *        FFFF
+ *        ... n bytes
+ *        FFFF
+ *     - Completely written: 
+ *        nnnn nnnnn
+ *        FFFF
+ *        ... n bytes
+ *        0000
+ *     - STALE: 
+ *        nnnn nnnnn
+ *        0000
+ *        ... n bytes
+ *        0000
+ * 
+ * Un-allocated memory will start FF, which is not a valid MSB of a block length.
+ * 
+ * Note that a block always starts on an even address, and the written # of data bytes is padded to an even number. 
+ * This forces the "stale" and "complete" fields to also be on even addresses.
+ *        
  */
 public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
+    
+    public final static boolean CONTINUE_PAST_ERRORS = true;
 
     public static final byte ERASED_VALUE = (byte) 0xFF;
     public static final byte ERASED_VALUE_XOR = (byte) 0x00;
@@ -62,8 +89,8 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
     
     /**
      * 
-     * @param purpose  One of INorFlashMemorySector.USER_PURPOSED
-     * @return SquawkVector<INorFlashMemorySector>
+     * @param purpose  One of INorFlashMemorySector.USER_PURPOSED, RMS_PURPOSED, or SYSTEM_PURPOSED.
+     * @return Vector<INorFlashMemorySector>
      */
     public static Vector getNorFlashSectors(int purpose) {
         // Get all user purposed flash memory sectors
@@ -89,7 +116,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
         return userSectors;
     }
 
-    public NorFlashMemoryHeap(INorFlashSectorState[] sectorStates) {
+    public NorFlashMemoryHeap(INorFlashSectorState[] sectorStates) {  // used for testing...
         this.sectorStates = sectorStates;
         inUseSectorStateList = new NorFlashSectorStateList();
         toBeErasedSectorStateList = new NorFlashSectorStateList();
@@ -98,7 +125,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
     
     /**
      * 
-     * @param purpose One of INorFlashMemorySector.USER_PURPOSED
+     * @param purpose One of INorFlashMemorySector.USER_PURPOSED, RMS_PURPOSED, or SYSTEM_PURPOSED.
      */
     public NorFlashMemoryHeap(int purpose) {
         Vector userSectors = getNorFlashSectors(purpose);
@@ -119,6 +146,9 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
         init(sectorStates);
     }
     
+    /**
+     * @todo What does this really do?
+     */
     public void forceEraseAll() {
         for (int i=0; i < sectorStates.length; i++) {
             try {
@@ -126,18 +156,19 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
             } catch (RecordStoreException e) {
             }
         }
+        // TODO: clear out lists?
     }
 
     /**
      * "Free" this block. If no allocated blocks then store in toBeErasedSectorStateList.
-     * @param address
+     * @param address of RmsEntry to free
      * @throws RecordStoreException
      */
     public void freeBlockAt(Address address) throws RecordStoreException {
         INorFlashSectorState sectorState = getSectorContaining(address);
         // add 4 for the size int at beginning of block header
         int offset = address.diff(sectorState.getStartAddress()).toInt() + BLOCK_HEADER_SIZE - 2;
-        sectorState.writeBytes(offset, BLOCK_FOOTER, 0, 2);
+        sectorState.writeBytes(offset, BLOCK_FOOTER, 0, 2); // mark block as STALE
         sectorState.decrementMallocedCount();
         sectorState.incrementFreedBlockCount();
         if (hasScannedBlocks && sectorState != currentSectorState && sectorState.getOwningList() != toBeErasedSectorStateList && sectorState.getAllocatedBlockCount() == 0) {
@@ -148,7 +179,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
     public IMemoryHeapBlock getBlockAt(Address address) throws RecordStoreException {
         INorFlashSectorState sectorState = getSectorContaining(address);
         if (sectorState == null) {
-            throw new RecordStoreException("Address specified is outside my valid range");
+            throw new RecordStoreException("Address specified is outside valid range");
         }
         int offset = address.diff(sectorState.getStartAddress()).toInt();
         if (offset >= sectorState.getWriteHeadPosition()) {
@@ -162,11 +193,34 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
     }
 
     /**
+     * Report error or throw exception.
      * 
      * @param block
      * @param sectorState
      * @param offset
-     * @return boolean true if there was a block at that address, false if not
+     * @param msg
+     * @throws RecordStoreException 
+     */
+    private void reportBadRecord(IMemoryHeapBlock block, INorFlashSectorState sectorState, int offset, String msg)
+            throws RecordStoreException {
+        if (CONTINUE_PAST_ERRORS) {
+            int remaining = sectorState.getSize() - offset;
+            System.err.println("[RMS] Error: " + msg + " at offset " + offset + " from sector at " + sectorState.getStartAddress().toUWord().toPrimitive());
+            System.err.println("[RMS]     ignoring remaining " + remaining + " bytes in sector.");
+            block.setIsAllocated(false);
+            block.setLength(remaining);
+        } else {
+            throw new RecordStoreException(msg + " at offset " + offset);
+        }
+    }
+
+    /**
+     * Read block state into "block".
+     * 
+     * @param block block object to be updated
+     * @param sectorState sector to read from 
+     * @param offset offset in sector to block header
+     * @return boolean true if there was a block at that address (might be stale or partial), false if not
      * @throws RecordStoreException
      */
     protected boolean getBlockAt(IMemoryHeapBlock block, INorFlashSectorState sectorState, int offset) throws RecordStoreException {
@@ -180,14 +234,18 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
             sectorState.readBytes(offset, bytes, 0, BLOCK_HEADER_SIZE);
             // If the block header we are looking for starts with ERASED_VALUE, we know we did not write a header here
             if (bytes[0] == ERASED_VALUE) {
-                block.setIsAllocated(false); // DRW: is this right?
+                // MSB of a block length can't be FF, so must not be any more blocks written in this sector (yet).
+                // TODO: Verify that all bytes are FF.
+                block.setIsAllocated(false);
                 return false;
             }
             DataInputStream input = block.getDataInputStream();
             int blockSize = input.readInt();
             int blockSizeWithPadding = blockSize + (blockSize & 1) + 2;
             if (blockSize < 0 || blockSizeWithPadding > (sectorState.getSize() - offset)) {
-                throw new RecordStoreException("read block size " + blockSize + " bigger than sectorState size " + sectorState.getSize() + " with offset " + offset); // Data seems corrupted?
+                // Data seems corrupted?
+                reportBadRecord(block, sectorState, offset, "read block size " + blockSize + " bigger than sectorState size " + sectorState.getSize());
+                return true;
             }
             block.setNextOffset(offset + BLOCK_HEADER_SIZE + blockSizeWithPadding);
             // The allocated flag is written as a word, so we only need to look at the second byte
@@ -308,8 +366,8 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
 
     /**
      * Copy active blocks from src sector the currentSectorState. Src sector is then "to be erased".
-     * @param src
-     * @param scanner
+     * @param src sector to be GCed.
+     * @param scanner scanner is responsible for copying a record from src to currentSectorState.
      * @throws RecordStoreException
      */
     protected void gcSector(INorFlashSectorState src, INorFlashMemoryHeapScanner scanner) throws RecordStoreException {
@@ -327,7 +385,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
                 }
                 offset = block.getNextBlockOffset();
             }
-            src.removeErasedHeader();
+            src.removeErasedHeader(); // mark sector "stale"
             toBeErasedSectorStateList.addLast(src);
     }
 
@@ -338,7 +396,6 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
      * Sets currentSectorState to the sector with the space.
      *
      * @TODO: Can we get rid of scanner?
-     *
      *
      * @param entrySize number of free bytes to look for
      * @param scanner
@@ -416,6 +473,14 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
         throw new RecordStoreFullException("No empty sector for GC");
     }
     
+    /**
+     * Write header, data bytes, and footer to the flash sector. 
+     * 
+     * @param block cached info of block to write
+     * @param scanner [optional]
+     * @return the address of the header of the block in flash memory.
+     * @throws RecordStoreException 
+     */
     public Address allocateAndWriteBlock(byte[] bytes, int offset, int length, INorFlashMemoryHeapScanner scanner) throws RecordStoreException {
         MemoryHeapBlock block = new MemoryHeapBlock();
         block.setBytes(bytes, offset, length);
@@ -423,9 +488,12 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
     }
     
     /**
+     * Scan through allocated blocks in all sectors in this MemoryHeap. 
+     * Update toBeErasedSectorStateList, inUseSectorStateList, and currentSectorState. Also update the writeHeadPosition for each sector state.
+     *    
      * It is guaranteed that the order that blocks were allocated in, is the order in which they will be iterated.
      * 
-     * @param scanner
+     * @param scanner operation to perform on each block. May be null.
      * @throws RecordStoreException
      */
     public void scanBlocks(INorFlashMemoryHeapScanner scanner) throws RecordStoreException {
@@ -476,6 +544,16 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
         hasScannedBlocks = true;
     }
     
+    /**
+     * Write header, cached data in "block", and footer to the flash sector. 
+     * Optionally update meta-data to indicate "block" has been moved from "oldAddress".
+     * 
+     * @param block cached info of block to write
+     * @param scanner optional if not copying
+     * @param oldAddress if copying a block, the address of the old block. Will free old block and update meta-data to refer to new copy.
+     * @return the address of the header of the block in flash memory.
+     * @throws RecordStoreException 
+     */
     protected Address writeBlock(IMemoryHeapBlock block, INorFlashMemoryHeapScanner scanner, Address oldAddress) throws RecordStoreException {
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream(BLOCK_HEADER_SIZE);
         DataOutputStream output = new DataOutputStream(bytesOut);
