@@ -245,7 +245,8 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
             if (blockSize < 0 || blockSizeWithPadding > (sectorState.getSize() - offset)) {
                 // Data seems corrupted?
                 reportBadRecord(block, sectorState, offset, "read block size " + blockSize + " bigger than sectorState size " + sectorState.getSize());
-                return true;
+                block.setNextOffset(sectorState.getSize()); // will terminate loop in scanBlocks() next time getBlockAt() is called
+				return true;
             }
             block.setNextOffset(offset + BLOCK_HEADER_SIZE + blockSizeWithPadding);
             // The allocated flag is written as a word, so we only need to look at the second byte
