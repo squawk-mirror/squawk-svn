@@ -149,7 +149,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
     /**
      * @todo What does this really do?
      */
-    public void forceEraseAll() {
+    public synchronized void forceEraseAll() {
         for (int i=0; i < sectorStates.length; i++) {
             try {
                 sectorStates[i].forceErase();
@@ -164,7 +164,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
      * @param address of RmsEntry to free
      * @throws RecordStoreException
      */
-    public void freeBlockAt(Address address) throws RecordStoreException {
+    public synchronized void freeBlockAt(Address address) throws RecordStoreException {
         INorFlashSectorState sectorState = getSectorContaining(address);
         // add 4 for the size int at beginning of block header
         int offset = address.diff(sectorState.getStartAddress()).toInt() + BLOCK_HEADER_SIZE - 2;
@@ -176,7 +176,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
         }
     }
 
-    public IMemoryHeapBlock getBlockAt(Address address) throws RecordStoreException {
+    public synchronized IMemoryHeapBlock getBlockAt(Address address) throws RecordStoreException {
         INorFlashSectorState sectorState = getSectorContaining(address);
         if (sectorState == null) {
             throw new RecordStoreException("Address specified is outside valid range");
@@ -308,7 +308,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
         }
     }
     
-    public int getSizeAvailable() throws RecordStoreException {
+    public synchronized int getSizeAvailable() throws RecordStoreException {
         final int[] used = new int[1];
         scanBlocks(new INorFlashMemoryHeapScanner() {
             public void reScanBlock(Address oldAddress, Address newAddress, IMemoryHeapBlock block) throws RecordStoreException {
@@ -482,7 +482,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
      * @return the address of the header of the block in flash memory.
      * @throws RecordStoreException 
      */
-    public Address allocateAndWriteBlock(byte[] bytes, int offset, int length, INorFlashMemoryHeapScanner scanner) throws RecordStoreException {
+    public synchronized Address allocateAndWriteBlock(byte[] bytes, int offset, int length, INorFlashMemoryHeapScanner scanner) throws RecordStoreException {
         MemoryHeapBlock block = new MemoryHeapBlock();
         block.setBytes(bytes, offset, length);
         return writeBlock(block, scanner, Address.zero());
@@ -497,7 +497,7 @@ public class NorFlashMemoryHeap implements INorFlashMemoryHeap {
      * @param scanner operation to perform on each block. May be null.
      * @throws RecordStoreException
      */
-    public void scanBlocks(INorFlashMemoryHeapScanner scanner) throws RecordStoreException {
+    public synchronized void scanBlocks(INorFlashMemoryHeapScanner scanner) throws RecordStoreException {
         INorFlashSectorState[] sectorStatesSortedBySequence = new INorFlashSectorState[sectorStates.length];
         System.arraycopy(sectorStates, 0, sectorStatesSortedBySequence, 0, sectorStates.length);
         Arrays.sort(sectorStatesSortedBySequence, new Comparer() {
