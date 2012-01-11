@@ -1,34 +1,34 @@
 /*
- * Copyright 2004-2008 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2004-2010 Sun Microsystems, Inc. All Rights Reserved.
+ * Copyright 2011 Oracle Corporation. All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER
- * 
+ *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * only, as published by the Free Software Foundation.
- * 
+ *
  * This code is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License version 2 for more details (a copy is
  * included in the LICENSE file that accompanied this code).
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this work; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
- * Please contact Sun Microsystems, Inc., 16 Network Circle, Menlo
- * Park, CA 94025 or visit www.sun.com if you need additional
+ *
+ * Please contact Oracle Corporation, 500 Oracle Parkway, Redwood
+ * Shores, CA 94065 or visit www.oracle.com if you need additional
  * information or have any questions.
  */
 
 package com.sun.squawk;
 
-import java.io.*;
-
 import com.sun.squawk.pragma.*;
 import com.sun.squawk.util.*;
 import com.sun.squawk.vm.*;
+import java.io.PrintStream;
 
 /**
  * The Klass class represents the types in the Squawk VM.
@@ -262,6 +262,8 @@ public class Klass<T> {
      */
     public final static int ILLEGAL_METHOD_OFFSET = 0xFFFF;
 
+    public final static boolean ENABLE_DYNAMIC_CLASSLOADING = /*VAL*/false/*ENABLE_DYNAMIC_CLASSLOADING*/;
+
     /*---------------------------------------------------------------------------*\
      *                       Standard java.lang.Class API                        *
     \*---------------------------------------------------------------------------*/
@@ -306,6 +308,52 @@ public class Klass<T> {
     }
 
     /**
+     * Look up class from class files.
+     * 
+     * @param className
+     * @return class, exception, or null
+     * @throws HostedPragma 
+     */
+    private static Object forNameDynamic(String className)  
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
+        throws HostedPragma
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+    {
+        ClassNotFoundException cnfe = null;
+        Klass klass = null;
+        Isolate isolate = VM.getCurrentIsolate();
+        if (isolate.getLeafSuite().isClosed()) {
+            cnfe = new ClassNotFoundException(className + " [The current isolate has no class path]");
+        } else if ((className.startsWith("java.")
+                || className.startsWith("javax.")
+                || className.startsWith("com.sun.squawk.")
+                || className.startsWith("com.sun.cldc."))) {
+            String packageName = className.substring(0, className.lastIndexOf('.'));
+            cnfe = new ClassNotFoundException("Prohibited package name: " + packageName);
+        } else {
+            TranslatorInterface translator = isolate.getTranslator();
+            if (translator != null) {
+                translator.open(isolate.getLeafSuite(), isolate.getClassPath());
+                if (translator.isValidClassName(className)) {
+                    klass = Klass.getClass(className, false);
+                    translator.load(klass);
+                    // Must load complete closure
+                    translator.close(Suite.DEBUG);
+                }
+            } else {
+                if (VM.isVerbose()) {
+                    VM.println("[translator not found - dynamic class loading disabled]");
+                }
+            }
+        }
+        
+        if (cnfe != null) {
+            return cnfe;
+        }
+        return klass;
+    }
+    
+    /**
      * Returns the <code>Klass</code> object associated with the class
      * with the given string name.
      * @param className the class name to lookup
@@ -322,34 +370,15 @@ public class Klass<T> {
 
         Klass klass = Klass.lookupKlass(className);
         ClassNotFoundException cnfe = null;
-        Isolate isolate = VM.getCurrentIsolate();
         if (klass == null) {
-/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
-            if (isolate.getLeafSuite().isClosed()) {
-                cnfe = new ClassNotFoundException(className + " [The current isolate has no class path]");
-            } else if ((className.startsWith("java.") ||
-                        className.startsWith("javax.") ||
-                        className.startsWith("com.sun.squawk.") ||
-                        className.startsWith("com.sun.cldc."))) {
-                String packageName = className.substring(0, className.lastIndexOf('.'));
-                cnfe = new ClassNotFoundException("Prohibited package name: " + packageName);
-            } else {
-                TranslatorInterface translator = isolate.getTranslator();
-                if (translator != null) {
-                    translator.open(isolate.getLeafSuite(), isolate.getClassPath());
-                    if (translator.isValidClassName(className)) {
-                        klass = Klass.getClass(className, false);
-                        translator.load(klass);
-                        // Must load complete closure
-                        translator.close(Suite.DEBUG);
-                    }
+            if (ENABLE_DYNAMIC_CLASSLOADING || VM.isHosted()) {
+                Object result = forNameDynamic(className);
+                if (result instanceof Klass) {
+                    klass = (Klass)result;
                 } else {
-                    if (VM.isVerbose()) {
-                        VM.println("[translator not found - dynamic class loading disabled]");
-                    }
+                    cnfe = (ClassNotFoundException)result;
                 }
             }
-/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
         }
 
 
@@ -357,6 +386,10 @@ public class Klass<T> {
             klass.initialiseClass();
             return klass;
         }
+
+        // handle error cases:
+        // TODO: Simplify, but make sure TCK tests pass
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
         if (VM.getCurrentIsolate().getLeafSuite().shouldThrowNoClassDefFoundErrorFor(className)) {
             if (cnfe != null && cnfe.getMessage() != null) {
                 throw new NoClassDefFoundError(cnfe.getMessage());
@@ -366,6 +399,12 @@ public class Klass<T> {
         if (cnfe != null) {
             throw cnfe;
         }
+/*else[ENABLE_DYNAMIC_CLASSLOADING]*/
+//        if (VM.getCurrentIsolate().getLeafSuite().shouldThrowNoClassDefFoundErrorFor(className)) {
+//            throw new NoClassDefFoundError(className);
+//        }
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+
         throw new ClassNotFoundException(className);
     }
 
@@ -2847,6 +2886,20 @@ T
         return method == match;
     }
     
+    private Method findMethodDynamic(Object body)
+/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
+        throws HostedPragma
+/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+    {
+        if (body instanceof MethodBody) {
+            MethodBody mbody = (MethodBody)body;
+            if (mbody.getDefiningClass() == this) {
+                return mbody.getDefiningMethod();
+            }
+        }
+        return null;
+    }
+    
     /**
      * Searches for the symbolic method declaration corresponding to a given method body
      * that was defined by this class.
@@ -2855,16 +2908,13 @@ T
      * @return the symbolic info for <code>body</code> or null if it is not available
      */
     Method findMethod(Object body) {
-/*if[ENABLE_DYNAMIC_CLASSLOADING]*/
-        if (body instanceof MethodBody) {
-            MethodBody mbody = (MethodBody)body;
-            if (mbody.getDefiningClass() == this) {
-                return mbody.getDefiningMethod();
-            } else {
-                return null;
+        if (ENABLE_DYNAMIC_CLASSLOADING || VM.isHosted()) {
+            Method result = findMethodDynamic(body);
+            if (result != null) {
+                return result;
             }
         }
-/*end[ENABLE_DYNAMIC_CLASSLOADING]*/
+
         KlassMetadata metadata = getMetadata();
         if (metadata == null) {
             return null;
