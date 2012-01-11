@@ -2996,7 +2996,7 @@ T
         return method == match;
     }
     
-    Method findMethodDynamic(Object body)
+    private Method findMethodDynamic(Object body)
 /*if[ENABLE_DYNAMIC_CLASSLOADING]*/
         throws HostedPragma
 /*end[ENABLE_DYNAMIC_CLASSLOADING]*/
